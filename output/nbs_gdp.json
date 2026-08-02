@@ -1,0 +1,533 @@
+[
+  {
+    "quarter": "2011Q1",
+    "gdp_value": 9.8,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.757256+00:00"
+  },
+  {
+    "quarter": "2011Q2",
+    "gdp_value": 9.7,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.757492+00:00"
+  },
+  {
+    "quarter": "2011Q3",
+    "gdp_value": 9.5,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.757574+00:00"
+  },
+  {
+    "quarter": "2011Q4",
+    "gdp_value": 9.1,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.757604+00:00"
+  },
+  {
+    "quarter": "2012Q1",
+    "gdp_value": 8.9,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.757809+00:00"
+  },
+  {
+    "quarter": "2012Q2",
+    "gdp_value": 8.1,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.757934+00:00"
+  },
+  {
+    "quarter": "2012Q3",
+    "gdp_value": 7.6,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758064+00:00"
+  },
+  {
+    "quarter": "2012Q4",
+    "gdp_value": 7.4,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758221+00:00"
+  },
+  {
+    "quarter": "2013Q1",
+    "gdp_value": 7.9,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758308+00:00"
+  },
+  {
+    "quarter": "2013Q2",
+    "gdp_value": 7.7,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758335+00:00"
+  },
+  {
+    "quarter": "2013Q3",
+    "gdp_value": 7.5,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758358+00:00"
+  },
+  {
+    "quarter": "2013Q4",
+    "gdp_value": 7.8,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758383+00:00"
+  },
+  {
+    "quarter": "2014Q1",
+    "gdp_value": 7.7,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758406+00:00"
+  },
+  {
+    "quarter": "2014Q2",
+    "gdp_value": 7.4,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758428+00:00"
+  },
+  {
+    "quarter": "2014Q3",
+    "gdp_value": 7.5,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758450+00:00"
+  },
+  {
+    "quarter": "2014Q4",
+    "gdp_value": 7.3,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758472+00:00"
+  },
+  {
+    "quarter": "2015Q1",
+    "gdp_value": 7.3,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758493+00:00"
+  },
+  {
+    "quarter": "2015Q2",
+    "gdp_value": 7.0,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758514+00:00"
+  },
+  {
+    "quarter": "2015Q3",
+    "gdp_value": 7.0,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758535+00:00"
+  },
+  {
+    "quarter": "2015Q4",
+    "gdp_value": 6.9,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758556+00:00"
+  },
+  {
+    "quarter": "2016Q1",
+    "gdp_value": 6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758577+00:00"
+  },
+  {
+    "quarter": "2016Q2",
+    "gdp_value": 6.7,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758600+00:00"
+  },
+  {
+    "quarter": "2016Q3",
+    "gdp_value": 6.7,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758623+00:00"
+  },
+  {
+    "quarter": "2016Q4",
+    "gdp_value": 6.7,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758644+00:00"
+  },
+  {
+    "quarter": "2017Q1",
+    "gdp_value": 6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758664+00:00"
+  },
+  {
+    "quarter": "2017Q2",
+    "gdp_value": 6.9,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758686+00:00"
+  },
+  {
+    "quarter": "2017Q3",
+    "gdp_value": 6.9,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758707+00:00"
+  },
+  {
+    "quarter": "2017Q4",
+    "gdp_value": 6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758728+00:00"
+  },
+  {
+    "quarter": "2018Q1",
+    "gdp_value": 6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758749+00:00"
+  },
+  {
+    "quarter": "2018Q2",
+    "gdp_value": 6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758769+00:00"
+  },
+  {
+    "quarter": "2018Q3",
+    "gdp_value": 6.7,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758791+00:00"
+  },
+  {
+    "quarter": "2018Q4",
+    "gdp_value": 6.5,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758811+00:00"
+  },
+  {
+    "quarter": "2019Q1",
+    "gdp_value": 6.4,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758832+00:00"
+  },
+  {
+    "quarter": "2019Q2",
+    "gdp_value": 6.4,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758853+00:00"
+  },
+  {
+    "quarter": "2019Q3",
+    "gdp_value": 6.2,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758874+00:00"
+  },
+  {
+    "quarter": "2019Q4",
+    "gdp_value": 6.0,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758896+00:00"
+  },
+  {
+    "quarter": "2020Q1",
+    "gdp_value": 6.0,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758916+00:00"
+  },
+  {
+    "quarter": "2020Q2",
+    "gdp_value": -6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758937+00:00"
+  },
+  {
+    "quarter": "2020Q3",
+    "gdp_value": 3.2,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758958+00:00"
+  },
+  {
+    "quarter": "2020Q4",
+    "gdp_value": 4.9,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758979+00:00"
+  },
+  {
+    "quarter": "2021Q1",
+    "gdp_value": 6.5,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.758999+00:00"
+  },
+  {
+    "quarter": "2021Q2",
+    "gdp_value": 18.3,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759020+00:00"
+  },
+  {
+    "quarter": "2021Q3",
+    "gdp_value": 7.9,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759039+00:00"
+  },
+  {
+    "quarter": "2021Q4",
+    "gdp_value": 4.9,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759059+00:00"
+  },
+  {
+    "quarter": "2022Q1",
+    "gdp_value": 4.0,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759079+00:00"
+  },
+  {
+    "quarter": "2022Q2",
+    "gdp_value": 4.8,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759100+00:00"
+  },
+  {
+    "quarter": "2022Q3",
+    "gdp_value": 0.4,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759120+00:00"
+  },
+  {
+    "quarter": "2022Q4",
+    "gdp_value": 3.9,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759157+00:00"
+  },
+  {
+    "quarter": "2023Q1",
+    "gdp_value": 2.9,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759196+00:00"
+  },
+  {
+    "quarter": "2023Q2",
+    "gdp_value": 4.5,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759237+00:00"
+  },
+  {
+    "quarter": "2023Q3",
+    "gdp_value": 6.3,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759290+00:00"
+  },
+  {
+    "quarter": "2023Q4",
+    "gdp_value": 4.9,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759321+00:00"
+  },
+  {
+    "quarter": "2024Q1",
+    "gdp_value": 5.2,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759348+00:00"
+  },
+  {
+    "quarter": "2024Q2",
+    "gdp_value": 5.3,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759375+00:00"
+  },
+  {
+    "quarter": "2024Q3",
+    "gdp_value": 4.7,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759453+00:00"
+  },
+  {
+    "quarter": "2024Q4",
+    "gdp_value": 4.6,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759496+00:00"
+  },
+  {
+    "quarter": "2025Q1",
+    "gdp_value": 5.4,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759526+00:00"
+  },
+  {
+    "quarter": "2025Q2",
+    "gdp_value": 5.4,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759552+00:00"
+  },
+  {
+    "quarter": "2025Q3",
+    "gdp_value": 5.2,
+    "indicator_code": "A0201",
+    "indicator_name": "国内生产总值(GDP)",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-29T18:24:59.759578+00:00"
+  }
+]

@@ -1,0 +1,21 @@
+name: cpcifa-scraper
+version: "1.0.0"
+description: Petrochemical Industry Assoc data scraper
+target_url: http://www.cpcifa.org.cn/
+score: 95
+
+categories:
+  - market_data
+  - analytics
+
+output:
+  - sqlite
+  - json
+
+rate_limiting:
+  delay_between_requests: 2.0
+  max_concurrent: 2
+
+notes:
+  - "Petrochemical Industry Assoc"
+  - "High-priority data source"

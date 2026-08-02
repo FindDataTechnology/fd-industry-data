@@ -1,0 +1,85 @@
+name: cea_ecommerce
+label: 中国电子商务协会数据
+source_url: http://www.ec.com.cn/
+description: 电商市场数据、网络零售统计、平台表现、消费者行为
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_cea_ecommerce_data
+    description: 获取电子商务市场数据，包括市场规模、平台表现、跨境电商数据
+    category: ecommerce-data
+    frequency: monthly
+    columns:
+      market:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: category
+          type: str
+          description: 类别（英文）
+        - name: category_cn
+          type: str
+          description: 类别（中文）
+        - name: indicator_name
+          type: str
+          description: 指标名称（gmv/user_count/order_count/penetration_rate）
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: growth_rate
+          type: float
+          description: 增长率
+        - name: region
+          type: str
+          description: 地区
+      platform:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: platform_name
+          type: str
+          description: 平台名称
+        - name: gmv
+          type: float
+          description: GMV（亿元）
+        - name: market_share
+          type: float
+          description: 市场份额（%）
+        - name: user_count
+          type: float
+          description: 用户数（万人）
+        - name: order_count
+          type: float
+          description: 订单数（万单）
+      crossborder:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: direction
+          type: str
+          description: 方向（import/export/total）
+        - name: value
+          type: float
+          description: 金额（亿元）
+        - name: growth_rate
+          type: float
+          description: 增长率
+        - name: category
+          type: str
+          description: 类别
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/policy/analysis/data/cross_border/live_ecommerce）

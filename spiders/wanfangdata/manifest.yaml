@@ -1,0 +1,72 @@
+name: wanfangdata
+version: 1.0.0
+label: Wanfangdata
+description: High-priority data source scraper (score: 85)
+source_url: https://www.wanfangdata.com.cn/
+author: FindData Official
+license: MIT
+created_at: 2026-08-01
+
+spider:
+  class: WanfangdataSpider
+  module: spider.py
+  entry_point: python spider.py
+
+data_sources:
+  - name: Primary Source
+    url: https://www.wanfangdata.com.cn/
+    category: main
+
+functions:
+  - name: fetch_wanfangdata_metadata
+    label: Fetch metadata
+    parameters:
+      - name: url
+        type: string
+        required: true
+    returns:
+      - name: results
+        type: array
+
+columns:
+  - name: id
+    type: INTEGER
+    nullable: false
+  - name: title
+    type: TEXT
+    nullable: true
+  - name: description
+    type: TEXT
+    nullable: true
+  - name: url
+    type: TEXT
+    nullable: true
+  - name: source
+    type: TEXT
+    nullable: true
+  - name: scraped_at
+    type: TEXT
+    nullable: true
+
+commands:
+  - command: "scrapy crawl wanfangdata"
+    example: "cd wanfangdata && scrapy crawl wanfangdata"
+  - command: "python spider.py --urls <url>"
+    example: "python spider.py --urls https://example.com"
+  - command: "python spider.py --dry-run"
+    example: "python spider.py --dry-run"
+  - command: "uv run python spider.py"
+    example: "uv run python spider.py --verbose"
+
+features:
+  - deduplication
+  - sqlite_storage
+  - json_export
+  - stealth_mode
+
+dependencies:
+  - scrapling>=0.4.7
+  - python>=3.10
+
+status: active
+priority_score: 85

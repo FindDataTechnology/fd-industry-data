@@ -1,0 +1,79 @@
+name: camdi
+label: 中国医疗器械行业协会数据
+source_url: http://www.camdi.org/
+description: 医疗器械生产数据、市场统计数据、注册审批信息、行业新闻
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_camdi_data
+    description: 获取医疗器械行业数据，包括产量、市场规模和注册审批信息
+    category: healthcare-data
+    frequency: monthly
+    columns:
+      production:
+        - name: date
+          type: str
+          description: 日期
+        - name: device_category
+          type: str
+          description: 器械类别（英文）
+        - name: device_cn
+          type: str
+          description: 器械类别（中文）
+        - name: production
+          type: float
+          description: 产量
+        - name: unit
+          type: str
+          description: 单位
+        - name: yoy_change
+          type: float
+          description: 同比变化
+        - name: region
+          type: str
+          description: 地区
+      market:
+        - name: date
+          type: str
+          description: 日期
+        - name: device_category
+          type: str
+          description: 器械类别
+        - name: market_size
+          type: float
+          description: 市场规模（亿元）
+        - name: growth_rate
+          type: float
+          description: 增长率
+        - name: export_value
+          type: float
+          description: 出口额
+        - name: import_value
+          type: float
+          description: 进口额
+      regulatory:
+        - name: date
+          type: str
+          description: 日期
+        - name: title
+          type: str
+          description: 标题
+        - name: category
+          type: str
+          description: 类别（registration/approval/standards/recall）
+        - name: device_type
+          type: str
+          description: 器械分类（class_i/ii/iii）
+        - name: approval_number
+          type: str
+          description: 注册证号
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: category
+          type: str
+          description: 类别（news/policy/technology）

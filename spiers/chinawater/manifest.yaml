@@ -1,0 +1,104 @@
+name: chinawater
+label: 中国水利学会数据
+source_url: http://www.chinawater.com.cn/
+description: 水资源数据、灌溉统计、水质数据、水利基础设施
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_chinawater_data
+    description: 获取水利行业统计数据，包括水资源、灌溉、水质和基础设施数据
+    category: infrastructure-data
+    frequency: monthly
+    columns:
+      resources:
+        - name: date
+          type: str
+          description: 日期
+        - name: indicator
+          type: str
+          description: 指标名称
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: region
+          type: str
+          description: 地区
+        - name: yoy_change
+          type: float
+          description: 同比变化
+      irrigation:
+        - name: date
+          type: str
+          description: 日期
+        - name: indicator
+          type: str
+          description: 指标名称
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: region
+          type: str
+          description: 地区
+      quality:
+        - name: date
+          type: str
+          description: 日期
+        - name: water_body
+          type: str
+          description: 水体名称
+        - name: quality_class
+          type: str
+          description: 水质类别
+        - name: ph
+          type: float
+          description: pH值
+        - name: dissolved_oxygen
+          type: float
+          description: 溶解氧
+        - name: cod
+          type: float
+          description: 化学需氧量
+        - name: ammonia_nitrogen
+          type: float
+          description: 氨氮
+        - name: region
+          type: str
+          description: 地区
+      infrastructure:
+        - name: date
+          type: str
+          description: 日期
+        - name: facility_type
+          type: str
+          description: 设施类型（reservoir/dam/sluice/pump_station/canal/levee）
+        - name: facility_name
+          type: str
+          description: 设施名称
+        - name: capacity
+          type: float
+          description: 容量
+        - name: capacity_unit
+          type: str
+          description: 容量单位
+        - name: region
+          type: str
+          description: 地区
+        - name: status
+          type: str
+          description: 状态
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: category
+          type: str
+          description: 类别

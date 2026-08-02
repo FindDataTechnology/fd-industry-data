@@ -1,0 +1,9 @@
+name: sac
+title: "中国证券业协会 (SAC)"
+url: "https://www.sac.net.cn/"
+data_type: "government-statistics"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.175184"
+version: "1.0.0"

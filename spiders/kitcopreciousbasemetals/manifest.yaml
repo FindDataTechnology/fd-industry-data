@@ -1,0 +1,9 @@
+name: kitcopreciousbasemetals
+title: "Kitco Precious & Base Metals"
+url: "https://www.kitco.com"
+data_type: "spot-prices"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.222414"
+version: "1.0.0"

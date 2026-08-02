@@ -1,0 +1,77 @@
+# fd-open-data-protocol compliant manifest
+# MCP integration metadata
+
+name: ceia
+label: "中国电子行业协会"
+description: "提供中国电子产业年度统计报告、政策文件及行业白皮书"
+source_url: "http://www.ceia.org.cn"
+priority_score: 95
+created_at: 2026-08-01T01:22:55.633791
+
+function_definitions:
+  - name: fetch_ceia
+    description: "Fetch data from 中国电子行业协会"
+    parameters:
+      - name: urls
+        type: array<string>
+        description: "List of URLs to scrape"
+        optional: true
+        default: ["http://www.ceia.org.cn"]
+      - name: limit
+        type: integer
+        description: "Maximum number of records to fetch"
+        optional: true
+        default: 1000
+    returns: array<object>
+    
+  - name: query_ceia
+    description: "Query stored data from 中国电子行业协会"
+    parameters:
+      - name: filters
+        type: object
+        description: "Filter criteria"
+        optional: true
+      - name: limit
+        type: integer
+        description: "Max records to return"
+        optional: true
+        default: 100
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+    description: "Original URL of the scraped page"
+    
+  - name: page_title
+    type: string
+    description: "HTML title of the page"
+    
+  - name: content_length
+    type: integer
+    description: "Size of page content in bytes"
+    
+  - name: status_code
+    type: integer
+    description: "HTTP status code of the request"
+    
+  - name: scraped_at
+    type: timestamp
+    description: "Timestamp when the data was collected"
+
+commands:
+  - name: fetch
+    description: "Run the scraper to collect new data"
+    command: "python spider.py --urls <url1> <url2>"
+    
+  - name: dry-run
+    description: "Test scraping without saving results"
+    command: "python spider.py --dry-run"
+    
+  - name: export-json
+    description: "Export data to JSON Lines format"
+    command: "python spider.py --format json"
+    
+  - name: export-db
+    description: "Export data to SQLite database"
+    command: "python spider.py --format sqlite"

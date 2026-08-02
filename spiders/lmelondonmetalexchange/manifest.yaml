@@ -1,0 +1,9 @@
+name: lmelondonmetalexchange
+title: "LME London Metal Exchange"
+url: "https://www.lme.com"
+data_type: "commodity-futures"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.184829"
+version: "1.0.0"

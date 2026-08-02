@@ -1,0 +1,79 @@
+name: moe-gov-education
+label: 中华人民共和国教育部 - 教育统计数据
+source_url: http://www.moe.gov.cn/
+score: 95
+authentication: none
+access_level: public
+authentication_details: |
+  All data is publicly available on the MOE website.
+  No API key or registration required.
+  
+  PUBLIC (this spider):
+  - National education development statistical communiques (全国教育事业发展统计公报)
+  - Education expenditure announcements (教育经费统计)
+  - Policy documents and regulations (政策文件)
+  - School enrollment statistics by level and region
+  
+  NOT COVERED:
+  - Interactive data query tools may have CAPTCHA for bulk downloads
+  - Internal administrative documents (not public)
+  
+  Website: http://www.moe.gov.cn/
+  Data center: http://www.moe.gov.cn/jyb_sjzl/
+rate_limiting:
+  download_delay: 2.0
+  concurrent_requests: 3
+  robots_txt_obey: true
+functions:
+  - command: MoeGovSpider
+    description: 获取教育统计数据（在校生、教育经费、学校数、毛入学率等）
+    category: education-statistics
+    frequency: annual
+    columns:
+      - name: stat_year
+        type: str
+        description: 统计年份
+      - name: indicator_name
+        type: str
+        description: 指标英文名
+      - name: indicator_name_cn
+        type: str
+        description: 指标中文名
+      - name: value
+        type: float
+        description: 数值
+      - name: unit
+        type: str
+        description: 单位（万人、万所、%等）
+      - name: education_level
+        type: str
+        description: 教育级别(preschool/primary/junior_secondary/senior_secondary/higher_education等)
+      - name: education_level_cn
+        type: str
+        description: 教育级别中文名
+      - name: region
+        type: str
+        description: 地区
+      - name: category
+        type: str
+        description: 类别(enrollment/expenditure/table_data)
+  - command: PolicySpider
+    description: 获取教育部政策文件列表
+    category: policy-documents
+    frequency: realtime
+    columns:
+      - name: doc_number
+        type: str
+        description: 文件编号
+      - name: title
+        type: str
+        description: 文件标题
+      - name: issue_date
+        type: str
+        description: 发布日期
+      - name: category
+        type: str
+        description: 文件类别(notice/opinion/regulation/measure/communique)
+      - name: source_url
+        type: str
+        description: 文件链接

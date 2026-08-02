@@ -1,0 +1,125 @@
+name: moa-gov
+label: 农业农村部数据
+source_url: https://www.moa.gov.cn/
+description: 农业农村部农业生产统计、作物产量、畜牧数据、政策文件、农村经济指标
+functions:
+  - command: get_agricultural_statistics
+    description: 农业生产统计数据（种植业、畜牧业、渔业）
+    category: statistics
+    frequency: quarterly
+    columns:
+      - name: period
+        type: str
+        description: 统计周期
+      - name: indicator
+        type: str
+        description: 指标名称
+      - name: value
+        type: str
+        description: 指标数值
+      - name: unit
+        type: str
+        description: 单位
+      - name: category
+        type: str
+        description: 类别（种植/畜牧/渔业）
+      - name: region
+        type: str
+        description: 地区
+      - name: change_pct
+        type: float
+        description: 同比/环比变化率(%)
+  - command: get_crop_yield
+    description: 作物产量数据（按省份和作物类型）
+    category: production-data
+    frequency: annual
+    columns:
+      - name: year
+        type: str
+        description: 年份
+      - name: province
+        type: str
+        description: 省份
+      - name: crop_name
+        type: str
+        description: 作物名称
+      - name: area
+        type: float
+        description: 播种面积(千公顷)
+      - name: total_output
+        type: float
+        description: 总产量(万吨)
+      - name: yield_per_area
+        type: float
+        description: 单产
+  - command: get_livestock_data
+    description: 畜牧业生产数据（猪牛羊禽）
+    category: production-data
+    frequency: quarterly
+    columns:
+      - name: period
+        type: str
+        description: 统计周期
+      - name: province
+        type: str
+        description: 省份
+      - name: animal_type
+        type: str
+        description: 畜种（猪/牛/羊/禽）
+      - name: indicator
+        type: str
+        description: 指标名称
+      - name: value
+        type: str
+        description: 指标数值
+      - name: unit
+        type: str
+        description: 单位
+  - command: get_policy_documents
+    description: 农业政策文件和法规
+    category: policy-data
+    frequency: monthly
+    columns:
+      - name: title
+        type: str
+        description: 文件标题
+      - name: publish_date
+        type: str
+        description: 发布日期
+      - name: doc_number
+        type: str
+        description: 文号
+      - name: doc_type
+        type: str
+        description: 文件类型
+      - name: issuing_body
+        type: str
+        description: 发布机构
+      - name: category
+        type: str
+        description: 类别
+  - command: get_rural_economy
+    description: 农村经济指标数据
+    category: economic-data
+    frequency: quarterly
+    columns:
+      - name: period
+        type: str
+        description: 统计周期
+      - name: province
+        type: str
+        description: 省份
+      - name: indicator
+        type: str
+        description: 指标名称
+      - name: value
+        type: str
+        description: 指标数值
+      - name: unit
+        type: str
+        description: 单位
+notes:
+  - 农业农村部网站为政府官方网站，数据权威性高
+  - 统计数据按季度/年度发布，更新频率固定
+  - 部分历史数据需要查阅统计年鉴
+  - 政策文件公开可访问，无需认证

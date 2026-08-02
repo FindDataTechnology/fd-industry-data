@@ -1,0 +1,9 @@
+name: src-62
+title: "上海有色网"
+url: "https://www.smm.cn/metal"
+data_type: "commodity-prices"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.202241"
+version: "1.0.0"

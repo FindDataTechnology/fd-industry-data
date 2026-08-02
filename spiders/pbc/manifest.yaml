@@ -1,0 +1,23 @@
+name: pbc-scraper
+version: "1.0.0"
+description: People's Bank of China data scraper
+target_url: https://www.pbc.gov.cn/
+score: 95
+
+categories:
+  - monetary_policy
+  - lending_rates
+  - foreign_reserves
+
+output:
+  - sqlite
+  - json
+
+rate_limiting:
+  delay_between_requests: 2.0
+  max_concurrent: 2
+
+notes:
+  - "People's Bank of China"
+  - "Central bank data source"
+  - "High-priority government source"

@@ -1,0 +1,9 @@
+name: people-data
+title: "人民网数据中心"
+url: "https://data.people.com.cn/"
+data_type: "news-archive"
+description: "People's Daily Online data center"
+score: 90+
+priority: high
+created: "2026-08-01T01:45:52.095005"
+version: "1.0.0"

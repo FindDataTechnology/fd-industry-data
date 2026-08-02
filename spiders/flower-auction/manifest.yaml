@@ -1,0 +1,104 @@
+name: flower-auction
+version: 1.0.0
+description: Kunming International Flower Auction Center data scraper
+source: http://www.kifc.cn
+author: FindData Official
+license: MIT
+
+spider:
+  class: FlowerAuctionSpider
+  module: spider
+  entry_point: spider.py
+
+data_sources:
+  - name: Auction Results
+    url: http://www.kifc.cn/auction
+    category: auction
+  - name: Price Data
+    url: http://www.kifc.cn/price
+    category: price
+  - name: Market Analysis
+    url: http://www.kifc.cn/market
+    category: market
+
+output:
+  database: data/flower_auction.db
+  json: output/flower_auction.json
+  schema:
+    table: flower_auction
+    columns:
+      - name: id
+        type: INTEGER
+        primary_key: true
+      - name: url
+        type: TEXT
+      - name: auction_date
+        type: TEXT
+      - name: date
+        type: TEXT
+      - name: flower_name
+        type: TEXT
+      - name: variety
+        type: TEXT
+      - name: spec
+        type: TEXT
+      - name: quantity
+        type: TEXT
+      - name: unit
+        type: TEXT
+      - name: price
+        type: TEXT
+      - name: avg_price
+        type: TEXT
+      - name: price_high
+        type: TEXT
+      - name: price_low
+        type: TEXT
+      - name: volume
+        type: TEXT
+      - name: total_volume
+        type: TEXT
+      - name: transaction_rate
+        type: TEXT
+      - name: title
+        type: TEXT
+      - name: summary
+        type: TEXT
+      - name: content
+        type: TEXT
+      - name: date_range
+        type: TEXT
+      - name: data_type
+        type: TEXT
+      - name: scraped_at
+        type: TEXT
+      - name: url
+        type: TEXT
+      - name: flower_name
+        type: TEXT
+      - name: COALESCE(auction_date, date)
+        type: TEXT
+        unique_constraint: true
+
+settings:
+  concurrent_requests: 4
+  download_delay: 2.0
+  robots_txt_obey: true
+  allowed_domains:
+    - kifc.cn
+
+features:
+  - pagination
+  - sqlite_storage
+  - json_export
+  - rate_limiting
+  - deduplication
+  - dynamic_content_support
+  - time_sensitive_data
+
+dependencies:
+  - scrapling>=0.4.7
+  - python>=3.10
+
+last_updated: 2026-01-31
+status: active

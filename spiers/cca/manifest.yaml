@@ -1,0 +1,91 @@
+name: cca
+label: 中国消费者协会数据
+source_url: http://www.cca.org.cn/
+description: 消费者投诉数据、市场监测、产品质量报告、消费者权益
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_cca_data
+    description: 获取消费者协会数据，包括投诉统计、产品质量、满意度调查
+    category: consumer-data
+    frequency: quarterly
+    columns:
+      complaints:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: category
+          type: str
+          description: 类别（英文）
+        - name: category_cn
+          type: str
+          description: 类别（中文）
+        - name: complaint_count
+          type: int
+          description: 投诉数量
+        - name: resolved_count
+          type: int
+          description: 已解决数量
+        - name: resolution_rate
+          type: float
+          description: 解决率（%）
+        - name: amount_involved
+          type: float
+          description: 涉及金额
+        - name: amount_unit
+          type: str
+          description: 金额单位
+      quality:
+        - name: date
+          type: str
+          description: 日期
+        - name: product_name
+          type: str
+          description: 产品名称
+        - name: brand
+          type: str
+          description: 品牌
+        - name: manufacturer
+          type: str
+          description: 生产商
+        - name: issue_type
+          type: str
+          description: 问题类型（substandard/recall/quality_issue/inspection）
+        - name: severity
+          type: str
+          description: 严重程度（high/medium/low）
+        - name: recall_status
+          type: str
+          description: 召回状态
+      satisfaction:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: industry
+          type: str
+          description: 行业（英文）
+        - name: industry_cn
+          type: str
+          description: 行业（中文）
+        - name: score
+          type: float
+          description: 满意度评分
+        - name: sample_size
+          type: int
+          description: 样本量
+        - name: ranking
+          type: int
+          description: 排名
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/policy/analysis/complaint/quality/recall）

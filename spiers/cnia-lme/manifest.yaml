@@ -1,0 +1,60 @@
+name: cnia-lme
+label: LME伦敦金属交易所数据
+source_url: https://www.lme.com
+description: 伦敦金属交易所期货结算价、仓库库存、全球市场数据
+functions:
+  - command: get_lme_prices
+    description: 获取LME有色金属期货结算价格（铜、铝、锌、铅、镍、锡）
+    category: futures-data
+    frequency: daily
+    columns:
+      - name: date
+        type: str
+        description: 交易日期
+      - name: metal
+        type: str
+        description: 金属名称（英文）
+      - name: metal_cn
+        type: str
+        description: 金属名称（中文）
+      - name: symbol
+        type: str
+        description: 金属符号
+      - name: lme_code
+        type: str
+        description: LME代码（CA/AH/ZS/PB/NI/SN）
+      - name: settlement_price
+        type: float
+        description: 结算价（USD/tonne）
+      - name: bid_price
+        type: float
+        description: 买入价
+      - name: offer_price
+        type: float
+        description: 卖出价
+      - name: price_change
+        type: float
+        description: 涨跌额
+      - name: price_change_pct
+        type: float
+        description: 涨跌幅（%）
+      - name: unit
+        type: str
+        description: 单位（USD/tonne）
+      - name: currency
+        type: str
+        description: 货币（USD）
+      - name: contract_month
+        type: str
+        description: 合约月份
+      - name: source_url
+        type: str
+        description: 数据来源URL
+      - name: scraped_at
+        type: str
+        description: 爬取时间
+notes:
+  - LME实时数据需要付费订阅
+  - 本爬虫获取延迟数据（15-30分钟）
+  - 部分端点需要API密钥注册
+  - 中国市场价格请参考SMM数据源

@@ -1,0 +1,18 @@
+name: steel-assoc
+label: 钢铁行业协会数据
+source_url: https://www.chinaisa.org.cn
+functions:
+  - command: get_industry_stats
+    description: 钢铁行业协会统计数据
+    category: industry-statistics
+    frequency: monthly
+    columns:
+      - name: date
+        type: str
+        description: 统计日期
+      - name: metric
+        type: str
+        description: 指标名称
+      - name: value
+        type: float
+        description: 指标数值

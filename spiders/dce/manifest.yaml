@@ -1,0 +1,87 @@
+name: dce
+version: 1.0.0
+description: Dalian Commodity Exchange (大连商品交易所) agricultural and chemical futures scraper
+source: https://www.dce.com.cn
+author: FindData Official
+license: MIT
+
+spider:
+  class: DCESpider
+  module: spider
+  entry_point: spider.py
+
+data_sources:
+  - name: 农产品期货
+    category: agriculture
+    products:
+      - 大豆 A (Soybeans A)
+      - 豆粕 (Soybean Meal)
+      - 玉米 (Corn)
+      - 棕榈油 (Palm Oil)
+    
+  - name: 化工品期货
+    category: chemicals
+    products:
+      - PP (聚丙烯)
+      - PE (聚乙烯)
+      - PVC (聚氯乙烯)
+      - 苯乙烯 (Styrene)
+    
+  - name: 畜牧期货
+    category: livestock
+    products:
+      - 生猪 (Live Hogs)
+    
+  - name: 市场分析
+    category: analysis
+    description: Market analysis and news from DCE
+
+output:
+  database: data/dce_prices.db
+  json: output/
+  schema:
+    tables:
+      - name: agriculture
+        description: Agricultural product pricing and volume data
+      - name: chemicals
+        description: Chemical product pricing data
+      - name: livestock
+        description: Livestock futures pricing data
+      - name: general
+        description: General futures data
+      - name: analysis
+        description: Market analysis articles and reports
+
+settings:
+  concurrent_requests: 2
+  download_delay: 3.0
+  max_retries: 3
+  robots_txt_obey: true
+  timeout: 30
+  allowed_domains:
+    - dce.com.cn
+
+features:
+  - pagination
+  - table_extraction
+  - sqlite_storage
+  - json_export
+  - rate_limiting
+  - deduplication
+  - category_identification
+  - numeric_parsing
+
+anti_bot:
+  user_agent_rotation: true
+  session_impersonation: chrome
+  randomized_delays: true
+  min_delay: 2.0
+  max_delay: 5.0
+
+dependencies:
+  - scrapling>=0.4.7
+  - python>=3.10
+
+last_updated: 2026-07-31
+status: active
+priority: high

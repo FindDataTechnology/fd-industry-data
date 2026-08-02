@@ -1,0 +1,71 @@
+name: flower-association
+version: 1.0.0
+description: China Flower Association news and data scraper
+source: https://www.chinaflower.org.cn
+author: FindData Official
+license: MIT
+
+spider:
+  class: FlowerAssociationSpider
+  module: spider
+  entry_point: spider.py
+
+data_sources:
+  - name: 行业新闻
+    url: https://www.chinaflower.org.cn/list/27
+    category: news
+  - name: 政策法规
+    url: https://www.chinaflower.org.cn/list/28
+    category: policy
+  - name: 市场行情
+    url: https://www.chinaflower.org.cn/list/29
+    category: market
+  - name: 统计数据
+    url: https://www.chinaflower.org.cn/list/30
+    category: statistics
+
+output:
+  database: data/flower_association.db
+  json: output/flower_association.json
+  schema:
+    table: flower_association
+    columns:
+      - name: id
+        type: INTEGER
+        primary_key: true
+      - name: url
+        type: TEXT
+        unique: true
+      - name: title
+        type: TEXT
+      - name: content
+        type: TEXT
+      - name: publish_date
+        type: TEXT
+      - name: source
+        type: TEXT
+      - name: category
+        type: TEXT
+      - name: scraped_at
+        type: TEXT
+
+settings:
+  concurrent_requests: 4
+  download_delay: 1.5
+  robots_txt_obey: true
+  allowed_domains:
+    - chinaflower.org.cn
+
+features:
+  - pagination
+  - sqlite_storage
+  - json_export
+  - rate_limiting
+  - deduplication
+
+dependencies:
+  - scrapling>=0.4.7
+  - python>=3.10
+
+last_updated: 2026-01-31
+status: active

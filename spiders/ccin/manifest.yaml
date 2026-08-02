@@ -1,0 +1,148 @@
+name: ccin
+label: 中国化工信息中心
+source_url: http://www.ccin.com.cn/
+description: |
+  中国化工信息中心官方数据，包括化工产品价格、市场供需数据、
+  行业新闻分析和技术标准。覆盖有机化工、无机化工、合成材料、
+  化工中间体、化肥等主要品类。
+
+authentication:
+  required: false
+  type: none
+  notes: |
+    公开数据，无需登录。部分详细数据可能需要订阅服务。
+    Public data, no login required. Some detailed data may require
+    subscription.
+
+rate_limiting:
+  download_delay: 3
+  concurrent_requests: 1
+  notes: 建议3秒延迟
+
+anti_bot:
+  method: browser_impersonation
+  details: Chrome browser impersonation with stealthy headers
+
+functions:
+  - command: get_ccin_data
+    description: 获取化工行业数据
+    category: industry-data
+    frequency: daily
+    parameters:
+      include_standards:
+        type: bool
+        description: 是否抓取技术标准
+        default: true
+      include_reports:
+        type: bool
+        description: 是否抓取行业报告
+        default: true
+      include_news:
+        type: bool
+        description: 是否抓取行业新闻
+        default: true
+
+columns:
+  prices:
+    date:
+      type: str
+      description: 日期
+    product:
+      type: str
+      description: 产品名称
+    product_cn:
+      type: str
+      description: 产品名称（中文）
+    category:
+      type: str
+      description: 产品类别
+    price:
+      type: float
+      description: 价格
+    price_unit:
+      type: str
+      description: 价格单位（元/吨）
+    price_change:
+      type: float
+      description: 涨跌额
+    price_change_pct:
+      type: float
+      description: 涨跌幅（%）
+  market:
+    date:
+      type: str
+      description: 日期
+    product:
+      type: str
+      description: 产品名称
+    supply_index:
+      type: float
+      description: 供应指数
+    demand_index:
+      type: float
+      description: 需求指数
+    inventory:
+      type: float
+      description: 库存量
+    operating_rate:
+      type: float
+      description: 开工率
+    market_trend:
+      type: str
+      description: 市场趋势
+  standards:
+    standard_no:
+      type: str
+      description: 标准号（如 GB/T 12345）
+    title:
+      type: str
+      description: 标准名称
+    category:
+      type: str
+      description: 标准类别
+    status:
+      type: str
+      description: 状态（active/withdrawn）
+    publish_date:
+      type: str
+      description: 发布日期
+    implement_date:
+      type: str
+      description: 实施日期
+  reports:
+    date:
+      type: str
+      description: 发布日期
+    title:
+      type: str
+      description: 报告标题
+    category:
+      type: str
+      description: 类别（weekly/monthly/annual）
+    product:
+      type: str
+      description: 相关产品
+    summary:
+      type: str
+      description: 摘要
+
+output:
+  sqlite:
+    path: data/ccin.db
+    tables:
+      - price_data
+      - market_analysis
+      - industry_news
+      - technical_standards
+      - industry_reports
+  json:
+    - path: output/ccin_prices.json
+      description: 价格数据
+    - path: output/ccin_market.json
+      description: 市场数据
+    - path: output/ccin_standards.json
+      description: 技术标准
+    - path: output/ccin_reports.json
+      description: 行业报告
+    - path: output/ccin_news.json
+      description: 行业新闻

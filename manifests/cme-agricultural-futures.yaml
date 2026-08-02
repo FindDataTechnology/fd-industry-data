@@ -1,0 +1,27 @@
+name: cme-agricultural-futures
+label: CME 集团 - 农产品期货数据
+source_url: https://www.cmegroup.com/markets/agricultural.html
+functions:
+  - command: get_ag_futures_prices
+    description: 获取农产品期货结算价格和持仓数据
+    category: agricultural-futures
+    frequency: daily
+    columns:
+      - name: contract_date
+        type: str
+        description: 合约日期
+      - name: product_name
+        type: str
+        description: 产品名称（如玉米、小麦、大豆）
+      - name: settlement_price
+        type: float
+        description: 结算价格
+      - name: open_interest
+        type: int
+        description: 持仓量
+      - name: volume
+        type: int
+        description: 成交量
+      - name: unit
+        type: str
+        description: 单位

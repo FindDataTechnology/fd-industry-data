@@ -1,0 +1,73 @@
+name: cnia
+label: 中国有色金属工业协会数据
+source_url: https://www.cnia.org.cn
+description: 行业统计数据、产量数据、政策文件、协会新闻、行业报告
+functions:
+  - command: get_cnia_data
+    description: 获取有色金属行业统计数据、新闻和行业报告
+    category: industry-data
+    frequency: monthly
+    columns:
+      statistics:
+        - name: period
+          type: str
+          description: 统计期间（年/月）
+        - name: metal
+          type: str
+          description: 金属名称（英文）
+        - name: metal_cn
+          type: str
+          description: 金属名称（中文）
+        - name: production_volume
+          type: float
+          description: 产量
+        - name: production_unit
+          type: str
+          description: 产量单位（吨/万吨）
+        - name: growth_rate
+          type: float
+          description: 增长率
+        - name: growth_unit
+          type: str
+          description: 增长率单位（%/吨）
+        - name: region
+          type: str
+          description: 地区
+        - name: category
+          type: str
+          description: 类别
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/policy/association/industry）
+        - name: metal
+          type: str
+          description: 相关金属
+      reports:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 报告标题
+        - name: summary
+          type: str
+          description: 摘要
+        - name: report_type
+          type: str
+          description: 报告类型（annual/monthly/analysis）
+        - name: metal
+          type: str
+          description: 相关金属
+        - name: author
+          type: str
+          description: 作者/来源

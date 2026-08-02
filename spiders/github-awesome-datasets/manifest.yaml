@@ -1,0 +1,43 @@
+# fd-open-data-protocol compliant manifest
+
+name: github-awesome-datasets
+label: "GitHub Awesome Public Datasets"
+description: "A curated list of publicly available datasets across various domains, maintained on GitHub."
+source_url: "https://github.com/awesomedata/awesome-public-datasets"
+priority_score: 90
+created_at: 2026-08-01T12:00:00
+
+function_definitions:
+  - name: fetch_github_awesome_datasets
+    description: "Fetch dataset listings from Awesome Public Datasets"
+    parameters:
+      - name: urls
+        type: array<string>
+        description: "List of URLs to scrape"
+        optional: true
+      - name: limit
+        type: integer
+        description: "Maximum number of records"
+        optional: true
+        default: 1000
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+  - name: dataset_name
+    type: string
+  - name: description
+    type: string
+  - name: category
+    type: string
+  - name: url
+    type: string
+  - name: scraped_at
+    type: timestamp
+
+commands:
+  - name: fetch
+    command: "python spider.py --urls <url1> <url2>"
+  - name: dry-run
+    command: "python spider.py --dry-run"

@@ -1,0 +1,28 @@
+name: cia-insurance-market
+label: 中国保险行业协会 - 保险市场数据
+source_url: https://www.iachina.cn
+score: 90
+functions:
+  - command: get_insurance_stats
+    description: 获取保险市场统计数据（保费收入、赔付、偿付能力）
+    category: insurance-market
+    frequency: monthly
+    columns:
+      - name: stat_date
+        type: str
+        description: 统计日期
+      - name: indicator_name
+        type: str
+        description: 指标名称
+      - name: value
+        type: float
+        description: 数值
+      - name: unit
+        type: str
+        description: 单位
+      - name: category
+        type: str
+        description: 类别（premium, balance_sheet, claims, solvency, product_distribution）
+      - name: insurance_type
+        type: str
+        description: 保险类型（life, property, health, accident, total）

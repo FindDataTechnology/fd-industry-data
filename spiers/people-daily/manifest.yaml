@@ -1,0 +1,43 @@
+name: people-daily
+label: 人民日报数据中心(People's Daily Data Center)
+source_url: https://data.people.com.cn/
+description: 人民日报新闻文章、经济统计数据、政策文件、历史档案
+authentication: none_required
+access_level: public
+rate_limiting:
+  download_delay: 2.0
+  concurrent_requests: 4
+  robots_txt_obey: true
+functions:
+  - command: PeopleDailySpider
+    description: 爬取人民日报数据中心的新闻文章、统计数据、政策文件
+    category: news-and-data
+    frequency: daily
+    columns:
+      - name: url
+        type: str
+        description: 文章URL
+      - name: title
+        type: str
+        description: 标题
+      - name: author
+        type: str
+        description: 作者/编辑
+      - name: pub_date
+        type: str
+        description: 发布日期
+      - name: content
+        type: str
+        description: 正文内容
+      - name: category
+        type: str
+        description: 分类/栏目
+      - name: source
+        type: str
+        description: 来源
+      - name: data_type
+        type: str
+        description: 数据类型(article/paper_article)
+      - name: scraped_at
+        type: str
+        description: 爬取时间

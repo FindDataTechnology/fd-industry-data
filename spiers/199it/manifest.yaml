@@ -1,0 +1,71 @@
+name: 199it-research-data
+label: 199IT 互联网数据中心 - 行业研究报告
+source_url: https://www.199it.com/
+score: 70
+functions:
+  - command: get_research_reports
+    description: 获取行业研究报告元数据（标题、摘要、来源机构、日期）
+    category: industry-reports
+    frequency: daily
+    auth_required: false
+    columns:
+      - name: title
+        type: str
+        description: 报告标题
+      - name: category
+        type: str
+        description: 分类（互联网/电商/社交/云计算/AI/金融科技）
+      - name: source_organization
+        type: str
+        description: 来源机构
+      - name: publish_date
+        type: str
+        description: 发布日期
+      - name: summary
+        type: str
+        description: 摘要
+      - name: tags
+        type: str
+        description: 标签
+      - name: report_type
+        type: str
+        description: 报告类型
+  - command: get_industry_stats
+    description: 从报告中提取的行业统计数据
+    category: industry-metrics
+    frequency: daily
+    auth_required: false
+    columns:
+      - name: stat_date
+        type: str
+        description: 统计日期
+      - name: category
+        type: str
+        description: 类别
+      - name: indicator
+        type: str
+        description: 指标（用户规模/市场规模/同比增长/渗透率等）
+      - name: value
+        type: float
+        description: 数值
+      - name: unit
+        type: str
+        description: 单位
+  - command: get_tech_trends
+    description: 获取科技趋势信息
+    category: tech-trends
+    frequency: daily
+    auth_required: false
+    columns:
+      - name: trend_date
+        type: str
+        description: 日期
+      - name: topic
+        type: str
+        description: 趋势主题
+      - name: description
+        type: str
+        description: 描述
+auth_notes:
+  full_pdfs: 部分报告PDF需要注册或付费会员
+  public_data: 报告标题、摘要、行业统计数据、科技趋势均公开

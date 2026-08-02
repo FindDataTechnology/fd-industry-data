@@ -1,0 +1,57 @@
+name: wechat-mp
+label: 微信公众号平台(WeChat Official Account Platform)
+source_url: https://mp.weixin.qq.com/
+description: 微信公众号公开文章数据，通过搜狗微信搜索获取
+authentication: partial
+access_level: public_articles_only
+authentication_details: |
+  PUBLIC (this spider):
+  - Public article pages shared via links
+  - Article content, title, author, publish date
+  - Account name (public profile)
+  
+  REQUIRES AUTHENTICATION (not covered by this spider):
+  - Article metrics (views/likes/shares) - needs Official Account login
+  - Follower analytics - needs Official Account login
+  - Content management dashboard - needs Official Account login
+  - API access - needs AppID + AppSecret from mp.weixin.qq.com
+  
+  Official API: https://developers.weixin.qq.com/doc/offiaccount/
+rate_limiting:
+  download_delay: 3.0
+  concurrent_requests: 2
+  robots_txt_obey: true
+  notes: "WeChat has aggressive anti-bot; conservative rate limiting required"
+functions:
+  - command: WeChatMPSpider
+    description: 通过搜狗微信搜索爬取微信公众号公开文章
+    category: social-media
+    frequency: daily
+    columns:
+      - name: url
+        type: str
+        description: 文章URL
+      - name: title
+        type: str
+        description: 标题
+      - name: author
+        type: str
+        description: 作者
+      - name: account_name
+        type: str
+        description: 公众号名称
+      - name: pub_date
+        type: str
+        description: 发布日期
+      - name: content
+        type: str
+        description: 正文内容
+      - name: content_length
+        type: int
+        description: 正文长度
+      - name: data_type
+        type: str
+        description: 数据类型
+      - name: scraped_at
+        type: str
+        description: 爬取时间

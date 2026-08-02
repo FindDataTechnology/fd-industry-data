@@ -1,0 +1,77 @@
+name: caict-ict-stats
+label: 中国信息通信研究院 - ICT产业统计
+source_url: http://www.caict.ac.cn/
+score: 88
+authentication: none
+access_level: public
+authentication_details: |
+  All data is publicly available on the CAICT website.
+  No API key or registration required.
+  
+  PUBLIC (this spider):
+  - Telecommunications industry statistics (电信业务收入、用户数)
+  - Internet infrastructure data (宽带、物联网)
+  - Technology development reports
+  - ICT industry analysis
+  - Policy research documents
+  - White papers and blue books
+  
+  NOTES:
+  - Monthly telecommunications data published regularly
+  - Annual ICT industry reports
+  - Technology white papers on 5G, AI, IoT, cloud computing
+  - Policy analysis and recommendations
+  
+  Website: http://www.caict.ac.cn/
+  Research: http://www.caict.ac.cn/kxyj/
+rate_limiting:
+  download_delay: 2.0
+  concurrent_requests: 3
+  robots_txt_obey: true
+functions:
+  - command: CAICTSpider
+    description: 获取ICT产业统计数据（电信业务、互联网基础设施、技术趋势）
+    category: ict-statistics
+    frequency: monthly
+    columns:
+      - name: stat_period
+        type: str
+        description: 统计期（如"2024年3月"）
+      - name: indicator_name
+        type: str
+        description: 指标英文名
+      - name: indicator_name_cn
+        type: str
+        description: 指标中文名
+      - name: value
+        type: float
+        description: 数值
+      - name: unit
+        type: str
+        description: 单位（亿元、亿户、GB等）
+      - name: category
+        type: str
+        description: 类别(telecommunications/internet_infrastructure/table_data)
+      - name: sub_category
+        type: str
+        description: 子类别(telecom_revenue/users/traffic/infrastructure)
+  - command: ReportIndexer
+    description: 索引CAICT发布的研究报告和白皮书
+    category: reports
+    frequency: realtime
+    columns:
+      - name: title
+        type: str
+        description: 报告标题
+      - name: publish_date
+        type: str
+        description: 发布日期
+      - name: report_type
+        type: str
+        description: 报告类型(white_paper/blue_book/research_report/analysis_report)
+      - name: category
+        type: str
+        description: 领域(telecom/internet/ai/iot/mobile/cloud/big_data)
+      - name: download_url
+        type: str
+        description: 下载链接

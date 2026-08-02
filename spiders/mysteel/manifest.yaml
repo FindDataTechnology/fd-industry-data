@@ -1,0 +1,85 @@
+# fd-open-data-protocol compliant manifest
+# MCP integration metadata
+
+name: mysteel
+label: "我的钢铁网"
+description: "中国领先的钢铁行业信息平台，提供钢材价格行情、市场分析、数据统计等服务。"
+source_url: "https://www.mysteel.com"
+priority_score: 95
+created_at: 2026-08-01T12:00:00
+
+function_definitions:
+  - name: fetch_mysteel
+    description: "Fetch steel pricing data from MySteel"
+    parameters:
+      - name: urls
+        type: array<string>
+        description: "List of URLs to scrape"
+        optional: true
+        default: ["https://www.mysteel.com", "https://www.mysteel.com/price/"]
+      - name: limit
+        type: integer
+        description: "Maximum number of records to fetch"
+        optional: true
+        default: 1000
+    returns: array<object>
+    
+  - name: query_mysteel
+    description: "Query stored steel market data"
+    parameters:
+      - name: filters
+        type: object
+        description: "Filter criteria"
+        optional: true
+      - name: limit
+        type: integer
+        description: "Max records to return"
+        optional: true
+        default: 100
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+    description: "Original URL of the scraped page"
+    
+  - name: page_title
+    type: string
+    description: "HTML title of the page"
+    
+  - name: product_name
+    type: string
+    description: "Steel product name"
+    
+  - name: price
+    type: string
+    description: "Current price"
+    
+  - name: change
+    type: string
+    description: "Price change"
+    
+  - name: date
+    type: string
+    description: "Data date"
+    
+  - name: scraped_at
+    type: timestamp
+    description: "Timestamp when the data was collected"
+
+commands:
+  - name: fetch
+    description: "Run the scraper to collect new data"
+    command: "python spider.py --urls <url1> <url2>"
+    
+  - name: dry-run
+    description: "Test scraping without saving results"
+    command: "python spider.py --dry-run"
+    
+  - name: export-json
+    description: "Export data to JSON Lines format"
+    command: "python spider.py --format json"
+    
+  - name: export-db
+    description: "Export data to SQLite database"
+    command: "python spider.py --format sqlite"

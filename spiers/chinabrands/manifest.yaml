@@ -1,0 +1,85 @@
+name: chinabrands
+label: 中国品牌促进会数据
+source_url: http://www.chinabrands.org/
+description: 品牌价值数据、品牌排名、市场份额、消费者偏好
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_chinabrands_data
+    description: 获取品牌数据，包括品牌排名、品牌估值、市场份额
+    category: brand-data
+    frequency: yearly
+    columns:
+      rankings:
+        - name: year
+          type: int
+          description: 年份
+        - name: rank
+          type: int
+          description: 排名
+        - name: brand_name
+          type: str
+          description: 品牌名称（英文）
+        - name: brand_name_cn
+          type: str
+          description: 品牌名称（中文）
+        - name: industry
+          type: str
+          description: 行业（英文）
+        - name: industry_cn
+          type: str
+          description: 行业（中文）
+        - name: score
+          type: float
+          description: 评分
+      valuation:
+        - name: year
+          type: int
+          description: 年份
+        - name: brand_name
+          type: str
+          description: 品牌名称（英文）
+        - name: brand_name_cn
+          type: str
+          description: 品牌名称（中文）
+        - name: valuation
+          type: float
+          description: 品牌价值（亿元）
+        - name: industry
+          type: str
+          description: 行业（英文）
+        - name: yoy_change
+          type: float
+          description: 同比变化（%）
+      market_share:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: brand_name
+          type: str
+          description: 品牌名称（英文）
+        - name: brand_name_cn
+          type: str
+          description: 品牌名称（中文）
+        - name: industry
+          type: str
+          description: 行业
+        - name: market_share
+          type: float
+          description: 市场份额（%）
+        - name: revenue
+          type: float
+          description: 营收
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/brand/ranking/valuation/report）

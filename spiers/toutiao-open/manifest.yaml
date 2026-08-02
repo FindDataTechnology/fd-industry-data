@@ -1,0 +1,64 @@
+name: toutiao-open
+label: 今日头条开放平台(Toutiao Open Platform)
+source_url: https://open.toutiao.com/
+description: 今日头条新闻文章、热搜话题、用户互动数据
+authentication: partial
+access_level: public_web_only
+authentication_details: |
+  PUBLIC (this spider):
+  - Public news articles and content pages
+  - Trending topics / hot list (热榜)
+  - Channel/category pages (科技、财经、社会等)
+  - Public user profiles
+  
+  REQUIRES API KEY (not covered by this spider):
+  - Content creation/publishing API - needs Open Platform registration
+  - Analytics dashboard - needs creator account
+  - Comment management API - needs OAuth
+  - Monetization data - needs creator account
+  
+  API Registration: https://open.toutiao.com/
+  API Docs: https://open.toutiao.com/docs
+rate_limiting:
+  download_delay: 2.0
+  concurrent_requests: 4
+  robots_txt_obey: true
+functions:
+  - command: ToutiaoOpenSpider
+    description: 爬取今日头条热榜、新闻文章、频道内容
+    category: news-and-media
+    frequency: realtime
+    columns:
+      - name: url
+        type: str
+        description: 文章URL
+      - name: title
+        type: str
+        description: 标题
+      - name: author
+        type: str
+        description: 作者/来源
+      - name: pub_date
+        type: str
+        description: 发布日期
+      - name: content
+        type: str
+        description: 正文内容
+      - name: hot_value
+        type: str
+        description: 热度值
+      - name: rank
+        type: str
+        description: 热榜排名
+      - name: comment_count
+        type: str
+        description: 评论数
+      - name: category
+        type: str
+        description: 分类
+      - name: data_type
+        type: str
+        description: 数据类型(hot_item/article)
+      - name: scraped_at
+        type: str
+        description: 爬取时间

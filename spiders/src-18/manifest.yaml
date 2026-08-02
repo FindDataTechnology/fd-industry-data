@@ -1,0 +1,9 @@
+name: src-18
+title: "郑州商品交易所"
+url: "https://www.czce.com.cn"
+data_type: "commodity-futures"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.179605"
+version: "1.0.0"

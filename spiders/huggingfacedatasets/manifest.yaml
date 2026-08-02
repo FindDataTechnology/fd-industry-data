@@ -1,0 +1,9 @@
+name: huggingfacedatasets
+title: "Hugging Face Datasets"
+url: "https://huggingface.co/datasets"
+data_type: "machine-learning"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.226695"
+version: "1.0.0"

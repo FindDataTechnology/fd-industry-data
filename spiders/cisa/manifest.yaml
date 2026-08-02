@@ -1,0 +1,78 @@
+name: cisa
+version: 1.0.0
+description: China Iron & Steel Association (中国钢铁工业协会) steel industry data scraper
+source: https://www.cisa.org.cn
+author: FindData Official
+license: MIT
+
+spider:
+  class: CISASpider
+  module: spider
+  entry_point: spider.py
+
+data_sources:
+  - name: 生产统计
+    category: production
+    description: Steel production output, efficiency, and capacity utilization data
+    
+  - name: 进出口数据
+    category: trade
+    description: Steel import/export statistics and trade balance data
+    
+  - name: 价格指数
+    category: price
+    description: Steel price indices, regional prices, and product variety prices
+    
+  - name: 行业分析
+    category: analysis
+    description: Industry analysis reports, market analysis, and market outlook
+
+output:
+  database: data/cisa_data.db
+  json: output/
+  schema:
+    tables:
+      - name: production
+        description: Production statistics and output data
+      - name: trade
+        description: Import/export trade data
+      - name: price
+        description: Price indices and regional pricing data
+      - name: analysis
+        description: Industry analysis reports and market outlook
+      - name: general
+        description: General steel industry data
+
+settings:
+  concurrent_requests: 2
+  download_delay: 3.0
+  max_retries: 3
+  robots_txt_obey: true
+  timeout: 30
+  allowed_domains:
+    - cisa.org.cn
+
+features:
+  - pagination
+  - table_extraction
+  - sqlite_storage
+  - json_export
+  - rate_limiting
+  - deduplication
+  - category_identification
+  - article_crawling
+
+anti_bot:
+  user_agent_rotation: true
+  session_impersonation: chrome
+  randomized_delays: true
+  min_delay: 2.0
+  max_delay: 5.0
+
+dependencies:
+  - scrapling>=0.4.7
+  - python>=3.10
+
+last_updated: 2026-07-31
+status: active
+priority: high

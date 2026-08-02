@@ -1,0 +1,89 @@
+name: flower-trading
+version: 1.0.0
+description: Kunming Flower Trading Center price and variety data scraper
+source: https://www.kunmingflower.com
+author: FindData Official
+license: MIT
+
+spider:
+  class: FlowerTradingSpider
+  module: spider
+  entry_point: spider.py
+
+data_sources:
+  - name: Price Data
+    url: https://www.kunmingflower.com/price
+    category: price
+  - name: Market Data
+    url: https://www.kunmingflower.com/market
+    category: market
+  - name: Variety Data
+    url: https://www.kunmingflower.com/variety
+    category: variety
+
+output:
+  database: data/flower_trading.db
+  json: output/flower_trading.json
+  schema:
+    table: flower_trading
+    columns:
+      - name: id
+        type: INTEGER
+        primary_key: true
+      - name: url
+        type: TEXT
+      - name: flower_name
+        type: TEXT
+      - name: variety
+        type: TEXT
+      - name: spec
+        type: TEXT
+      - name: unit
+        type: TEXT
+      - name: price
+        type: TEXT
+      - name: price_high
+        type: TEXT
+      - name: price_low
+        type: TEXT
+      - name: volume
+        type: TEXT
+      - name: trade_date
+        type: TEXT
+      - name: data_type
+        type: TEXT
+      - name: title
+        type: TEXT
+      - name: content
+        type: TEXT
+      - name: scraped_at
+        type: TEXT
+      - name: url
+        type: TEXT
+      - name: flower_name
+        type: TEXT
+      - name: trade_date
+        type: TEXT
+        unique_constraint: true
+
+settings:
+  concurrent_requests: 4
+  download_delay: 2.0
+  robots_txt_obey: true
+  allowed_domains:
+    - kunmingflower.com
+
+features:
+  - pagination
+  - sqlite_storage
+  - json_export
+  - rate_limiting
+  - deduplication
+  - dynamic_content_support
+
+dependencies:
+  - scrapling>=0.4.7
+  - python>=3.10
+
+last_updated: 2026-01-31
+status: active

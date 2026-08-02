@@ -1,0 +1,4352 @@
+[
+  {
+    "period": "2011Q1",
+    "value": 9.8,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.224365+00:00"
+  },
+  {
+    "period": "2011Q2",
+    "value": 9.7,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.224578+00:00"
+  },
+  {
+    "period": "2011Q3",
+    "value": 9.5,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.224686+00:00"
+  },
+  {
+    "period": "2011Q4",
+    "value": 9.1,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.224812+00:00"
+  },
+  {
+    "period": "2012Q1",
+    "value": 8.9,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.224878+00:00"
+  },
+  {
+    "period": "2012Q2",
+    "value": 8.1,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.224928+00:00"
+  },
+  {
+    "period": "2012Q3",
+    "value": 7.6,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.224970+00:00"
+  },
+  {
+    "period": "2012Q4",
+    "value": 7.4,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225008+00:00"
+  },
+  {
+    "period": "2013Q1",
+    "value": 7.9,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225044+00:00"
+  },
+  {
+    "period": "2013Q2",
+    "value": 7.7,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225078+00:00"
+  },
+  {
+    "period": "2013Q3",
+    "value": 7.5,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225112+00:00"
+  },
+  {
+    "period": "2013Q4",
+    "value": 7.8,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225147+00:00"
+  },
+  {
+    "period": "2014Q1",
+    "value": 7.7,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225180+00:00"
+  },
+  {
+    "period": "2014Q2",
+    "value": 7.4,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225213+00:00"
+  },
+  {
+    "period": "2014Q3",
+    "value": 7.5,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225245+00:00"
+  },
+  {
+    "period": "2014Q4",
+    "value": 7.3,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225277+00:00"
+  },
+  {
+    "period": "2015Q1",
+    "value": 7.3,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225310+00:00"
+  },
+  {
+    "period": "2015Q2",
+    "value": 7.0,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225341+00:00"
+  },
+  {
+    "period": "2015Q3",
+    "value": 7.0,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225373+00:00"
+  },
+  {
+    "period": "2015Q4",
+    "value": 6.9,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225403+00:00"
+  },
+  {
+    "period": "2016Q1",
+    "value": 6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225435+00:00"
+  },
+  {
+    "period": "2016Q2",
+    "value": 6.7,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225467+00:00"
+  },
+  {
+    "period": "2016Q3",
+    "value": 6.7,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225499+00:00"
+  },
+  {
+    "period": "2016Q4",
+    "value": 6.7,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225530+00:00"
+  },
+  {
+    "period": "2017Q1",
+    "value": 6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225561+00:00"
+  },
+  {
+    "period": "2017Q2",
+    "value": 6.9,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225593+00:00"
+  },
+  {
+    "period": "2017Q3",
+    "value": 6.9,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225625+00:00"
+  },
+  {
+    "period": "2017Q4",
+    "value": 6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225655+00:00"
+  },
+  {
+    "period": "2018Q1",
+    "value": 6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225684+00:00"
+  },
+  {
+    "period": "2018Q2",
+    "value": 6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225711+00:00"
+  },
+  {
+    "period": "2018Q3",
+    "value": 6.7,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225738+00:00"
+  },
+  {
+    "period": "2018Q4",
+    "value": 6.5,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225766+00:00"
+  },
+  {
+    "period": "2019Q1",
+    "value": 6.4,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225792+00:00"
+  },
+  {
+    "period": "2019Q2",
+    "value": 6.4,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225820+00:00"
+  },
+  {
+    "period": "2019Q3",
+    "value": 6.2,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225846+00:00"
+  },
+  {
+    "period": "2019Q4",
+    "value": 6.0,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225873+00:00"
+  },
+  {
+    "period": "2020Q1",
+    "value": 6.0,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225900+00:00"
+  },
+  {
+    "period": "2020Q2",
+    "value": -6.8,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225926+00:00"
+  },
+  {
+    "period": "2020Q3",
+    "value": 3.2,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225953+00:00"
+  },
+  {
+    "period": "2020Q4",
+    "value": 4.9,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.225979+00:00"
+  },
+  {
+    "period": "2021Q1",
+    "value": 6.5,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226006+00:00"
+  },
+  {
+    "period": "2021Q2",
+    "value": 18.3,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226033+00:00"
+  },
+  {
+    "period": "2021Q3",
+    "value": 7.9,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226060+00:00"
+  },
+  {
+    "period": "2021Q4",
+    "value": 4.9,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226086+00:00"
+  },
+  {
+    "period": "2022Q1",
+    "value": 4.0,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226113+00:00"
+  },
+  {
+    "period": "2022Q2",
+    "value": 4.8,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226141+00:00"
+  },
+  {
+    "period": "2022Q3",
+    "value": 0.4,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226168+00:00"
+  },
+  {
+    "period": "2022Q4",
+    "value": 3.9,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226218+00:00"
+  },
+  {
+    "period": "2023Q1",
+    "value": 2.9,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226265+00:00"
+  },
+  {
+    "period": "2023Q2",
+    "value": 4.5,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226291+00:00"
+  },
+  {
+    "period": "2023Q3",
+    "value": 6.3,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226317+00:00"
+  },
+  {
+    "period": "2023Q4",
+    "value": 4.9,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226344+00:00"
+  },
+  {
+    "period": "2024Q1",
+    "value": 5.2,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226370+00:00"
+  },
+  {
+    "period": "2024Q2",
+    "value": 5.3,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226397+00:00"
+  },
+  {
+    "period": "2024Q3",
+    "value": 4.7,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226423+00:00"
+  },
+  {
+    "period": "2024Q4",
+    "value": 4.6,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226449+00:00"
+  },
+  {
+    "period": "2025Q1",
+    "value": 5.4,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226475+00:00"
+  },
+  {
+    "period": "2025Q2",
+    "value": 5.4,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226501+00:00"
+  },
+  {
+    "period": "2025Q3",
+    "value": 5.2,
+    "indicator_code": "A0201",
+    "indicator_name": "gdp_quarterly",
+    "indicator_type": "gdp_quarterly",
+    "unit": "亿元",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:32.226527+00:00"
+  },
+  {
+    "period": "2010-01",
+    "value": 1.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.823808+00:00"
+  },
+  {
+    "period": "2010-02",
+    "value": 1.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824065+00:00"
+  },
+  {
+    "period": "2010-03",
+    "value": 2.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824118+00:00"
+  },
+  {
+    "period": "2010-04",
+    "value": 2.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824160+00:00"
+  },
+  {
+    "period": "2010-05",
+    "value": 2.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824199+00:00"
+  },
+  {
+    "period": "2010-06",
+    "value": 3.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824238+00:00"
+  },
+  {
+    "period": "2010-07",
+    "value": 2.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824276+00:00"
+  },
+  {
+    "period": "2010-08",
+    "value": 3.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824312+00:00"
+  },
+  {
+    "period": "2010-09",
+    "value": 3.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824349+00:00"
+  },
+  {
+    "period": "2010-10",
+    "value": 3.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824387+00:00"
+  },
+  {
+    "period": "2010-11",
+    "value": 4.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824463+00:00"
+  },
+  {
+    "period": "2010-12",
+    "value": 5.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824500+00:00"
+  },
+  {
+    "period": "2011-01",
+    "value": 4.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824537+00:00"
+  },
+  {
+    "period": "2011-02",
+    "value": 4.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824576+00:00"
+  },
+  {
+    "period": "2011-03",
+    "value": 4.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824613+00:00"
+  },
+  {
+    "period": "2011-04",
+    "value": 5.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824647+00:00"
+  },
+  {
+    "period": "2011-05",
+    "value": 5.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824692+00:00"
+  },
+  {
+    "period": "2011-06",
+    "value": 5.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824727+00:00"
+  },
+  {
+    "period": "2011-07",
+    "value": 6.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824757+00:00"
+  },
+  {
+    "period": "2011-08",
+    "value": 6.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824788+00:00"
+  },
+  {
+    "period": "2011-09",
+    "value": 6.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824819+00:00"
+  },
+  {
+    "period": "2011-10",
+    "value": 6.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824849+00:00"
+  },
+  {
+    "period": "2011-11",
+    "value": 5.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824880+00:00"
+  },
+  {
+    "period": "2011-12",
+    "value": 4.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.824911+00:00"
+  },
+  {
+    "period": "2012-01",
+    "value": 4.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825203+00:00"
+  },
+  {
+    "period": "2012-02",
+    "value": 4.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825254+00:00"
+  },
+  {
+    "period": "2012-03",
+    "value": 3.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825295+00:00"
+  },
+  {
+    "period": "2012-04",
+    "value": 3.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825332+00:00"
+  },
+  {
+    "period": "2012-05",
+    "value": 3.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825366+00:00"
+  },
+  {
+    "period": "2012-06",
+    "value": 3.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825399+00:00"
+  },
+  {
+    "period": "2012-07",
+    "value": 2.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825432+00:00"
+  },
+  {
+    "period": "2012-08",
+    "value": 1.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825463+00:00"
+  },
+  {
+    "period": "2012-09",
+    "value": 2.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825494+00:00"
+  },
+  {
+    "period": "2012-10",
+    "value": 1.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825526+00:00"
+  },
+  {
+    "period": "2012-11",
+    "value": 1.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825557+00:00"
+  },
+  {
+    "period": "2012-12",
+    "value": 2.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825587+00:00"
+  },
+  {
+    "period": "2013-01",
+    "value": 2.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825617+00:00"
+  },
+  {
+    "period": "2013-02",
+    "value": 2.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825648+00:00"
+  },
+  {
+    "period": "2013-03",
+    "value": 3.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825679+00:00"
+  },
+  {
+    "period": "2013-04",
+    "value": 2.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825717+00:00"
+  },
+  {
+    "period": "2013-05",
+    "value": 2.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825750+00:00"
+  },
+  {
+    "period": "2013-06",
+    "value": 2.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825781+00:00"
+  },
+  {
+    "period": "2013-07",
+    "value": 2.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825812+00:00"
+  },
+  {
+    "period": "2013-08",
+    "value": 2.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825842+00:00"
+  },
+  {
+    "period": "2013-09",
+    "value": 2.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825872+00:00"
+  },
+  {
+    "period": "2013-10",
+    "value": 3.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825901+00:00"
+  },
+  {
+    "period": "2013-11",
+    "value": 3.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825968+00:00"
+  },
+  {
+    "period": "2013-12",
+    "value": 3.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.825999+00:00"
+  },
+  {
+    "period": "2014-01",
+    "value": 2.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826029+00:00"
+  },
+  {
+    "period": "2014-02",
+    "value": 2.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826059+00:00"
+  },
+  {
+    "period": "2014-03",
+    "value": 2.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826088+00:00"
+  },
+  {
+    "period": "2014-04",
+    "value": 2.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826119+00:00"
+  },
+  {
+    "period": "2014-05",
+    "value": 1.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826149+00:00"
+  },
+  {
+    "period": "2014-06",
+    "value": 2.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826178+00:00"
+  },
+  {
+    "period": "2014-07",
+    "value": 2.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826208+00:00"
+  },
+  {
+    "period": "2014-08",
+    "value": 2.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826236+00:00"
+  },
+  {
+    "period": "2014-09",
+    "value": 2.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826266+00:00"
+  },
+  {
+    "period": "2014-10",
+    "value": 1.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826296+00:00"
+  },
+  {
+    "period": "2014-11",
+    "value": 1.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826327+00:00"
+  },
+  {
+    "period": "2014-12",
+    "value": 1.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826357+00:00"
+  },
+  {
+    "period": "2015-01",
+    "value": 1.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826386+00:00"
+  },
+  {
+    "period": "2015-02",
+    "value": 0.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826416+00:00"
+  },
+  {
+    "period": "2015-03",
+    "value": 1.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826445+00:00"
+  },
+  {
+    "period": "2015-04",
+    "value": 1.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826475+00:00"
+  },
+  {
+    "period": "2015-05",
+    "value": 1.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826504+00:00"
+  },
+  {
+    "period": "2015-06",
+    "value": 1.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826536+00:00"
+  },
+  {
+    "period": "2015-07",
+    "value": 1.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826566+00:00"
+  },
+  {
+    "period": "2015-08",
+    "value": 1.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826594+00:00"
+  },
+  {
+    "period": "2015-09",
+    "value": 2.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826624+00:00"
+  },
+  {
+    "period": "2015-10",
+    "value": 1.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826654+00:00"
+  },
+  {
+    "period": "2015-11",
+    "value": 1.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826683+00:00"
+  },
+  {
+    "period": "2015-12",
+    "value": 1.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826713+00:00"
+  },
+  {
+    "period": "2016-01",
+    "value": 1.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826742+00:00"
+  },
+  {
+    "period": "2016-02",
+    "value": 1.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826799+00:00"
+  },
+  {
+    "period": "2016-03",
+    "value": 2.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826842+00:00"
+  },
+  {
+    "period": "2016-04",
+    "value": 2.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826875+00:00"
+  },
+  {
+    "period": "2016-05",
+    "value": 2.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826906+00:00"
+  },
+  {
+    "period": "2016-06",
+    "value": 2.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826939+00:00"
+  },
+  {
+    "period": "2016-07",
+    "value": 1.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.826969+00:00"
+  },
+  {
+    "period": "2016-08",
+    "value": 1.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827000+00:00"
+  },
+  {
+    "period": "2016-09",
+    "value": 1.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827030+00:00"
+  },
+  {
+    "period": "2016-10",
+    "value": 1.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827115+00:00"
+  },
+  {
+    "period": "2016-11",
+    "value": 2.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827145+00:00"
+  },
+  {
+    "period": "2016-12",
+    "value": 2.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827174+00:00"
+  },
+  {
+    "period": "2017-01",
+    "value": 2.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827202+00:00"
+  },
+  {
+    "period": "2017-02",
+    "value": 2.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827231+00:00"
+  },
+  {
+    "period": "2017-03",
+    "value": 0.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827260+00:00"
+  },
+  {
+    "period": "2017-04",
+    "value": 0.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827288+00:00"
+  },
+  {
+    "period": "2017-05",
+    "value": 1.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827316+00:00"
+  },
+  {
+    "period": "2017-06",
+    "value": 1.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827345+00:00"
+  },
+  {
+    "period": "2017-07",
+    "value": 1.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827373+00:00"
+  },
+  {
+    "period": "2017-08",
+    "value": 1.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827402+00:00"
+  },
+  {
+    "period": "2017-09",
+    "value": 1.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827430+00:00"
+  },
+  {
+    "period": "2017-10",
+    "value": 1.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827460+00:00"
+  },
+  {
+    "period": "2017-11",
+    "value": 1.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827488+00:00"
+  },
+  {
+    "period": "2017-12",
+    "value": 1.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827518+00:00"
+  },
+  {
+    "period": "2018-01",
+    "value": 1.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827546+00:00"
+  },
+  {
+    "period": "2018-02",
+    "value": 1.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827576+00:00"
+  },
+  {
+    "period": "2018-03",
+    "value": 2.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827605+00:00"
+  },
+  {
+    "period": "2018-04",
+    "value": 2.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827635+00:00"
+  },
+  {
+    "period": "2018-05",
+    "value": 1.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827665+00:00"
+  },
+  {
+    "period": "2018-06",
+    "value": 1.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827695+00:00"
+  },
+  {
+    "period": "2018-07",
+    "value": 1.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827723+00:00"
+  },
+  {
+    "period": "2018-08",
+    "value": 2.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827751+00:00"
+  },
+  {
+    "period": "2018-09",
+    "value": 2.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827780+00:00"
+  },
+  {
+    "period": "2018-10",
+    "value": 2.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827809+00:00"
+  },
+  {
+    "period": "2018-11",
+    "value": 2.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827838+00:00"
+  },
+  {
+    "period": "2018-12",
+    "value": 2.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827867+00:00"
+  },
+  {
+    "period": "2019-01",
+    "value": 1.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827896+00:00"
+  },
+  {
+    "period": "2019-02",
+    "value": 1.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827931+00:00"
+  },
+  {
+    "period": "2019-03",
+    "value": 1.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827960+00:00"
+  },
+  {
+    "period": "2019-04",
+    "value": 2.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.827990+00:00"
+  },
+  {
+    "period": "2019-05",
+    "value": 2.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828021+00:00"
+  },
+  {
+    "period": "2019-06",
+    "value": 2.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828050+00:00"
+  },
+  {
+    "period": "2019-07",
+    "value": 2.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828079+00:00"
+  },
+  {
+    "period": "2019-08",
+    "value": 2.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828107+00:00"
+  },
+  {
+    "period": "2019-09",
+    "value": 2.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828135+00:00"
+  },
+  {
+    "period": "2019-10",
+    "value": 3.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828170+00:00"
+  },
+  {
+    "period": "2019-11",
+    "value": 3.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828200+00:00"
+  },
+  {
+    "period": "2019-12",
+    "value": 4.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828228+00:00"
+  },
+  {
+    "period": "2020-01",
+    "value": 4.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828256+00:00"
+  },
+  {
+    "period": "2020-02",
+    "value": 5.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828284+00:00"
+  },
+  {
+    "period": "2020-03",
+    "value": 5.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828312+00:00"
+  },
+  {
+    "period": "2020-04",
+    "value": 4.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828339+00:00"
+  },
+  {
+    "period": "2020-05",
+    "value": 3.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828367+00:00"
+  },
+  {
+    "period": "2020-06",
+    "value": 2.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828395+00:00"
+  },
+  {
+    "period": "2020-07",
+    "value": 2.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828423+00:00"
+  },
+  {
+    "period": "2020-08",
+    "value": 2.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828451+00:00"
+  },
+  {
+    "period": "2020-09",
+    "value": 2.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828479+00:00"
+  },
+  {
+    "period": "2020-10",
+    "value": 1.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828508+00:00"
+  },
+  {
+    "period": "2020-11",
+    "value": 0.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828536+00:00"
+  },
+  {
+    "period": "2020-12",
+    "value": -0.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828564+00:00"
+  },
+  {
+    "period": "2021-01",
+    "value": 0.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828592+00:00"
+  },
+  {
+    "period": "2021-02",
+    "value": -0.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828619+00:00"
+  },
+  {
+    "period": "2021-03",
+    "value": -0.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828648+00:00"
+  },
+  {
+    "period": "2021-04",
+    "value": 0.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828676+00:00"
+  },
+  {
+    "period": "2021-05",
+    "value": 0.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828703+00:00"
+  },
+  {
+    "period": "2021-06",
+    "value": 1.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828731+00:00"
+  },
+  {
+    "period": "2021-07",
+    "value": 1.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828759+00:00"
+  },
+  {
+    "period": "2021-08",
+    "value": 1.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828787+00:00"
+  },
+  {
+    "period": "2021-09",
+    "value": 0.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828815+00:00"
+  },
+  {
+    "period": "2021-10",
+    "value": 0.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828842+00:00"
+  },
+  {
+    "period": "2021-11",
+    "value": 1.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828872+00:00"
+  },
+  {
+    "period": "2021-12",
+    "value": 2.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828899+00:00"
+  },
+  {
+    "period": "2022-01",
+    "value": 1.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828927+00:00"
+  },
+  {
+    "period": "2022-02",
+    "value": 0.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828960+00:00"
+  },
+  {
+    "period": "2022-03",
+    "value": 0.9,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.828989+00:00"
+  },
+  {
+    "period": "2022-04",
+    "value": 1.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829017+00:00"
+  },
+  {
+    "period": "2022-05",
+    "value": 2.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829046+00:00"
+  },
+  {
+    "period": "2022-06",
+    "value": 2.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829074+00:00"
+  },
+  {
+    "period": "2022-07",
+    "value": 2.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829102+00:00"
+  },
+  {
+    "period": "2022-08",
+    "value": 2.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829130+00:00"
+  },
+  {
+    "period": "2022-09",
+    "value": 2.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829158+00:00"
+  },
+  {
+    "period": "2022-10",
+    "value": 2.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829186+00:00"
+  },
+  {
+    "period": "2022-11",
+    "value": 2.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829214+00:00"
+  },
+  {
+    "period": "2022-12",
+    "value": 1.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829242+00:00"
+  },
+  {
+    "period": "2023-01",
+    "value": 1.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829270+00:00"
+  },
+  {
+    "period": "2023-02",
+    "value": 2.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829298+00:00"
+  },
+  {
+    "period": "2023-03",
+    "value": 1.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829326+00:00"
+  },
+  {
+    "period": "2023-04",
+    "value": 0.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829354+00:00"
+  },
+  {
+    "period": "2023-05",
+    "value": 0.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829382+00:00"
+  },
+  {
+    "period": "2023-06",
+    "value": 0.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829410+00:00"
+  },
+  {
+    "period": "2023-07",
+    "value": 0.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829438+00:00"
+  },
+  {
+    "period": "2023-08",
+    "value": -0.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829466+00:00"
+  },
+  {
+    "period": "2023-09",
+    "value": 0.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829494+00:00"
+  },
+  {
+    "period": "2023-10",
+    "value": 0.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829521+00:00"
+  },
+  {
+    "period": "2023-11",
+    "value": -0.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829549+00:00"
+  },
+  {
+    "period": "2023-12",
+    "value": -0.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829577+00:00"
+  },
+  {
+    "period": "2024-01",
+    "value": -0.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829605+00:00"
+  },
+  {
+    "period": "2024-02",
+    "value": -0.8,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829632+00:00"
+  },
+  {
+    "period": "2024-03",
+    "value": 0.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829660+00:00"
+  },
+  {
+    "period": "2024-04",
+    "value": 0.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829688+00:00"
+  },
+  {
+    "period": "2024-05",
+    "value": 0.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829716+00:00"
+  },
+  {
+    "period": "2024-06",
+    "value": 0.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829745+00:00"
+  },
+  {
+    "period": "2024-07",
+    "value": 0.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829773+00:00"
+  },
+  {
+    "period": "2024-08",
+    "value": 0.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829801+00:00"
+  },
+  {
+    "period": "2024-09",
+    "value": 0.6,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829829+00:00"
+  },
+  {
+    "period": "2024-10",
+    "value": 0.4,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829856+00:00"
+  },
+  {
+    "period": "2024-11",
+    "value": 0.3,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829884+00:00"
+  },
+  {
+    "period": "2024-12",
+    "value": 0.2,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829912+00:00"
+  },
+  {
+    "period": "2025-01",
+    "value": 0.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829939+00:00"
+  },
+  {
+    "period": "2025-02",
+    "value": 0.5,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.829991+00:00"
+  },
+  {
+    "period": "2025-03",
+    "value": -0.7,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.830019+00:00"
+  },
+  {
+    "period": "2025-04",
+    "value": -0.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.830047+00:00"
+  },
+  {
+    "period": "2025-05",
+    "value": -0.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.830075+00:00"
+  },
+  {
+    "period": "2025-06",
+    "value": -0.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.830102+00:00"
+  },
+  {
+    "period": "2025-07",
+    "value": 0.1,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.830130+00:00"
+  },
+  {
+    "period": "2025-08",
+    "value": 0.0,
+    "indicator_code": "A0901",
+    "indicator_name": "cpi_monthly",
+    "indicator_type": "cpi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:35.830158+00:00"
+  },
+  {
+    "period": "2010-01",
+    "value": 1.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734417+00:00"
+  },
+  {
+    "period": "2010-02",
+    "value": 4.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734458+00:00"
+  },
+  {
+    "period": "2010-03",
+    "value": 5.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734480+00:00"
+  },
+  {
+    "period": "2010-04",
+    "value": 5.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734501+00:00"
+  },
+  {
+    "period": "2010-05",
+    "value": 6.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734521+00:00"
+  },
+  {
+    "period": "2010-06",
+    "value": 7.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734542+00:00"
+  },
+  {
+    "period": "2010-07",
+    "value": 6.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734566+00:00"
+  },
+  {
+    "period": "2010-08",
+    "value": 4.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734587+00:00"
+  },
+  {
+    "period": "2010-09",
+    "value": 4.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734607+00:00"
+  },
+  {
+    "period": "2010-10",
+    "value": 4.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734628+00:00"
+  },
+  {
+    "period": "2010-11",
+    "value": 5.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734648+00:00"
+  },
+  {
+    "period": "2010-12",
+    "value": 6.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734668+00:00"
+  },
+  {
+    "period": "2011-01",
+    "value": 5.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734688+00:00"
+  },
+  {
+    "period": "2011-02",
+    "value": 6.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734708+00:00"
+  },
+  {
+    "period": "2011-03",
+    "value": 7.2,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734728+00:00"
+  },
+  {
+    "period": "2011-04",
+    "value": 7.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734748+00:00"
+  },
+  {
+    "period": "2011-05",
+    "value": 6.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734768+00:00"
+  },
+  {
+    "period": "2011-06",
+    "value": 6.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734788+00:00"
+  },
+  {
+    "period": "2011-07",
+    "value": 7.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734808+00:00"
+  },
+  {
+    "period": "2011-08",
+    "value": 7.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734828+00:00"
+  },
+  {
+    "period": "2011-09",
+    "value": 7.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734847+00:00"
+  },
+  {
+    "period": "2011-10",
+    "value": 6.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734867+00:00"
+  },
+  {
+    "period": "2011-11",
+    "value": 5.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734887+00:00"
+  },
+  {
+    "period": "2011-12",
+    "value": 2.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734906+00:00"
+  },
+  {
+    "period": "2012-01",
+    "value": 1.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734926+00:00"
+  },
+  {
+    "period": "2012-02",
+    "value": 0.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734946+00:00"
+  },
+  {
+    "period": "2012-03",
+    "value": 0.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734966+00:00"
+  },
+  {
+    "period": "2012-04",
+    "value": -0.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.734993+00:00"
+  },
+  {
+    "period": "2012-05",
+    "value": -0.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735013+00:00"
+  },
+  {
+    "period": "2012-06",
+    "value": -1.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735032+00:00"
+  },
+  {
+    "period": "2012-07",
+    "value": -2.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735052+00:00"
+  },
+  {
+    "period": "2012-08",
+    "value": -2.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735072+00:00"
+  },
+  {
+    "period": "2012-09",
+    "value": -3.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735092+00:00"
+  },
+  {
+    "period": "2012-10",
+    "value": -3.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735112+00:00"
+  },
+  {
+    "period": "2012-11",
+    "value": -2.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735132+00:00"
+  },
+  {
+    "period": "2012-12",
+    "value": -2.2,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735151+00:00"
+  },
+  {
+    "period": "2013-01",
+    "value": -1.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735171+00:00"
+  },
+  {
+    "period": "2013-02",
+    "value": -1.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735190+00:00"
+  },
+  {
+    "period": "2013-03",
+    "value": -1.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735210+00:00"
+  },
+  {
+    "period": "2013-04",
+    "value": -1.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735230+00:00"
+  },
+  {
+    "period": "2013-05",
+    "value": -2.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735250+00:00"
+  },
+  {
+    "period": "2013-06",
+    "value": -2.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735269+00:00"
+  },
+  {
+    "period": "2013-07",
+    "value": -2.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735289+00:00"
+  },
+  {
+    "period": "2013-08",
+    "value": -2.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735309+00:00"
+  },
+  {
+    "period": "2013-09",
+    "value": -1.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735329+00:00"
+  },
+  {
+    "period": "2013-10",
+    "value": -1.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735348+00:00"
+  },
+  {
+    "period": "2013-11",
+    "value": -1.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735368+00:00"
+  },
+  {
+    "period": "2013-12",
+    "value": -1.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735387+00:00"
+  },
+  {
+    "period": "2014-01",
+    "value": -1.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735407+00:00"
+  },
+  {
+    "period": "2014-02",
+    "value": -1.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735426+00:00"
+  },
+  {
+    "period": "2014-03",
+    "value": -2.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735447+00:00"
+  },
+  {
+    "period": "2014-04",
+    "value": -2.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735466+00:00"
+  },
+  {
+    "period": "2014-05",
+    "value": -2.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735486+00:00"
+  },
+  {
+    "period": "2014-06",
+    "value": -1.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735506+00:00"
+  },
+  {
+    "period": "2014-07",
+    "value": -1.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735525+00:00"
+  },
+  {
+    "period": "2014-08",
+    "value": -0.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735545+00:00"
+  },
+  {
+    "period": "2014-09",
+    "value": -1.2,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735564+00:00"
+  },
+  {
+    "period": "2014-10",
+    "value": -1.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735584+00:00"
+  },
+  {
+    "period": "2014-11",
+    "value": -2.2,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735604+00:00"
+  },
+  {
+    "period": "2014-12",
+    "value": -2.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735623+00:00"
+  },
+  {
+    "period": "2015-01",
+    "value": -3.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735643+00:00"
+  },
+  {
+    "period": "2015-02",
+    "value": -4.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735663+00:00"
+  },
+  {
+    "period": "2015-03",
+    "value": -4.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735682+00:00"
+  },
+  {
+    "period": "2015-04",
+    "value": -4.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735702+00:00"
+  },
+  {
+    "period": "2015-05",
+    "value": -4.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735722+00:00"
+  },
+  {
+    "period": "2015-06",
+    "value": -4.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735742+00:00"
+  },
+  {
+    "period": "2015-07",
+    "value": -4.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735761+00:00"
+  },
+  {
+    "period": "2015-08",
+    "value": -5.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735781+00:00"
+  },
+  {
+    "period": "2015-09",
+    "value": -5.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735801+00:00"
+  },
+  {
+    "period": "2015-10",
+    "value": -5.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735820+00:00"
+  },
+  {
+    "period": "2015-11",
+    "value": -5.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735840+00:00"
+  },
+  {
+    "period": "2015-12",
+    "value": -5.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735859+00:00"
+  },
+  {
+    "period": "2016-01",
+    "value": -5.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735879+00:00"
+  },
+  {
+    "period": "2016-02",
+    "value": -5.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735899+00:00"
+  },
+  {
+    "period": "2016-03",
+    "value": -4.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735918+00:00"
+  },
+  {
+    "period": "2016-04",
+    "value": -4.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735938+00:00"
+  },
+  {
+    "period": "2016-05",
+    "value": -3.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735957+00:00"
+  },
+  {
+    "period": "2016-06",
+    "value": -2.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735978+00:00"
+  },
+  {
+    "period": "2016-07",
+    "value": -2.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.735998+00:00"
+  },
+  {
+    "period": "2016-08",
+    "value": -1.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736018+00:00"
+  },
+  {
+    "period": "2016-09",
+    "value": -0.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736037+00:00"
+  },
+  {
+    "period": "2016-10",
+    "value": 0.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736057+00:00"
+  },
+  {
+    "period": "2016-11",
+    "value": 1.2,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736077+00:00"
+  },
+  {
+    "period": "2016-12",
+    "value": 3.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736096+00:00"
+  },
+  {
+    "period": "2017-01",
+    "value": 5.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736117+00:00"
+  },
+  {
+    "period": "2017-02",
+    "value": 6.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736140+00:00"
+  },
+  {
+    "period": "2017-03",
+    "value": 7.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736161+00:00"
+  },
+  {
+    "period": "2017-04",
+    "value": 7.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736181+00:00"
+  },
+  {
+    "period": "2017-05",
+    "value": 6.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736205+00:00"
+  },
+  {
+    "period": "2017-06",
+    "value": 5.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736225+00:00"
+  },
+  {
+    "period": "2017-07",
+    "value": 5.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736244+00:00"
+  },
+  {
+    "period": "2017-08",
+    "value": 5.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736264+00:00"
+  },
+  {
+    "period": "2017-09",
+    "value": 6.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736284+00:00"
+  },
+  {
+    "period": "2017-10",
+    "value": 6.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736304+00:00"
+  },
+  {
+    "period": "2017-11",
+    "value": 6.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736324+00:00"
+  },
+  {
+    "period": "2017-12",
+    "value": 5.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736344+00:00"
+  },
+  {
+    "period": "2018-01",
+    "value": 4.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736363+00:00"
+  },
+  {
+    "period": "2018-02",
+    "value": 4.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736383+00:00"
+  },
+  {
+    "period": "2018-03",
+    "value": 3.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736403+00:00"
+  },
+  {
+    "period": "2018-04",
+    "value": 3.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736422+00:00"
+  },
+  {
+    "period": "2018-05",
+    "value": 3.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736442+00:00"
+  },
+  {
+    "period": "2018-06",
+    "value": 4.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736462+00:00"
+  },
+  {
+    "period": "2018-07",
+    "value": 4.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736481+00:00"
+  },
+  {
+    "period": "2018-08",
+    "value": 4.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736501+00:00"
+  },
+  {
+    "period": "2018-09",
+    "value": 4.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736521+00:00"
+  },
+  {
+    "period": "2018-10",
+    "value": 3.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736540+00:00"
+  },
+  {
+    "period": "2018-11",
+    "value": 3.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736560+00:00"
+  },
+  {
+    "period": "2018-12",
+    "value": 2.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736579+00:00"
+  },
+  {
+    "period": "2019-01",
+    "value": 0.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736599+00:00"
+  },
+  {
+    "period": "2019-02",
+    "value": 0.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736619+00:00"
+  },
+  {
+    "period": "2019-03",
+    "value": 0.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736639+00:00"
+  },
+  {
+    "period": "2019-04",
+    "value": 0.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736658+00:00"
+  },
+  {
+    "period": "2019-05",
+    "value": 0.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736678+00:00"
+  },
+  {
+    "period": "2019-06",
+    "value": 0.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736698+00:00"
+  },
+  {
+    "period": "2019-07",
+    "value": 0.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736717+00:00"
+  },
+  {
+    "period": "2019-08",
+    "value": -0.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736737+00:00"
+  },
+  {
+    "period": "2019-09",
+    "value": -0.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736757+00:00"
+  },
+  {
+    "period": "2019-10",
+    "value": -1.2,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736777+00:00"
+  },
+  {
+    "period": "2019-11",
+    "value": -1.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736801+00:00"
+  },
+  {
+    "period": "2019-12",
+    "value": -1.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736821+00:00"
+  },
+  {
+    "period": "2020-01",
+    "value": -0.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736841+00:00"
+  },
+  {
+    "period": "2020-02",
+    "value": 0.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736864+00:00"
+  },
+  {
+    "period": "2020-03",
+    "value": -0.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736885+00:00"
+  },
+  {
+    "period": "2020-04",
+    "value": -1.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736905+00:00"
+  },
+  {
+    "period": "2020-05",
+    "value": -3.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736924+00:00"
+  },
+  {
+    "period": "2020-06",
+    "value": -3.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736944+00:00"
+  },
+  {
+    "period": "2020-07",
+    "value": -3.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736964+00:00"
+  },
+  {
+    "period": "2020-08",
+    "value": -2.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.736983+00:00"
+  },
+  {
+    "period": "2020-09",
+    "value": -2.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737003+00:00"
+  },
+  {
+    "period": "2020-10",
+    "value": -2.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737023+00:00"
+  },
+  {
+    "period": "2020-11",
+    "value": -2.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737043+00:00"
+  },
+  {
+    "period": "2020-12",
+    "value": -1.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737062+00:00"
+  },
+  {
+    "period": "2021-01",
+    "value": -0.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737082+00:00"
+  },
+  {
+    "period": "2021-02",
+    "value": 0.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737102+00:00"
+  },
+  {
+    "period": "2021-03",
+    "value": 1.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737121+00:00"
+  },
+  {
+    "period": "2021-04",
+    "value": 4.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737141+00:00"
+  },
+  {
+    "period": "2021-05",
+    "value": 6.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737161+00:00"
+  },
+  {
+    "period": "2021-06",
+    "value": 9.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737181+00:00"
+  },
+  {
+    "period": "2021-07",
+    "value": 8.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737200+00:00"
+  },
+  {
+    "period": "2021-08",
+    "value": 9.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737220+00:00"
+  },
+  {
+    "period": "2021-09",
+    "value": 9.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737239+00:00"
+  },
+  {
+    "period": "2021-10",
+    "value": 10.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737259+00:00"
+  },
+  {
+    "period": "2021-11",
+    "value": 13.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737279+00:00"
+  },
+  {
+    "period": "2021-12",
+    "value": 12.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737298+00:00"
+  },
+  {
+    "period": "2022-01",
+    "value": 10.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737318+00:00"
+  },
+  {
+    "period": "2022-02",
+    "value": 9.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737338+00:00"
+  },
+  {
+    "period": "2022-03",
+    "value": 8.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737358+00:00"
+  },
+  {
+    "period": "2022-04",
+    "value": 8.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737377+00:00"
+  },
+  {
+    "period": "2022-05",
+    "value": 8.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737397+00:00"
+  },
+  {
+    "period": "2022-06",
+    "value": 6.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737417+00:00"
+  },
+  {
+    "period": "2022-07",
+    "value": 6.1,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737437+00:00"
+  },
+  {
+    "period": "2022-08",
+    "value": 4.2,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737457+00:00"
+  },
+  {
+    "period": "2022-09",
+    "value": 2.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737476+00:00"
+  },
+  {
+    "period": "2022-10",
+    "value": 0.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737496+00:00"
+  },
+  {
+    "period": "2022-11",
+    "value": -1.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737516+00:00"
+  },
+  {
+    "period": "2022-12",
+    "value": -1.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737536+00:00"
+  },
+  {
+    "period": "2023-01",
+    "value": -0.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737555+00:00"
+  },
+  {
+    "period": "2023-02",
+    "value": -0.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737575+00:00"
+  },
+  {
+    "period": "2023-03",
+    "value": -1.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737595+00:00"
+  },
+  {
+    "period": "2023-04",
+    "value": -2.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737620+00:00"
+  },
+  {
+    "period": "2023-05",
+    "value": -3.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737640+00:00"
+  },
+  {
+    "period": "2023-06",
+    "value": -4.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737660+00:00"
+  },
+  {
+    "period": "2023-07",
+    "value": -5.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737680+00:00"
+  },
+  {
+    "period": "2023-08",
+    "value": -4.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737703+00:00"
+  },
+  {
+    "period": "2023-09",
+    "value": -3.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737723+00:00"
+  },
+  {
+    "period": "2023-10",
+    "value": -2.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737743+00:00"
+  },
+  {
+    "period": "2023-11",
+    "value": -2.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737763+00:00"
+  },
+  {
+    "period": "2023-12",
+    "value": -3.0,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737783+00:00"
+  },
+  {
+    "period": "2024-01",
+    "value": -2.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737811+00:00"
+  },
+  {
+    "period": "2024-02",
+    "value": -2.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737831+00:00"
+  },
+  {
+    "period": "2024-03",
+    "value": -2.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737851+00:00"
+  },
+  {
+    "period": "2024-04",
+    "value": -2.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737874+00:00"
+  },
+  {
+    "period": "2024-05",
+    "value": -2.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737894+00:00"
+  },
+  {
+    "period": "2024-06",
+    "value": -1.4,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737914+00:00"
+  },
+  {
+    "period": "2024-07",
+    "value": -0.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737934+00:00"
+  },
+  {
+    "period": "2024-08",
+    "value": -0.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737953+00:00"
+  },
+  {
+    "period": "2024-09",
+    "value": -1.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737971+00:00"
+  },
+  {
+    "period": "2024-10",
+    "value": -2.8,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.737989+00:00"
+  },
+  {
+    "period": "2024-11",
+    "value": -2.9,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.738007+00:00"
+  },
+  {
+    "period": "2024-12",
+    "value": -2.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.738026+00:00"
+  },
+  {
+    "period": "2025-01",
+    "value": -2.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.738044+00:00"
+  },
+  {
+    "period": "2025-02",
+    "value": -2.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.738078+00:00"
+  },
+  {
+    "period": "2025-03",
+    "value": -2.2,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.738096+00:00"
+  },
+  {
+    "period": "2025-04",
+    "value": -2.5,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.738115+00:00"
+  },
+  {
+    "period": "2025-05",
+    "value": -2.7,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.738133+00:00"
+  },
+  {
+    "period": "2025-06",
+    "value": -3.3,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.738151+00:00"
+  },
+  {
+    "period": "2025-07",
+    "value": -3.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.738169+00:00"
+  },
+  {
+    "period": "2025-08",
+    "value": -3.6,
+    "indicator_code": "A0902",
+    "indicator_name": "ppi_monthly",
+    "indicator_type": "ppi_monthly",
+    "unit": "%",
+    "source": "akshare",
+    "fetched_at": "2026-07-30T06:24:38.738188+00:00"
+  }
+]

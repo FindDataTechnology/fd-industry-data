@@ -1,0 +1,21 @@
+functions:
+- category: industry-data
+  columns:
+  - description: "\u6570\u636E\u6E90URL"
+    name: url
+    type: str
+  - description: "\u6570\u636E\u6807\u9898"
+    name: title
+    type: str
+  - description: "\u63D0\u53D6\u7684\u6570\u636E\u5185\u5BB9"
+    name: content
+    type: str
+  command: get_data
+  description: "\u519C\u6797\u7267\u6E14\u884C\u4E1A\u6570\u636E\u722C\u53D6"
+  frequency: daily
+label: "\u519C\u6797\u7267\u6E14\u884C\u4E1A\u6570\u636E"
+name: agriculture
+ranking_seed:
+- 0.75
+- 0.6
+source_url: http://www.dce.com.cn

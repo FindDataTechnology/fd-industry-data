@@ -1,0 +1,85 @@
+name: cha
+label: 中国医院协会数据
+source_url: http://www.cha.org.cn/
+description: 医院统计数据、医疗服务数据、医疗资源数据、行业报告
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_cha_data
+    description: 获取医院和医疗服务数据，包括医院统计、服务量和资源配置
+    category: healthcare-data
+    frequency: yearly
+    columns:
+      hospital:
+        - name: date
+          type: str
+          description: 日期
+        - name: hospital_type
+          type: str
+          description: 医院类型（general/specialty/tcm/private/public）
+        - name: hospital_level
+          type: str
+          description: 等级（3A/3B/3/2A/2B/2/1）
+        - name: total_count
+          type: int
+          description: 机构数量
+        - name: bed_count
+          type: int
+          description: 床位数
+        - name: staff_count
+          type: int
+          description: 职工人数
+        - name: revenue
+          type: float
+          description: 收入（亿元）
+        - name: region
+          type: str
+          description: 地区
+      service:
+        - name: date
+          type: str
+          description: 日期
+        - name: hospital_type
+          type: str
+          description: 医院类型
+        - name: outpatient_visits
+          type: float
+          description: 门诊人次
+        - name: inpatient_admissions
+          type: float
+          description: 住院人次
+        - name: surgery_count
+          type: float
+          description: 手术例数
+        - name: avg_stay_days
+          type: float
+          description: 平均住院天数
+        - name: bed_utilization
+          type: float
+          description: 床位利用率
+      resource:
+        - name: date
+          type: str
+          description: 日期
+        - name: resource_type
+          type: str
+          description: 资源类型
+        - name: count
+          type: float
+          description: 数量
+        - name: per_capita
+          type: float
+          description: 每千人拥有量
+        - name: region
+          type: str
+          description: 地区
+      report:
+        - name: date
+          type: str
+          description: 日期
+        - name: title
+          type: str
+          description: 报告标题
+        - name: report_type
+          type: str
+          description: 报告类型（annual/special）

@@ -1,0 +1,45 @@
+# fd-open-data-protocol compliant manifest
+
+name: nbs-stats-data
+label: "国家统计局数据查询"
+description: "China National Bureau of Statistics data query portal providing access to comprehensive economic and social statistical data."
+source_url: "http://data.stats.gov.cn"
+priority_score: 96
+created_at: 2026-08-01T12:00:00
+
+function_definitions:
+  - name: fetch_nbs_stats_data
+    description: "Fetch statistical data from NBS"
+    parameters:
+      - name: urls
+        type: array<string>
+        optional: true
+      - name: limit
+        type: integer
+        optional: true
+        default: 1000
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+  - name: indicator_name
+    type: string
+  - name: indicator_value
+    type: string
+  - name: period
+    type: string
+  - name: unit
+    type: string
+  - name: region
+    type: string
+  - name: category
+    type: string
+  - name: scraped_at
+    type: timestamp
+
+commands:
+  - name: fetch
+    command: "python spider.py --urls <url1>"
+  - name: dry-run
+    command: "python spider.py --dry-run"

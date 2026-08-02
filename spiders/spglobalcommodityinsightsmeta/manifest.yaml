@@ -1,0 +1,9 @@
+name: spglobalcommodityinsightsmeta
+title: "S&P Global Commodity Insights (Metal Bulletin)"
+url: "https://www.inmetals.com"
+data_type: "market-pricing"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.211966"
+version: "1.0.0"

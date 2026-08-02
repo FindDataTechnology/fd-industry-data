@@ -1,0 +1,43 @@
+# fd-open-data-protocol compliant manifest
+
+name: github-china-blog
+label: "GitHub China Blog"
+description: "GitHub blog posts covering open source developments in China, community insights, and developer trends."
+source_url: "https://github.blog/2023-06-05-open-source-in-china/"
+priority_score: 85
+created_at: 2026-08-01T12:00:00
+
+function_definitions:
+  - name: fetch_github_china_blog
+    description: "Fetch blog posts from GitHub China"
+    parameters:
+      - name: urls
+        type: array<string>
+        optional: true
+      - name: limit
+        type: integer
+        optional: true
+        default: 500
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+  - name: title
+    type: string
+  - name: author
+    type: string
+  - name: publish_date
+    type: string
+  - name: content_summary
+    type: string
+  - name: tags
+    type: string
+  - name: scraped_at
+    type: timestamp
+
+commands:
+  - name: fetch
+    command: "python spider.py --urls <url1>"
+  - name: dry-run
+    command: "python spider.py --dry-run"

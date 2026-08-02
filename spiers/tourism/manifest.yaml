@@ -1,0 +1,48 @@
+name: tourism
+label: 中国旅游研究院数据
+source_url: http://www.ctaweb.org.cn/
+description: 旅游统计数据、游客人数、旅游收入、市场分析
+functions:
+  - command: get_tourism_data
+    description: 获取旅游统计数据、游客人数和旅游收入
+    category: industry-data
+    frequency: quarterly
+    columns:
+      statistics:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: tourism_type
+          type: str
+          description: 旅游类型（英文）
+        - name: tourism_type_cn
+          type: str
+          description: 旅游类型（中文）
+        - name: indicator_name
+          type: str
+          description: 指标名称（visitor_count/tourism_revenue）
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位（亿人次/万人次/亿元）
+        - name: growth_rate
+          type: float
+          description: 增长率
+        - name: region
+          type: str
+          description: 地区
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/policy/analysis/data/holiday）

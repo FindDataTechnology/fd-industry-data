@@ -1,0 +1,9 @@
+name: worldsteelassociation
+title: "World Steel Association"
+url: "https://www.worldsteel.org/"
+data_type: "macro-economic"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.201812"
+version: "1.0.0"

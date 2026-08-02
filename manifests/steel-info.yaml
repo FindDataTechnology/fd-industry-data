@@ -1,0 +1,18 @@
+name: steel-info
+label: 钢铁行业信息网络数据
+source_url: https://www.mysteel.com
+functions:
+  - command: get_market_info
+    description: 钢铁市场资讯数据
+    category: market-data
+    frequency: daily
+    columns:
+      - name: date
+        type: str
+        description: 日期
+      - name: title
+        type: str
+        description: 标题
+      - name: content
+        type: str
+        description: 内容

@@ -1,0 +1,94 @@
+name: chinacdc
+label: 中国疾病预防控制中心数据
+source_url: http://www.chinacdc.cn/
+description: 疾病统计数据、疫情监测数据、免疫规划数据、公共卫生报告
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_chinacdc_data
+    description: 获取疾控数据，包括疾病统计、疫情监测、疫苗接种和公共卫生报告
+    category: healthcare-data
+    frequency: weekly
+    columns:
+      disease:
+        - name: date
+          type: str
+          description: 日期
+        - name: disease_name
+          type: str
+          description: 疾病名称（英文）
+        - name: disease_cn
+          type: str
+          description: 疾病名称（中文）
+        - name: disease_category
+          type: str
+          description: 传染病类别（甲类/乙类/丙类）
+        - name: cases
+          type: int
+          description: 发病数
+        - name: deaths
+          type: int
+          description: 死亡数
+        - name: incidence_rate
+          type: float
+          description: 发病率
+        - name: mortality_rate
+          type: float
+          description: 死亡率
+        - name: region
+          type: str
+          description: 地区
+      epidemic:
+        - name: date
+          type: str
+          description: 日期
+        - name: event_type
+          type: str
+          description: 事件类型（cluster/outbreak/emergency/warning/routine）
+        - name: event_cn
+          type: str
+          description: 事件描述
+        - name: location
+          type: str
+          description: 地点
+        - name: cases
+          type: int
+          description: 病例数
+        - name: severity
+          type: str
+          description: 严重程度（level_i/ii/iii/iv）
+        - name: status
+          type: str
+          description: 状态（ongoing/resolved/monitoring）
+      vaccination:
+        - name: date
+          type: str
+          description: 日期
+        - name: vaccine_name
+          type: str
+          description: 疫苗名称（英文）
+        - name: vaccine_cn
+          type: str
+          description: 疫苗名称（中文）
+        - name: coverage_rate
+          type: float
+          description: 覆盖率
+        - name: doses_administered
+          type: float
+          description: 接种剂次数
+        - name: target_population
+          type: float
+          description: 目标人群
+        - name: region
+          type: str
+          description: 地区
+      report:
+        - name: date
+          type: str
+          description: 日期
+        - name: title
+          type: str
+          description: 标题
+        - name: report_type
+          type: str
+          description: 报告类型（epidemic_bulletin/warning/surveillance/annual_report）

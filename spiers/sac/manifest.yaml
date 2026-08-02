@@ -1,0 +1,28 @@
+name: sac-securities-trading
+label: 中国证券业协会 - 证券交易数据
+source_url: https://www.sac.net.cn
+score: 95
+functions:
+  - command: get_securities_stats
+    description: 获取证券交易统计数据（成交量、券商数据、IPO数据）
+    category: securities-trading
+    frequency: monthly
+    columns:
+      - name: stat_date
+        type: str
+        description: 统计日期
+      - name: indicator_name
+        type: str
+        description: 指标名称
+      - name: value
+        type: float
+        description: 数值
+      - name: unit
+        type: str
+        description: 单位
+      - name: category
+        type: str
+        description: 类别（trading_volume, trading_turnover, institution_count, investment_banking）
+      - name: instrument_type
+        type: str
+        description: 品种类型

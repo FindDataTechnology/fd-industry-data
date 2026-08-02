@@ -1,0 +1,64 @@
+name: cntac
+label: 中国纺织工业联合会数据
+source_url: http://www.cntac.org.cn/
+description: 纺织生产数据、出口统计、市场分析、行业报告
+functions:
+  - command: get_cntac_data
+    description: 获取纺织行业生产数据、出口统计和新闻动态
+    category: industry-data
+    frequency: monthly
+    columns:
+      production:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: category
+          type: str
+          description: 类别（英文）
+        - name: category_cn
+          type: str
+          description: 类别（中文）
+        - name: production_volume
+          type: float
+          description: 产量
+        - name: production_unit
+          type: str
+          description: 单位
+        - name: growth_rate
+          type: float
+          description: 增长率
+        - name: region
+          type: str
+          description: 地区
+      export:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: category
+          type: str
+          description: 类别
+        - name: export_volume
+          type: float
+          description: 出口量
+        - name: export_value
+          type: float
+          description: 出口额
+        - name: value_unit
+          type: str
+          description: 金额单位
+        - name: growth_rate
+          type: float
+          description: 增长率
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别

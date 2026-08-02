@@ -1,0 +1,63 @@
+name: chinametal
+label: 中国金属市场网数据
+source_url: https://www.chinametal.com.cn
+description: 金属价格、市场分析、行业资讯、供需数据
+functions:
+  - command: get_chinametal_data
+    description: 获取有色金属价格、市场新闻和分析报告
+    category: market-data
+    frequency: daily
+    columns:
+      prices:
+        - name: date
+          type: str
+          description: 日期
+        - name: metal
+          type: str
+          description: 金属名称（英文）
+        - name: metal_cn
+          type: str
+          description: 金属名称（中文）
+        - name: symbol
+          type: str
+          description: 金属符号
+        - name: price_low
+          type: float
+          description: 最低价
+        - name: price_high
+          type: float
+          description: 最高价
+        - name: price_avg
+          type: float
+          description: 均价
+        - name: price_change
+          type: float
+          description: 涨跌额
+        - name: price_change_pct
+          type: float
+          description: 涨跌幅（%）
+        - name: unit
+          type: str
+          description: 单位（元/吨）
+        - name: currency
+          type: str
+          description: 货币（CNY）
+        - name: region
+          type: str
+          description: 地区（China）
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/market/analysis）
+        - name: metal
+          type: str
+          description: 相关金属

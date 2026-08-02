@@ -1,0 +1,114 @@
+name: agri-cn
+label: 中国农业信息网数据
+source_url: http://www.agri.cn/
+description: 中国农业信息网农产品价格、供需数据、气象灾害影响、农业新闻
+functions:
+  - command: get_product_prices
+    description: 农产品批发市场价格数据
+    category: commodity-pricing
+    frequency: daily
+    columns:
+      - name: date
+        type: str
+        description: 日期
+      - name: product_name
+        type: str
+        description: 产品名称
+      - name: category
+        type: str
+        description: 类别
+      - name: market_name
+        type: str
+        description: 市场名称
+      - name: province
+        type: str
+        description: 省份
+      - name: price
+        type: float
+        description: 价格(CNY/kg)
+      - name: price_high
+        type: float
+        description: 最高价
+      - name: price_low
+        type: float
+        description: 最低价
+      - name: change_pct
+        type: float
+        description: 涨跌幅(%)
+  - command: get_supply_demand
+    description: 农产品市场供需数据
+    category: market-data
+    frequency: weekly
+    columns:
+      - name: date
+        type: str
+        description: 日期
+      - name: product_name
+        type: str
+        description: 产品名称
+      - name: indicator_type
+        type: str
+        description: 指标类型（供应/需求）
+      - name: value
+        type: str
+        description: 数值
+      - name: unit
+        type: str
+        description: 单位
+      - name: region
+        type: str
+        description: 地区
+      - name: trend
+        type: str
+        description: 趋势
+  - command: get_weather_impact
+    description: 气象灾害对农业的影响
+    category: weather-data
+    frequency: daily
+    columns:
+      - name: date
+        type: str
+        description: 日期
+      - name: event_type
+        type: str
+        description: 灾害类型（旱灾/洪涝/台风/冻害等）
+      - name: region
+        type: str
+        description: 受灾地区
+      - name: severity
+        type: str
+        description: 严重程度
+      - name: affected_area
+        type: float
+        description: 受灾面积(公顷)
+      - name: affected_crops
+        type: str
+        description: 受灾作物
+      - name: estimated_loss
+        type: float
+        description: 估计损失(CNY)
+  - command: get_agricultural_news
+    description: 农业新闻和市场动态
+    category: news
+    frequency: daily
+    columns:
+      - name: title
+        type: str
+        description: 新闻标题
+      - name: publish_date
+        type: str
+        description: 发布日期
+      - name: category
+        type: str
+        description: 类别（市场/政策/生产/贸易/科技）
+      - name: source
+        type: str
+        description: 来源
+      - name: summary
+        type: str
+        description: 摘要
+notes:
+  - 中国农业信息网为官方农业信息平台
+  - 价格数据来自全国各批发市场
+  - 气象灾害数据实时更新
+  - 新闻资讯每日更新

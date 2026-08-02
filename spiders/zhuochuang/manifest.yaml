@@ -1,0 +1,157 @@
+name: zhuochuang
+label: 卓创资讯
+source_url: https://www.sci99.com/
+description: |
+  卓创资讯官方数据，包括化工产品价格、市场供需分析、
+  价格指数和行业报告。覆盖能源、有机化工、无机化工、
+  合成材料、橡胶等主要品类。
+
+authentication:
+  required: false
+  type: none
+  notes: |
+    公开页面数据无需登录。详细价格数据和深度分析报告需要付费订阅。
+    Public pages accessible without login. Detailed price data and
+    in-depth analysis reports require paid subscription.
+
+rate_limiting:
+  download_delay: 2
+  concurrent_requests: 1
+  notes: 建议2秒延迟
+
+anti_bot:
+  method: browser_impersonation
+  details: Chrome browser impersonation with stealthy headers
+
+functions:
+  - command: get_zhuochuang_data
+    description: 获取卓创资讯化工行业数据
+    category: industry-data
+    frequency: daily
+    parameters:
+      include_market:
+        type: bool
+        description: 是否抓取市场供需分析
+        default: true
+      include_index:
+        type: bool
+        description: 是否抓取价格指数
+        default: true
+      include_reports:
+        type: bool
+        description: 是否抓取行业报告
+        default: true
+
+columns:
+  prices:
+    date:
+      type: str
+      description: 日期
+    product:
+      type: str
+      description: 产品名称
+    product_cn:
+      type: str
+      description: 产品名称（中文）
+    category:
+      type: str
+      description: 产品类别（energy/organic/inorganic/polymers/rubber）
+    price:
+      type: float
+      description: 价格
+    price_unit:
+      type: str
+      description: 价格单位（元/吨）
+    price_change:
+      type: float
+      description: 涨跌额
+    price_change_pct:
+      type: float
+      description: 涨跌幅（%）
+    price_high:
+      type: float
+      description: 最高价
+    price_low:
+      type: float
+      description: 最低价
+    market_location:
+      type: str
+      description: 市场地区（华东/华南/华北等）
+  market:
+    date:
+      type: str
+      description: 日期
+    product:
+      type: str
+      description: 产品名称
+    supply_index:
+      type: float
+      description: 供应指数
+    demand_index:
+      type: float
+      description: 需求指数
+    inventory:
+      type: float
+      description: 库存量
+    operating_rate:
+      type: float
+      description: 开工率
+    capacity:
+      type: float
+      description: 产能
+    market_trend:
+      type: str
+      description: 市场趋势
+  index:
+    date:
+      type: str
+      description: 日期
+    index_name:
+      type: str
+      description: 指数名称
+    value:
+      type: float
+      description: 指数值
+    change:
+      type: float
+      description: 涨跌值
+    change_pct:
+      type: float
+      description: 涨跌幅（%）
+    change_direction:
+      type: str
+      description: 涨跌方向（up/down/flat）
+  reports:
+    date:
+      type: str
+      description: 发布日期
+    title:
+      type: str
+      description: 报告标题
+    category:
+      type: str
+      description: 类别（daily_report/weekly_report/monthly_report）
+    product:
+      type: str
+      description: 相关产品
+    summary:
+      type: str
+      description: 摘要
+
+output:
+  sqlite:
+    path: data/zhuochuang.db
+    tables:
+      - price_data
+      - market_analysis
+      - price_index
+      - industry_reports
+  json:
+    - path: output/zhuochuang_prices.json
+      description: 价格数据
+    - path: output/zhuochuang_market.json
+      description: 市场数据
+    - path: output/zhuochuang_index.json
+      description: 价格指数
+    - path: output/zhuochuang_reports.json
+      description: 行业报告

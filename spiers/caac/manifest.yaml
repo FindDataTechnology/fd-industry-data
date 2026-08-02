@@ -1,0 +1,101 @@
+name: caac
+label: 中国民用航空局数据
+source_url: http://www.caac.gov.cn/
+description: 航空统计数据、旅客运输量、货邮运输量、航线统计
+functions:
+  - command: get_caac_data
+    description: 获取航空旅客运输、货邮运输和航空统计数据
+    category: industry-data
+    frequency: monthly
+    columns:
+      passenger:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: airport_name
+          type: str
+          description: 机场名称
+        - name: airport_code
+          type: str
+          description: 机场代码
+        - name: indicator
+          type: str
+          description: 指标名称（英文）
+        - name: indicator_cn
+          type: str
+          description: 指标名称（中文）
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位（万人次）
+        - name: growth_rate
+          type: float
+          description: 同比增长率
+        - name: ranking
+          type: int
+          description: 排名
+      cargo:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: airport_name
+          type: str
+          description: 机场名称
+        - name: airport_code
+          type: str
+          description: 机场代码
+        - name: indicator
+          type: str
+          description: 指标名称（英文）
+        - name: indicator_cn
+          type: str
+          description: 指标名称（中文）
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位（万吨）
+        - name: growth_rate
+          type: float
+          description: 同比增长率
+        - name: ranking
+          type: int
+          description: 排名
+      statistics:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: indicator
+          type: str
+          description: 指标名称（英文）
+        - name: indicator_cn
+          type: str
+          description: 指标名称（中文）
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: growth_rate
+          type: float
+          description: 同比增长率
+        - name: category
+          type: str
+          description: 类别（transport/airport/route/general）
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/statistics/policy/safety/route）

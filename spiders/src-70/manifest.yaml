@@ -1,0 +1,9 @@
+name: src-70
+title: "中国知网·人民日报全文库"
+url: "https://www.cnki.net/"
+data_type: "newspaper-archive"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.205919"
+version: "1.0.0"

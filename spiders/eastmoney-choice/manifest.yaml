@@ -1,0 +1,77 @@
+# fd-open-data-protocol compliant manifest
+# MCP integration metadata
+
+name: eastmoney-choice
+label: "东方财富 Choice 金融终端"
+description: "东方财富旗下的专业金融数据终端，提供实时行情与深度分析数据。"
+source_url: "https://choice.eastmoney.com"
+priority_score: 96
+created_at: 2026-08-01T01:22:55.624936
+
+function_definitions:
+  - name: fetch_eastmoney_choice
+    description: "Fetch data from 东方财富 Choice 金融终端"
+    parameters:
+      - name: urls
+        type: array<string>
+        description: "List of URLs to scrape"
+        optional: true
+        default: ["https://choice.eastmoney.com"]
+      - name: limit
+        type: integer
+        description: "Maximum number of records to fetch"
+        optional: true
+        default: 1000
+    returns: array<object>
+    
+  - name: query_eastmoney_choice
+    description: "Query stored data from 东方财富 Choice 金融终端"
+    parameters:
+      - name: filters
+        type: object
+        description: "Filter criteria"
+        optional: true
+      - name: limit
+        type: integer
+        description: "Max records to return"
+        optional: true
+        default: 100
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+    description: "Original URL of the scraped page"
+    
+  - name: page_title
+    type: string
+    description: "HTML title of the page"
+    
+  - name: content_length
+    type: integer
+    description: "Size of page content in bytes"
+    
+  - name: status_code
+    type: integer
+    description: "HTTP status code of the request"
+    
+  - name: scraped_at
+    type: timestamp
+    description: "Timestamp when the data was collected"
+
+commands:
+  - name: fetch
+    description: "Run the scraper to collect new data"
+    command: "python spider.py --urls <url1> <url2>"
+    
+  - name: dry-run
+    description: "Test scraping without saving results"
+    command: "python spider.py --dry-run"
+    
+  - name: export-json
+    description: "Export data to JSON Lines format"
+    command: "python spider.py --format json"
+    
+  - name: export-db
+    description: "Export data to SQLite database"
+    command: "python spider.py --format sqlite"

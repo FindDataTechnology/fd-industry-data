@@ -1,0 +1,28 @@
+functions:
+- category: industry-production
+  columns:
+  - description: "\u7EDF\u8BA1\u65E5\u671F"
+    name: report_date
+    type: str
+  - description: "\u6307\u6807\u540D\u79F0 (\u4EA7\u91CF/\u8FDB\u53E3\u91CF/\u51FA\
+      \u53E3\u91CF\u7B49)"
+    name: indicator_name
+    type: str
+  - description: "\u6307\u6807\u6570\u503C"
+    name: value
+    type: float
+  - description: "\u5355\u4F4D"
+    name: unit
+    type: str
+  - description: "\u73AF\u6BD4/\u540C\u6BD4\u53D8\u5316\u7387"
+    name: change_rate
+    type: str
+  command: get_production_stats
+  description: "\u94A2\u94C1\u751F\u4EA7\u7EDF\u8BA1\u6570\u636E"
+  frequency: monthly
+label: "\u4E2D\u56FD\u94A2\u94C1\u5DE5\u4E1A\u534F\u4F1A\u6570\u636E"
+name: cisa-industry
+ranking_seed:
+- 0.82
+- 0.68
+source_url: https://www.cisa.org.cn

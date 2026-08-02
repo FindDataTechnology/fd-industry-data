@@ -1,0 +1,100 @@
+name: isc-internet-industry
+label: 中国互联网协会 - 互联网行业数据
+source_url: http://www.isc.org.cn/
+score: 85
+authentication: none
+access_level: public
+authentication_details: |
+  All data is publicly available on the ISC website.
+  No API key or registration required.
+  
+  PUBLIC (this spider):
+  - Internet industry statistics (互联网行业统计)
+  - China Internet 100 rankings (中国互联网企业百强)
+  - Internet economy data (数字经济、电子商务)
+  - Platform governance research
+  - Industry development reports
+  - Self-regulation standards
+  
+  NOTES:
+  - Annual Internet 100 rankings since 2012
+  - Internet industry development annual reports
+  - Platform economy and governance research
+  - Digital economy statistics
+  
+  Website: http://www.isc.org.cn/
+  Rankings: http://www.isc.org.cn/zxzx/hyph/
+rate_limiting:
+  download_delay: 2.0
+  concurrent_requests: 3
+  robots_txt_obey: true
+functions:
+  - command: ISCSpider
+    description: 获取互联网行业统计数据（企业数量、收入、数字经济规模）
+    category: internet-economy
+    frequency: annual
+    columns:
+      - name: stat_year
+        type: str
+        description: 统计年份
+      - name: indicator_name
+        type: str
+        description: 指标英文名
+      - name: indicator_name_cn
+        type: str
+        description: 指标中文名
+      - name: value
+        type: float
+        description: 数值
+      - name: unit
+        type: str
+        description: 单位（亿元、万亿元、万家等）
+      - name: category
+        type: str
+        description: 类别(internet_economy/table_data)
+      - name: sub_category
+        type: str
+        description: 子类别(enterprises/revenue/economy/commerce)
+  - command: Internet100Ranking
+    description: 获取中国互联网企业百强排行榜
+    category: enterprise-ranking
+    frequency: annual
+    columns:
+      - name: enterprise_name
+        type: str
+        description: 企业名称
+      - name: ranking
+        type: int
+        description: 排名
+      - name: category
+        type: str
+        description: 类别(internet_100/platform/ecommerce)
+      - name: main_business
+        type: str
+        description: 主营业务
+      - name: revenue
+        type: float
+        description: 收入
+      - name: revenue_unit
+        type: str
+        description: 收入单位
+      - name: stat_year
+        type: str
+        description: 统计年份
+  - command: ReportIndexer
+    description: 索引ISC发布的行业报告和治理文件
+    category: reports
+    frequency: realtime
+    columns:
+      - name: title
+        type: str
+        description: 报告标题
+      - name: publish_date
+        type: str
+        description: 发布日期
+      - name: report_type
+        type: str
+        description: 报告类型(white_paper/blue_book/ranking/research_report/governance)
+      - name: category
+        type: str
+        description: 领域(internet/platform/ecommerce/governance/security)

@@ -1,0 +1,22 @@
+name: czce-scraper
+version: "1.0.0"
+description: Zhengzhou Commodity Exchange futures data scraper
+target_url: http://www.czce.com.cn/
+score: 98
+
+categories:
+  - futures_prices
+  - commodity_exchange
+
+output:
+  - sqlite
+  - json
+
+rate_limiting:
+  delay_between_requests: 2.0
+  max_concurrent: 2
+
+notes:
+  - "Zhengzhou Commodity Exchange (郑州商品交易所)"
+  - "Agricultural and chemical futures products"
+  - "High-priority official exchange source"

@@ -1,0 +1,30 @@
+columns:
+- description: Futures contract code
+  name: contract_code
+  type: TEXT
+- description: Trading date
+  name: trade_date
+  type: TEXT
+- description: Opening price
+  name: open_price
+  type: REAL
+- description: Closing price
+  name: close_price
+  type: REAL
+- description: Trading volume
+  name: volume
+  type: INTEGER
+- description: Total turnover
+  name: turnover
+  type: REAL
+- description: Open interest position
+  name: open_interest
+  type: REAL
+functions:
+- command: get_futures_data
+  description: Futures trading data for rebar, wire rod, hot rolled coils
+- command: get_market_stats
+  description: Market statistics including volume, turnover, open interest
+label: Steel Exchanges & Futures Data
+name: steel-exchange
+source_url: https://www.shfe.com.cn

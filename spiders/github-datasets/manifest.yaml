@@ -1,0 +1,92 @@
+name: github-datasets
+version: 1.0.0
+description: GitHub Awesome China Dataset and related repositories scraper
+source: https://github.com/awesome-china/data
+author: FindData Official
+license: MIT
+
+spider:
+  class: GithubDatasetsSpider
+  module: spider
+  entry_point: spider.py
+
+data_sources:
+  - name: Awesome China Data
+    url: https://github.com/awesome-china/data
+    type: awesome_list
+  - name: China Data Topic
+    url: https://github.com/topics/china-data
+    type: topic
+  - name: Chinese Data Topic
+    url: https://github.com/topics/chinese-data
+    type: topic
+  - name: China Dataset Topic
+    url: https://github.com/topics/china-dataset
+    type: topic
+
+output:
+  database: data/github_datasets.db
+  json: output/github_datasets.json
+  schema:
+    table: github_datasets
+    columns:
+      - name: id
+        type: INTEGER
+        primary_key: true
+      - name: url
+        type: TEXT
+      - name: repo_name
+        type: TEXT
+      - name: owner
+        type: TEXT
+      - name: description
+        type: TEXT
+      - name: stars
+        type: TEXT
+      - name: forks
+        type: TEXT
+      - name: language
+        type: TEXT
+      - name: topics
+        type: TEXT
+        format: json_array
+      - name: license
+        type: TEXT
+      - name: last_commit
+        type: TEXT
+      - name: content
+        type: TEXT
+      - name: data_links
+        type: TEXT
+        format: json_array
+      - name: repo_url
+        type: TEXT
+      - name: data_type
+        type: TEXT
+      - name: scraped_at
+        type: TEXT
+      - unique_constraint: [url, data_type]
+
+settings:
+  concurrent_requests: 4
+  download_delay: 1.5
+  robots_txt_obey: true
+  allowed_domains:
+    - github.com
+
+features:
+  - pagination
+  - sqlite_storage
+  - json_export
+  - rate_limiting
+  - deduplication
+  - multi_page_types
+  - readme_parsing
+  - data_link_extraction
+
+dependencies:
+  - scrapling>=0.4.7
+  - python>=3.10
+
+last_updated: 2026-01-31
+status: active

@@ -1,0 +1,93 @@
+name: chinaflower
+label: 中国花卉协会行业数据
+source_url: https://www.chinaflower.org.cn
+description: 中国花卉协会行业统计、生产数据、市场报告、政策信息
+functions:
+  - command: get_industry_statistics
+    description: 花卉行业统计数据（年度/月度报告）
+    category: industry-data
+    frequency: monthly
+    columns:
+      - name: period
+        type: str
+        description: 统计周期
+      - name: indicator
+        type: str
+        description: 指标名称
+      - name: value
+        type: str
+        description: 指标数值
+      - name: unit
+        type: str
+        description: 单位
+      - name: region
+        type: str
+        description: 地区
+      - name: flower_type
+        type: str
+        description: 花卉类型
+      - name: change_pct
+        type: float
+        description: 同比/环比变化率(%)
+  - command: get_production_data
+    description: 花卉种植生产数据（面积、产量）
+    category: production-data
+    frequency: quarterly
+    columns:
+      - name: year
+        type: str
+        description: 年份
+      - name: region
+        type: str
+        description: 地区/省份
+      - name: flower_name
+        type: str
+        description: 花卉品种
+      - name: area
+        type: float
+        description: 种植面积(hectares)
+      - name: output
+        type: float
+        description: 产量(tons)
+      - name: yield_per_area
+        type: float
+        description: 单位面积产量
+  - command: get_market_reports
+    description: 花卉市场分析报告
+    category: market-analysis
+    frequency: weekly
+    columns:
+      - name: title
+        type: str
+        description: 报告标题
+      - name: publish_date
+        type: str
+        description: 发布日期
+      - name: report_type
+        type: str
+        description: 报告类型
+      - name: summary
+        type: str
+        description: 报告摘要
+  - command: get_policy_info
+    description: 花卉产业政策信息
+    category: policy-data
+    frequency: monthly
+    columns:
+      - name: title
+        type: str
+        description: 政策标题
+      - name: publish_date
+        type: str
+        description: 发布日期
+      - name: policy_type
+        type: str
+        description: 政策类型
+      - name: issuing_body
+        type: str
+        description: 发布机构
+notes:
+  - 中国花卉协会网站可能需要登录才能访问部分数据
+  - 部分统计数据为年度发布，更新频率较低
+  - 行业报告可能以PDF格式提供，需要额外解析
+  - 数据主要覆盖鲜切花、盆栽、种苗等品类

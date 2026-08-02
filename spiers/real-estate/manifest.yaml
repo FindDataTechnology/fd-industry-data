@@ -1,0 +1,79 @@
+name: real-estate
+label: 中国房地产业协会数据
+source_url: http://www.fangchan.com/
+description: 房地产市场价格数据、成交统计、开发投资、建设统计、市场趋势
+functions:
+  - command: get_real_estate_data
+    description: 获取房地产价格数据、市场成交统计和新闻动态
+    category: industry-data
+    frequency: monthly
+    columns:
+      prices:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: city
+          type: str
+          description: 城市
+        - name: city_tier
+          type: str
+          description: 城市级别
+        - name: property_type
+          type: str
+          description: 物业类型（英文）
+        - name: property_type_cn
+          type: str
+          description: 物业类型（中文）
+        - name: price_index
+          type: float
+          description: 价格指数
+        - name: avg_price
+          type: float
+          description: 均价
+        - name: price_unit
+          type: str
+          description: 价格单位
+        - name: growth_rate_mom
+          type: float
+          description: 环比增长率
+        - name: growth_rate_yoy
+          type: float
+          description: 同比增长率
+      market:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: city
+          type: str
+          description: 城市
+        - name: indicator_name
+          type: str
+          description: 指标名称
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: growth_rate
+          type: float
+          description: 增长率
+        - name: category
+          type: str
+          description: 类别（transaction/investment/construction）
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/policy/market/land/price）
+        - name: city
+          type: str
+          description: 相关城市

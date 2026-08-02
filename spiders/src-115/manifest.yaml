@@ -1,0 +1,9 @@
+name: src-115
+title: "万方数据·中国重要报纸库"
+url: "https://www.wanfangdata.com.cn/"
+data_type: "newspaper-archive"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.227484"
+version: "1.0.0"

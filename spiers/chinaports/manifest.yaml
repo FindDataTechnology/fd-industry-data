@@ -1,0 +1,73 @@
+name: chinaports
+label: 中国港口协会数据
+source_url: http://www.chinaports.com/
+description: 港口吞吐量统计、集装箱运输数据、货运量、贸易流向数据
+functions:
+  - command: get_chinaports_data
+    description: 获取港口吞吐量、集装箱运输数据和行业新闻
+    category: industry-data
+    frequency: monthly
+    columns:
+      throughput:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: port_name
+          type: str
+          description: 港口名称（中文）
+        - name: port_name_en
+          type: str
+          description: 港口名称（英文）
+        - name: cargo_type
+          type: str
+          description: 货物类型（英文）
+        - name: cargo_type_cn
+          type: str
+          description: 货物类型（中文）
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位（万吨/亿吨）
+        - name: growth_rate
+          type: float
+          description: 同比增长率
+        - name: ranking
+          type: int
+          description: 排名
+      container:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: port_name
+          type: str
+          description: 港口名称（中文）
+        - name: port_name_en
+          type: str
+          description: 港口名称（英文）
+        - name: teu_value
+          type: float
+          description: TEU数值
+        - name: teu_unit
+          type: str
+          description: 单位（万TEU）
+        - name: growth_rate
+          type: float
+          description: 同比增长率
+        - name: ranking
+          type: int
+          description: 排名
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/throughput/policy/trade/construction）

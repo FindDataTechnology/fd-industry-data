@@ -1,0 +1,29 @@
+version: "1"
+name: nbs-gdp
+label: NBS GDP & Macroeconomic Data
+source_url: https://data.stats.gov.cn
+ranking_seed: [0.85, 0.7]
+description: Quarterly GDP and monthly macroeconomic indicators (GDP, CPI, PPI, PMI) from NBS
+functions:
+  - command: get_gdp_quarterly
+    description: Quarterly GDP data from National Bureau of Statistics
+    category: macro
+    frequency: quarterly
+    parameters:
+      - name: start_year
+        type: int
+        required: false
+        default: 2010
+    columns:
+      - name: period
+        type: str
+      - name: value
+        type: float
+      - name: indicator_code
+        type: str
+concepts:
+  - column: value
+    concept: gdp.nominal
+    entity_type: country
+fetch:
+  runner: nbs-gdp

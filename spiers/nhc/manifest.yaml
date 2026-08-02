@@ -1,0 +1,88 @@
+name: nhc
+label: 国家卫生健康委员会数据
+source_url: http://www.nhc.gov.cn/
+description: 公共卫生统计数据、疾病监测数据、卫生资源数据、政策文件
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_nhc_data
+    description: 获取国家卫生健康统计数据，包括公共卫生指标、疾病监测和政策文件
+    category: healthcare-data
+    frequency: monthly
+    columns:
+      public_health:
+        - name: date
+          type: str
+          description: 日期
+        - name: indicator
+          type: str
+          description: 指标名称（英文）
+        - name: indicator_cn
+          type: str
+          description: 指标名称（中文）
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: region
+          type: str
+          description: 地区
+      disease:
+        - name: date
+          type: str
+          description: 日期
+        - name: disease_name
+          type: str
+          description: 疾病名称（英文）
+        - name: disease_name_cn
+          type: str
+          description: 疾病名称（中文）
+        - name: cases
+          type: int
+          description: 发病数
+        - name: deaths
+          type: int
+          description: 死亡数
+        - name: incidence_rate
+          type: float
+          description: 发病率
+        - name: mortality_rate
+          type: float
+          description: 死亡率
+        - name: region
+          type: str
+          description: 地区
+      resources:
+        - name: date
+          type: str
+          description: 日期
+        - name: resource_type
+          type: str
+          description: 资源类型
+        - name: count
+          type: float
+          description: 数量
+        - name: per_10k
+          type: float
+          description: 每万人拥有量
+        - name: region
+          type: str
+          description: 地区
+      policy:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: doc_number
+          type: str
+          description: 文号
+        - name: policy_type
+          type: str
+          description: 文件类型（notice/regulation/plan/standard/guideline）
+        - name: issuing_body
+          type: str
+          description: 发文机关

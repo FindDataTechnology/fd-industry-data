@@ -1,0 +1,21 @@
+name: moa-scraper
+version: "1.0.0"
+description: Ministry of Agriculture data scraper
+target_url: https://www.moa.gov.cn/
+score: 95
+
+categories:
+  - market_data
+  - analytics
+
+output:
+  - sqlite
+  - json
+
+rate_limiting:
+  delay_between_requests: 2.0
+  max_concurrent: 2
+
+notes:
+  - "Ministry of Agriculture"
+  - "High-priority data source"

@@ -1,0 +1,21 @@
+name: nbs-query-scraper
+version: "1.0.0"
+description: NBS Data Query Portal data scraper
+target_url: http://www.stats.gov.cn/sj/
+score: 95
+
+categories:
+  - market_data
+  - analytics
+
+output:
+  - sqlite
+  - json
+
+rate_limiting:
+  delay_between_requests: 2.0
+  max_concurrent: 2
+
+notes:
+  - "NBS Data Query Portal"
+  - "High-priority data source"

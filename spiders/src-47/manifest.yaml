@@ -1,0 +1,9 @@
+name: src-47
+title: "上海证券交易所"
+url: "https://www.sse.com.cn/"
+data_type: "stock-market"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.195565"
+version: "1.0.0"

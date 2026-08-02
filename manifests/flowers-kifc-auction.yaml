@@ -1,0 +1,96 @@
+name: kifc-flower-auction
+label: 昆明国际花卉拍卖交易中心数据
+source_url: http://www.kifc.cn
+description: 花卉拍卖价格、交易量、市场趋势、出口数据
+functions:
+  - command: get_daily_prices
+    description: 每日鲜切花拍卖价格
+    category: commodity-pricing
+    frequency: daily
+    columns:
+      - name: date
+        type: str
+        description: 交易日期
+      - name: flower_name
+        type: str
+        description: 花卉品种
+      - name: variety
+        type: str
+        description: 品种细分
+      - name: spec
+        type: str
+        description: 规格/等级
+      - name: price
+        type: float
+        description: 拍卖价格(CNY/stem)
+      - name: price_high
+        type: float
+        description: 最高价
+      - name: price_low
+        type: float
+        description: 最低价
+  - command: get_trading_volumes
+    description: 按花卉类型的交易量数据
+    category: market-volume
+    frequency: daily
+    columns:
+      - name: date
+        type: str
+        description: 交易日期
+      - name: flower_name
+        type: str
+        description: 花卉品种
+      - name: category
+        type: str
+        description: 类别
+      - name: volume
+        type: float
+        description: 交易量(stems)
+      - name: turnover
+        type: float
+        description: 成交额(CNY)
+  - command: get_market_trends
+    description: 市场趋势和分析报告
+    category: market-analysis
+    frequency: weekly
+    columns:
+      - name: period
+        type: str
+        description: 统计周期
+      - name: flower_name
+        type: str
+        description: 花卉品种
+      - name: trend_type
+        type: str
+        description: 趋势类型
+      - name: value
+        type: str
+        description: 数值
+      - name: change_pct
+        type: float
+        description: 变化率(%)
+  - command: get_export_data
+    description: 花卉出口数据和统计
+    category: trade-data
+    frequency: monthly
+    columns:
+      - name: period
+        type: str
+        description: 统计周期
+      - name: flower_name
+        type: str
+        description: 花卉品种
+      - name: destination
+        type: str
+        description: 出口目的地
+      - name: quantity
+        type: float
+        description: 数量(kg)
+      - name: value_cny
+        type: float
+        description: 金额(CNY)
+notes:
+  - KIFC是中国最大的鲜切花拍卖交易中心
+  - 实时拍卖数据可能需要付费订阅
+  - 本爬虫获取公开可访问的延迟数据
+  - 主要覆盖玫瑰、康乃馨、百合、菊花等主流鲜切花品种

@@ -1,0 +1,77 @@
+# fd-open-data-protocol compliant manifest
+# MCP integration metadata
+
+name: toutiao-docs
+label: "今日头条API技术文档"
+description: "包含所有开放接口的详细参数说明、错误码定义、SDK下载及数据格式规范"
+source_url: "https://open.toutiao.com/docs/"
+priority_score: 95
+created_at: 2026-08-01T01:22:55.637489
+
+function_definitions:
+  - name: fetch_toutiao_docs
+    description: "Fetch data from 今日头条API技术文档"
+    parameters:
+      - name: urls
+        type: array<string>
+        description: "List of URLs to scrape"
+        optional: true
+        default: ["https://open.toutiao.com/docs/"]
+      - name: limit
+        type: integer
+        description: "Maximum number of records to fetch"
+        optional: true
+        default: 1000
+    returns: array<object>
+    
+  - name: query_toutiao_docs
+    description: "Query stored data from 今日头条API技术文档"
+    parameters:
+      - name: filters
+        type: object
+        description: "Filter criteria"
+        optional: true
+      - name: limit
+        type: integer
+        description: "Max records to return"
+        optional: true
+        default: 100
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+    description: "Original URL of the scraped page"
+    
+  - name: page_title
+    type: string
+    description: "HTML title of the page"
+    
+  - name: content_length
+    type: integer
+    description: "Size of page content in bytes"
+    
+  - name: status_code
+    type: integer
+    description: "HTTP status code of the request"
+    
+  - name: scraped_at
+    type: timestamp
+    description: "Timestamp when the data was collected"
+
+commands:
+  - name: fetch
+    description: "Run the scraper to collect new data"
+    command: "python spider.py --urls <url1> <url2>"
+    
+  - name: dry-run
+    description: "Test scraping without saving results"
+    command: "python spider.py --dry-run"
+    
+  - name: export-json
+    description: "Export data to JSON Lines format"
+    command: "python spider.py --format json"
+    
+  - name: export-db
+    description: "Export data to SQLite database"
+    command: "python spider.py --format sqlite"

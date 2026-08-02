@@ -1,0 +1,45 @@
+# fd-open-data-protocol compliant manifest
+
+name: worldsteel
+label: "世界钢铁协会"
+description: "World Steel Association provides global steel industry data, statistics, reports, and market insights."
+source_url: "https://www.worldsteel.org"
+priority_score: 92
+created_at: 2026-08-01T12:00:00
+
+function_definitions:
+  - name: fetch_worldsteel
+    description: "Fetch steel industry data and reports"
+    parameters:
+      - name: urls
+        type: array<string>
+        optional: true
+      - name: limit
+        type: integer
+        optional: true
+        default: 500
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+  - name: page_title
+    type: string
+  - name: report_title
+    type: string
+  - name: publish_date
+    type: string
+  - name: category
+    type: string
+  - name: download_url
+    type: string
+  - name: description
+    type: string
+  - name: scraped_at
+    type: timestamp
+
+commands:
+  - name: fetch
+    command: "python spider.py --urls <url1>"
+  - name: dry-run
+    command: "python spider.py --dry-run"

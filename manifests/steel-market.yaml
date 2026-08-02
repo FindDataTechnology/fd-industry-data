@@ -1,0 +1,29 @@
+columns:
+- description: Quote date
+  name: quote_date
+  type: TEXT
+- description: Product category
+  name: product_type
+  type: TEXT
+- description: Grade/specification
+  name: grade_spec
+  type: TEXT
+- description: Price value
+  name: price
+  type: REAL
+- description: Market location
+  name: market_location
+  type: TEXT
+- description: Price trend (up/down/stable)
+  name: trend_direction
+  type: TEXT
+functions:
+- command: get_product_prices
+  description: Real-time product prices across different markets
+- command: get_inventory_data
+  description: Steel inventory levels by region and product type
+- command: get_price_trends
+  description: Historical price trends and forecasting
+label: Steel Market Data Platforms
+name: steel-market
+source_url: https://www.mysteel.com/

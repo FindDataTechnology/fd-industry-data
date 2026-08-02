@@ -1,0 +1,98 @@
+name: nlc-collection-data
+label: 国家图书馆 - 馆藏目录与数字资源
+source_url: https://www.nlc.cn/
+score: 80
+functions:
+  - command: get_catalog_records
+    description: 获取馆藏目录记录（图书、期刊、地图等）
+    category: catalog
+    frequency: weekly
+    auth_required: false
+    columns:
+      - name: title
+        type: str
+        description: 题名
+      - name: author
+        type: str
+        description: 作者
+      - name: publisher
+        type: str
+        description: 出版者
+      - name: publish_date
+        type: str
+        description: 出版日期
+      - name: isbn
+        type: str
+        description: ISBN/ISSN
+      - name: category
+        type: str
+        description: 分类
+      - name: collection_type
+        type: str
+        description: 馆藏类型
+  - command: get_digital_collections
+    description: 获取数字资源/特藏元数据
+    category: digital-collections
+    frequency: monthly
+    auth_required: false
+    columns:
+      - name: title
+        type: str
+        description: 资源名称
+      - name: collection_name
+        type: str
+        description: 所属集合
+      - name: category
+        type: str
+        description: 分类
+      - name: description
+        type: str
+        description: 描述
+      - name: item_count
+        type: int
+        description: 资源数量
+      - name: access_type
+        type: str
+        description: 访问类型
+  - command: get_exhibitions
+    description: 获取展览与活动信息
+    category: exhibitions
+    frequency: weekly
+    auth_required: false
+    columns:
+      - name: title
+        type: str
+        description: 展览/活动标题
+      - name: event_type
+        type: str
+        description: 活动类型
+      - name: start_date
+        type: str
+        description: 开始日期
+      - name: end_date
+        type: str
+        description: 结束日期
+      - name: location
+        type: str
+        description: 地点
+  - command: get_library_stats
+    description: 获取图书馆统计数据
+    category: statistics
+    frequency: yearly
+    auth_required: false
+    columns:
+      - name: stat_date
+        type: str
+        description: 统计日期
+      - name: indicator
+        type: str
+        description: 指标名称
+      - name: value
+        type: float
+        description: 指标值
+      - name: unit
+        type: str
+        description: 单位
+auth_notes:
+  rare_books: 部分善本古籍需到馆查阅
+  public_data: OPAC目录、数字资源、展览信息、统计数据均公开

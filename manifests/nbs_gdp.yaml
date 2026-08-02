@@ -1,0 +1,15 @@
+name: nbs-gdp
+label: 国家统计局季度GDP数据
+source_url: https://data.stats.gov.cn
+functions:
+  - command: get_gdp_quarterly
+    description: 季度GDP数据（2011Q1-2025Q3）
+    category: macro-economic
+    frequency: quarterly
+    columns:
+      - name: quarter
+        type: str
+        description: 季度标识（如2024Q1）
+      - name: gdp_value
+        type: float
+        description: GDP数值（亿元）

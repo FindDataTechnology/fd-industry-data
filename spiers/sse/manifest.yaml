@@ -1,0 +1,28 @@
+name: sse-stock-exchange
+label: 上海证券交易所 - 市场交易数据
+source_url: https://www.sse.com.cn
+score: 90
+functions:
+  - command: get_market_overview
+    description: 获取上海证券市场概览数据（股票、债券、基金成交数据）
+    category: market-overview
+    frequency: daily
+    columns:
+      - name: stat_date
+        type: str
+        description: 统计日期
+      - name: indicator_name
+        type: str
+        description: 指标名称
+      - name: value
+        type: float
+        description: 数值
+      - name: unit
+        type: str
+        description: 单位
+      - name: category
+        type: str
+        description: 类别（trading_volume, trading_turnover, price_index, bond_trading, fund_trading）
+      - name: instrument_type
+        type: str
+        description: 品种类型

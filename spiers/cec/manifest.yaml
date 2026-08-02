@@ -1,0 +1,60 @@
+name: cec
+label: 中国电力企业联合会数据
+source_url: http://www.cec.org.cn/
+description: 电力生产统计、用电统计、电网基础设施、可再生能源统计
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_cec_data
+    description: 获取电力行业统计数据，包括发电量、用电量、电网基础设施和可再生能源数据
+    category: energy-data
+    frequency: monthly
+    columns:
+      stats:
+        - name: date
+          type: str
+          description: 日期
+        - name: category
+          type: str
+          description: 类别（production/consumption/grid）
+        - name: indicator
+          type: str
+          description: 指标名称
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: region
+          type: str
+          description: 地区
+        - name: yoy_change
+          type: float
+          description: 同比变化
+      renewable:
+        - name: date
+          type: str
+          description: 日期
+        - name: energy_type
+          type: str
+          description: 能源类型（wind/solar/hydro/nuclear/biomass）
+        - name: capacity
+          type: float
+          description: 装机容量（GW）
+        - name: generation
+          type: float
+          description: 发电量（TWh）
+        - name: region
+          type: str
+          description: 地区
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: category
+          type: str
+          description: 类别

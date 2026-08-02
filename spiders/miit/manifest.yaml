@@ -1,0 +1,77 @@
+# fd-open-data-protocol compliant manifest
+# MCP integration metadata
+
+name: miit
+label: "中华人民共和国工业和信息化部"
+description: "提供电子信息制造业运行数据、产业政策及行业统计信息"
+source_url: "https://www.miit.gov.cn/"
+priority_score: 95
+created_at: 2026-08-01T01:22:55.634318
+
+function_definitions:
+  - name: fetch_miit
+    description: "Fetch data from 中华人民共和国工业和信息化部"
+    parameters:
+      - name: urls
+        type: array<string>
+        description: "List of URLs to scrape"
+        optional: true
+        default: ["https://www.miit.gov.cn/"]
+      - name: limit
+        type: integer
+        description: "Maximum number of records to fetch"
+        optional: true
+        default: 1000
+    returns: array<object>
+    
+  - name: query_miit
+    description: "Query stored data from 中华人民共和国工业和信息化部"
+    parameters:
+      - name: filters
+        type: object
+        description: "Filter criteria"
+        optional: true
+      - name: limit
+        type: integer
+        description: "Max records to return"
+        optional: true
+        default: 100
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+    description: "Original URL of the scraped page"
+    
+  - name: page_title
+    type: string
+    description: "HTML title of the page"
+    
+  - name: content_length
+    type: integer
+    description: "Size of page content in bytes"
+    
+  - name: status_code
+    type: integer
+    description: "HTTP status code of the request"
+    
+  - name: scraped_at
+    type: timestamp
+    description: "Timestamp when the data was collected"
+
+commands:
+  - name: fetch
+    description: "Run the scraper to collect new data"
+    command: "python spider.py --urls <url1> <url2>"
+    
+  - name: dry-run
+    description: "Test scraping without saving results"
+    command: "python spider.py --dry-run"
+    
+  - name: export-json
+    description: "Export data to JSON Lines format"
+    command: "python spider.py --format json"
+    
+  - name: export-db
+    description: "Export data to SQLite database"
+    command: "python spider.py --format sqlite"

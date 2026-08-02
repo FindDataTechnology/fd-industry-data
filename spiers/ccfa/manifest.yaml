@@ -1,0 +1,88 @@
+name: ccfa
+label: 中国连锁经营协会数据
+source_url: http://www.ccfa.org.cn/
+description: 零售行业统计、连锁门店数据、加盟信息、市场趋势
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_ccfa_data
+    description: 获取连锁经营行业统计数据，包括门店统计、加盟数据、品牌排名
+    category: retail-data
+    frequency: monthly
+    columns:
+      chain_stats:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: category
+          type: str
+          description: 类别（英文）
+        - name: category_cn
+          type: str
+          description: 类别（中文）
+        - name: indicator_name
+          type: str
+          description: 指标名称（revenue/store_count/franchise_count）
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: growth_rate
+          type: float
+          description: 增长率
+        - name: region
+          type: str
+          description: 地区
+      franchise:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: brand_name
+          type: str
+          description: 品牌名称
+        - name: industry
+          type: str
+          description: 行业
+        - name: store_count
+          type: int
+          description: 门店数量
+        - name: franchise_fee
+          type: float
+          description: 加盟费（万元）
+        - name: total_investment
+          type: float
+          description: 总投资额（万元）
+      rankings:
+        - name: year
+          type: int
+          description: 年份
+        - name: rank
+          type: int
+          description: 排名
+        - name: company_name
+          type: str
+          description: 企业名称
+        - name: revenue
+          type: float
+          description: 营收（亿元）
+        - name: store_count
+          type: int
+          description: 门店数量
+        - name: industry
+          type: str
+          description: 行业
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/policy/analysis/data/chain_store/franchise）

@@ -1,0 +1,31 @@
+name: amac-fund-data
+label: 中国证券投资基金业协会 - 基金行业数据
+source_url: https://www.amac.org.cn
+score: 98
+functions:
+  - command: get_fund_stats
+    description: 获取基金管理人注册和资产管理规模统计数据
+    category: fund-registration
+    frequency: monthly
+    columns:
+      - name: stat_date
+        type: str
+        description: 统计日期
+      - name: category
+        type: str
+        description: 类别（aum_total, institution_count, product_count）
+      - name: fund_type
+        type: str
+        description: 基金类型
+      - name: aum_value
+        type: float
+        description: 资产管理规模
+      - name: num_products
+        type: int
+        description: 产品数量
+      - name: num_institutions
+        type: int
+        description: 机构数量
+      - name: unit
+        type: str
+        description: 单位

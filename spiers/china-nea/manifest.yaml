@@ -1,0 +1,88 @@
+name: china-nea
+label: 中国核能行业协会数据
+source_url: http://www.china-nea.org/
+description: 核电统计、电站运行数据、安全记录、行业发展
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_china_nea_data
+    description: 获取核能行业统计数据，包括发电量、电站运行和安全记录
+    category: energy-data
+    frequency: monthly
+    columns:
+      power:
+        - name: date
+          type: str
+          description: 日期
+        - name: indicator
+          type: str
+          description: 指标名称
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: yoy_change
+          type: float
+          description: 同比变化
+      plants:
+        - name: date
+          type: str
+          description: 日期
+        - name: plant_name
+          type: str
+          description: 电站名称（英文标识）
+        - name: plant_cn
+          type: str
+          description: 电站名称（中文）
+        - name: location
+          type: str
+          description: 位置
+        - name: unit_count
+          type: int
+          description: 机组数量
+        - name: capacity
+          type: float
+          description: 装机容量（MWe）
+        - name: generation
+          type: float
+          description: 发电量（TWh）
+        - name: capacity_factor
+          type: float
+          description: 容量因子
+        - name: status
+          type: str
+          description: 运行状态
+      safety:
+        - name: date
+          type: str
+          description: 日期
+        - name: plant_name
+          type: str
+          description: 电站名称
+        - name: plant_cn
+          type: str
+          description: 电站名称（中文）
+        - name: wano_score
+          type: float
+          description: WANO评分
+        - name: wano_index
+          type: str
+          description: WANO指标
+        - name: safety_level
+          type: str
+          description: 安全等级
+        - name: incidents
+          type: int
+          description: 事件数量
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: category
+          type: str
+          description: 类别（news/policy/technology）

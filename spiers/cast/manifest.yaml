@@ -1,0 +1,104 @@
+name: cast-science-tech-data
+label: 中国科协 - 科技统计与学术信息
+source_url: http://www.cast.org.cn/
+score: 85
+functions:
+  - command: get_news_articles
+    description: 获取科协新闻和科技动态
+    category: news
+    frequency: daily
+    auth_required: false
+    columns:
+      - name: title
+        type: str
+        description: 标题
+      - name: publish_date
+        type: str
+        description: 发布日期
+      - name: category
+        type: str
+        description: 分类
+      - name: summary
+        type: str
+        description: 摘要
+  - command: get_conferences
+    description: 获取学术会议信息
+    category: conferences
+    frequency: weekly
+    auth_required: false
+    columns:
+      - name: title
+        type: str
+        description: 会议名称
+      - name: conference_date
+        type: str
+        description: 会议日期
+      - name: location
+        type: str
+        description: 地点
+      - name: organizer
+        type: str
+        description: 主办方
+      - name: description
+        type: str
+        description: 描述
+  - command: get_publications
+    description: 获取科技出版物（报告、期刊、标准）
+    category: publications
+    frequency: monthly
+    auth_required: false
+    columns:
+      - name: title
+        type: str
+        description: 标题
+      - name: publish_date
+        type: str
+        description: 出版日期
+      - name: pub_type
+        type: str
+        description: 类型（report/journal/standard）
+      - name: authors
+        type: str
+        description: 作者
+      - name: download_url
+        type: str
+        description: 下载链接
+  - command: get_institutions
+    description: 获取科研机构数据
+    category: institutions
+    frequency: monthly
+    auth_required: false
+    columns:
+      - name: name
+        type: str
+        description: 机构名称
+      - name: category
+        type: str
+        description: 类别（academic_society/research_institute/university/laboratory）
+      - name: location
+        type: str
+        description: 所在地
+      - name: description
+        type: str
+        description: 描述
+  - command: get_science_stats
+    description: 获取科技统计数据
+    category: statistics
+    frequency: yearly
+    auth_required: false
+    columns:
+      - name: stat_date
+        type: str
+        description: 统计日期
+      - name: indicator
+        type: str
+        description: 指标（科技工作者/研发人员/院士/学会/研发投入等）
+      - name: value
+        type: float
+        description: 数值
+      - name: unit
+        type: str
+        description: 单位
+auth_notes:
+  all_public: 中国科协为政府组织，绝大部分内容公开可访问
+  conference_registration: 部分会议参会需注册

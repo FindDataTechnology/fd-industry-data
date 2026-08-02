@@ -1,0 +1,43 @@
+name: eastmoney-choice
+label: 东方财富Choice金融数据
+source_url: https://choice.eastmoney.com
+description: 股票数据、财务报表、基金数据、指数数据、宏观经济数据
+functions:
+  - command: get_eastmoney_data
+    description: 获取东方财富Choice公开数据（股票、财务、基金、指数、宏观）
+    category: market-data
+    frequency: daily
+    columns:
+      - name: stock_code
+        type: str
+        description: 股票代码
+      - name: stock_name
+        type: str
+        description: 股票名称
+      - name: price
+        type: float
+        description: 最新价
+      - name: change_pct
+        type: float
+        description: 涨跌幅（%）
+      - name: volume
+        type: float
+        description: 成交量
+      - name: turnover
+        type: float
+        description: 成交额
+      - name: market_cap
+        type: float
+        description: 总市值
+      - name: pe_ratio
+        type: float
+        description: 市盈率
+      - name: trade_date
+        type: str
+        description: 交易日期
+      - name: source_url
+        type: str
+        description: 数据来源URL
+      - name: scraped_at
+        type: str
+        description: 爬取时间

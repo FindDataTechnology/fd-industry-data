@@ -1,0 +1,21 @@
+name: china-flower-assoc-scraper
+version: "1.0.0"
+description: China Flower Association data scraper
+target_url: https://www.chinaflower.org.cn
+score: 95
+
+categories:
+  - market_data
+  - analytics
+
+output:
+  - sqlite
+  - json
+
+rate_limiting:
+  delay_between_requests: 2.0
+  max_concurrent: 2
+
+notes:
+  - "China Flower Association"
+  - "High-priority data source"

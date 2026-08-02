@@ -1,0 +1,45 @@
+name: cesa
+label: 中国电子工业标准化技术协会数据
+source_url: http://www.cesa.cn/
+description: 电子信息行业统计数据、技术标准、市场研究、行业新闻
+functions:
+  - command: get_cesa_data
+    description: 获取电子信息行业统计数据和技术标准动态
+    category: industry-data
+    frequency: monthly
+    columns:
+      statistics:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: category
+          type: str
+          description: 类别（英文）
+        - name: category_cn
+          type: str
+          description: 类别（中文）
+        - name: indicator_name
+          type: str
+          description: 指标名称
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: growth_rate
+          type: float
+          description: 增长率
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/standard/policy/market/technology）

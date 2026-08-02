@@ -1,0 +1,31 @@
+name: wind-financial
+label: 万得金融终端(Wind)金融数据
+source_url: https://www.wind.com.cn
+description: 金融新闻、经济指标、市场概览、研究报告数据
+functions:
+  - command: get_wind_data
+    description: 获取万得金融终端公开数据（新闻、经济指标、市场概览、研究报告）
+    category: market-data
+    frequency: daily
+    columns:
+      - name: title
+        type: str
+        description: 标题
+      - name: summary
+        type: str
+        description: 摘要
+      - name: category
+        type: str
+        description: 分类（financial/market/global）
+      - name: source
+        type: str
+        description: 来源
+      - name: publish_date
+        type: str
+        description: 发布日期
+      - name: source_url
+        type: str
+        description: 数据来源URL
+      - name: scraped_at
+        type: str
+        description: 爬取时间

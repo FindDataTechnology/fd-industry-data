@@ -1,0 +1,91 @@
+name: caep
+label: 中国环境保护产业协会数据
+source_url: http://www.caep.org.cn/
+description: 环保产业数据、污染治理统计、绿色技术数据、市场趋势
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_caep_data
+    description: 获取环保产业统计数据，包括产业规模、污染治理和绿色技术认证数据
+    category: environmental-data
+    frequency: monthly
+    columns:
+      industry:
+        - name: date
+          type: str
+          description: 日期
+        - name: indicator
+          type: str
+          description: 指标名称
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: sub_sector
+          type: str
+          description: 细分领域
+        - name: region
+          type: str
+          description: 地区
+      pollution:
+        - name: date
+          type: str
+          description: 日期
+        - name: pollutant_type
+          type: str
+          description: 污染物类型
+        - name: pollutant_cn
+          type: str
+          description: 污染物名称（中文）
+        - name: emission
+          type: float
+          description: 排放量
+        - name: removal
+          type: float
+          description: 去除量
+        - name: removal_rate
+          type: float
+          description: 去除率
+        - name: unit
+          type: str
+          description: 单位
+        - name: source_type
+          type: str
+          description: 来源类型（industrial/municipal/agricultural）
+        - name: region
+          type: str
+          description: 地区
+      technology:
+        - name: date
+          type: str
+          description: 日期
+        - name: tech_name
+          type: str
+          description: 技术名称
+        - name: tech_type
+          type: str
+          description: 技术类型
+        - name: certification_no
+          type: str
+          description: 认证编号
+        - name: applicant
+          type: str
+          description: 申请单位
+        - name: application_area
+          type: str
+          description: 应用领域
+        - name: status
+          type: str
+          description: 状态
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: category
+          type: str
+          description: 类别（news/policy/market）

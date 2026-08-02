@@ -1,0 +1,18 @@
+name: electronics
+label: 电子行业数据
+source_url: http://www.ceia.org.cn
+functions:
+  - command: get_data
+    description: 电子行业数据爬取
+    category: industry-data
+    frequency: daily
+    columns:
+      - name: url
+        type: str
+        description: 数据源URL
+      - name: title
+        type: str
+        description: 数据标题
+      - name: content
+        type: str
+        description: 提取的数据内容

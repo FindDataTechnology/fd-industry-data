@@ -1,0 +1,27 @@
+columns:
+- description: Publication date
+  name: publish_date
+  type: TEXT
+- description: News category
+  name: category
+  type: TEXT
+- description: Article title
+  name: title
+  type: TEXT
+- description: Content summary
+  name: summary
+  type: TEXT
+- description: Related indicators (JSON)
+  name: metrics
+  type: TEXT
+- description: Source website URL
+  name: source_url
+  type: TEXT
+functions:
+- command: get_market_news
+  description: Latest steel market news and analysis
+- command: get_price_analysis
+  description: Price trends and market analysis reports
+label: Steel Industry Information Networks
+name: steel-information
+source_url: https://www.mysteel.com

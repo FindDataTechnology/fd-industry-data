@@ -1,0 +1,27 @@
+name: sac-securities
+label: 中国证券业协会 - 证券交易
+source_url: https://www.sac.net.cn
+functions:
+  - command: get_trading_volume
+    description: 获取证券交易量和市场统计数据
+    category: securities-trading
+    frequency: daily
+    columns:
+      - name: stat_date
+        type: str
+        description: 统计日期
+      - name: indicator_name
+        type: str
+        description: 指标名称（如成交量、成交额）
+      - name: value
+        type: float
+        description: 指标数值
+      - name: unit
+        type: str
+        description: 单位
+      - name: category
+        type: str
+        description: 数据类别
+      - name: instrument_type
+        type: str
+        description: 证券类型

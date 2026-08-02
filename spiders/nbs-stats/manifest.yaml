@@ -1,0 +1,93 @@
+name: nbs-stats
+label: 国家统计局综合数据
+source_url: https://www.stats.gov.cn/
+data_url: https://data.stats.gov.cn/
+description: |
+  国家统计局官方统计数据，包括GDP、CPI/PPI、工业生产、人口就业等宏观经济指标。
+  National Bureau of Statistics comprehensive data including GDP, CPI/PPI,
+  industrial production, population and employment indicators.
+
+authentication:
+  required: false
+  type: none
+  notes: |
+    公开数据，无需登录。通过 data.stats.gov.cn/easyquery.htm API 获取。
+    Public data, no login required. Data fetched via easyquery API.
+
+rate_limiting:
+  download_delay: 2
+  concurrent_requests: 1
+  notes: 建议2秒延迟，避免对服务器造成压力
+
+anti_bot:
+  method: browser_impersonation
+  details: Chrome browser impersonation via curl_cffi with proper headers
+
+functions:
+  - command: get_nbs_data
+    description: 获取国家统计局综合数据
+    category: macro-economic
+    frequency: monthly
+    parameters:
+      categories:
+        type: list
+        description: 数据类别列表
+        default: all
+        options:
+          - gdp: GDP数据（季度/年度/分省）
+          - price_indices: CPI/PPI价格指数
+          - industrial: 工业生产与PMI
+          - population: 人口数据
+          - employment: 就业数据
+      start_year:
+        type: int
+        description: 起始年份
+        default: 2010
+
+columns:
+  period:
+    type: str
+    description: 统计期间（如 2024Q1, 2024-01, 2024）
+  category:
+    type: str
+    description: 数据类别（gdp, price_indices, industrial, population, employment）
+  indicator_type:
+    type: str
+    description: 指标类型（如 quarterly, annual, cpi_monthly）
+  value:
+    type: float
+    description: 指标数值
+  indicator_code:
+    type: str
+    description: 指标代码（NBS内部编码）
+  indicator_name:
+    type: str
+    description: 指标名称（中文）
+  unit:
+    type: str
+    description: 单位（亿元, %, 万人等）
+  frequency:
+    type: str
+    description: 频率（Q=季度, A=年度, M=月度）
+  source:
+    type: str
+    description: 数据来源（NBS 或 akshare）
+  fetched_at:
+    type: str
+    description: 抓取时间（ISO格式）
+
+output:
+  sqlite:
+    path: data/nbs_stats.db
+    table: nbs_indicators
+  json:
+    - path: output/nbs_gdp.json
+      description: GDP数据
+    - path: output/nbs_price_indices.json
+      description: 价格指数
+    - path: output/nbs_industrial.json
+      description: 工业生产数据
+    - path: output/nbs_population.json
+      description: 人口数据
+    - path: output/nbs_employment.json
+      description: 就业数据

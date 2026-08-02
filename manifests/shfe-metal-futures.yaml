@@ -1,0 +1,39 @@
+functions:
+- category: metal-futures
+  columns:
+  - description: "\u4EA4\u6613\u65E5\u671F"
+    name: trade_date
+    type: str
+  - description: "\u5408\u7EA6\u4EE3\u7801"
+    name: contract_code
+    type: str
+  - description: "\u4EA7\u54C1\u540D\u79F0\uFF08\u5982\u94DC\u3001\u94DD\u3001\u950C\
+      \uFF09"
+    name: product_name
+    type: str
+  - description: "\u7ED3\u7B97\u4EF7\u683C"
+    name: settlement_price
+    type: float
+  - description: "\u6210\u4EA4\u91CF"
+    name: volume
+    type: int
+  - description: "\u6301\u4ED3\u91CF"
+    name: open_interest
+    type: int
+  - description: "\u5E93\u5B58\u6570\u91CF"
+    name: inventory_quantity
+    type: int
+  - description: "\u5355\u4F4D"
+    name: unit
+    type: str
+  command: get_settlement_prices
+  description: "\u83B7\u53D6\u91D1\u5C5E\u671F\u8D27\u7ED3\u7B97\u4EF7\u683C\u548C\
+    \u4EA4\u6613\u6570\u636E"
+  frequency: daily
+label: "\u4E0A\u6D77\u671F\u8D27\u4EA4\u6613\u6240 - \u91D1\u5C5E\u671F\u8D27\u7ED3\
+  \u7B97\u4EF7"
+name: shfe-metal-futures
+ranking_seed:
+- 0.8
+- 0.65
+source_url: https://www.shfe.com.cn

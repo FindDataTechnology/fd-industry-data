@@ -1,0 +1,60 @@
+name: cpcia
+label: 中国石油和化学工业联合会数据
+source_url: http://www.cpcia.org.cn/
+description: 油气生产数据、化工行业数据、进出口贸易数据
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_cpcia_data
+    description: 获取石油和化工行业统计数据，包括油气产量、化工产品和贸易数据
+    category: energy-data
+    frequency: monthly
+    columns:
+      oilgas:
+        - name: date
+          type: str
+          description: 日期
+        - name: product
+          type: str
+          description: 产品名称（英文）
+        - name: product_cn
+          type: str
+          description: 产品名称（中文）
+        - name: production
+          type: float
+          description: 产量
+        - name: unit
+          type: str
+          description: 单位
+        - name: yoy_change
+          type: float
+          description: 同比变化
+        - name: region
+          type: str
+          description: 地区
+      trade:
+        - name: date
+          type: str
+          description: 日期
+        - name: product
+          type: str
+          description: 产品名称
+        - name: import_value
+          type: float
+          description: 进口额
+        - name: export_value
+          type: float
+          description: 出口额
+        - name: trade_balance
+          type: float
+          description: 贸易差额
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: category
+          type: str
+          description: 类别（news/market/policy）

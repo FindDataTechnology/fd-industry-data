@@ -1,0 +1,9 @@
+name: wechat-open-doc
+title: "WeChat Open Platform Documentation"
+url: "https://developers.weixin.qq.com/doc/offiaccount/"
+data_type: "developer-api"
+description: "WeChat Official Platform API docs"
+score: 90+
+priority: high
+created: "2026-08-01T01:45:52.094290"
+version: "1.0.0"

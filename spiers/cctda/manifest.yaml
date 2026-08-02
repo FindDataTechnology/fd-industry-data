@@ -1,0 +1,82 @@
+name: cctda
+label: 中国煤炭运销协会数据
+source_url: http://www.cctda.com.cn/
+description: 煤炭生产统计、运输数据、价格指数、市场分析
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_cctda_data
+    description: 获取煤炭行业统计数据，包括产量、运输量、价格指数和市场分析
+    category: energy-data
+    frequency: weekly
+    columns:
+      production:
+        - name: date
+          type: str
+          description: 日期
+        - name: coal_type
+          type: str
+          description: 煤种（thermal_coal/coking_coal/anthracite/lignite/raw_coal）
+        - name: coal_type_cn
+          type: str
+          description: 煤种（中文）
+        - name: production
+          type: float
+          description: 产量
+        - name: unit
+          type: str
+          description: 单位
+        - name: yoy_change
+          type: float
+          description: 同比变化
+        - name: region
+          type: str
+          description: 地区
+      transport:
+        - name: date
+          type: str
+          description: 日期
+        - name: transport_mode
+          type: str
+          description: 运输方式（railway/port/road/waterway/total）
+        - name: volume
+          type: float
+          description: 运量
+        - name: route
+          type: str
+          description: 路线
+        - name: yoy_change
+          type: float
+          description: 同比变化
+      price:
+        - name: date
+          type: str
+          description: 日期
+        - name: coal_type
+          type: str
+          description: 煤种
+        - name: price_index
+          type: float
+          description: 价格指数
+        - name: price_low
+          type: float
+          description: 最低价（元/吨）
+        - name: price_high
+          type: float
+          description: 最高价（元/吨）
+        - name: price_avg
+          type: float
+          description: 均价（元/吨）
+        - name: region
+          type: str
+          description: 地区
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: category
+          type: str
+          description: 类别

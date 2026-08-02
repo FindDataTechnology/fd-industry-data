@@ -1,0 +1,29 @@
+columns:
+- description: Statistics period
+  name: stat_date
+  type: TEXT
+- description: Type of indicator
+  name: indicator_type
+  type: TEXT
+- description: Current period value
+  name: current_value
+  type: REAL
+- description: Year-over-year change %
+  name: yoy_change
+  type: REAL
+- description: Month-over-month change %
+  name: mom_change
+  type: REAL
+- description: Measurement unit
+  name: unit
+  type: TEXT
+functions:
+- command: get_monthly_production
+  description: Monthly steel production statistics
+- command: get_capacity_utilization
+  description: Production capacity utilization rates
+- command: get_trade_data
+  description: Import/export statistics for steel products
+label: Steel Statistical Office Data
+name: steel-statistics
+source_url: http://www.stats.gov.cn/

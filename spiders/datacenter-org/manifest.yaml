@@ -1,0 +1,69 @@
+# fd-open-data-protocol compliant manifest
+# MCP integration metadata
+
+name: datacenter-org
+label: "数据中心"
+description: "综合数据中心，提供各类统计数据和分析报告。"
+source_url: "https://datacenter.org.cn/"
+priority_score: 85
+created_at: 2026-08-01T02:00:00
+
+function_definitions:
+  - name: fetch_datacenter_org
+    description: "Fetch data from 数据中心"
+    parameters:
+      - name: urls
+        type: array<string>
+        description: "List of URLs to scrape"
+        optional: true
+        default: ["https://datacenter.org.cn/"]
+      - name: limit
+        type: integer
+        description: "Maximum number of records to fetch"
+        optional: true
+        default: 1000
+    returns: array<object>
+    
+  - name: query_datacenter_org
+    description: "Query stored data from 数据中心"
+    parameters:
+      - name: filters
+        type: object
+        description: "Filter criteria"
+        optional: true
+      - name: limit
+        type: integer
+        description: "Max records to return"
+        optional: true
+        default: 100
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+    description: "Original URL of the scraped page"
+    
+  - name: page_title
+    type: string
+    description: "HTML title of the page"
+    
+  - name: content_length
+    type: integer
+    description: "Size of page content in bytes"
+    
+  - name: status_code
+    type: integer
+    description: "HTTP status code of the request"
+    
+  - name: scraped_at
+    type: timestamp
+    description: "Timestamp when the data was collected"
+
+commands:
+  - name: fetch
+    description: "Run the scraper to collect new data"
+    command: "python spider.py --urls <url1> <url2>"
+    
+  - name: dry-run
+    description: "Test scraping without saving results"
+    command: "python spider.py --dry-run"

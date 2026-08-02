@@ -1,0 +1,36 @@
+functions:
+- category: fund-registration
+  columns:
+  - description: "\u7EDF\u8BA1\u65E5\u671F"
+    name: stat_date
+    type: str
+  - description: "\u7EDF\u8BA1\u7C7B\u522B\uFF08aum_total, institution_count, product_count\uFF09"
+    name: category
+    type: str
+  - description: "\u57FA\u91D1\u7C7B\u578B\uFF08private_equity, public_fund, etc.\uFF09"
+    name: fund_type
+    type: str
+  - description: "\u8D44\u4EA7\u7BA1\u7406\u89C4\u6A21"
+    name: aum_value
+    type: float
+  - description: "\u4EA7\u54C1\u6570\u91CF"
+    name: num_products
+    type: int
+  - description: "\u673A\u6784\u6570\u91CF"
+    name: num_institutions
+    type: int
+  - description: "\u5355\u4F4D\uFF08\u4EBF\u5143\u3001\u5BB6\u3001\u53EA\uFF09"
+    name: unit
+    type: str
+  command: get_fund_stats
+  description: "\u83B7\u53D6\u57FA\u91D1\u7BA1\u7406\u4EBA\u767B\u8BB0\u3001\u4EA7\
+    \u54C1\u5907\u6848\u3001\u8D44\u4EA7\u7BA1\u7406\u89C4\u6A21\u7EDF\u8BA1\u6570\
+    \u636E"
+  frequency: monthly
+label: "\u4E2D\u56FD\u8BC1\u5238\u6295\u8D44\u57FA\u91D1\u4E1A\u534F\u4F1A - \u57FA\
+  \u91D1\u7EDF\u8BA1"
+name: amac-fund
+ranking_seed:
+- 0.88
+- 0.72
+source_url: https://www.amac.org.cn

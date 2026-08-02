@@ -1,0 +1,25 @@
+columns:
+- description: Report date or period
+  name: report_date
+  type: TEXT
+- description: Indicator name (production, exports, etc.)
+  name: indicator_name
+  type: TEXT
+- description: Value in specified unit
+  name: value
+  type: REAL
+- description: Unit of measurement
+  name: unit
+  type: TEXT
+- description: Source website URL
+  name: source_url
+  type: TEXT
+functions:
+- command: get_association_data
+  description: Industry association data including production volumes, export/import
+    stats, price indices
+- command: get_industry_report
+  description: Official industry operation reports from CISA and World Steel Association
+label: Steel Industry Associations
+name: steel-association
+source_url: https://www.cisa.org.cn

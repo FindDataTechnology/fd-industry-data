@@ -1,0 +1,48 @@
+# Remote browser service for fd-industry-data spiders
+# Deploy: kubectl apply -f k8s/browser-cdp.yaml
+# Usage: Set BROWSER_CDP_URL=ws://browser-cdp:3000 in scraper pods
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: browser-cdp
+  labels:
+    app: browser-cdp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: browser-cdp
+  template:
+    metadata:
+      labels:
+        app: browser-cdp
+    spec:
+      containers:
+      - name: browserless
+        image: browserless/chrome:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: MAX_CONCURRENT_SESSIONS
+          value: "10"
+        - name: CONNECTION_TIMEOUT
+          value: "600000"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: browser-cdp
+spec:
+  selector:
+    app: browser-cdp
+  ports:
+  - port: 3000
+    targetPort: 3000
+  type: ClusterIP

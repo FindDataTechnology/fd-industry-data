@@ -1,0 +1,47 @@
+# fd-open-data-protocol compliant manifest
+
+name: github-datasets-topic
+label: "GitHub Dataset Topics"
+description: "GitHub repositories tagged with dataset, datasets, and open-data topics for discovering public data resources."
+source_url: "https://github.com/topics/dataset"
+priority_score: 88
+created_at: 2026-08-01T12:00:00
+
+function_definitions:
+  - name: fetch_github_datasets_topic
+    description: "Fetch dataset repositories from GitHub Topics"
+    parameters:
+      - name: urls
+        type: array<string>
+        optional: true
+      - name: limit
+        type: integer
+        optional: true
+        default: 1000
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+  - name: repo_name
+    type: string
+  - name: repo_url
+    type: string
+  - name: description
+    type: string
+  - name: language
+    type: string
+  - name: stars
+    type: string
+  - name: forks
+    type: string
+  - name: topics
+    type: string
+  - name: scraped_at
+    type: timestamp
+
+commands:
+  - name: fetch
+    command: "python spider.py --urls <url1>"
+  - name: dry-run
+    command: "python spider.py --dry-run"

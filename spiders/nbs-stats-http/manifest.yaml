@@ -1,0 +1,22 @@
+name: nbs-stats-http
+label: 国家统计局数据查询 (HTTP)
+description: 国家统计局数据查询门户（HTTP版本）
+source_url: http://data.stats.gov.cn/
+functions:
+  - name: get_nbs_stats_http
+    label: 获取国家统计局数据
+    description: 从国家统计局数据查询门户获取统计数据
+    parameters: []
+columns:
+  - name: data_date
+    type: TEXT
+    description: 数据日期
+  - name: indicator_name
+    type: TEXT
+    description: 指标名称
+  - name: value
+    type: REAL
+    description: 数值
+  - name: unit
+    type: TEXT
+    description: 单位

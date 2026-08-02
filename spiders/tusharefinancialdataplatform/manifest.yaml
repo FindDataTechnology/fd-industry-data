@@ -1,0 +1,9 @@
+name: tusharefinancialdataplatform
+title: "Tushare Financial Data Platform"
+url: "https://tushare.pro/"
+data_type: "stock-market"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.194601"
+version: "1.0.0"

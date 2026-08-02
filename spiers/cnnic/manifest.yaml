@@ -1,0 +1,75 @@
+name: cnnic-internet-stats
+label: 中国互联网络信息中心 - 互联网发展统计
+source_url: http://www.cnnic.cn/
+score: 90
+authentication: none
+access_level: public
+authentication_details: |
+  All data is publicly available on the CNNIC website.
+  No API key or registration required.
+  
+  PUBLIC (this spider):
+  - Statistical Report on Internet Development in China (中国互联网络发展状况统计报告)
+  - Internet development indicators (网民规模、普及率)
+  - Domain name and IP address statistics
+  - Application usage statistics
+  - Research reports and white papers
+  
+  NOTES:
+  - PDF reports available for download without authentication
+  - Some bulk data downloads may require registration
+  - Biannual statistical reports (January and August)
+  
+  Website: http://www.cnnic.cn/
+  Reports: http://www.cnnic.net.cn/hlwfzyj/hlwxzbg/
+rate_limiting:
+  download_delay: 2.0
+  concurrent_requests: 3
+  robots_txt_obey: true
+functions:
+  - command: CNNICSpider
+    description: 获取互联网发展统计数据（网民规模、普及率、域名、应用用户等）
+    category: internet-statistics
+    frequency: semi-annual
+    columns:
+      - name: report_period
+        type: str
+        description: 报告期（如"2024年第53次"）
+      - name: indicator_name
+        type: str
+        description: 指标英文名
+      - name: indicator_name_cn
+        type: str
+        description: 指标中文名
+      - name: value
+        type: float
+        description: 数值
+      - name: unit
+        type: str
+        description: 单位（亿人、%、万个等）
+      - name: category
+        type: str
+        description: 类别(internet_development/table_data)
+      - name: sub_category
+        type: str
+        description: 子类别(users/penetration/infrastructure/application_users)
+  - command: ReportIndexer
+    description: 索引CNNIC发布的研究报告
+    category: reports
+    frequency: realtime
+    columns:
+      - name: title
+        type: str
+        description: 报告标题
+      - name: report_number
+        type: str
+        description: 报告期号
+      - name: publish_date
+        type: str
+        description: 发布日期
+      - name: report_type
+        type: str
+        description: 报告类型(statistical_report/blue_book/white_paper/research_report)
+      - name: download_url
+        type: str
+        description: 下载链接

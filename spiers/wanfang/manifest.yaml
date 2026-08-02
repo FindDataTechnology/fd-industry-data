@@ -1,0 +1,88 @@
+name: wanfang-academic-data
+label: 万方数据 - 学术文献/专利/标准元数据
+source_url: https://www.wanfangdata.com.cn/
+score: 85
+functions:
+  - command: get_paper_metadata
+    description: 获取学术论文、会议论文、学位论文元数据
+    category: academic-papers
+    frequency: daily
+    auth_required: false
+    columns:
+      - name: title
+        type: str
+        description: 论文标题
+      - name: authors
+        type: str
+        description: 作者列表
+      - name: source
+        type: str
+        description: 来源期刊/会议
+      - name: publish_date
+        type: str
+        description: 发表日期
+      - name: abstract
+        type: str
+        description: 摘要
+      - name: keywords
+        type: str
+        description: 关键词
+      - name: citation_count
+        type: int
+        description: 被引次数
+      - name: document_type
+        type: str
+        description: 文献类型 (paper/conference/degree)
+  - command: get_patent_metadata
+    description: 获取专利元数据（标题、申请人、发明人、专利号、摘要）
+    category: patents
+    frequency: weekly
+    auth_required: false
+    columns:
+      - name: title
+        type: str
+        description: 专利标题
+      - name: applicant
+        type: str
+        description: 申请人
+      - name: inventor
+        type: str
+        description: 发明人
+      - name: patent_number
+        type: str
+        description: 专利号
+      - name: publication_date
+        type: str
+        description: 公开日期
+      - name: abstract
+        type: str
+        description: 摘要
+      - name: ipc_classification
+        type: str
+        description: IPC分类号
+  - command: get_standard_metadata
+    description: 获取标准文档元数据
+    category: standards
+    frequency: monthly
+    auth_required: false
+    columns:
+      - name: standard_number
+        type: str
+        description: 标准号
+      - name: title
+        type: str
+        description: 标准名称
+      - name: status
+        type: str
+        description: 状态（现行/废止/即将实施）
+      - name: issue_date
+        type: str
+        description: 发布日期
+      - name: publisher
+        type: str
+        description: 发布单位
+auth_notes:
+  full_text: 需要机构或个人订阅
+  standards_full_text: 部分标准需要购买
+  api_access: 需要与万方签订正式协议
+  public_data: 论文标题摘要、专利摘要、标准元数据

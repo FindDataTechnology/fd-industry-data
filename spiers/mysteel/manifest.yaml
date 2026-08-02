@@ -1,0 +1,52 @@
+name: mysteel
+label: 我的钢铁网(Mysteel)钢铁数据
+source_url: https://www.mysteel.com
+description: 钢材价格、钢铁指数、行业新闻、生产统计、原材料价格数据
+functions:
+  - command: get_mysteel_data
+    description: 获取我的钢铁网公开数据（价格、指数、新闻、产量、原材料）
+    category: market-data
+    frequency: daily
+    columns:
+      - name: product
+        type: str
+        description: 产品名称
+      - name: product_cn
+        type: str
+        description: 产品名称（中文）
+      - name: specification
+        type: str
+        description: 规格
+      - name: price_low
+        type: float
+        description: 最低价
+      - name: price_high
+        type: float
+        description: 最高价
+      - name: price_avg
+        type: float
+        description: 均价
+      - name: price_change
+        type: float
+        description: 涨跌额
+      - name: price_change_pct
+        type: float
+        description: 涨跌幅（%）
+      - name: unit
+        type: str
+        description: 单位（元/吨）
+      - name: region
+        type: str
+        description: 地区
+      - name: city
+        type: str
+        description: 城市
+      - name: trade_date
+        type: str
+        description: 交易日期
+      - name: source_url
+        type: str
+        description: 数据来源URL
+      - name: scraped_at
+        type: str
+        description: 爬取时间

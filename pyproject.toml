@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fd-industry-data"
+dynamic = ["version"]
+description = "Industry data sources crawler collection using Scrapling"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "FindDataOfficial" }]
+dependencies = [
+    "scrapling[fetchers]>=0.4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.dynamic]
+version = { attr = "fd_industry_data.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["fd_industry_data*", "spiders*"]

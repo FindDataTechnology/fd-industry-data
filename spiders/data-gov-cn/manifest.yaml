@@ -1,0 +1,47 @@
+# fd-open-data-protocol compliant manifest
+
+name: data-gov-cn
+label: "Data.gov (US Government Data)"
+description: "The US federal government's open data portal providing access to thousands of public datasets across all agencies."
+source_url: "https://www.data.gov"
+priority_score: 91
+created_at: 2026-08-01T12:00:00
+
+function_definitions:
+  - name: fetch_data_gov
+    description: "Fetch government datasets from Data.gov"
+    parameters:
+      - name: urls
+        type: array<string>
+        optional: true
+      - name: limit
+        type: integer
+        optional: true
+        default: 1000
+    returns: array<object>
+
+column_schemas:
+  - name: source_url
+    type: string
+  - name: dataset_title
+    type: string
+  - name: description
+    type: string
+  - name: organization
+    type: string
+  - name: tags
+    type: string
+  - name: formats
+    type: string
+  - name: dataset_url
+    type: string
+  - name: modified_date
+    type: string
+  - name: scraped_at
+    type: timestamp
+
+commands:
+  - name: fetch
+    command: "python spider.py --urls <url1>"
+  - name: dry-run
+    command: "python spider.py --dry-run"

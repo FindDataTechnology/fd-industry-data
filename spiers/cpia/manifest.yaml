@@ -1,0 +1,76 @@
+name: cpia
+label: 中国医药工业信息中心数据
+source_url: http://www.cpia.org.cn/
+description: 药品生产数据、药品销售数据、进出口贸易数据、行业新闻
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_cpia_data
+    description: 获取医药行业统计数据，包括药品产量、销售额和贸易数据
+    category: healthcare-data
+    frequency: monthly
+    columns:
+      production:
+        - name: date
+          type: str
+          description: 日期
+        - name: product
+          type: str
+          description: 产品名称（英文）
+        - name: product_cn
+          type: str
+          description: 产品名称（中文）
+        - name: production
+          type: float
+          description: 产量
+        - name: unit
+          type: str
+          description: 单位
+        - name: yoy_change
+          type: float
+          description: 同比变化
+        - name: region
+          type: str
+          description: 地区
+      sales:
+        - name: date
+          type: str
+          description: 日期
+        - name: product
+          type: str
+          description: 产品名称
+        - name: sales_value
+          type: float
+          description: 销售额
+        - name: sales_volume
+          type: float
+          description: 销售量
+        - name: channel
+          type: str
+          description: 渠道（hospital/retail/online）
+      trade:
+        - name: date
+          type: str
+          description: 日期
+        - name: product
+          type: str
+          description: 产品名称
+        - name: import_value
+          type: float
+          description: 进口额
+        - name: export_value
+          type: float
+          description: 出口额
+        - name: trade_balance
+          type: float
+          description: 贸易差额
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: category
+          type: str
+          description: 类别（news/market/policy）

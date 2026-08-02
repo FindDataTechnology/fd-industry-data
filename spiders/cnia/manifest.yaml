@@ -1,0 +1,152 @@
+name: cnia
+label: 中国有色金属工业协会
+source_url: https://www.chinametal.org.cn/
+description: |
+  中国有色金属工业协会官方数据，包括有色金属产量统计、进出口数据、
+  价格趋势分析和行业报告。覆盖铜、铝、锌、铅、镍、锡六大品种。
+
+authentication:
+  required: false
+  type: none
+  notes: |
+    公开数据，无需登录。部分详细报告可能需要协会会员资格。
+    Public data, no login required. Some detailed reports may require
+    association membership.
+
+rate_limiting:
+  download_delay: 3
+  concurrent_requests: 1
+  notes: 建议3秒延迟，行业协会网站服务器承载能力有限
+
+anti_bot:
+  method: browser_impersonation
+  fallback: stealthy_fetcher
+  details: |
+    默认使用Chrome浏览器模拟。如遇反爬虫拦截，可切换至StealthyFetcher模式
+    （设置 use_stealthy=True），支持Cloudflare等反爬虫绕过。
+
+functions:
+  - command: get_cnia_data
+    description: 获取有色金属行业数据
+    category: industry-data
+    frequency: daily
+    parameters:
+      metals:
+        type: list
+        description: 金属品种列表
+        default: all
+        options:
+          - copper: 铜
+          - aluminum: 铝
+          - zinc: 锌
+          - lead: 铅
+          - nickel: 镍
+          - tin: 锡
+      include_reports:
+        type: bool
+        description: 是否抓取行业报告
+        default: true
+      include_news:
+        type: bool
+        description: 是否抓取行业新闻
+        default: true
+      use_stealthy:
+        type: bool
+        description: 是否使用隐身模式
+        default: false
+
+columns:
+  production:
+    period:
+      type: str
+      description: 统计期间
+    metal:
+      type: str
+      description: 金属名称（英文）
+    metal_cn:
+      type: str
+      description: 金属名称（中文）
+    production_volume:
+      type: float
+      description: 产量
+    production_unit:
+      type: str
+      description: 产量单位（默认万吨）
+    yoy_change:
+      type: float
+      description: 同比变化
+    yoy_unit:
+      type: str
+      description: 同比单位（默认%）
+  trade:
+    period:
+      type: str
+      description: 统计期间
+    metal:
+      type: str
+      description: 金属名称
+    import_volume:
+      type: float
+      description: 进口量
+    export_volume:
+      type: float
+      description: 出口量
+    import_value:
+      type: float
+      description: 进口额
+    export_value:
+      type: float
+      description: 出口额
+  prices:
+    date:
+      type: str
+      description: 日期
+    metal:
+      type: str
+      description: 金属名称
+    price:
+      type: float
+      description: 价格
+    price_unit:
+      type: str
+      description: 价格单位（元/吨）
+    price_change:
+      type: float
+      description: 涨跌额
+    price_change_pct:
+      type: float
+      description: 涨跌幅（%）
+  reports:
+    date:
+      type: str
+      description: 发布日期
+    title:
+      type: str
+      description: 报告标题
+    category:
+      type: str
+      description: 类别（monthly_report/annual_report/industry_report）
+    summary:
+      type: str
+      description: 摘要
+
+output:
+  sqlite:
+    path: data/cnia.db
+    tables:
+      - production_stats
+      - trade_data
+      - price_data
+      - industry_reports
+      - industry_news
+  json:
+    - path: output/cnia_production.json
+      description: 产量统计
+    - path: output/cnia_trade.json
+      description: 进出口数据
+    - path: output/cnia_prices.json
+      description: 价格数据
+    - path: output/cnia_reports.json
+      description: 行业报告
+    - path: output/cnia_news.json
+      description: 行业新闻

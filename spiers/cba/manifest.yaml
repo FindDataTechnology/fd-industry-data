@@ -1,0 +1,28 @@
+name: cba-banking-industry
+label: 中国银行业协会 - 银行业统计数据
+source_url: https://www.chinabankass.org.cn
+score: 92
+functions:
+  - command: get_banking_stats
+    description: 获取银行业统计数据（资产规模、资产质量、盈利能力）
+    category: banking-industry
+    frequency: quarterly
+    columns:
+      - name: stat_date
+        type: str
+        description: 统计日期
+      - name: indicator_name
+        type: str
+        description: 指标名称
+      - name: value
+        type: float
+        description: 数值
+      - name: unit
+        type: str
+        description: 单位
+      - name: category
+        type: str
+        description: 类别（balance_sheet, asset_quality, profitability, solvency）
+      - name: bank_type
+        type: str
+        description: 银行类型（commercial_bank, policy_bank等）

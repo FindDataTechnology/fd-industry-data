@@ -1,0 +1,9 @@
+name: governmentstats
+title: "Government Stats"
+url: "https://www.stat.gov.cn/"
+data_type: "multi-source"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.229847"
+version: "1.0.0"

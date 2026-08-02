@@ -1,0 +1,82 @@
+name: cgcc
+label: 中国商业联合会数据
+source_url: http://www.cgcc.org.cn/
+description: 商业行业数据、贸易统计、市场分析、行业报告
+authentication: none
+rate_limit: 2s
+functions:
+  - command: get_cgcc_data
+    description: 获取商业联合会数据，包括贸易统计、商业指数、市场分析报告
+    category: commerce-data
+    frequency: monthly
+    columns:
+      trade:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: category
+          type: str
+          description: 类别（英文）
+        - name: category_cn
+          type: str
+          description: 类别（中文）
+        - name: indicator_name
+          type: str
+          description: 指标名称（retail_sales/wholesale_trade/profit）
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: growth_rate
+          type: float
+          description: 增长率
+        - name: region
+          type: str
+          description: 地区
+      index:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: index_name
+          type: str
+          description: 指数名称
+        - name: index_value
+          type: float
+          description: 指数值
+        - name: change_value
+          type: float
+          description: 变化值
+        - name: sub_index
+          type: str
+          description: 子指数
+      analysis:
+        - name: date
+          type: str
+          description: 日期
+        - name: title
+          type: str
+          description: 标题
+        - name: summary
+          type: str
+          description: 摘要
+        - name: category
+          type: str
+          description: 类别（retail/wholesale/consumer/market）
+        - name: key_findings
+          type: str
+          description: 关键发现
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/policy/analysis/data）

@@ -1,0 +1,9 @@
+name: ministryofeducation
+title: "Ministry of Education"
+url: "http://www.moe.gov.cn/"
+data_type: "multi-source"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.230466"
+version: "1.0.0"

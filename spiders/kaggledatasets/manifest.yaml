@@ -1,0 +1,9 @@
+name: kaggledatasets
+title: "Kaggle Datasets"
+url: "https://www.kaggle.com/datasets"
+data_type: "general-purpose"
+description: "High-priority (score: 85)"
+score: 90+
+priority: high
+created: "2026-08-01T01:47:45.189156"
+version: "1.0.0"

@@ -1,0 +1,64 @@
+name: logistics
+label: 中国物流与采购联合会数据
+source_url: http://www.chinawuliu.com.cn/
+description: 物流行业数据、PMI指数、运输统计、供应链数据
+functions:
+  - command: get_logistics_data
+    description: 获取物流行业PMI指数、物流统计数据和新闻动态
+    category: industry-data
+    frequency: monthly
+    columns:
+      pmi:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: indicator
+          type: str
+          description: 指标名称（英文）
+        - name: indicator_cn
+          type: str
+          description: 指标名称（中文）
+        - name: value
+          type: float
+          description: 指数值（50为荣枯线）
+        - name: change
+          type: float
+          description: 环比变化
+        - name: threshold
+          type: float
+          description: 荣枯线（默认50）
+        - name: category
+          type: str
+          description: 类别
+      statistics:
+        - name: period
+          type: str
+          description: 统计期间
+        - name: indicator_name
+          type: str
+          description: 指标名称
+        - name: value
+          type: float
+          description: 数值
+        - name: unit
+          type: str
+          description: 单位
+        - name: growth_rate
+          type: float
+          description: 增长率
+        - name: category
+          type: str
+          description: 类别（cost/freight/general）
+      news:
+        - name: date
+          type: str
+          description: 发布日期
+        - name: title
+          type: str
+          description: 标题
+        - name: content
+          type: str
+          description: 内容摘要
+        - name: category
+          type: str
+          description: 类别（news/pmi/policy/data/cost）

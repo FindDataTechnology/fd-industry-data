@@ -1,0 +1,98 @@
+name: ucimlrepository
+version: 1.0.0
+label: UCI ML Repository
+description: High-priority data source scraper for UCI ML Repository
+source_url: https://archive.ics.uci.edu/ml/index.php
+author: FindData Official
+license: MIT
+created_at: 2026-08-01
+
+spider:
+  class: UcimlrepositorySpider
+  module: spider.py
+  entry_point: python spider.py
+
+data_sources:
+  - name: Primary Source
+    url: https://archive.ics.uci.edu/ml/index.php
+    category: main
+
+functions:
+  - name: fetch_ucimlrepository_metadata
+    label: Fetch metadata
+    description: Extract source metadata and data points
+    parameters:
+      - name: url
+        type: string
+        required: true
+        description: Target URL to scrape
+      - name: include_details
+        type: boolean
+        required: false
+        default: false
+    returns:
+      - name: results
+        type: array
+        description: Array of extracted items
+
+columns:
+  - name: id
+    type: INTEGER
+    nullable: false
+    description: Primary key
+  - name: title
+    type: TEXT
+    nullable: true
+    description: Item title or name
+  - name: description
+    type: TEXT
+    nullable: true
+    description: Item description
+  - name: url
+    type: TEXT
+    nullable: true
+    description: Source URL (unique)
+  - name: scraped_at
+    type: TEXT
+    nullable: true
+    description: ISO timestamp
+
+commands:
+  - command: "scrapy crawl ucimlrepository"
+    description: Run with Scrapy CLI
+    example: "cd ucimlrepository && scrapy crawl ucimlrepository"
+  
+  - command: "python spider.py --urls <url1> <url2>"
+    description: Run with custom URLs
+    example: "python spider.py --urls https://example.com/data"
+  
+  - command: "python spider.py --dry-run"
+    description: Dry run without saving
+    example: "python spider.py --dry-run"
+  
+  - command: "uv run python spider.py"
+    description: Run with uv package manager
+    example: "uv run python spider.py --verbose"
+
+features:
+  - automatic_deduplication
+  - sqlite_storage
+  - json_export
+  - stealth_mode
+  - rate_limiting
+  - error_logging
+
+settings:
+  concurrent_requests: 4
+  download_delay: 1.0
+  robotstxt_obey: true
+  user_agent_rotation: true
+
+dependencies:
+  - scrapling>=0.4.7
+  - scrapy>=2.11.0
+  - python>=3.10
+
+last_updated: 2026-08-01
+status: active
+priority_score: 92
