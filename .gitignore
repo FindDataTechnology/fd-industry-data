@@ -18,8 +18,7 @@ build/
 .env.*
 !.env.example
 
-# Local databases / crawl outputs (never track new ones)
-*.db
+# SQLite sidecars / backups are runtime junk — data .db files ARE tracked intentionally
 *.db-shm
 *.db-wal
 *.db-journal
