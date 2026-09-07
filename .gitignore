@@ -13,3 +13,15 @@ build/
 *.egg
 .env
 .venv
+
+# Env / secrets
+.env.*
+!.env.example
+
+# Local databases / crawl outputs (never track new ones)
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+output/
+.DS_Store
