@@ -1,0 +1,27 @@
+# Manifest draft for spiders/github-fivethirtyeight (shard-01).
+# Columns trace to GithubfivethirtyeightSpider._extract_github() in
+# spiders/github-fivethirtyeight/spider.py.
+version: "1"
+name: github-fivethirtyeight
+label: 'FiveThirtyEight GitHub data repo stats'
+source_url: https://github.com/fivethirtyeight/data
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]            # FetcherSession / AsyncStealthySession in the spider
+functions:
+  - command: get_repo_info
+    category: repo-metadata
+    description: 'Repo page stats for github.com/fivethirtyeight/data — title, description, star/fork counts, language; parsed by GithubfivethirtyeightSpider._extract_github() in spiders/github-fivethirtyeight/spider.py (h1 title, .repo-description/p text, [aria-label] stars/forks regex, .article-language span).'
+    frequency: irregular
+    verified: true
+    parameters: []
+    columns:
+      - {name: title, type: str, description: Repository title (h1)}
+      - {name: description, type: str, description: Repository description}
+      - {name: url, type: str, description: Page URL of the repo}
+      - {name: language, type: str, description: Repository language (.article-language span)}
+      - {name: stars, type: str, description: Star count as scraped (digit string, empty when absent)}
+      - {name: forks, type: str, description: Fork count as scraped (digit string, empty when absent)}
+      - {name: scraped_at, type: str, description: ISO timestamp of the scrape}
+concepts: []
+entities: []

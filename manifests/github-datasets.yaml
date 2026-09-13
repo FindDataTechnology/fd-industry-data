@@ -1,0 +1,43 @@
+# Manifest draft for spiders/github-datasets (shard-11)
+version: "1"
+name: github-datasets
+label: GitHub 中国数据集仓库目录
+source_url: https://github.com/topics/china-data
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]             # spider.py imports scrapling Spider/FetcherSession
+functions:
+  - command: get_repo_catalog
+    category: repo-catalog
+    description: Catalog of China-related GitHub dataset repositories; crawls github.com topic pages (topics/china-data, chinese-data, china-dataset) and awesome-china lists via parse() topic branch (article.Box-row / div.col-12 cards -> a::attr(href)) and extracts repo fields with _parse_repo_page() in spiders/github-datasets/spider.py
+    frequency: daily                # star/fork/commit metadata changes continuously
+    verified: true
+    parameters: []
+    columns:
+      - {name: url, type: str, description: "Repository page URL"}
+      - {name: repo_name, type: str, description: "Repository name (strong[itemprop='name'] a::text)"}
+      - {name: owner, type: str, description: "Owner/org, parsed from URL path segment"}
+      - {name: description, type: str, description: "Repository short description (p.f4 / p.about-text::text)"}
+      - {name: stars, type: str, description: "Star count as rendered by the star counter (#repo-stars-counter-star)"}
+      - {name: forks, type: str, description: "Fork count as rendered by the network counter (#repo-network-counter)"}
+      - {name: language, type: str, description: "Primary programming language (span[itemprop='programmingLanguage']::text)"}
+      - {name: topics, type: str, description: "Topic tags (a.topic-tag), JSON-encoded list"}
+      - {name: license, type: str, description: "License label (span.Label / LICENSE link text)"}
+      - {name: last_commit, type: str, description: "Last commit datetime (relative-time datetime attr, ISO string)"}
+      - {name: data_type, type: str, description: "Record discriminator, always the literal repo for this function"}
+      - {name: scraped_at, type: str, description: "Scrape timestamp (ISO)"}
+  - command: get_readme_datasets
+    category: readme-datasets
+    description: Extracts README content and downloadable data-file links from repo README/blob pages with _parse_readme_content() in spiders/github-datasets/spider.py (article text plus article links filtered to .csv/.xlsx/.json/.zip/download)
+    frequency: irregular            # README contents change on no fixed schedule
+    verified: true
+    parameters: []
+    columns:
+      - {name: url, type: str, description: "README page URL"}
+      - {name: content, type: str, description: "README text content, truncated to 10000 chars"}
+      - {name: data_links, type: str, description: "Links to data files found in the README (.csv/.xlsx/.json/.zip/download), JSON-encoded list"}
+      - {name: repo_url, type: str, description: "Parent repository URL (from crawl meta; empty when README was the entry page)"}
+      - {name: data_type, type: str, description: "Record discriminator, always the literal readme for this function"}
+      - {name: scraped_at, type: str, description: "Scrape timestamp (ISO)"}
+concepts: []
+entities: []

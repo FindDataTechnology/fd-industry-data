@@ -1,0 +1,29 @@
+version: "1"
+name: github-akshare
+label: AkShare GitHub Repository Stats (AkShare 金融数据开源库仓库指标)
+source_url: https://github.com/akfamily/akshare
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]
+functions:
+  - command: get_repo_info
+    category: repo-stats
+    description: >
+      Fetch the akshare GitHub repository page and extract repository info:
+      name, description, primary language, star count and fork count.
+      Parsing lives in spiders/github-akshare/spider.py _extract_github()
+      (h1 title, .repo-description/p description, [aria-label] regex for
+      stars/forks, .article-language span for language).
+    frequency: irregular
+    verified: true
+    parameters: []
+    columns:
+      - {name: title, type: str, description: Repository name from the page h1}
+      - {name: description, type: str, description: Repository short description}
+      - {name: url, type: str, description: Repository page URL}
+      - {name: language, type: str, description: Primary programming language shown on the repo page}
+      - {name: stars, type: str, description: Star count as extracted (numeric string, empty if not found)}
+      - {name: forks, type: str, description: Fork count as extracted (numeric string, empty if not found)}
+      - {name: scraped_at, type: str, description: ISO-8601 timestamp of the scrape}
+concepts: []
+entities: []

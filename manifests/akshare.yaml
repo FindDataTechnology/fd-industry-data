@@ -1,0 +1,344 @@
+# Manifest draft for fd_open_data_mcp adapter unit akshare (shard-01).
+# Every column below is named in fd_open_data_mcp/adapters/akshare.py docstrings
+# (verified against akshare 1.18.64 / 1.18.79) or is an adapter key column.
+version: "1"
+name: akshare
+label: 'akshare library adapters (A-share and open-fund data)'
+source_url: library://akshare
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["akshare"]              # real fetch dependency (adapters call ak.* via import akshare)
+functions:
+  - command: get_stock_zh_a_hist
+    category: price-history
+    description: 'East Money daily A-share OHLCV via ak.stock_zh_a_hist (12 Chinese columns, date column 日期, qfq default); parsed by StockZhAHistAdapter in fd_open_data_mcp/adapters/akshare.py (extract_value/_row_for_date pick the 日期 row). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Bare A-share code, e.g. 600000 (no exchange prefix)'}
+      - {name: date, type: str, required: false, description: 'As-of date YYYY-MM-DD or YYYYMMDD; mapped to start_date/end_date'}
+    columns:
+      - {name: 日期, type: str, description: Trading date}
+      - {name: 股票代码, type: str, description: Stock code}
+      - {name: 开盘, type: float, description: Open price (qfq-adjusted)}
+      - {name: 收盘, type: float, description: Close price (qfq-adjusted)}
+      - {name: 最高, type: float, description: High price}
+      - {name: 最低, type: float, description: Low price}
+      - {name: 成交量, type: int, description: Volume}
+      - {name: 成交额, type: float, description: Turnover value}
+      - {name: 振幅, type: float, description: Amplitude (percent)}
+      - {name: 涨跌幅, type: float, description: Percent price change}
+      - {name: 涨跌额, type: float, description: Absolute price change}
+      - {name: 换手率, type: float, description: Turnover rate (percent)}
+
+  - command: get_stock_zh_a_hist_tx
+    category: price-history
+    description: 'Tencent daily A-share OHLCV via ak.stock_zh_a_hist_tx (English columns date/open/high/low/close/amount, no volume) — the eastmoney failover; parsed by StockZhAHistTxAdapter in fd_open_data_mcp/adapters/akshare.py (market prefix sh/sz/bj derived via _tx_prefix). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'A-share code; adapter derives the Tencent-prefixed symbol (sh600000)'}
+      - {name: date, type: str, required: false, description: 'As-of date YYYY-MM-DD or YYYYMMDD; mapped to start_date/end_date'}
+    columns:
+      - {name: date, type: str, description: Trading date}
+      - {name: open, type: float, description: Open price (qfq-adjusted)}
+      - {name: high, type: float, description: High price}
+      - {name: low, type: float, description: Low price}
+      - {name: close, type: float, description: Close price (qfq-adjusted)}
+      - {name: amount, type: float, description: Turnover value (volume not provided by Tencent)}
+
+  - command: get_stock_zh_a_daily
+    category: price-history
+    description: 'Sina daily A-share OHLCV via ak.stock_zh_a_daily (date/open/high/low/close/volume/amount/outstanding_share/turnover); parsed by StockZhADailyAdapter in fd_open_data_mcp/adapters/akshare.py (Sina prefix via _sina_prefix). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'A-share code; adapter derives the Sina-prefixed symbol (sh600000)'}
+      - {name: date, type: str, required: false, description: 'As-of date YYYY-MM-DD or YYYYMMDD; mapped to start_date/end_date'}
+    columns:
+      - {name: date, type: str, description: Trading date}
+      - {name: open, type: float, description: Open price (qfq-adjusted)}
+      - {name: high, type: float, description: High price}
+      - {name: low, type: float, description: Low price}
+      - {name: close, type: float, description: Close price (qfq-adjusted)}
+      - {name: volume, type: int, description: Volume}
+      - {name: amount, type: float, description: Turnover value}
+      - {name: outstanding_share, type: float, description: Outstanding shares}
+      - {name: turnover, type: float, description: Turnover rate}
+
+  - command: get_stock_financial_analysis_indicator
+    category: financial-indicator
+    description: 'Sina per-report financial indicators via ak.stock_financial_analysis_indicator (Chinese indicator columns such as 净资产收益率(%), 每股收益(元); date column 日期); parsed by StockFinancialIndicatorAdapter in fd_open_data_mcp/adapters/akshare.py (start_year derived from the requested date). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: quarterly
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Bare A-share code, e.g. 600000'}
+      - {name: date, type: str, required: false, description: 'Report date; its year becomes start_year'}
+    columns:
+      - {name: 日期, type: str, description: Report period date}
+      - {name: 净资产收益率(%), type: float, description: Return on equity (percent)}
+      - {name: 每股收益(元), type: float, description: Earnings per share (yuan)}
+
+  - command: get_stock_profit_sheet_by_report_em
+    category: financial-statement
+    description: 'East Money profit statement by report period via ak.stock_profit_sheet_by_report_em (date column 报告期, one call returns all periods); parsed by StockProfitSheetAdapter (_EmStatementAdapter) in fd_open_data_mcp/adapters/akshare.py. adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: quarterly
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Bare A-share code, e.g. 600000'}
+    columns:
+      - {name: 报告期, type: str, description: Report period, e.g. 2024-06-30}
+      - {name: 营业总收入, type: float, description: Total operating revenue}
+      - {name: 净利润, type: float, description: Net profit}
+      - {name: 归属于母公司股东的净利润, type: float, description: Net profit attributable to parent shareholders}
+      - {name: 基本每股收益, type: float, description: Basic earnings per share}
+
+  - command: get_stock_balance_sheet_by_report_em
+    category: financial-statement
+    description: 'East Money balance sheet by report period via ak.stock_balance_sheet_by_report_em (date column 报告期, one call returns all periods); parsed by StockBalanceSheetAdapter (_EmStatementAdapter) in fd_open_data_mcp/adapters/akshare.py. adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: quarterly
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Bare A-share code, e.g. 600000'}
+    columns:
+      - {name: 报告期, type: str, description: Report period, e.g. 2024-06-30}
+      - {name: 资产总计, type: float, description: Total assets}
+      - {name: 货币资金, type: float, description: Cash and equivalents}
+      - {name: 存货, type: float, description: Inventory}
+      - {name: 负债合计, type: float, description: Total liabilities}
+      - {name: 股东权益合计, type: float, description: Total shareholders equity}
+
+  - command: get_stock_cash_flow_sheet_by_report_em
+    category: financial-statement
+    description: 'East Money cash flow statement by report period via ak.stock_cash_flow_sheet_by_report_em (date column 报告期, one call returns all periods); parsed by StockCashFlowSheetAdapter (_EmStatementAdapter) in fd_open_data_mcp/adapters/akshare.py. adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: quarterly
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Bare A-share code, e.g. 600000'}
+    columns:
+      - {name: 报告期, type: str, description: Report period, e.g. 2024-06-30}
+      - {name: 经营活动产生的现金流量净额, type: float, description: Net cash flow from operating activities}
+      - {name: 投资活动产生的现金流量净额, type: float, description: Net cash flow from investing activities}
+
+  - command: get_fund_open_fund_info_em
+    category: nav-history
+    description: 'East Money open-fund NAV history via ak.fund_open_fund_info_em (indicator 单位净值走势 yields 净值日期/单位净值/日增长率, 累计净值走势 yields 净值日期/累计净值); parsed by FundOpenFundInfoEmAdapter in fd_open_data_mcp/adapters/akshare.py (bound column switches indicator, period bucket via _nav_period_for). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Fund code, e.g. 510050'}
+      - {name: date, type: str, required: false, description: 'As-of date; picks the smallest period bucket covering it'}
+    columns:
+      - {name: 净值日期, type: str, description: NAV date}
+      - {name: 单位净值, type: float, description: Unit NAV}
+      - {name: 日增长率, type: float, description: Daily NAV growth rate (percent)}
+      - {name: 累计净值, type: float, description: Cumulative NAV (indicator 累计净值走势)}
+
+  - command: get_fund_etf_spot_em
+    category: etf-spot
+    description: 'East Money ETF spot cross-section via ak.fund_etf_spot_em (full-market snapshot, ~1.6k rows); parsed by FundEtfSpotEmAdapter (_FundRankFrameAdapter) in fd_open_data_mcp/adapters/akshare.py (row picked by 代码). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters: []
+    columns:
+      - {name: 代码, type: str, description: ETF code (row key)}
+      - {name: 最新价, type: float, description: Latest price}
+      - {name: 成交量, type: int, description: Volume}
+      - {name: 成交额, type: float, description: Turnover value}
+      - {name: 总市值, type: float, description: Total market value}
+      - {name: 流通市值, type: float, description: Circulating market value}
+
+  - command: get_stock_info_bj_name_code
+    category: stock-list
+    description: 'Beijing Stock Exchange listed-stock list via ak.stock_info_bj_name_code (full exchange list, ~250 rows); parsed by StockInfoBjNameCodeAdapter (_FundRankFrameAdapter) in fd_open_data_mcp/adapters/akshare.py (row picked by 证券代码). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: irregular
+    verified: true
+    parameters: []
+    columns:
+      - {name: 证券代码, type: str, description: Securities code (row key)}
+      - {name: 证券简称, type: str, description: Securities short name}
+
+  - command: get_fund_etf_hist_em
+    category: price-history
+    description: 'East Money ETF daily OHLCV via ak.fund_etf_hist_em (Chinese columns, date column 日期, unadjusted); parsed by FundEtfHistEmAdapter (_FundHistEmAdapter) in fd_open_data_mcp/adapters/akshare.py. adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Bare fund code, e.g. 510050'}
+      - {name: date, type: str, required: false, description: 'As-of date YYYY-MM-DD or YYYYMMDD; mapped to start_date/end_date'}
+    columns:
+      - {name: 日期, type: str, description: Trading date}
+      - {name: 开盘, type: float, description: Open price}
+      - {name: 收盘, type: float, description: Close price}
+      - {name: 最高, type: float, description: High price}
+      - {name: 最低, type: float, description: Low price}
+      - {name: 成交量, type: int, description: Volume}
+      - {name: 成交额, type: float, description: Turnover value}
+      - {name: 振幅, type: float, description: Amplitude (percent)}
+      - {name: 涨跌幅, type: float, description: Percent price change}
+
+  - command: get_fund_lof_hist_em
+    category: price-history
+    description: 'East Money LOF daily OHLCV via ak.fund_lof_hist_em (Chinese columns, date column 日期, unadjusted); parsed by FundLofHistEmAdapter (_FundHistEmAdapter) in fd_open_data_mcp/adapters/akshare.py. adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Bare fund code'}
+      - {name: date, type: str, required: false, description: 'As-of date YYYY-MM-DD or YYYYMMDD; mapped to start_date/end_date'}
+    columns:
+      - {name: 日期, type: str, description: Trading date}
+      - {name: 开盘, type: float, description: Open price}
+      - {name: 收盘, type: float, description: Close price}
+      - {name: 最高, type: float, description: High price}
+      - {name: 最低, type: float, description: Low price}
+      - {name: 成交量, type: int, description: Volume}
+      - {name: 成交额, type: float, description: Turnover value}
+      - {name: 振幅, type: float, description: Amplitude (percent)}
+      - {name: 涨跌幅, type: float, description: Percent price change}
+
+  - command: get_fund_etf_hist_sina
+    category: price-history
+    description: 'Sina ETF daily OHLCV via ak.fund_etf_hist_sina (English columns date/open/high/low/close/volume/amount, full series, no date params) — eastmoney failover; parsed by FundEtfHistSinaAdapter in fd_open_data_mcp/adapters/akshare.py (Sina fund prefix via _sina_fund_prefix). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Fund code; adapter derives the Sina-prefixed symbol (sh510050)'}
+    columns:
+      - {name: date, type: str, description: Trading date}
+      - {name: open, type: float, description: Open price}
+      - {name: high, type: float, description: High price}
+      - {name: low, type: float, description: Low price}
+      - {name: close, type: float, description: Close price}
+      - {name: volume, type: int, description: Volume}
+      - {name: amount, type: float, description: Turnover value}
+
+  - command: get_fund_individual_achievement_xq
+    category: fund-returns
+    description: 'Xueqiu per-fund trailing-return snapshot via ak.fund_individual_achievement_xq (frame 业绩类型/周期/本产品区间收益/本产品最大回撒/周期收益同类排名; virtual bound columns 区间收益_近1月 through 区间收益_近3年); parsed by FundIndividualAchievementXqAdapter in fd_open_data_mcp/adapters/akshare.py (values are as-of-today regardless of requested date). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Fund code'}
+    columns:
+      - {name: 业绩类型, type: str, description: Achievement block, e.g. 阶段业绩}
+      - {name: 周期, type: str, description: Trailing period, e.g. 近1月/近3月/近6月/近1年/近3年}
+      - {name: 本产品区间收益, type: float, description: Product return over the period (bound as virtual 区间收益_<周期>)}
+      - {name: 本产品最大回撒, type: float, description: Product max drawdown over the period}
+      - {name: 周期收益同类排名, type: str, description: Peer rank of the period return, as returned by xueqiu}
+
+  - command: get_fund_individual_basic_info_xq
+    category: fund-info
+    description: 'Xueqiu per-fund basic info via ak.fund_individual_basic_info_xq (item/value frame); parsed by FundIndividualBasicInfoXqAdapter in fd_open_data_mcp/adapters/akshare.py, which parses the 最新规模 AUM string (e.g. 97.06亿) into a float of 亿元. adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Fund code'}
+    columns:
+      - {name: 最新规模, type: float, description: Latest fund AUM in 亿元 (parsed from the xueqiu item/value frame)}
+
+  - command: get_fund_money_fund_info_em
+    category: yield-history
+    description: 'East Money money-market fund yield history via ak.fund_money_fund_info_em (净值日期/每万份收益/7日年化收益率/申购状态/赎回状态, full series); parsed by FundMoneyFundInfoEmAdapter in fd_open_data_mcp/adapters/akshare.py (date column 净值日期). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters:
+      - {name: symbol, type: str, required: true, description: 'Money-market fund code'}
+    columns:
+      - {name: 净值日期, type: str, description: Yield date}
+      - {name: 每万份收益, type: float, description: Income per 10k shares}
+      - {name: 7日年化收益率, type: float, description: 7-day annualized yield (percent)}
+      - {name: 申购状态, type: str, description: Purchase status}
+      - {name: 赎回状态, type: str, description: Redemption status}
+
+  - command: get_fund_open_fund_rank_em
+    category: fund-rank
+    description: 'East Money open-fund rank frame via ak.fund_open_fund_rank_em (~17k rows, full-market snapshot with no date axis); parsed by FundOpenFundRankEmAdapter (_FundRankFrameAdapter) in fd_open_data_mcp/adapters/akshare.py (row picked by 基金代码). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters: []
+    columns:
+      - {name: 基金代码, type: str, description: Fund code (row key)}
+      - {name: 单位净值, type: float, description: Unit NAV (alternate NAV source)}
+      - {name: 累计净值, type: float, description: Cumulative NAV}
+      - {name: 日增长率, type: float, description: Daily NAV growth rate (percent)}
+      - {name: 近1周, type: float, description: Trailing 1-week return (percent)}
+      - {name: 近1月, type: float, description: Trailing 1-month return (percent)}
+      - {name: 近3月, type: float, description: Trailing 3-month return (percent)}
+      - {name: 近6月, type: float, description: Trailing 6-month return (percent)}
+      - {name: 近1年, type: float, description: Trailing 1-year return (percent)}
+      - {name: 近3年, type: float, description: Trailing 3-year return (percent)}
+      - {name: 成立来, type: float, description: Return since inception (percent)}
+
+  - command: get_fund_rating_all
+    category: fund-rating
+    description: 'East Money fund-rating rank frame via ak.fund_rating_all (~18k rows snapshot); parsed by FundRatingAllAdapter (_FundRankFrameAdapter) in fd_open_data_mcp/adapters/akshare.py (row picked by 代码; bound column 晨星评级). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: irregular
+    verified: true
+    parameters: []
+    columns:
+      - {name: 代码, type: str, description: Fund code (row key)}
+      - {name: 晨星评级, type: int, description: Morningstar rating 1-5 stars (may be missing for uncovered funds)}
+
+  - command: get_fund_manager_em
+    category: fund-manager
+    description: 'East Money fund-manager frame via ak.fund_manager_em (long format, one row per manager x fund, ~35k rows); parsed by FundManagerEmAdapter (_FundRankFrameAdapter) in fd_open_data_mcp/adapters/akshare.py (manager picked by 序号; virtual column 现任基金数 counts the manager rows). adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: irregular
+    verified: true
+    parameters: []
+    columns:
+      - {name: 序号, type: str, description: Manager id (row key, repeats across the manager funds)}
+      - {name: 累计从业时间, type: int, description: Cumulative tenure in days}
+      - {name: 现任基金资产总规模, type: float, description: Total AUM of current funds in 亿元}
+      - {name: 现任基金最佳回报, type: float, description: Best return of current funds (percent)}
+      - {name: 现任基金数, type: int, description: Count of the manager current funds (virtual column)}
+
+  - command: get_stock_zcfz_em
+    category: statement-cross-section
+    description: 'East Money balance-sheet cross-section via ak.stock_zcfz_em (one row per listed stock for a report date, ~5.2k rows; value columns follow the eastmoney statement layout — only key column 股票代码 is named in the adapter); parsed by StockZcfzEmAdapter (_EmAggregateAdapter) in fd_open_data_mcp/adapters/akshare.py. adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: quarterly
+    verified: true
+    parameters:
+      - {name: date, type: str, required: false, description: 'Report date YYYYMMDD selecting the period; omit for latest'}
+    columns:
+      - {name: 股票代码, type: str, description: Stock code (row key)}
+
+  - command: get_stock_lrb_em
+    category: statement-cross-section
+    description: 'East Money profit-statement cross-section via ak.stock_lrb_em (one row per listed stock for a report date, ~5.2k rows; value columns follow the eastmoney statement layout — only key column 股票代码 is named in the adapter); parsed by StockLrbEmAdapter (_EmAggregateAdapter) in fd_open_data_mcp/adapters/akshare.py. adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: quarterly
+    verified: true
+    parameters:
+      - {name: date, type: str, required: false, description: 'Report date YYYYMMDD selecting the period; omit for latest'}
+    columns:
+      - {name: 股票代码, type: str, description: Stock code (row key)}
+
+  - command: get_stock_yjbb_em
+    category: statement-cross-section
+    description: 'East Money earnings-report cross-section via ak.stock_yjbb_em (one row per listed stock for a report date, ~6k rows; value columns follow the eastmoney statement layout — only key column 股票代码 is named in the adapter); parsed by StockYjbbEmAdapter (_EmAggregateAdapter) in fd_open_data_mcp/adapters/akshare.py. adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: quarterly
+    verified: true
+    parameters:
+      - {name: date, type: str, required: false, description: 'Report date YYYYMMDD selecting the period; omit for latest'}
+    columns:
+      - {name: 股票代码, type: str, description: Stock code (row key)}
+
+  - command: get_stock_fhps_em
+    category: statement-cross-section
+    description: 'East Money dividend-and-split cross-section via ak.stock_fhps_em (one row per listed stock for a report date, ~3.7k rows; value columns follow the eastmoney statement layout — only key column 股票代码 is named in the adapter); parsed by StockFhpsEmAdapter (_EmAggregateAdapter) in fd_open_data_mcp/adapters/akshare.py. adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: quarterly
+    verified: true
+    parameters:
+      - {name: date, type: str, required: false, description: 'Report date YYYYMMDD selecting the period; omit for latest'}
+    columns:
+      - {name: 股票代码, type: str, description: Stock code (row key)}
+
+  - command: get_fund_open_fund_daily_em
+    category: nav-cross-section
+    description: 'East Money open-fund daily NAV cross-section via ak.fund_open_fund_daily_em (~24k rows, one per fund, as of the latest trading day; value columns follow the eastmoney daily-fund layout — only key column 基金代码 is named in the adapter); parsed by FundOpenFundDailyEmAdapter in fd_open_data_mcp/adapters/akshare.py. adapter-backed: fetch lives in fd_open_data_mcp adapters.'
+    frequency: daily
+    verified: true
+    parameters: []
+    columns:
+      - {name: 基金代码, type: str, description: Fund code (row key)}
+concepts: []
+entities: []

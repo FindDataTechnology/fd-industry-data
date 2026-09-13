@@ -1,0 +1,51 @@
+version: "1"
+name: github-datasets-topic
+label: GitHub 数据集主题仓库列表
+source_url: https://github.com/topics/dataset
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]
+functions:
+  - command: get_topic_repos
+    category: repo-listing
+    description: >-
+      List of dataset-related repositories from GitHub topic pages
+      (topics/dataset, topics/datasets, topics/open-data); parses repo cards via
+      CSS selectors .repo-list-item, article.Box-row, data-hydro-click cards in
+      spiders/github-datasets-topic/spider.py parse_response().
+    frequency: daily
+    verified: true
+    parameters:
+      - name: urls
+        type: str
+        required: false
+        description: >-
+          Optional GitHub topic page URL(s) to crawl (spider run_spider --urls);
+          defaults to topics/dataset, topics/datasets, topics/open-data.
+    columns:
+      - name: source_url
+        type: str
+        description: Topic page URL the record was parsed from
+      - name: repo_name
+        type: str
+        description: Repository name from card heading (h3 a or .repo-list-name a)
+      - name: repo_url
+        type: str
+        description: Absolute repository URL (https://github.com plus card link href)
+      - name: description
+        type: str
+        description: Repository description (.repo-list-description or p text)
+      - name: language
+        type: str
+        description: Primary programming language (itemprop=programmingLanguage text)
+      - name: stars
+        type: str
+        description: Star count text (.octicon-star + span; GitHub-formatted, e.g. 1.2k)
+      - name: topics
+        type: str
+        description: Comma-joined topic tags of the repo (.topic-tag texts)
+      - name: scraped_at
+        type: str
+        description: ISO-8601 timestamp of when the record was scraped
+concepts: []
+entities: []

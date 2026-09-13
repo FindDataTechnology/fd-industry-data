@@ -1,0 +1,30 @@
+version: "1"
+name: github-china-topics
+label: GitHub 中国话题仓库列表
+source_url: https://github.com/topics/china
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]
+functions:
+  - command: get_china_topic_repos
+    category: open-source-repos
+    description: >-
+      Repositories listed under the GitHub "china" topic page with per-repo metadata.
+      Parsing note: parse_response() in spiders/github-china-topics/spider.py selects
+      article.Box-row items (fallbacks [data-testid='results-list'] > div then
+      .repo-list-item), reads the h1/h2/h3 anchor for name+href, the item <p> for
+      description, the stargazers link text for stars, and
+      [itemprop='programmingLanguage'] for language.
+    frequency: irregular
+    verified: true
+    parameters: []
+    columns:
+      - {name: repo_name, type: str, description: Repository name from the heading anchor (h1/h2/h3 a) of each listed item}
+      - {name: repo_url, type: str, description: Absolute repository URL built from the heading anchor href, prefixed with https://github.com}
+      - {name: description, type: str, description: Repository one-line description from the item <p> text}
+      - {name: stars, type: str, description: Star count text from the stargazers link / star aria-label element}
+      - {name: language, type: str, description: "Primary programming language from the itemprop='programmingLanguage' element"}
+      - {name: source_url, type: str, description: Topic page URL the record was parsed from}
+      - {name: scraped_at, type: str, description: ISO-8601 timestamp recorded at scrape time}
+concepts: []
+entities: []

@@ -1,0 +1,27 @@
+version: "1"
+name: github-awesome-datasets
+label: Awesome Public Datasets Catalog
+source_url: https://github.com/awesomedata/awesome-public-datasets
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]
+functions:
+  - command: get_datasets
+    category: dataset-catalog
+    description: >-
+      Categorized catalog of public datasets listed in the
+      awesomedata/awesome-public-datasets README; parse_response() in
+      spiders/github-awesome-datasets/spider.py walks #readme .markdown-body,
+      using each h2/h3 as the current category and each li > a as one dataset
+      record (name from link text, description from the trailing li text,
+      url from the link href).
+    frequency: irregular
+    verified: true
+    parameters: []
+    columns:
+      - {name: dataset_name, type: str, description: Link text naming the dataset (li > a ::text)}
+      - {name: description, type: str, description: Trailing free-text description inside the same li (last text node)}
+      - {name: category, type: str, description: README section heading (h2/h3) the list item falls under}
+      - {name: url, type: str, description: Dataset homepage href from the li > a element}
+concepts: []
+entities: []

@@ -1,0 +1,32 @@
+# Manifest draft (shard-02) — Google Data Commons /v2/observation adapter.
+version: "1"
+name: datacommons
+label: Google Data Commons Observations
+source_url: https://api.datacommons.org/v2/observation
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: []                        # adapter unit; HTTP fetch lives in vendored fd-datacommons provider (needs DC_API_KEY)
+functions:
+  - command: get_observation
+    category: statistical-observations
+    description: >-
+      Statistical observations (value per variable/entity/date) from the DC v2
+      observation API. adapter-backed: fetch lives in fd_open_data_mcp adapters —
+      parsing in fd_open_data_mcp/adapters/datacommons.py where _observations()
+      navigates byVariable->byEntity->orderedFacets and _best_facet() prefers
+      isDcAggregate/newest exportDate/highest obsCount; extract_value() does point
+      lookups and extract_series() returns date-range series (years normalized to
+      YYYY-01-01); HTTP GET itself lives in vendored
+      scraw-fd-open-data-mcp/vendor/fd-datacommons/fd_datacommons/provider.py
+      (_API_URL).
+    frequency: irregular            # DC yearly variables are dated YYYY, monthly ones YYYY-MM — varies per variable
+    verified: true
+    parameters:
+      - {name: variable_dcid, type: str, required: true, description: Variable DCID, e.g. Count_Person (supplied by the binding column name)}
+      - {name: entity_dcid, type: str, required: true, description: Entity DCID, e.g. country/USA}
+      - {name: date, type: str, required: false, description: DC date form YYYY or YYYY-MM or YYYY-MM-DD, or LATEST, or empty string for full history; canonical 12-31 dates map to the year, -01 to the month (adapter _dc_date)}
+    columns:
+      - {name: date, type: str, description: Observation date as returned by DC (year like 2023 or month like 2023-01); extract_series normalizes years to YYYY-01-01}
+      - {name: value, type: float, description: Observation value from the best facet's observations list, each item carrying a date and a value}
+concepts: []
+entities: []

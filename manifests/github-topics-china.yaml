@@ -1,0 +1,25 @@
+# Manifest draft (shard-02) — GitHub topic listing spider (github.com/topics/china).
+version: "1"
+name: github-topics-china
+label: GitHub China Topic Listing
+source_url: https://github.com/topics/china
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]             # spider imports scrapling.spiders / scrapling.fetchers
+functions:
+  - command: get_topic
+    category: topic-listing
+    description: GitHub topic listing for china — topic heading/description plus star and fork counts parsed from aria-label text; parsing in spiders/github-topics-china/spider.py where extract_data() routes github.com URLs to _extract_github().
+    frequency: irregular            # topic page content shifts with trending repos; no schedule in code
+    verified: true
+    parameters: []
+    columns:
+      - {name: title, type: str, description: Topic heading from the page h1}
+      - {name: description, type: str, description: Topic/repo blurb from .repo-description or first p text}
+      - {name: url, type: str, description: Source page URL}
+      - {name: language, type: str, description: Language label from .article-language span (often empty on topic pages)}
+      - {name: stars, type: str, description: Star count matched from aria-label attribute text via regex for digits plus stars}
+      - {name: forks, type: str, description: Fork count matched from aria-label attribute text via regex for digits plus forks}
+      - {name: scraped_at, type: str, description: ISO timestamp recorded at scrape time}
+concepts: []
+entities: []
