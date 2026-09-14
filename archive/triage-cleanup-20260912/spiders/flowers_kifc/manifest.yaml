@@ -1,0 +1,40 @@
+version: "1"
+name: flowers_kifc
+label: KIFC Flower Auction Prices
+source_url: http://www.kifc.cn
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_flowers_kifc
+    description: Fetch daily fresh-cut flower auction prices from KIFC (昆明国际花卉中心)
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: date
+        type: str
+        description: Trading date
+      - name: flower_name
+        type: str
+        description: Flower variety name
+      - name: price
+        type: float
+        description: Unit price in CNY
+      - name: unit
+        type: str
+        description: Price currency unit (default CNY)
+concepts:
+  - column: price
+    concept: commodity.price
+    entity_type: industry
+    measure: price
+    unit: currency_cny
+    frequency: daily
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

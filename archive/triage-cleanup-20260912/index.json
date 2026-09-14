@@ -1,0 +1,2353 @@
+{
+  "generated_at": "2026-09-11T16:08:14+00:00",
+  "repo": "fd-industry-data",
+  "entries": [
+    {
+      "action": "archive",
+      "category": "empty_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "ers",
+      "archived_to": "archive/triage-cleanup-20260912/ers",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "empty_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spid",
+      "archived_to": "archive/triage-cleanup-20260912/spid",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/cba-banking",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/cba-banking",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/ifind-public",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/ifind-public",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/kaggle-datasets",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/kaggle-datasets",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/oilchem",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/oilchem",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/toutiao-open",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/toutiao-open",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/wind-public",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/wind-public",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cisa",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cisa",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cisa_spider",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cisa_spider",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/gov-stats-czce",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/gov-stats-czce",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/gov-stats-dce",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/gov-stats-dce",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/gov-stats-moa",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/gov-stats-moa",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/gov-stats-nbs",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/gov-stats-nbs",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/gov-stats-pbc",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/gov-stats-pbc",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "codeless_spider_dirs",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/stats-data-query",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/stats-data-query",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "COMMODITY_DATA_DICTIONARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/COMMODITY_DATA_DICTIONARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "COMMODITY_SPIDERS_COMPLETE.md",
+      "archived_to": "archive/triage-cleanup-20260912/COMMODITY_SPIDERS_COMPLETE.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "COMPLETION_SUMMARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/COMPLETION_SUMMARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "FINAL_SUMMARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/FINAL_SUMMARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "GETTING_STARTED_COMMODITY.md",
+      "archived_to": "archive/triage-cleanup-20260912/GETTING_STARTED_COMMODITY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "IMPLEMENTATION_SUMMARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/IMPLEMENTATION_SUMMARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "PROJECT_COMPLETE_REPORT.md",
+      "archived_to": "archive/triage-cleanup-20260912/PROJECT_COMPLETE_REPORT.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "PROJECT_SUMMARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/PROJECT_SUMMARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "SPIDERS_CREATED.md",
+      "archived_to": "archive/triage-cleanup-20260912/SPIDERS_CREATED.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "SPIDER_GENERATION_COMPLETE.md",
+      "archived_to": "archive/triage-cleanup-20260912/SPIDER_GENERATION_COMPLETE.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "SPIDER_GENERATION_SUMMARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/SPIDER_GENERATION_SUMMARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "SPIRERS_GENERATION_SUMMARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/SPIRERS_GENERATION_SUMMARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "STEEL_CREATION_SUMMARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/STEEL_CREATION_SUMMARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "STEEL_DATA_README.md",
+      "archived_to": "archive/triage-cleanup-20260912/STEEL_DATA_README.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "SUMMARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/SUMMARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "getting_started.sh",
+      "archived_to": "archive/triage-cleanup-20260912/getting_started.sh",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/.generation_progress.txt",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/.generation_progress.txt",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/BATCH1_GENERATION_SUMMARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/BATCH1_GENERATION_SUMMARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/CREATION_SUMMARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/CREATION_SUMMARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/DATA_DICTIONARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/DATA_DICTIONARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/PROJECT_COMPLETION.md",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/PROJECT_COMPLETION.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/quick_start.sh",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/quick_start.sh",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/.DS_Store",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/.DS_Store",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/FINANCIAL_PLATFORMS_COMPLETE.md",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/FINANCIAL_PLATFORMS_COMPLETE.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/IMPLEMENTATION_SUMMARY.md",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/IMPLEMENTATION_SUMMARY.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/METAL_MINING_SPIDERS_COMPLETE.md",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/METAL_MINING_SPIDERS_COMPLETE.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/QUICKSTART.md",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/QUICKSTART.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/README.md",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/README.md",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/test_chinese_media_spiders.py",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/test_chinese_media_spiders.py",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/test_financial_spiders.py",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/test_financial_spiders.py",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "litter_files",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/test_metal_spiders.py",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/test_metal_spiders.py",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "scraw-flowers-kifc",
+      "archived_to": "archive/triage-cleanup-20260912/scraw-flowers-kifc",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "scraw-nbs-gdp",
+      "archived_to": "archive/triage-cleanup-20260912/scraw-nbs-gdp",
+      "git_tracked": false,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "scripts/verify_nbs_spider.py",
+      "archived_to": "archive/triage-cleanup-20260912/scripts/verify_nbs_spider.py",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/alphavantage",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/alphavantage",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/amac",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/amac",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/antaike",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/antaike",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/autoflowassoc",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/autoflowassoc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/baiinfo",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/baiinfo",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/bureauoflaborstatistics",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/bureauoflaborstatistics",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/caict",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/caict",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/cas",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/cas",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/cba",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/cba",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/ccidconsulting",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/ccidconsulting",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/ccin",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/ccin",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/china-flower-assoc",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/china-flower-assoc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/chinaautoassoc",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/chinaautoassoc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/chinaironandsteelassociation",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/chinaironandsteelassociation",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/cinnoresearch",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/cinnoresearch",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/cmegroupagriculture",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/cmegroupagriculture",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/cnki",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/cnki",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/cnmia",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/cnmia",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/coinmarketcapapi",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/coinmarketcapapi",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/cpcif",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/cpcif",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/cpcifa",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/cpcifa",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/crugroup",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/crugroup",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/csmar",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/csmar",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/czce",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/czce",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/datagov",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/datagov",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/digitimesresearch",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/digitimesresearch",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/envdata",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/envdata",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/fastmarkets",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/fastmarkets",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/fastmarketsmb",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/fastmarketsmb",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/financeministry",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/financeministry",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/flowers_kifc",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/flowers_kifc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/governmentstats",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/governmentstats",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/healthcommission",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/healthcommission",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/huggingfacedatasets",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/huggingfacedatasets",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/iac",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/iac",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/ifind",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/ifind",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/intriniofinancialdata",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/intriniofinancialdata",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/kaggledatasets",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/kaggledatasets",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/kagglezhihudatasets",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/kagglezhihudatasets",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/kitcopreciousbasemetals",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/kitcopreciousbasemetals",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/lme",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/lme",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/lmelondonmetalexchange",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/lmelondonmetalexchange",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/longzhong",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/longzhong",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/ministryofeducation",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/ministryofeducation",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/moa",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/moa",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/nbs-query",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/nbs-query",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/nbs-stats-http",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/nbs-stats-http",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/oschinaprojectstatistics",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/oschinaprojectstatistics",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/pbc",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/pbc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/people-data",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/people-data",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/polygoniostockmarketdata",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/polygoniostockmarketdata",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/sac",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/sac",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/semi",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/semi",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/shanghaifuturesexchangeshfe",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/shanghaifuturesexchangeshfe",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/shanghaimetalsmarketsmm",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/shanghaimetalsmarketsmm",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/shfe",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/shfe",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/smm",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/smm",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/socialsciences",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/socialsciences",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/spglobalcommodityinsightsmeta",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/spglobalcommodityinsightsmeta",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-10",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-10",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-100",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-100",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-101",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-101",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-102",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-102",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-105",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-105",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-107",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-107",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-11",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-11",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-111",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-111",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-115",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-115",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-118",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-118",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-12",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-12",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-125",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-125",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-126",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-126",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-14",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-14",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-15",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-15",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-16",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-16",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-17",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-17",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-18",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-18",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-19",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-19",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-20",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-20",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-21",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-21",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-22",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-22",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-25",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-25",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-27",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-27",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-3",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-3",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-30",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-30",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-31",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-31",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-34",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-34",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-35",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-35",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-36",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-36",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-38",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-38",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-39",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-39",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-4",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-4",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-40",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-40",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-41",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-41",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-47",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-47",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-5",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-5",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-50",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-50",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-51",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-51",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-52",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-52",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-53",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-53",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-54",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-54",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-55",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-55",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-56",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-56",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-58",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-58",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-59",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-59",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-6",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-6",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-62",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-62",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-63",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-63",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-70",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-70",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-71",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-71",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-73",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-73",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-74",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-74",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-75",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-75",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-76",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-76",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-77",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-77",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-78",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-78",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-79",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-79",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-80",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-80",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-85",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-85",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-89",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-89",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-9",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-9",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-90",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-90",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-91",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-91",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-93",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-93",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-94",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-94",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-95",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-95",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-96",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-96",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-97",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-97",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/src-98",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/src-98",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/steelhome",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/steelhome",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/trendforcemarketintelligence",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/trendforcemarketintelligence",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/tusharefinancialdataplatform",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/tusharefinancialdataplatform",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/tusharepro",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/tusharepro",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/ucimachinelearningrepository",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/ucimachinelearningrepository",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/wechat-open-doc",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/wechat-open-doc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/wechatofficialaccountmanagement",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/wechatofficialaccountmanagement",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/wind",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/wind",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/worldsteelassociation",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/worldsteelassociation",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiders/zhuochuang",
+      "archived_to": "archive/triage-cleanup-20260912/spiders/zhuochuang",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/199it",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/199it",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/agri-cn",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/agri-cn",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/agriculture",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/agriculture",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/amac",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/amac",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/amac_spider.py",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/amac_spider.py",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/caac",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/caac",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/caam",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/caam",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/caep",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/caep",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/caict",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/caict",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/camdi",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/camdi",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cast",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cast",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/catering",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/catering",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cba",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cba",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cca",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cca",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/ccfa",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/ccfa",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cctda",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cctda",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cea-ecommerce",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cea-ecommerce",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cec",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cec",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cesa",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cesa",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cgcc",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cgcc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cha",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cha",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/chemicals",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/chemicals",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/china-nea",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/china-nea",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/china-railway",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/china-railway",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/chinabrands",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/chinabrands",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/chinacdc",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/chinacdc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/chinaflower",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/chinaflower",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/chinametal",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/chinametal",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/chinaports",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/chinaports",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/chinashipping",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/chinashipping",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/chinawater",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/chinawater",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cia",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cia",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cisa_spider.py",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cisa_spider.py",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cme_agriculture_spider.py",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cme_agriculture_spider.py",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cmegroup_ag_spider.py",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cmegroup_ag_spider.py",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cnia",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cnia",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cnia-lme",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cnia-lme",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cnki",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cnki",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cnnic",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cnnic",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cntac",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cntac",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cpcia",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cpcia",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/cpia",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/cpia",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/csia",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/csia",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/eastmoney-choice",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/eastmoney-choice",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/electronics",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/electronics",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/fin_platforms",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/fin_platforms",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/flowers_kifc",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/flowers_kifc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/ifind-5ifin",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/ifind-5ifin",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/isc",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/isc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/logistics",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/logistics",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/moa-gov-scraper",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/moa-gov-scraper",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/moe-gov",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/moe-gov",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/mot-highway",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/mot-highway",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/mysteel",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/mysteel",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/nhc",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/nhc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/nlc",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/nlc",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/nonferrous",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/nonferrous",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/real-estate",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/real-estate",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/sac",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/sac",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/sac_spider.py",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/sac_spider.py",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/securities",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/securities",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/shfe_spider.py",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/shfe_spider.py",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/smm-metals",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/smm-metals",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/sse",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/sse",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/tourism",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/tourism",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/wanfang",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/wanfang",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "l4_units",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/wind-financial",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/wind-financial",
+      "git_tracked": true,
+      "winner": null
+    },
+    {
+      "action": "archive",
+      "category": "consolidation_loser",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/nbs_gdp",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/nbs_gdp",
+      "git_tracked": true,
+      "winner": "spiders/nbs_gdp"
+    },
+    {
+      "action": "archive",
+      "category": "consolidation_loser",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/wechat-mp",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/wechat-mp",
+      "git_tracked": true,
+      "winner": "spiders/wechat-mp"
+    },
+    {
+      "action": "archive",
+      "category": "consolidation_loser",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/weibo-open",
+      "archived_to": "archive/triage-cleanup-20260912/spiers/weibo-open",
+      "git_tracked": true,
+      "winner": "spiders/weibo-open"
+    },
+    {
+      "action": "restore",
+      "category": "consolidation_loser",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/wechat-mp",
+      "reason": "level better than winner; invariant guard"
+    },
+    {
+      "action": "restore",
+      "category": "consolidation_loser",
+      "repo": "fd-industry-data",
+      "original_path": "spiers/weibo-open",
+      "reason": "level better than winner; invariant guard"
+    }
+  ],
+  "backlog_snapshot": "cleanup_backlog.snapshot.json",
+  "runs": 4
+}

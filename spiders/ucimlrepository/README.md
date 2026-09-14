@@ -20,11 +20,8 @@ pip install scrapling[fetchers]
 # Navigate to spider directory
 cd ucimlrepository
 
-# Run with default URLs
+# Run with default URL (UCI tRPC donated_datasets.findAll API)
 python spider.py
-
-# Verbose mode
-python spider.py -v
 ```
 
 ### Custom URLs
@@ -39,12 +36,6 @@ python spider.py --urls https://target-url-1.com https://target-url-2.com
 python spider.py --dry-run
 ```
 
-### With Scrapy
-
-```bash
-scrapy crawl ucimlrepository
-```
-
 ### With uv
 
 ```bash
@@ -55,14 +46,13 @@ uv run python spider.py
 
 ```
 ucimlrepository/
-├── spider.py              # Main spider code (~280 lines)
+├── spider.py              # Main spider code
 ├── manifest.yaml          # MCP integration config
 ├── README.md              # This guide
 ├── data/
-│   └── ucimlrepository.db          # SQLite database
+│   └── data.sqlite                # SQLite database (table: ucm_datasets)
 └── output/
-    ├── ucimlrepository_items.jsonl        # Streaming JSONL
-    └── ucimlrepository_complete.json       # Consolidated export
+    └── export.jsonl               # Streaming JSONL
 ```
 
 ## Database Schema
@@ -72,51 +62,58 @@ ucimlrepository/
 | Column | Type | Description |
 |--------|------|-------------|
 | id | INTEGER | Auto-increment primary key |
-| title | TEXT | Title/name field |
-| description | TEXT | Description text |
-| url | TEXT | Source URL (unique constraint) |
 | scraped_at | TEXT | ISO 8601 timestamp |
+| name | TEXT | Dataset name |
+| description | TEXT | Abstract (capped at 300 chars) |
+| url | TEXT | Dataset page URL (https://archive.ics.uci.edu/dataset/{ID}) |
+| type | TEXT | Task (e.g. Classification, Regression) |
+| instances | TEXT | Row count (NumInstances/NumDownloads/NumHits) |
+| area | TEXT | Subject area |
+| doi | TEXT | Dataset DOI |
+| source_url | TEXT | API URL the record was parsed from |
 
 See `manifest.yaml` for complete schema and commands.
 
 ## Features
 
-- ✅ Automatic deduplication via SQLite UNIQUE constraints
-- ✅ Stealth browser mode for anti-bot bypass
-- ✅ Rate limiting (download_delay: 1.0s)
+- ✅ Reads the UCI site's tRPC JSON API (donated_datasets.findAll) directly
+- ✅ Bounded runs (≤5 URLs, ≤60 records) with retry + delay
+- ✅ Browser User-Agent rotation (plain HTTP fetch, no browser needed)
 - ✅ Error logging and recovery
-- ✅ Multi-format export (SQLite + JSONL + JSON)
-- ✅ CLI arguments (--urls, --dry-run, --verbose)
-- ✅ Programmatic API via `run_spider()`
+- ✅ Multi-format export (SQLite + JSONL)
+- ✅ CLI arguments (--urls, --dry-run)
+- ✅ Programmatic API via `run_spider()` and pure `parse_payload()`
 
 ## Troubleshooting
 
-### Cloudflare Blocking
+### API Errors
 
-Ensure stealth mode is enabled in `configure_sessions()`.
+The spider fetches the tRPC endpoint in `START_URLS` of `spider.py`; the old
+`https://archive.ics.uci.edu/ml/index.php` table page is gone. A browser
+User-Agent is required (the spider rotates them automatically).
 
 ### Rate Limited
 
 Adjust settings in spider code:
 ```python
-download_delay = 5.0  # Increase delay
-concurrent_requests = 1  # Reduce concurrency
+REQUEST_DELAY = 5.0  # Increase delay
+MAX_RETRIES = 3
 ```
 
 ### No Data Extracted
 
-1. Verify URL accessibility:
+1. Verify the API URL in `spider.py` (`START_URLS`) responds with JSON:
    ```bash
-   curl -I https://archive.ics.uci.edu/ml/index.php
+   python3 -c "import spider; print(spider.START_URLS[0])"
    ```
-2. Check logs with `-v` flag
+2. Check the console logs from the spider
 3. Review HTML structure changes
 
 ### Debug Mode
 
-Enable verbose logging:
-```bash
-python spider.py -v
+Raise the log level in `spider.py`:
+```python
+logging.basicConfig(level=logging.DEBUG, ...)
 ```
 
 Logs appear in console output. Redirect to file:
@@ -128,15 +125,14 @@ python spider.py 2> debug.log
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| DB_PATH | ./data/ucimlrepository.db | Custom database path |
-| OUTPUT_DIR | ./output | Custom output directory |
+| DATA_DB | ./data/data.sqlite | SQLite database path |
+| JSON_OUTPUT | ./output/export.jsonl | JSONL output path |
 
 ## Contributing
 
 To customize extraction logic:
-1. Edit `extract_data()` method for routing
-2. Override specific `_extract_*` methods
-3. Add new columns to `manifest.yaml`
+1. Edit `parse_payload()` in `spider.py`
+2. Add new columns to `manifest.yaml` and `save_to_sqlite()`
 
 ## License
 

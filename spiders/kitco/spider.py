@@ -623,6 +623,12 @@ class KitcoSpider(Spider):
         self.logger.info("Spider completed.")
 
 
+
+def run_kitco(urls=None, save=True):
+    """Run the kitco spider. Returns True on success."""
+    spider = KitcoSpider()
+    return spider.run_spider(urls=urls, save=save)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")
     parser.add_argument("--urls", nargs="+", help="Custom URLs")

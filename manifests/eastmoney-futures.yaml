@@ -1,0 +1,25 @@
+# Manifest draft for spiders/eastmoney-futures (shard-03, revision-3 / manifest-drafts-r2).
+# Every column below is emitted by parse_payload() in spiders/eastmoney-futures/spider.py
+# (live-verified 2026-09: 60 result.data rows from the RPT_FUTU_POSITIONCODE API).
+version: "1"
+name: eastmoney-futures
+label: 东方财富期货主力合约目录
+source_url: "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_FUTU_POSITIONCODE&columns=TRADE_MARKET_CODE,TRADE_CODE,TRADE_TYPE,SECURITY_CODE,IS_MAINCODE&filter=%28IS_MAINCODE%3D%221%22%29&pageNumber=1&pageSize=60&sortTypes=1,-1&sortColumns=IS_MAINCODE,SECURITY_CODE&source=WEB&client=WEB"
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]            # real fetch dependency (scrapling Fetcher with UA/Referer headers)
+functions:
+  - command: get_main_contracts
+    category: futures-contracts
+    description: 'Main-contract catalog for domestic futures exchanges (one row per product main contract) from the EastMoney datacenter RPT_FUTU_POSITIONCODE daily position-report API filtered to IS_MAINCODE="1"; parsed by parse_payload() in spiders/eastmoney-futures/spider.py which maps each result.data row (JSONP wrapper tolerated) to a contract/product/trade_code/market_code/is_main record.'
+    frequency: daily
+    verified: true
+    parameters: []
+    columns:
+      - {name: contract,   type: str, description: Main contract code, e.g. si2611 (API field SECURITY_CODE)}
+      - {name: product,    type: str, description: Product display name in Chinese, e.g. 工业硅 (API field TRADE_TYPE)}
+      - {name: trade_code, type: str, description: Product trade code, e.g. si (API field TRADE_CODE)}
+      - {name: market_code, type: str, description: Futures market/exchange code, e.g. 069001021 (API field TRADE_MARKET_CODE)}
+      - {name: is_main,    type: str, description: Main-contract flag, always 1 in this filtered query (API field IS_MAINCODE)}
+concepts: []
+entities: []

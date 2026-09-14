@@ -1,0 +1,30 @@
+# Manifest draft for spiders/mysteel (shard-03, revision-3 / manifest-drafts-r2).
+# Every column below is emitted by parse_html() in spiders/mysteel/spider.py
+# (live-verified 2026-09: 53 价格行情 links from the homepage, price rows from
+# jiancai/rezha article pages; the visible #marketTable price cells are
+# server-side encrypted, so the JSON-LD summary is the durable price source).
+version: "1"
+name: mysteel
+label: 我的钢铁网钢材价格行情
+source_url: "https://www.mysteel.com/"
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]            # real fetch dependency (scrapling Fetcher, chrome impersonation)
+functions:
+  - command: get_steel_prices
+    category: commodity-price
+    description: 'Steel spot price rows (品名/规格/材质/钢厂/价格/涨跌) from MySteel 价格行情 article pages via a bounded homepage-to-article two-step flow; parsed by parse_html() in spiders/mysteel/spider.py, which merges #marketTable rows with the JSON-LD ld+json price summary (encrypted price cells with no summary match are dropped, not fabricated).'
+    frequency: daily
+    verified: true
+    parameters: []
+    columns:
+      - {name: product_name, type: str, description: Steel product name, e.g. 高线}
+      - {name: spec,         type: str, description: Product specification, e.g. Φ6}
+      - {name: material,     type: str, description: Material grade, e.g. HPB300}
+      - {name: mill,         type: str, description: Producing mill, e.g. 永钢}
+      - {name: price,        type: str, description: Spot price with unit as published, e.g. 3670元/吨}
+      - {name: change,       type: str, description: Day-over-day change line, e.g. 环比上日下跌20元/吨}
+      - {name: date,         type: str, description: Quote date parsed from the article JSON-LD description, YYYY-MM-DD}
+      - {name: article_title, type: str, description: Article page title the price row came from}
+concepts: []
+entities: []

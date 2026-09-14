@@ -2,19 +2,19 @@ name: ucimlrepository
 version: 1.0.0
 label: UCI ML Repository
 description: High-priority data source scraper for UCI ML Repository
-source_url: https://archive.ics.uci.edu/ml/index.php
+source_url: https://archive.ics.uci.edu/api/trpc/donated_datasets.findAll?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22skip%22%3A0%2C%22take%22%3A20%2C%22filter%22%3Anull%2C%22search%22%3Anull%2C%22sort%22%3Anull%7D%7D%7D
 author: FindData Official
 license: MIT
 created_at: 2026-08-01
 
 spider:
-  class: UcimlrepositorySpider
+  class: run_spider
   module: spider.py
   entry_point: python spider.py
 
 data_sources:
   - name: Primary Source
-    url: https://archive.ics.uci.edu/ml/index.php
+    url: https://archive.ics.uci.edu/api/trpc/donated_datasets.findAll?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22skip%22%3A0%2C%22take%22%3A20%2C%22filter%22%3Anull%2C%22search%22%3Anull%2C%22sort%22%3Anull%7D%7D%7D
     category: main
 
 functions:
@@ -40,28 +40,48 @@ columns:
     type: INTEGER
     nullable: false
     description: Primary key
-  - name: title
-    type: TEXT
-    nullable: true
-    description: Item title or name
-  - name: description
-    type: TEXT
-    nullable: true
-    description: Item description
-  - name: url
-    type: TEXT
-    nullable: true
-    description: Source URL (unique)
   - name: scraped_at
     type: TEXT
     nullable: true
     description: ISO timestamp
+  - name: name
+    type: TEXT
+    nullable: true
+    description: Dataset name
+  - name: description
+    type: TEXT
+    nullable: true
+    description: Abstract (capped at 300 chars)
+  - name: url
+    type: TEXT
+    nullable: true
+    description: Dataset page URL
+  - name: type
+    type: TEXT
+    nullable: true
+    description: Task (e.g. Classification, Regression)
+  - name: instances
+    type: TEXT
+    nullable: true
+    description: Row count
+  - name: area
+    type: TEXT
+    nullable: true
+    description: Subject area
+  - name: doi
+    type: TEXT
+    nullable: true
+    description: Dataset DOI
+  - name: source_url
+    type: TEXT
+    nullable: true
+    description: API URL the record was parsed from
 
 commands:
-  - command: "scrapy crawl ucimlrepository"
-    description: Run with Scrapy CLI
-    example: "cd ucimlrepository && scrapy crawl ucimlrepository"
-  
+  - command: "python spider.py"
+    description: Run with the default API URL
+    example: "cd ucimlrepository && python spider.py"
+
   - command: "python spider.py --urls <url1> <url2>"
     description: Run with custom URLs
     example: "python spider.py --urls https://example.com/data"
@@ -75,10 +95,9 @@ commands:
     example: "uv run python spider.py --verbose"
 
 features:
-  - automatic_deduplication
   - sqlite_storage
   - json_export
-  - stealth_mode
+  - user_agent_rotation
   - rate_limiting
   - error_logging
 
@@ -90,7 +109,6 @@ settings:
 
 dependencies:
   - scrapling>=0.4.7
-  - scrapy>=2.11.0
   - python>=3.10
 
 last_updated: 2026-08-01

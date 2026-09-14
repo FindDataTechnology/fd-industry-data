@@ -1,0 +1,46 @@
+version: "1"
+name: baiinfo
+label: Baiinfo Chemical Industry Information
+source_url: https://www.baiinfo.com/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: get_baiinfo_data
+    description: Fetch data from Baiinfo
+    frequency: on_demand
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: id
+        type: integer
+        description: Primary key
+      - name: title
+        type: string
+        description: Page title
+      - name: description
+        type: string
+        description: Page description
+      - name: url
+        type: string
+        description: Source URL
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp
+concepts:
+  - column: title
+    concept: organization.name
+    entity_type: organization
+    measure: value
+    unit: string
+    frequency: on_demand
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

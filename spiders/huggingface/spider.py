@@ -623,6 +623,12 @@ class HuggingfaceSpider(Spider):
         self.logger.info("Spider completed.")
 
 
+
+def run_huggingface(urls=None, save=True):
+    """Run the huggingface spider. Returns True on success."""
+    spider = HuggingfaceSpider()
+    return spider.run_spider(urls=urls, save=save)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")
     parser.add_argument("--urls", nargs="+", help="Custom URLs")

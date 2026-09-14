@@ -392,15 +392,62 @@ async def run_spider():
     """Helper function to run the spider"""
     spider = DCESpider()
     result = spider.start()
-    
+
     print(f"\n{'='*50}")
     print(f"DCE Scraping Complete")
     print(f"{'='*50}")
     print(f"Items scraped: {result.stats.items_scraped}")
     print(f"Duration: {result.stats.elapsed_seconds:.1f}s")
     print(f"Output directory: {OUTPUT_DIR}")
-    
+
     return result
+
+
+def run_dce(limit: int | None = None) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch."""
+    from scrapling import Fetcher
+
+    items: list[dict] = []
+    fetcher = Fetcher(auto_match=False, impersonate="chrome")
+
+    category_urls = []
+    for cat_list in DCESpider.CATEGORY_URLS.values():
+        category_urls.extend(cat_list)
+
+    for url in category_urls:
+        try:
+            response = fetcher.get(url, timeout=30, stealthy_headers=True)
+            if response.status != 200:
+                continue
+            spider_tmp = DCESpider()
+            commodity_type = spider_tmp._identify_commodity_type(url)
+            for table in response.css("table"):
+                rows = table.css("tr")
+                if len(rows) < 2:
+                    continue
+                headers = [th.text.strip() for th in rows[0].css("th, td")]
+                for row in rows[1:]:
+                    cells = [td.text.strip() for td in row.css("td")]
+                    if len(cells) < 4:
+                        continue
+                    item = {
+                        "source_url": url,
+                        "category": commodity_type,
+                        "scraped_at": datetime.now().isoformat(),
+                    }
+                    for i, header in enumerate(headers[:len(cells)]):
+                        key = header.lower().replace(" ", "_").replace("/", "_") if header else f"col_{i}"
+                        value = cells[i] if i < len(cells) else None
+                        if value == "-" or value == "":
+                            value = None
+                        item[key] = value
+                    items.append(item)
+        except Exception:
+            pass
+
+    if limit is not None:
+        items = items[:limit]
+    return items
 
 
 if __name__ == "__main__":

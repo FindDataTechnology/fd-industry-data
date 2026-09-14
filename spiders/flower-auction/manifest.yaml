@@ -1,104 +1,100 @@
+version: "1"
 name: flower-auction
-version: 1.0.0
-description: Kunming International Flower Auction Center data scraper
-source: http://www.kifc.cn
-author: FindData Official
-license: MIT
-
-spider:
-  class: FlowerAuctionSpider
-  module: spider
-  entry_point: spider.py
-
-data_sources:
-  - name: Auction Results
-    url: http://www.kifc.cn/auction
-    category: auction
-  - name: Price Data
-    url: http://www.kifc.cn/price
-    category: price
-  - name: Market Analysis
-    url: http://www.kifc.cn/market
-    category: market
-
-output:
-  database: data/flower_auction.db
-  json: output/flower_auction.json
-  schema:
-    table: flower_auction
+label: 昆明国际花卉拍卖中心
+source_url: http://www.kifc.cn
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_flower_auction
+    description: Fetch flower auction results, price data, and market analysis from KIFC
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
     columns:
-      - name: id
-        type: INTEGER
-        primary_key: true
-      - name: url
-        type: TEXT
       - name: auction_date
-        type: TEXT
+        type: str
+        description: Auction date
       - name: date
-        type: TEXT
+        type: str
+        description: Price data date
       - name: flower_name
-        type: TEXT
+        type: str
+        description: Flower name
       - name: variety
-        type: TEXT
+        type: str
+        description: Flower variety
       - name: spec
-        type: TEXT
+        type: str
+        description: Flower specification/grade
       - name: quantity
-        type: TEXT
+        type: str
+        description: Auction quantity
       - name: unit
-        type: TEXT
+        type: str
+        description: Unit of measurement (e.g. 枝)
       - name: price
-        type: TEXT
+        type: float
+        description: Unit price
       - name: avg_price
-        type: TEXT
+        type: float
+        description: Average price
       - name: price_high
-        type: TEXT
+        type: float
+        description: Highest price
       - name: price_low
-        type: TEXT
+        type: float
+        description: Lowest price
       - name: volume
-        type: TEXT
+        type: str
+        description: Trading volume
       - name: total_volume
-        type: TEXT
+        type: str
+        description: Total volume
       - name: transaction_rate
-        type: TEXT
+        type: str
+        description: Transaction rate
       - name: title
-        type: TEXT
+        type: str
+        description: Market analysis title
       - name: summary
-        type: TEXT
-      - name: content
-        type: TEXT
+        type: str
+        description: Market analysis summary
       - name: date_range
-        type: TEXT
+        type: str
+        description: Date range for market data
       - name: data_type
-        type: TEXT
-      - name: scraped_at
-        type: TEXT
+        type: str
+        description: Data type (auction, price, market, detail)
       - name: url
-        type: TEXT
-      - name: flower_name
-        type: TEXT
-      - name: COALESCE(auction_date, date)
-        type: TEXT
-        unique_constraint: true
-
-settings:
-  concurrent_requests: 4
-  download_delay: 2.0
-  robots_txt_obey: true
-  allowed_domains:
-    - kifc.cn
-
-features:
-  - pagination
-  - sqlite_storage
-  - json_export
-  - rate_limiting
-  - deduplication
-  - dynamic_content_support
-  - time_sensitive_data
-
-dependencies:
-  - scrapling>=0.4.7
-  - python>=3.10
-
-last_updated: 2026-01-31
-status: active
+        type: str
+        description: Source URL
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+concepts:
+  - column: price
+    concept: commodity.price
+    entity_type: industry
+    measure: price
+    unit: currency_cny
+    frequency: daily
+  - column: avg_price
+    concept: commodity.avg_price
+    entity_type: industry
+    measure: price
+    unit: currency_cny
+    frequency: daily
+  - column: volume
+    concept: commodity.volume
+    entity_type: industry
+    measure: volume
+    unit: string
+    frequency: daily
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

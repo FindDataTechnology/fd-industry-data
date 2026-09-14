@@ -623,6 +623,11 @@ class AgriinfoSpider(Spider):
         self.logger.info("Spider completed.")
 
 
+def run_agri_info(limit: int = 100) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch."""
+    from fd_industry_data.runners import run_scrapling_spider
+    return run_scrapling_spider(AgriinfoSpider(), START_URLS, limit=limit)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")
     parser.add_argument("--urls", nargs="+", help="Custom URLs")

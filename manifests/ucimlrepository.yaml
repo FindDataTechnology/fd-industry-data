@@ -1,0 +1,27 @@
+# Manifest draft for spiders/ucimlrepository (shard-03, revision-3 / manifest-drafts-r2).
+# Every column below is emitted by parse_payload() in spiders/ucimlrepository/spider.py
+# (live-verified 2026-09: 60 dataset records from the UCI tRPC donated_datasets.findAll API).
+version: "1"
+name: ucimlrepository
+label: UCI Machine Learning Repository Dataset Catalog
+source_url: "https://archive.ics.uci.edu/api/trpc/donated_datasets.findAll?batch=1&input=%7B%220%22%3A%7B%22json%22%3A%7B%22skip%22%3A0%2C%22take%22%3A20%2C%22filter%22%3Anull%2C%22search%22%3Anull%2C%22sort%22%3Anull%7D%7D%7D"
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]            # real fetch dependency (scrapling Fetcher/DefaultFetcher)
+functions:
+  - command: get_datasets
+    category: dataset-catalog
+    description: 'Donated-dataset catalog page from the UCI ML Repository tRPC API (what https://archive.ics.uci.edu/datasets renders from); parsed by parse_payload() in spiders/ucimlrepository/spider.py which navigates [0].result.data.json (with truncated-body tolerance) and maps each dataset object to a metadata record.'
+    frequency: irregular
+    verified: true
+    parameters: []
+    columns:
+      - {name: name,        type: str, description: Dataset name, e.g. Abalone (API field Name)}
+      - {name: description, type: str, description: Dataset abstract, truncated to 300 chars (API field Abstract)}
+      - {name: url,         type: str, description: Dataset detail page URL built from the dataset ID (archive.ics.uci.edu/dataset/<ID>)}
+      - {name: type,        type: str, description: Task type(s), e.g. Classification, Regression (API field Task)}
+      - {name: instances,   type: str, description: Row count as a string, first available of NumInstances/NumDownloads/NumHits}
+      - {name: area,        type: str, description: Subject area, e.g. Biology (API field Area)}
+      - {name: doi,         type: str, description: Dataset DOI, empty when not assigned (API field DOI)}
+concepts: []
+entities: []

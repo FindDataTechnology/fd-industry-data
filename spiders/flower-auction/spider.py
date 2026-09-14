@@ -235,3 +235,40 @@ class FlowerAuctionSpider(Spider):
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump([dict(r) for r in rows], f, ensure_ascii=False, indent=2)
         self.logger.info(f"Exported {len(rows)} items to {output_path}")
+
+
+def run_flower_auction(limit: int | None = None) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch."""
+    from scrapling import Fetcher
+
+    items: list[dict] = []
+    fetcher = Fetcher(auto_match=False, impersonate="chrome")
+    spider = FlowerAuctionSpider()
+
+    for url in FlowerAuctionSpider.start_urls:
+        try:
+            response = fetcher.get(url, timeout=30, stealthy_headers=True)
+            if response.status != 200:
+                continue
+            page_type = spider._detect_page_type(url)
+            if page_type == "auction_list":
+                for item_elem in response.css("div.auction-item, tr.auction-row, div.result-item"):
+                    parsed = spider._parse_auction_item(item_elem, response)
+                    if parsed:
+                        items.append(parsed)
+            elif page_type == "price_data":
+                for row in response.css("table.data-table tr, div.price-record"):
+                    parsed = spider._parse_price_data(row, response)
+                    if parsed:
+                        items.append(parsed)
+            elif page_type == "market_analysis":
+                for card in response.css("div.analysis-card, div.market-item"):
+                    parsed = spider._parse_market_card(card, response)
+                    if parsed:
+                        items.append(parsed)
+        except Exception:
+            pass
+
+    if limit is not None:
+        items = items[:limit]
+    return items

@@ -1,72 +1,49 @@
+version: '1'
 name: isee
-version: 1.0.0
-label: Isee
-description: High-priority data source scraper (score: 85)
+label: 国家生态环境数据平台 (ISEE)
 source_url: https://www.isee.gov.cn/
-author: FindData Official
-license: MIT
-created_at: 2026-08-01
-
-spider:
-  class: IseeSpider
-  module: spider.py
-  entry_point: python spider.py
-
-data_sources:
-  - name: Primary Source
-    url: https://www.isee.gov.cn/
-    category: main
-
+scanner_mode: upstream-curated
+ranking_seed:
+- 0.5
+- 0.5
 functions:
-  - name: fetch_isee_metadata
-    label: Fetch metadata
-    parameters:
-      - name: url
-        type: string
-        required: true
-    returns:
-      - name: results
-        type: array
-
-columns:
-  - name: id
-    type: INTEGER
-    nullable: false
+- command: get_isee_data
+  description: Scrape environmental data from ISEE platform
+  frequency: daily
+  parameters:
+  - name: limit
+    type: int
+    required: false
+    description: Maximum records to return
+  - name: urls
+    type: list
+    required: false
+    description: Custom URLs to scrape
+  columns:
   - name: title
-    type: TEXT
-    nullable: true
+    type: str
+    description: Environmental data title
   - name: description
-    type: TEXT
-    nullable: true
+    type: str
+    description: Description text
   - name: url
-    type: TEXT
-    nullable: true
+    type: str
+    description: Source URL
   - name: source
-    type: TEXT
-    nullable: true
+    type: str
+    description: Data source identifier
   - name: scraped_at
-    type: TEXT
-    nullable: true
-
-commands:
-  - command: "scrapy crawl isee"
-    example: "cd isee && scrapy crawl isee"
-  - command: "python spider.py --urls <url>"
-    example: "python spider.py --urls https://example.com"
-  - command: "python spider.py --dry-run"
-    example: "python spider.py --dry-run"
-  - command: "uv run python spider.py"
-    example: "uv run python spider.py --verbose"
-
-features:
-  - deduplication
-  - sqlite_storage
-  - json_export
-  - stealth_mode
-
-dependencies:
-  - scrapling>=0.4.7
-  - python>=3.10
-
-status: active
-priority_score: 85
+    type: str
+    description: Scrape timestamp
+concepts:
+- column: title
+  concept: environment.emission_data
+  entity_type: country
+  measure: value
+  unit: string
+  frequency: daily
+entities:
+- entity_type: country
+  coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

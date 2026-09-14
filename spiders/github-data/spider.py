@@ -237,6 +237,48 @@ class GithubdataSpider(Spider):
         self.logger.info("Spider completed.")
 
 
+def run_github_data(limit: int | None = None) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch."""
+    from scrapling import Fetcher
+
+    items: list[dict] = []
+    fetcher = Fetcher(auto_match=False, impersonate="chrome")
+
+    for url in START_URLS:
+        try:
+            response = fetcher.get(url, timeout=30, stealthy_headers=True)
+            if response.status != 200:
+                continue
+            title = response.css("h1::text").get("").strip()
+            desc = response.css(".repo-description::text, p::text").get("").strip()
+            stars = response.css("[aria-label]:text").re_first(r"(\d+) stars?") or ""
+            forks = response.css("[aria-label]:text").re_first(r"(\d+) forks?") or ""
+            lang = response.css(".article-language span::text").get("")
+            if title:
+                items.append({
+                    "title": title,
+                    "description": desc,
+                    "url": url,
+                    "language": lang,
+                    "stars": stars,
+                    "forks": forks,
+                    "scraped_at": datetime.now().isoformat(),
+                })
+            else:
+                items.append({
+                    "title": response.css("title::text").get("").strip(),
+                    "description": response.css("meta[name='description']::attr(content)").get(""),
+                    "url": url,
+                    "scraped_at": datetime.now().isoformat(),
+                })
+        except Exception:
+            pass
+
+    if limit is not None:
+        items = items[:limit]
+    return items
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")
     parser.add_argument("--urls", nargs="+", help="Custom URLs")

@@ -1,0 +1,121 @@
+version: '1'
+name: longzhong
+label: 隆众资讯 (Longzhong Information)
+source_url: https://www.oilchem.net/
+scanner_mode: upstream-curated
+ranking_seed:
+- 0.5
+- 0.5
+functions:
+- command: get_longzhong_data
+  description: Fetch petrochemical product prices, oil/gas market data, and industry
+    reports from Longzhong
+  frequency: daily
+  parameters:
+  - name: include_market
+    type: bool
+    required: false
+    description: Include market supply/demand data
+  - name: include_trade
+    type: bool
+    required: false
+    description: Include trade/import-export data
+  - name: include_reports
+    type: bool
+    required: false
+    description: Include industry reports
+  - name: limit
+    type: int
+    required: false
+    description: Maximum records to return
+  columns:
+  - name: date
+    type: date
+    description: Data date
+  - name: product
+    type: str
+    description: Product name
+  - name: product_cn
+    type: str
+    description: Product name (Chinese)
+  - name: category
+    type: str
+    description: Product category (oil/gas/petrochemical/organic/polymers/rubber/fiber)
+  - name: price
+    type: float
+    description: Price value
+  - name: price_unit
+    type: str
+    description: Price unit (元/吨)
+  - name: currency
+    type: str
+    description: Currency code
+  - name: price_change
+    type: float
+    description: Price change amount
+  - name: price_change_pct
+    type: float
+    description: Price change percentage
+  - name: price_high
+    type: float
+    description: High price
+  - name: price_low
+    type: float
+    description: Low price
+  - name: region
+    type: str
+    description: Region
+  - name: market_location
+    type: str
+    description: Market location
+  - name: supply
+    type: float
+    description: Supply volume
+  - name: demand
+    type: float
+    description: Demand volume
+  - name: inventory
+    type: float
+    description: Inventory level
+  - name: operating_rate
+    type: float
+    description: Operating rate (%)
+  - name: import_volume
+    type: float
+    description: Import volume
+  - name: export_volume
+    type: float
+    description: Export volume
+  - name: market_trend
+    type: str
+    description: Market trend description
+  - name: title
+    type: str
+    description: Report title
+  - name: summary
+    type: str
+    description: Report summary
+  - name: source_url
+    type: str
+    description: Source URL
+  - name: scraped_at
+    type: str
+    description: Scrape timestamp
+concepts:
+- column: price
+  concept: petrochemical.price
+  entity_type: industry
+  measure: price
+  unit: currency_cny
+  frequency: daily
+- column: supply
+  concept: petrochemical.supply
+  entity_type: industry
+  measure: volume
+  unit: tonne
+  frequency: daily
+entities:
+- entity_type: industry
+  coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

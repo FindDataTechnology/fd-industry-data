@@ -1,9 +1,10 @@
 from scrapling.spiders import Spider, Response, Request
-from scrapling.fetchers import FetcherSession, AsyncStealthySession
+from scrapling.fetchers import FetcherSession, AsyncStealthySession, Fetcher, DefaultFetcher
 import sqlite3
 import json
 import os
 import sys
+import logging
 from datetime import datetime
 import argparse
 
@@ -24,11 +25,11 @@ NAME = "chinamonitor"
 
 class ChinamonitorSpider(Spider):
     name = "chinamonitor"
-    
+
     def configure_sessions(self, manager):
         manager.add("http", FetcherSession(impersonate="chrome120"))
         manager.add("stealth", AsyncStealthySession(headless=True, solve_cloudflare=False), lazy=True)
-    
+
     async def parse(self, response: Response):
         self.logger.info(f"Parsing: {response.url}")
         try:
@@ -622,6 +623,11 @@ class ChinamonitorSpider(Spider):
     async def on_close(self):
         self.logger.info("Spider completed.")
 
+
+def run_chinamonitor(limit: int = 100) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch."""
+    from fd_industry_data.runners import run_scrapling_spider
+    return run_scrapling_spider(ChinamonitorSpider(), START_URLS, limit=limit)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")

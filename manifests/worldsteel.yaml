@@ -1,0 +1,28 @@
+# fd-open-data-protocol DatasourceManifest (manifest-drafts-r2)
+# Unit: spiders/worldsteel (registry verdict: verified_html, 16 live records)
+# Every column traces to parse_html() in spiders/worldsteel/spider.py:80-147.
+version: "1"
+name: worldsteel
+label: World Steel Association Press Releases
+source_url: https://worldsteel.org/media/press-releases/2026/
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]
+functions:
+  - command: get_press_releases
+    category: press-releases
+    description: Press-release listing cards from worldsteel.org per year; parsed by parse_html() in spiders/worldsteel/spider.py, which regex-splits the unquoted-attribute markup on div.news-cateogry-listing and extracts h3 title, news-date, news-place, stretched-link href and the first news-text paragraph
+    frequency: irregular            # releases are published as events occur, no fixed cadence
+    verified: true
+    parameters: []                 # run_spider() has only crawl plumbing (--urls) defaulting to START_URLS
+    columns:
+      - {name: report_title,  type: str, description: Press-release title from the card h3}
+      - {name: publish_date,  type: str, description: Publication date text from the news-date div (e.g. 1 September 2026)}
+      - {name: category,      type: str, description: Place label from the news-place span inside the date block (site location such as Brussels in Belgium); emitted as the record category field}
+      - {name: download_url,  type: str, description: Detail-page link from the card's stretched-link anchor href}
+      - {name: description,   type: str, description: First news-text paragraph, truncated to 300 chars with the readmore span removed}
+      - {name: page_title,    type: str, description: Listing page title from h1 (title-tag fallback)}
+      - {name: source_url,    type: str, description: Listing page URL the records were parsed from}
+      - {name: scraped_at,    type: str, description: ISO timestamp when the record was collected}
+concepts: []                       # press-release metadata carries no protocol concept bindings yet
+entities: []                       # no entity coverage declared by the code

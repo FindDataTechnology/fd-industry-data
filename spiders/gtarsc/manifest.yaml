@@ -1,72 +1,49 @@
+version: '1'
 name: gtarsc
-version: 1.0.0
-label: Gtarsc
-description: High-priority data source scraper (score: 85)
+label: 中国热带农业信息网 (GTARSC)
 source_url: https://www.gtarsc.com
-author: FindData Official
-license: MIT
-created_at: 2026-08-01
-
-spider:
-  class: GtarscSpider
-  module: spider.py
-  entry_point: python spider.py
-
-data_sources:
-  - name: Primary Source
-    url: https://www.gtarsc.com
-    category: main
-
+scanner_mode: upstream-curated
+ranking_seed:
+- 0.5
+- 0.5
 functions:
-  - name: fetch_gtarsc_metadata
-    label: Fetch metadata
-    parameters:
-      - name: url
-        type: string
-        required: true
-    returns:
-      - name: results
-        type: array
-
-columns:
-  - name: id
-    type: INTEGER
-    nullable: false
+- command: get_gtarsc_data
+  description: Scrape tropical agriculture research data from GTARSC
+  frequency: monthly
+  parameters:
+  - name: limit
+    type: int
+    required: false
+    description: Maximum records to return
+  - name: urls
+    type: list
+    required: false
+    description: Custom URLs to scrape
+  columns:
   - name: title
-    type: TEXT
-    nullable: true
+    type: str
+    description: Article or data title
   - name: description
-    type: TEXT
-    nullable: true
+    type: str
+    description: Description text
   - name: url
-    type: TEXT
-    nullable: true
+    type: str
+    description: Source URL
   - name: source
-    type: TEXT
-    nullable: true
+    type: str
+    description: Data source identifier
   - name: scraped_at
-    type: TEXT
-    nullable: true
-
-commands:
-  - command: "scrapy crawl gtarsc"
-    example: "cd gtarsc && scrapy crawl gtarsc"
-  - command: "python spider.py --urls <url>"
-    example: "python spider.py --urls https://example.com"
-  - command: "python spider.py --dry-run"
-    example: "python spider.py --dry-run"
-  - command: "uv run python spider.py"
-    example: "uv run python spider.py --verbose"
-
-features:
-  - deduplication
-  - sqlite_storage
-  - json_export
-  - stealth_mode
-
-dependencies:
-  - scrapling>=0.4.7
-  - python>=3.10
-
-status: active
-priority_score: 85
+    type: str
+    description: Scrape timestamp
+concepts:
+- column: title
+  concept: agriculture.tropical_research
+  entity_type: industry
+  measure: value
+  unit: string
+  frequency: monthly
+entities:
+- entity_type: industry
+  coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

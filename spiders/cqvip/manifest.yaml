@@ -1,72 +1,43 @@
+version: "1"
 name: cqvip
-version: 1.0.0
-label: Cqvip
-description: High-priority data source scraper (score: 85)
+label: 维普资讯
 source_url: https://www.cqvip.com/
-author: FindData Official
-license: MIT
-created_at: 2026-08-01
-
-spider:
-  class: CqvipSpider
-  module: spider.py
-  entry_point: python spider.py
-
-data_sources:
-  - name: Primary Source
-    url: https://www.cqvip.com/
-    category: main
-
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
 functions:
-  - name: fetch_cqvip_metadata
-    label: Fetch metadata
+  - command: run_cqvip
+    description: Fetch metadata and document listings from CQVIP (维普资讯)
+    frequency: on_demand
     parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: title
+        type: str
+        description: Document or page title
+      - name: description
+        type: str
+        description: Page or document description
       - name: url
-        type: string
-        required: true
-    returns:
-      - name: results
-        type: array
-
-columns:
-  - name: id
-    type: INTEGER
-    nullable: false
-  - name: title
-    type: TEXT
-    nullable: true
-  - name: description
-    type: TEXT
-    nullable: true
-  - name: url
-    type: TEXT
-    nullable: true
-  - name: source
-    type: TEXT
-    nullable: true
-  - name: scraped_at
-    type: TEXT
-    nullable: true
-
-commands:
-  - command: "scrapy crawl cqvip"
-    example: "cd cqvip && scrapy crawl cqvip"
-  - command: "python spider.py --urls <url>"
-    example: "python spider.py --urls https://example.com"
-  - command: "python spider.py --dry-run"
-    example: "python spider.py --dry-run"
-  - command: "uv run python spider.py"
-    example: "uv run python spider.py --verbose"
-
-features:
-  - deduplication
-  - sqlite_storage
-  - json_export
-  - stealth_mode
-
-dependencies:
-  - scrapling>=0.4.7
-  - python>=3.10
-
-status: active
-priority_score: 85
+        type: str
+        description: Source URL
+      - name: source
+        type: str
+        description: Data source name
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+concepts:
+  - column: title
+    concept: document.title
+    entity_type: organization
+    measure: value
+    unit: string
+    frequency: on_demand
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

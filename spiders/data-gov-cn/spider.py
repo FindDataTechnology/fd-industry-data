@@ -1,37 +1,37 @@
 #!/usr/bin/env python3
-"""Data.gov (US Government Data) Scrapling Spider."""
+"""Data.gov (US Government Data) Scrapling Spider.
+
+catalog.data.gov is a React SPA, but search results are server-rendered into
+the HTML of query URLs such as:
+    https://catalog.data.gov/?q=climate&sort=relevance
+Each dataset card is a USWCD ``usa-collection`` item; ``parse_html`` extracts
+one record per card (deduped by dataset slug).
+"""
 
 import argparse
 import json
 import logging
 import sqlite3
-import sys
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from scrapling import DefaultFetcher, Fetcher, Request, Response
+from scrapling import Fetcher, Selector
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-START_URLS: List[str] = [
-    "https://www.data.gov",
-    "https://www.data.gov/data/",
-    "https://catalog.data.gov/dataset",
-]
+CATALOG_BASE = "https://catalog.data.gov"
 
-CUSTOM_UAS: List[str] = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0",
+START_URLS: List[str] = [
+    "https://catalog.data.gov/?q=climate&sort=relevance",
 ]
 
 MAX_RETRIES = 3
 REQUEST_DELAY = 2.0
+MAX_URLS_PER_RUN = 5
+MAX_RECORDS_PER_RUN = 60
 
 BASE_DIR = Path(__file__).parent.resolve()
 DATA_DIR = BASE_DIR / "data"
@@ -77,63 +77,109 @@ def save_to_json(records: List[Dict[str, Any]]) -> None:
     logger.info("Saved {} records to {}".format(len(records), JSON_OUTPUT))
 
 
-def parse_response(response: Response) -> List[Dict[str, Any]]:
+def _clean(text: str) -> str:
+    return " ".join(text.split())
+
+
+def parse_html(html: str, url: str = "") -> List[Dict[str, Any]]:
+    """Pure parser for server-rendered catalog.data.gov search result pages.
+
+    Takes the raw HTML string, returns one record per dataset card,
+    deduplicated by dataset slug. No network / filesystem access.
+    """
     results: List[Dict[str, Any]] = []
+    if not html:
+        return results
     try:
-        dataset_items = response.css(".dataset-item, .dataset-content, article")
-        for item in dataset_items:
-            link = item.css("h3 a, .dataset-heading a")
-            org = item.css(".dataset-organization::text, .organization::text")
-            desc = item.css(".dataset-description::text, p::text")
-            tags = item.css(".tag::text, .keyword::text")
-            parsed_data = {
-                "source_url": response.url,
-                "dataset_title": link[0].css("::text").get("").strip() if link else "",
-                "description": desc.get("").strip()[:500] if desc else "",
-                "organization": org.get("").strip() if org else "",
-                "tags": ", ".join(tags.getall()) if tags else "",
-                "formats": "",
-                "dataset_url": "https://www.data.gov" + link[0].attrib.get("href", "") if link else "",
-                "modified_date": "",
-                "scraped_at": datetime.now().isoformat(),
-            }
-            results.append(parsed_data)
-        if not results:
+        page = Selector(content=html)
+        cards = page.css("li.usa-collection__item.organization-datasets__item")
+        if not cards:
+            cards = page.css("li.usa-collection__item")
+        seen_slugs = set()
+        for card in cards:
+            heading_links = card.css("h3.usa-collection__heading a.usa-link")
+            if not heading_links:
+                continue
+            link = heading_links[0]
+            href = link.attrib.get("href", "") or ""
+            path = href.split("?", 1)[0].split("#", 1)[0]
+            if not path.startswith("/dataset/"):
+                continue
+            slug = path[len("/dataset/"):].strip("/")
+            if not slug or slug in seen_slugs:
+                continue
+            seen_slugs.add(slug)
+
+            organization = ""
+            org_links = card.css('ul.usa-collection__meta a[href*="/organization/"]')
+            if org_links:
+                organization = _clean(org_links[0].get_all_text())
+
+            modified_date = ""
+            for meta_item in card.css("ul.usa-collection__meta li.usa-collection__meta-item"):
+                meta_text = _clean(meta_item.get_all_text())
+                if "Dataset Last Updated" in meta_text:
+                    modified_date = meta_text.split(":", 1)[1].strip()
+                    break
+
+            description = ""
+            desc_nodes = card.css("p.usa-collection__description")
+            if desc_nodes:
+                description = _clean(desc_nodes[0].get_all_text())[:500]
+
+            formats: List[str] = []
+            for res_link in card.css("ul.dataset-resources a[data-format]"):
+                fmt = (res_link.attrib.get("data-format") or "").strip()
+                if fmt and fmt not in formats:
+                    formats.append(fmt)
+
             results.append({
-                "source_url": response.url,
-                "dataset_title": response.css("title::text").get(""),
-                "description": "",
-                "organization": "",
+                "source_url": url,
+                "dataset_title": _clean(link.get_all_text()),
+                "description": description,
+                "organization": organization,
                 "tags": "",
-                "formats": "",
-                "dataset_url": response.url,
-                "modified_date": "",
+                "formats": ", ".join(formats),
+                "dataset_url": "{}/dataset/{}".format(CATALOG_BASE, slug),
+                "modified_date": modified_date,
                 "scraped_at": datetime.now().isoformat(),
             })
-        logger.info("Parsed {} record(s) from {}".format(len(results), response.url))
     except Exception as e:
-        logger.error("Error parsing response from {}: {}".format(response.url, e))
+        logger.error("Error parsing search page {}: {}".format(url or "<html>", e))
     return results
 
 
+def parse_response(response) -> List[Dict[str, Any]]:
+    """Feed a scrapling fetch Response into the pure parse_html function."""
+    raw = response.body
+    if isinstance(raw, bytes):
+        encoding = getattr(response, "encoding", None) or "utf-8"
+        html = raw.decode(encoding, errors="replace")
+    else:
+        html = str(raw or "")
+    return parse_html(html, response.url)
+
+
 def run_spider(urls: Optional[List[str]] = None, save_results: bool = True) -> List[Dict[str, Any]]:
-    urls = urls or START_URLS
+    urls = (urls or START_URLS)[:MAX_URLS_PER_RUN]
     all_records: List[Dict[str, Any]] = []
+    seen_datasets: set = set()
     logger.info("Starting spider for {} URL(s)...".format(len(urls)))
     for url in urls:
         retry_count = 0
         while retry_count < MAX_RETRIES:
             try:
-                ua = CUSTOM_UAS[retry_count % len(CUSTOM_UAS)]
-                fetcher: Fetcher = DefaultFetcher(user_agent=ua, requests_per_minute=float("inf"), max_retries=0, timeout=30)
-                request = Request(url)
-                response = fetcher.fetch(request)
+                fetcher = Fetcher(auto_match=False, impersonate="chrome")
+                response = fetcher.get(url, timeout=30, stealthy_headers=True)
                 if response.status == 200:
                     records = parse_response(response)
-                    all_records.extend(records)
+                    fresh = [r for r in records if r.get("dataset_url") and r["dataset_url"] not in seen_datasets]
+                    for record in fresh:
+                        seen_datasets.add(record["dataset_url"])
+                    all_records.extend(fresh)
                     if save_results:
-                        save_to_sqlite(records)
-                        save_to_json(records)
+                        save_to_sqlite(fresh)
+                        save_to_json(fresh)
                     break
                 else:
                     logger.warning("HTTP {} for {}, retry {}/{}".format(response.status, url, retry_count + 1, MAX_RETRIES))
@@ -143,7 +189,10 @@ def run_spider(urls: Optional[List[str]] = None, save_results: bool = True) -> L
             time.sleep(REQUEST_DELAY)
         if retry_count == MAX_RETRIES:
             logger.error("Failed to fetch {} after {} retries".format(url, MAX_RETRIES))
+        if len(all_records) >= MAX_RECORDS_PER_RUN:
+            break
         time.sleep(REQUEST_DELAY)
+    all_records = all_records[:MAX_RECORDS_PER_RUN]
     logger.info("Spider completed. Total records: {}".format(len(all_records)))
     return all_records
 

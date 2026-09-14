@@ -747,6 +747,15 @@ def get_cnia_data(
     return result
 
 
+def run_cnia(limit: int = 100) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch."""
+    results = get_cnia_data(include_reports=True, include_news=True)
+    items = []
+    for key in ("production", "trade", "prices", "reports", "news"):
+        items.extend(results.get(key, []))
+    return items[:limit]
+
+
 if __name__ == "__main__":
     results = get_cnia_data(
         metals=["copper", "aluminum", "zinc"],

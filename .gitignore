@@ -18,7 +18,10 @@ build/
 .env.*
 !.env.example
 
-# SQLite sidecars / backups are runtime junk — data .db files ARE tracked intentionally
+# SQLite databases and sidecars / backups are runtime junk — never commit
+*.db
+*.sqlite
+*.sqlite3
 *.db-shm
 *.db-wal
 *.db-journal

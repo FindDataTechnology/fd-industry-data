@@ -623,6 +623,44 @@ class NhcSpider(Spider):
         self.logger.info("Spider completed.")
 
 
+def run_nhc(urls=None, limit: int = 100) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch.
+
+    Args:
+        urls: Optional list of URLs to crawl (defaults to START_URLS)
+        limit: Maximum number of records to return
+
+    Returns:
+        List of extracted data records
+    """
+    from scrapy.crawler import CrawlerProcess
+    from scrapy.utils.project import get_project_settings
+
+    spider_instance = NhcSpider()
+    settings = get_project_settings()
+    settings.set("CLOSESPIDER_ITEMCOUNT", limit)
+
+    process = CrawlerProcess(settings)
+    process.crawl(spider_instance, urls=urls or START_URLS)
+
+    # Collect results
+    results = []
+    try:
+        process.start()
+        # Read from SQLite after crawl
+        if os.path.exists(DB_PATH):
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM nhc_data LIMIT ?", (limit,))
+            results = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+    except Exception as e:
+        spider_instance.logger.error(f"Error in run_nhc: {e}")
+
+    return results[:limit]
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")
     parser.add_argument("--urls", nargs="+", help="Custom URLs")

@@ -1,0 +1,106 @@
+{
+  "generated_at": "2026-09-13T15:16:53+00:00",
+  "repo": "fd-industry-data",
+  "entries": [
+    {
+      "action": "archive",
+      "category": "legacy_manifest_dead",
+      "repo": "fd-industry-data",
+      "original_path": "manifests/agriculture.yaml",
+      "archived_to": "archive/legacy-manifests-20260913/agriculture.yaml",
+      "git_tracked": true,
+      "verdict": "dead",
+      "source_url": "http://www.dce.com.cn",
+      "domains": [
+        "dce.com.cn"
+      ],
+      "matched_units": [
+        "spiders/dce"
+      ]
+    },
+    {
+      "action": "archive",
+      "category": "legacy_manifest_dead",
+      "repo": "fd-industry-data",
+      "original_path": "manifests/cisa-industry.yaml",
+      "archived_to": "archive/legacy-manifests-20260913/cisa-industry.yaml",
+      "git_tracked": true,
+      "verdict": "dead",
+      "source_url": "https://www.cisa.org.cn",
+      "domains": [
+        "cisa.org.cn"
+      ],
+      "matched_units": [
+        "spiders/cisa"
+      ]
+    },
+    {
+      "action": "archive",
+      "category": "legacy_manifest_dead",
+      "repo": "fd-industry-data",
+      "original_path": "manifests/cisa-production.yaml",
+      "archived_to": "archive/legacy-manifests-20260913/cisa-production.yaml",
+      "git_tracked": true,
+      "verdict": "dead",
+      "source_url": "https://www.cisa.org.cn",
+      "domains": [
+        "cisa.org.cn"
+      ],
+      "matched_units": [
+        "spiders/cisa"
+      ]
+    },
+    {
+      "action": "archive",
+      "category": "legacy_manifest_dead",
+      "repo": "fd-industry-data",
+      "original_path": "manifests/flowers-kifc-auction.yaml",
+      "archived_to": "archive/legacy-manifests-20260913/flowers-kifc-auction.yaml",
+      "git_tracked": true,
+      "verdict": "dead",
+      "source_url": "http://www.kifc.cn",
+      "domains": [
+        "kifc.cn"
+      ],
+      "matched_units": [
+        "spiders/flower-auction",
+        "spiders/kifc-auction"
+      ]
+    },
+    {
+      "action": "archive",
+      "category": "legacy_manifest_dead",
+      "repo": "fd-industry-data",
+      "original_path": "manifests/flowers_kifc.yaml",
+      "archived_to": "archive/legacy-manifests-20260913/flowers_kifc.yaml",
+      "git_tracked": true,
+      "verdict": "dead",
+      "source_url": "http://www.kifc.cn",
+      "domains": [
+        "kifc.cn"
+      ],
+      "matched_units": [
+        "spiders/flower-auction",
+        "spiders/kifc-auction"
+      ]
+    },
+    {
+      "action": "archive",
+      "category": "legacy_manifest_dead",
+      "repo": "fd-industry-data",
+      "original_path": "manifests/steel-association.yaml",
+      "archived_to": "archive/legacy-manifests-20260913/steel-association.yaml",
+      "git_tracked": true,
+      "verdict": "dead",
+      "source_url": "https://www.cisa.org.cn",
+      "domains": [
+        "cisa.org.cn"
+      ],
+      "matched_units": [
+        "spiders/cisa"
+      ]
+    }
+  ],
+  "report": "output/manifest-drafts/legacy_triage.json",
+  "runs": 1
+}

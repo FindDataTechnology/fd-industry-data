@@ -1,0 +1,102 @@
+version: "1"
+name: cpcif
+label: 中国石油和化学工业联合会
+source_url: http://www.cpcifa.org.cn/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_cpcif
+    description: 获取石油化工行业数据，包括生产、市场、贸易、报告和新闻
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+      - name: include_reports
+        type: bool
+        required: false
+        description: Whether to fetch industry reports
+      - name: include_news
+        type: bool
+        required: false
+        description: Whether to fetch industry news
+    columns:
+      - name: period
+        type: str
+        description: 统计期间
+      - name: product
+        type: str
+        description: 产品名称
+      - name: product_cn
+        type: str
+        description: 产品名称（中文）
+      - name: category
+        type: str
+        description: 产品类别
+      - name: production_volume
+        type: float
+        description: 产量
+      - name: production_unit
+        type: str
+        description: 产量单位
+      - name: yoy_change
+        type: float
+        description: 同比变化
+      - name: date
+        type: str
+        description: 日期
+      - name: price
+        type: float
+        description: 价格
+      - name: price_unit
+        type: str
+        description: 价格单位
+      - name: market_trend
+        type: str
+        description: 市场趋势
+      - name: import_volume
+        type: float
+        description: 进口量
+      - name: export_volume
+        type: float
+        description: 出口量
+      - name: import_value
+        type: float
+        description: 进口额
+      - name: export_value
+        type: float
+        description: 出口额
+      - name: title
+        type: str
+        description: 报告/新闻标题
+      - name: summary
+        type: str
+        description: 摘要
+      - name: source_url
+        type: str
+        description: 来源URL
+concepts:
+  - column: production_volume
+    concept: industry.production
+    entity_type: industry
+    measure: volume
+    unit: tonne
+    frequency: monthly
+  - column: price
+    concept: commodity.price
+    entity_type: industry
+    measure: price
+    unit: currency_cny
+    frequency: daily
+  - column: import_volume
+    concept: trade.import
+    entity_type: country
+    measure: volume
+    unit: tonne
+    frequency: monthly
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

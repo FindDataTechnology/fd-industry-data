@@ -194,13 +194,83 @@ def run_spider(urls: Optional[List[str]] = None, save_results: bool = True) -> L
     return all_records
 
 
+def run_china_flower_assoc_new(limit: int = 100) -> list[dict]:
+    """Fetch data from China Flower Association (中国花卉协会).
+
+    Args:
+        limit: Maximum records to return (default: 100)
+
+    Returns:
+        List of scraped records as dicts.
+    """
+    import time
+    all_records: list[dict] = []
+
+    count = len(START_URLS)
+    target = START_URLS[0]
+    sp_score = 95
+
+    logger.info(f"Starting spider for {count} URL(s)...")
+    logger.info(f"Target: {target}")
+    logger.info(f"Score priority: HIGH ({sp_score})")
+
+    retry_count = 0
+    url = START_URLS[0]
+
+    while retry_count < MAX_RETRIES and len(all_records) < limit:
+        try:
+            ua = CUSTOM_UAS[retry_count % len(CUSTOM_UAS)]
+
+            fetcher: Fetcher = DefaultFetcher(
+                user_agent=ua,
+                requests_per_minute=float("inf"),
+                max_retries=0,
+                timeout=30,
+            )
+
+            request = Request(url)
+            response = fetcher.fetch(request)
+
+            if response.status_code == 200:
+                records = parse_response(response)
+                all_records.extend(records[:limit - len(all_records)])
+
+                # Save to storage
+                if records:
+                    save_to_sqlite(records)
+                    save_to_json(records)
+
+                break
+            else:
+                code = response.status_code
+                retry_num = retry_count + 1
+                max_rt = MAX_RETRIES
+                logger.warning(f"HTTP {code} for {url}, retry {retry_num}/{max_rt}")
+
+        except Exception as e:
+            err_msg = str(e)
+            logger.error(f"Error fetching {url}: {err_msg}")
+
+        retry_count += 1
+        time.sleep(REQUEST_DELAY)
+
+    if retry_count == MAX_RETRIES:
+        err_msg = str(MAX_RETRIES)
+        logger.error(f"Failed to fetch {url} after {err_msg} retries")
+
+    total = min(len(all_records), limit)
+    logger.info(f"Spider completed. Total records: {total} (limit: {limit})")
+    return all_records[:limit]
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Scrapling spider for 中国花卉协会")
     parser.add_argument("--urls", nargs="+", help="URLs to crawl (default: START_URLS)")
     parser.add_argument("--dry-run", action="store_true", help="Run without saving results")
+    parser.add_argument("--limit", type=int, default=100, help="Maximum records to fetch")
     args = parser.parse_args()
-    
+
     urls = args.urls if args.urls else START_URLS
     save = not args.dry_run
-    
+
     run_spider(urls=urls, save_results=save)

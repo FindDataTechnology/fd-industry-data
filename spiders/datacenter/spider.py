@@ -623,6 +623,35 @@ class DatacenterSpider(Spider):
         self.logger.info("Spider completed.")
 
 
+def run_datacenter(limit: int | None = None) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch."""
+    from scrapling import Fetcher
+
+    items: list[dict] = []
+    fetcher = Fetcher(auto_match=False, impersonate="chrome")
+
+    for url in START_URLS:
+        try:
+            response = fetcher.get(url, timeout=30, stealthy_headers=True)
+            if response.status != 200:
+                continue
+            title = response.css("h1::text, title::text").get("").strip()
+            desc = response.css("meta[name='description']::attr(content)").get("")
+            items.append({
+                "title": title,
+                "description": desc,
+                "url": url,
+                "source": "Datacenter",
+                "scraped_at": datetime.now().isoformat(),
+            })
+        except Exception:
+            pass
+
+    if limit is not None:
+        items = items[:limit]
+    return items
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")
     parser.add_argument("--urls", nargs="+", help="Custom URLs")

@@ -14,7 +14,7 @@ uv sync
 ```bash
 cd spiders/worldsteel
 python spider.py
-python spider.py --urls "https://www.worldsteel.org/en/databases.html"
+python spider.py --urls "https://worldsteel.org/media/press-releases/2026/"
 python spider.py --dry-run
 ```
 

@@ -420,19 +420,57 @@ class CISASpider(Spider):
                 self.logger.error(f"Failed to export {category}: {e}")
 
 
-async def run_spider():
-    """Helper function to run the spider"""
+def run_cisa(limit: int = 100) -> list[dict]:
+    """Fetch data from CISA (China Iron & Steel Association).
+
+    Args:
+        limit: Maximum records to return (default: 100)
+
+    Returns:
+        List of scraped records as dicts.
+    """
     spider = CISASpider()
-    result = spider.start()
-    
+    results = []
+
+    # Collect all items, respecting limit
+    async def collect_items():
+        collected = 0
+        async for item in spider.parse_start_response(None):
+            if collected >= limit:
+                break
+            results.append(item)
+            collected += 1
+
+        # Also try parsing category URLs
+        for category, urls in spider.CATEGORY_URLS.items():
+            if collected >= limit:
+                break
+            for url in urls[:3]:  # Limit URLs per category
+                try:
+                    response = await spider.request(url)
+                    async for item in spider._parse_production_data(response) if category == "production" else \
+                                spider._parse_trade_data(response) if category == "trade" else \
+                                spider._parse_price_data(response) if category == "price" else \
+                                spider._parse_analysis_data(response):
+                        if collected >= limit:
+                            break
+                        results.append(item)
+                        collected += 1
+                except Exception:
+                    pass
+
+    # Run async collection
+    import asyncio
+    asyncio.run(collect_items())
+
     print(f"\n{'='*50}")
-    print(f"CISA Scraping Complete")
+    print(f"CISA Data Fetch Complete")
     print(f"{'='*50}")
-    print(f"Items scraped: {result.stats.items_scraped}")
-    print(f"Duration: {result.stats.elapsed_seconds:.1f}s")
+    print(f"Records fetched: {len(results)}")
     print(f"Output directory: {OUTPUT_DIR}")
-    
-    return result
+    print(f"{'='*50}")
+
+    return results
 
 
 if __name__ == "__main__":

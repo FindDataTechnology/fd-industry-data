@@ -623,17 +623,23 @@ class CoinmarketcapSpider(Spider):
         self.logger.info("Spider completed.")
 
 
+def run_coinmarketcap(limit: int = 100) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch."""
+    from fd_industry_data.runners import run_scrapling_spider
+    return run_scrapling_spider(CoinmarketcapSpider(), START_URLS, limit=limit)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")
     parser.add_argument("--urls", nargs="+", help="Custom URLs")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
-    
+
     args = parser.parse_args()
-    
+
     spider_instance = CoinmarketcapSpider()
     spider_instance.logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
-    
+
     ok = spider_instance.run_spider(urls=args.urls, save=not args.dry_run)
     print("✓ Done!" if ok else "✗ Failed!")
     sys.exit(0 if ok else 1)

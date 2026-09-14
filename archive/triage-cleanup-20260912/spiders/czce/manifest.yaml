@@ -1,0 +1,85 @@
+version: "1"
+name: czce
+label: 郑州商品交易所
+source_url: http://www.czce.com.cn/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_czce
+    description: Fetch futures settlement prices and market notices from CZCE (郑州商品交易所)
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: trade_date
+        type: str
+        description: Trading date
+      - name: contract_code
+        type: str
+        description: Futures contract code
+      - name: contract_name
+        type: str
+        description: Futures contract name
+      - name: category
+        type: str
+        description: Commodity category (agricultural, energy_chemical, etc.)
+      - name: open_price
+        type: float
+        description: Opening price
+      - name: high_price
+        type: float
+        description: Highest price
+      - name: low_price
+        type: float
+        description: Lowest price
+      - name: close_price
+        type: float
+        description: Closing price
+      - name: settle_price
+        type: float
+        description: Settlement price
+      - name: pre_settle
+        type: float
+        description: Previous settlement price
+      - name: volume
+        type: int
+        description: Trading volume
+      - name: turnover
+        type: float
+        description: Trading turnover value
+      - name: open_interest
+        type: float
+        description: Open interest
+      - name: source_url
+        type: str
+        description: Source URL
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+concepts:
+  - column: settle_price
+    concept: future.settlement_price
+    entity_type: future
+    measure: price
+    unit: currency_cny
+    frequency: daily
+  - column: volume
+    concept: future.volume
+    entity_type: future
+    measure: volume
+    unit: string
+    frequency: daily
+  - column: open_interest
+    concept: future.open_interest
+    entity_type: future
+    measure: volume
+    unit: string
+    frequency: daily
+entities:
+  - entity_type: future
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

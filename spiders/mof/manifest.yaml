@@ -1,72 +1,47 @@
+version: "1"
 name: mof
-version: 1.0.0
-label: Mof
-description: High-priority data source scraper (score: 85)
+label: 中华人民共和国财政部 (Ministry of Finance)
 source_url: https://www.mof.gov.cn/
-author: FindData Official
-license: MIT
-created_at: 2026-08-01
-
-spider:
-  class: MofSpider
-  module: spider.py
-  entry_point: python spider.py
-
-data_sources:
-  - name: Primary Source
-    url: https://www.mof.gov.cn/
-    category: main
-
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
 functions:
-  - name: fetch_mof_metadata
-    label: Fetch metadata
+  - command: get_mof_data
+    description: 抓取财政部公开数据、政策文件、财政收支统计等信息
+    frequency: on_demand
     parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+      - name: urls
+        type: list
+        required: false
+        description: Custom URLs to crawl
+    columns:
+      - name: title
+        type: str
+        description: 页面标题或文章标题
+      - name: description
+        type: str
+        description: 页面描述或摘要
       - name: url
-        type: string
-        required: true
-    returns:
-      - name: results
-        type: array
-
-columns:
-  - name: id
-    type: INTEGER
-    nullable: false
-  - name: title
-    type: TEXT
-    nullable: true
-  - name: description
-    type: TEXT
-    nullable: true
-  - name: url
-    type: TEXT
-    nullable: true
-  - name: source
-    type: TEXT
-    nullable: true
-  - name: scraped_at
-    type: TEXT
-    nullable: true
-
-commands:
-  - command: "scrapy crawl mof"
-    example: "cd mof && scrapy crawl mof"
-  - command: "python spider.py --urls <url>"
-    example: "python spider.py --urls https://example.com"
-  - command: "python spider.py --dry-run"
-    example: "python spider.py --dry-run"
-  - command: "uv run python spider.py"
-    example: "uv run python spider.py --verbose"
-
-features:
-  - deduplication
-  - sqlite_storage
-  - json_export
-  - stealth_mode
-
-dependencies:
-  - scrapling>=0.4.7
-  - python>=3.10
-
-status: active
-priority_score: 85
+        type: str
+        description: 数据来源URL
+      - name: source
+        type: str
+        description: 数据来源标识 (MOF)
+      - name: scraped_at
+        type: str
+        description: 抓取时间戳
+concepts:
+  - column: title
+    concept: government.policy_document
+    entity_type: organization
+    measure: value
+    unit: string
+    frequency: on_demand
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

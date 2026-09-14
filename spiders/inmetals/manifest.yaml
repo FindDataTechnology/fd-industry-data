@@ -1,72 +1,49 @@
+version: '1'
 name: inmetals
-version: 1.0.0
-label: Inmetals
-description: High-priority data source scraper (score: 88)
+label: Inmetals Metal Prices
 source_url: https://www.inmetals.com
-author: FindData Official
-license: MIT
-created_at: 2026-08-01
-
-spider:
-  class: InmetalsSpider
-  module: spider.py
-  entry_point: python spider.py
-
-data_sources:
-  - name: Primary Source
-    url: https://www.inmetals.com
-    category: main
-
+scanner_mode: upstream-curated
+ranking_seed:
+- 0.5
+- 0.5
 functions:
-  - name: fetch_inmetals_metadata
-    label: Fetch metadata
-    parameters:
-      - name: url
-        type: string
-        required: true
-    returns:
-      - name: results
-        type: array
-
-columns:
-  - name: id
-    type: INTEGER
-    nullable: false
+- command: get_inmetals_data
+  description: Scrape metal price data from Inmetals
+  frequency: daily
+  parameters:
+  - name: limit
+    type: int
+    required: false
+    description: Maximum records to return
+  - name: urls
+    type: list
+    required: false
+    description: Custom URLs to scrape
+  columns:
   - name: title
-    type: TEXT
-    nullable: true
+    type: str
+    description: Metal product title
   - name: description
-    type: TEXT
-    nullable: true
+    type: str
+    description: Description text
   - name: url
-    type: TEXT
-    nullable: true
+    type: str
+    description: Source URL
   - name: source
-    type: TEXT
-    nullable: true
+    type: str
+    description: Data source identifier
   - name: scraped_at
-    type: TEXT
-    nullable: true
-
-commands:
-  - command: "scrapy crawl inmetals"
-    example: "cd inmetals && scrapy crawl inmetals"
-  - command: "python spider.py --urls <url>"
-    example: "python spider.py --urls https://example.com"
-  - command: "python spider.py --dry-run"
-    example: "python spider.py --dry-run"
-  - command: "uv run python spider.py"
-    example: "uv run python spider.py --verbose"
-
-features:
-  - deduplication
-  - sqlite_storage
-  - json_export
-  - stealth_mode
-
-dependencies:
-  - scrapling>=0.4.7
-  - python>=3.10
-
-status: active
-priority_score: 88
+    type: str
+    description: Scrape timestamp
+concepts:
+- column: title
+  concept: metal.price
+  entity_type: industry
+  measure: price
+  unit: usd
+  frequency: daily
+entities:
+- entity_type: industry
+  coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

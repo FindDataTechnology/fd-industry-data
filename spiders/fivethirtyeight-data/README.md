@@ -1,6 +1,9 @@
 # FiveThirtyEight Data Spider
 
-Scrapling-based spider for FiveThirtyEight Data (https://github.com/fivethirtyeight/data)
+Scrapling-based spider for FiveThirtyEight Data, driven by the GitHub git/trees API
+(https://api.github.com/repos/fivethirtyeight/data/git/trees/master) since the
+rendered github.com repo file listing moved to React and is no longer scrapable.
+Each top-level tree entry (dataset directory or file) becomes one record.
 
 ## Installation
 
@@ -19,8 +22,11 @@ python spider.py
 ### Custom URLs
 
 ```bash
-python spider.py --urls https://github.com/fivethirtyeight/data
+python spider.py --urls https://api.github.com/repos/fivethirtyeight/data/git/trees/master
 ```
+
+Note: api.github.com is not reachable directly from the local network; run the
+spider behind the fx egress.
 
 ### Dry Run (No Save)
 

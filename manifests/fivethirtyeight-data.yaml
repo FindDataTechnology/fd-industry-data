@@ -1,0 +1,26 @@
+# fd-open-data-protocol DatasourceManifest (manifest-drafts-r2)
+# Unit: spiders/fivethirtyeight-data (registry verdict: verified_api, 60 live records)
+# Every column traces to parse_payload() in spiders/fivethirtyeight-data/spider.py:100-137.
+version: "1"
+name: fivethirtyeight-data
+label: FiveThirtyEight Data
+source_url: https://api.github.com/repos/fivethirtyeight/data/git/trees/master
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]
+functions:
+  - command: list_datasets
+    category: dataset-catalog
+    description: Dataset catalogue of the fivethirtyeight/data GitHub repo as git-tree entries (the rendered github.com listing moved to React and is unscrapable); parsed by parse_payload() in spiders/fivethirtyeight-data/spider.py, which maps the git/trees/master JSON "tree" array to one record per entry
+    frequency: irregular
+    verified: true
+    parameters: []                 # run_spider() has only crawl plumbing (--urls) defaulting to source_url
+    columns:
+      - {name: file_name,       type: str,  description: Top-level repo path from the tree entry (dataset directory or file)}
+      - {name: file_type,       type: str,  description: Git tree entry type (tree = directory; blob = file)}
+      - {name: is_dataset_dir,  type: bool, description: True when the entry is a non-hidden directory (dataset folder)}
+      - {name: blob_sha,        type: str,  description: Git SHA of the tree entry}
+      - {name: source_url,      type: str,  description: API URL the tree listing was fetched from}
+      - {name: scraped_at,      type: str,  description: ISO timestamp when the record was collected}
+concepts: []                       # repo catalog entries carry no protocol concept bindings yet
+entities: []                       # no entity coverage declared by the code

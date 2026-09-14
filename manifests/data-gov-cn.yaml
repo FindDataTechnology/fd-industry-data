@@ -1,0 +1,25 @@
+version: "1"
+name: data-gov-cn
+label: Data.gov (US Government Data) Dataset Catalog
+source_url: https://catalog.data.gov/?q=climate&sort=relevance
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]
+requires: ["scrapling"]
+functions:
+  - command: get_catalog_datasets
+    category: dataset-catalog
+    description: Dataset cards from catalog.data.gov search results (query URLs are server-rendered despite the React SPA); parsed by parse_html() in spiders/data-gov-cn/spider.py from li.usa-collection__item cards (h3.usa-collection__heading a title, /organization/ meta link, "Dataset Last Updated:" meta, data-format resource links), deduped by dataset slug.
+    frequency: irregular
+    verified: true
+    parameters:
+      - {name: urls, type: list, required: false, description: Catalog search URLs to crawl (defaults to the climate relevance-sorted query)}
+    columns:
+      - {name: dataset_title, type: str, description: Dataset title from the card heading link}
+      - {name: description, type: str, description: Card description text (p.usa-collection__description, truncated to 500 chars)}
+      - {name: organization, type: str, description: Publishing organization from the card's /organization/ meta link}
+      - {name: formats, type: str, description: Comma-separated resource formats from card data-format attributes (empty when the card exposes none)}
+      - {name: dataset_url, type: str, description: Canonical catalog URL https://catalog.data.gov/dataset/<slug>}
+      - {name: modified_date, type: str, description: '"Dataset Last Updated" meta value on the card'}
+      - {name: source_url, type: str, description: Search/query URL the card was parsed from}
+concepts: []
+entities: []

@@ -9,12 +9,18 @@ cd /Users/chengsishi/finddata/fd-industry-data
 uv sync
 ```
 
+The data.eastmoney.com CPI/PPI pages build their tables client-side, so the
+spider fetches the page's own JSON API instead:
+`https://datacenter-web.eastmoney.com/api/data/v1/get` (reportName
+`RPT_ECONOMY_CPI` / `RPT_ECONOMY_PPI`, pure JSON without the JSONP `callback`
+parameter).
+
 ## Usage
 
 ```bash
 cd spiders/eastmoney-data
 python spider.py
-python spider.py --urls "https://data.eastmoney.com/cjsj/cpi.html"
+python spider.py --urls "https://datacenter-web.eastmoney.com/api/data/v1/get?columns=ALL&sortColumns=REPORT_DATE&sortTypes=-1&source=WEB&client=WEB&reportName=RPT_ECONOMY_PPI&pageNumber=1&pageSize=20"
 python spider.py --dry-run
 ```
 

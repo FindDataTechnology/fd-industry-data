@@ -1,107 +1,70 @@
+version: '1'
 name: kaggle
-version: 1.0.0
-description: Kaggle datasets metadata scraper for flower, China, and agriculture data
-source: https://www.kaggle.com/datasets
-author: FindData Official
-license: MIT
-
-spider:
-  class: KaggleDatasetsSpider
-  module: spider
-  entry_point: spider.py
-
-data_sources:
-  - name: Datasets List
-    url: https://www.kaggle.com/datasets
-    category: datasets
-  - name: Flower Search
-    url: https://www.kaggle.com/search?q=flower+in%3Adatasets
-    category: search
-  - name: China Search
-    url: https://www.kaggle.com/search?q=china+in%3Adatasets
-    category: search
-  - name: Agriculture Search
-    url: https://www.kaggle.com/search?q=agriculture+in%3Adatasets
-    category: search
-
-output:
-  database: data/kaggle.db
-  json: output/kaggle_datasets.json
-  schema:
-    table: kaggle_datasets
-    columns:
-      - name: id
-        type: INTEGER
-        primary_key: true
-      - name: url
-        type: TEXT
-      - name: dataset_id
-        type: TEXT
-      - name: title
-        type: TEXT
-      - name: author
-        type: TEXT
-      - name: description
-        type: TEXT
-      - name: tags
-        type: TEXT
-      - name: votes
-        type: TEXT
-      - name: usability
-        type: TEXT
-      - name: usability_rating
-        type: TEXT
-      - name: size
-        type: TEXT
-      - name: downloads
-        type: TEXT
-      - name: license
-        type: TEXT
-      - name: file_count
-        type: TEXT
-      - name: last_updated
-        type: TEXT
-      - name: file_name
-        type: TEXT
-      - name: file_size
-        type: TEXT
-      - name: file_type
-        type: TEXT
-      - name: download_url
-        type: TEXT
-      - name: data_type
-        type: TEXT
-      - name: scraped_at
-        type: TEXT
-      - name: url
-        type: TEXT
-      - name: dataset_id
-        type: TEXT
-      - name: data_type
-        type: TEXT
-      - name: file_name
-        type: TEXT
-        unique_constraint: true
-
-settings:
-  concurrent_requests: 4
-  download_delay: 2.0
-  robots_txt_obey: true
-  allowed_domains:
-    - kaggle.com
-
-features:
-  - pagination
-  - sqlite_storage
-  - json_export
-  - rate_limiting
-  - deduplication
-  - stealth_mode_support
-  - metadata_extraction
-
-dependencies:
-  - scrapling>=0.4.7
-  - python>=3.10
-
-last_updated: 2026-01-31
-status: active
+label: Kaggle Datasets
+source_url: https://www.kaggle.com/datasets
+scanner_mode: upstream-curated
+ranking_seed:
+- 0.5
+- 0.5
+functions:
+- command: get_kaggle_data
+  description: Scrape dataset listings and details from Kaggle
+  frequency: weekly
+  parameters:
+  - name: limit
+    type: int
+    required: false
+    description: Maximum records to return
+  - name: urls
+    type: list
+    required: false
+    description: Custom URLs to scrape
+  columns:
+  - name: dataset_id
+    type: str
+    description: Dataset identifier
+  - name: title
+    type: str
+    description: Dataset title
+  - name: author
+    type: str
+    description: Dataset author
+  - name: description
+    type: str
+    description: Dataset description
+  - name: tags
+    type: str
+    description: Tags (JSON array)
+  - name: votes
+    type: str
+    description: Vote count
+  - name: usability
+    type: str
+    description: Usability score
+  - name: size
+    type: str
+    description: Dataset size
+  - name: license
+    type: str
+    description: License type
+  - name: url
+    type: str
+    description: Dataset URL
+  - name: last_updated
+    type: str
+    description: Last update date
+  - name: scraped_at
+    type: str
+    description: Scrape timestamp
+concepts:
+- column: title
+  concept: dataset.kaggle
+  entity_type: organization
+  measure: value
+  unit: string
+  frequency: weekly
+entities:
+- entity_type: organization
+  coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

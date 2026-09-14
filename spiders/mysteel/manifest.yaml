@@ -16,7 +16,7 @@ function_definitions:
         type: array<string>
         description: "List of URLs to scrape"
         optional: true
-        default: ["https://www.mysteel.com", "https://www.mysteel.com/price/"]
+        default: ["https://www.mysteel.com/"]
       - name: limit
         type: integer
         description: "Maximum number of records to fetch"
@@ -42,27 +42,47 @@ column_schemas:
   - name: source_url
     type: string
     description: "Original URL of the scraped page"
-    
-  - name: page_title
+
+  - name: article_title
     type: string
-    description: "HTML title of the page"
-    
+    description: "Article page title (page title for discovery records)"
+
   - name: product_name
     type: string
-    description: "Steel product name"
-    
+    description: "Steel product name (品名)"
+
+  - name: spec
+    type: string
+    description: "Specification (规格)"
+
+  - name: material
+    type: string
+    description: "Material grade (材质)"
+
+  - name: mill
+    type: string
+    description: "Steel mill / origin (钢厂/产地)"
+
   - name: price
     type: string
-    description: "Current price"
-    
+    description: "Current price (e.g. 3670元/吨)"
+
   - name: change
     type: string
-    description: "Price change"
-    
+    description: "Price change (环比涨跌)"
+
   - name: date
     type: string
     description: "Data date"
-    
+
+  - name: record_kind
+    type: string
+    description: "Record type: price_row or listing_link"
+
+  - name: article_url
+    type: string
+    description: "Article URL (discovery records only)"
+
   - name: scraped_at
     type: timestamp
     description: "Timestamp when the data was collected"

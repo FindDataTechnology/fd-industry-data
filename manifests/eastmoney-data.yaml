@@ -1,0 +1,22 @@
+version: "1"
+name: eastmoney-data
+label: 东方财富数据中心 CPI/PPI 月度宏观指标
+source_url: https://datacenter-web.eastmoney.com/api/data/v1/get?columns=REPORT_DATE%2CNATIONAL_BASE%2CNATIONAL_SAME%2CNATIONAL_SEQUENTIAL%2CNATIONAL_ACCUMULATE%2CCITY_BASE%2CCITY_SAME%2CCITY_SEQUENTIAL%2CCITY_ACCUMULATE%2CRURAL_BASE%2CRURAL_SAME%2CRURAL_SEQUENTIAL%2CRURAL_ACCUMULATE&sortColumns=REPORT_DATE&sortTypes=-1&source=WEB&client=WEB&reportName=RPT_ECONOMY_CPI&pageNumber=1&pageSize=20
+scanner_mode: upstream-curated
+ranking_seed: [0.6, 0.65]          # [quality, accessibility] heuristic seed
+requires: ["scrapling"]
+functions:
+  - command: get_economy_indicator_records
+    category: macro-indicators
+    description: Monthly national CPI/PPI indicator records from the EastMoney datacenter-web JSON API (reportName RPT_ECONOMY_CPI / RPT_ECONOMY_PPI); parse_payload() in spiders/eastmoney-data/spider.py maps result.data rows (REPORT_DATE, NATIONAL_BASE/NATIONAL_SAME, PPI BASE/BASE_SAME) into one record per indicator family (当月/同比), fetched by run_spider() with browser UA + Referer headers.
+    frequency: monthly
+    verified: true
+    parameters: []
+    columns:
+      - {name: indicator_name, type: str, description: "Indicator label, e.g. CPI 当月(全国) / CPI 同比(全国) / PPI 当月(全国)"}
+      - {name: indicator_value, type: str, description: "Indicator value for the month (numeric serialized via _fmt() as string)"}
+      - {name: period, type: str, description: "Report month as YYYY-MM, truncated from REPORT_DATE"}
+      - {name: change_value, type: str, description: "Year-over-year (同比) value paired with the 当月 record"}
+      - {name: category, type: str, description: "Report family: CPI or PPI"}
+concepts: []
+entities: []

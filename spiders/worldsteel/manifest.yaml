@@ -3,7 +3,7 @@
 name: worldsteel
 label: "世界钢铁协会"
 description: "World Steel Association provides global steel industry data, statistics, reports, and market insights."
-source_url: "https://www.worldsteel.org"
+source_url: "https://worldsteel.org"
 priority_score: 92
 created_at: 2026-08-01T12:00:00
 

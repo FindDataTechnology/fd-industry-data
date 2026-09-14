@@ -25,5 +25,8 @@ concepts:
   - column: value
     concept: gdp.nominal
     entity_type: country
+entities:
+  - entity_type: country
+    coverage: universe
 fetch:
   runner: nbs-gdp

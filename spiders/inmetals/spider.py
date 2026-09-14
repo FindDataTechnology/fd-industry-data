@@ -623,6 +623,12 @@ class InmetalsSpider(Spider):
         self.logger.info("Spider completed.")
 
 
+
+def run_inmetals(urls=None, save=True):
+    """Run the inmetals spider. Returns True on success."""
+    spider = InmetalsSpider()
+    return spider.run_spider(urls=urls, save=save)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")
     parser.add_argument("--urls", nargs="+", help="Custom URLs")

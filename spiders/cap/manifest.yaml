@@ -1,72 +1,46 @@
+version: "1"
 name: cap
-version: 1.0.0
-label: Cap
-description: High-priority data source scraper (score: 85)
+label: China Appraisal Society
 source_url: https://www.cap.gov.cn/
-author: FindData Official
-license: MIT
-created_at: 2026-08-01
-
-spider:
-  class: CapSpider
-  module: spider.py
-  entry_point: python spider.py
-
-data_sources:
-  - name: Primary Source
-    url: https://www.cap.gov.cn/
-    category: main
-
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
 functions:
-  - name: fetch_cap_metadata
-    label: Fetch metadata
+  - command: get_cap_data
+    description: Fetch data from China Appraisal Society
+    frequency: on_demand
     parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: id
+        type: integer
+        description: Primary key
+      - name: title
+        type: string
+        description: Page title
+      - name: description
+        type: string
+        description: Page description
       - name: url
         type: string
-        required: true
-    returns:
-      - name: results
-        type: array
-
-columns:
-  - name: id
-    type: INTEGER
-    nullable: false
-  - name: title
-    type: TEXT
-    nullable: true
-  - name: description
-    type: TEXT
-    nullable: true
-  - name: url
-    type: TEXT
-    nullable: true
-  - name: source
-    type: TEXT
-    nullable: true
-  - name: scraped_at
-    type: TEXT
-    nullable: true
-
-commands:
-  - command: "scrapy crawl cap"
-    example: "cd cap && scrapy crawl cap"
-  - command: "python spider.py --urls <url>"
-    example: "python spider.py --urls https://example.com"
-  - command: "python spider.py --dry-run"
-    example: "python spider.py --dry-run"
-  - command: "uv run python spider.py"
-    example: "uv run python spider.py --verbose"
-
-features:
-  - deduplication
-  - sqlite_storage
-  - json_export
-  - stealth_mode
-
-dependencies:
-  - scrapling>=0.4.7
-  - python>=3.10
-
-status: active
-priority_score: 85
+        description: Source URL
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp
+concepts:
+  - column: title
+    concept: organization.name
+    entity_type: organization
+    measure: value
+    unit: string
+    frequency: on_demand
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

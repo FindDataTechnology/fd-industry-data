@@ -211,3 +211,22 @@ class KaggleDatasetsSpider(Spider):
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump([dict(r) for r in rows], f, ensure_ascii=False, indent=2)
         self.logger.info(f"Exported {len(rows)} items to {output_path}")
+
+
+def run_kaggle(urls=None, limit=100):
+    """Run the Kaggle datasets spider. Returns list of dataset records."""
+    from scrapling.crawler import CrawlerRunner
+    spider = KaggleDatasetsSpider()
+    target_urls = urls or spider.start_urls
+    result = spider.run_spider(urls=target_urls)
+    # Read back from SQLite
+    import sqlite3
+    db_path = os.path.join(os.path.dirname(__file__), "data", "kaggle.db")
+    records = []
+    if os.path.exists(db_path):
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT * FROM kaggle_datasets ORDER BY id").fetchall()
+        conn.close()
+        records = [dict(r) for r in (rows[:limit] if limit else rows)]
+    return records

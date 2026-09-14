@@ -623,6 +623,12 @@ class HqcdcSpider(Spider):
         self.logger.info("Spider completed.")
 
 
+
+def run_hqcdc(urls=None, save=True):
+    """Run the hqcdc spider. Returns True on success."""
+    spider = HqcdcSpider()
+    return spider.run_spider(urls=urls, save=save)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")
     parser.add_argument("--urls", nargs="+", help="Custom URLs")

@@ -623,6 +623,12 @@ class KunfloralexportSpider(Spider):
         self.logger.info("Spider completed.")
 
 
+
+def run_kunfloralexport(urls=None, save=True):
+    """Run the kunfloralexport spider. Returns True on success."""
+    spider = KunfloralexportSpider()
+    return spider.run_spider(urls=urls, save=save)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")
     parser.add_argument("--urls", nargs="+", help="Custom URLs")
