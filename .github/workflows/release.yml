@@ -1,0 +1,56 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tools
+        run: python -m pip install --upgrade build twine
+      - name: Build sdist + wheel
+        run: python -m build
+      - name: twine check
+        run: twine check dist/*
+      - name: Wheel smoke test
+        run: |
+          python -m venv /tmp/venv
+          /tmp/venv/bin/python -m pip install --upgrade pip
+          /tmp/venv/bin/python -m pip install dist/*.whl
+          # Import from outside the checkout so the installed wheel is what gets
+          # tested, not the source tree on sys.path[0].
+          cd /tmp
+          # The datasource CATALOG entry point is the contract
+          # `fd-open-data-mcp register-discovered` depends on - assert it
+          # survived packaging.
+          /tmp/venv/bin/python -c "from importlib.metadata import distribution; import fd_industry_data; eps = [e for e in distribution('fd-industry-data').entry_points if e.group == 'fd_open_data_mcp.datasources']; assert eps, 'CATALOG entry point missing from the wheel'; print('smoke OK:', fd_industry_data.__version__, '->', eps[0].value)"
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - name: Download dist artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
