@@ -1,191 +1,293 @@
 #!/usr/bin/env python3
-"""Weibo Open Platform Scrapling Spider."""
+"""
+Weibo Open Platform Spider - 微博开放平台爬虫
 
-import argparse
+Target: https://open.weibo.com/ / https://weibo.com/
+Data: Trending topics, public posts, user influence metrics
+
+AUTHENTICATION WARNING:
+  Weibo Open Platform API requires developer registration and OAuth2.
+  This spider ONLY accesses publicly available web pages.
+  
+  What this spider CAN access:
+  - Weibo hot search / trending topics (public)
+  - Public user profiles and posts
+  - Public topic/hashtag pages
+  
+  What this spider CANNOT access (requires API key):
+  - Full search API - needs Open Platform registration
+  - User timeline API - needs OAuth2
+  - Comments/reposts API - needs OAuth2
+  - Direct messages - needs OAuth2
+  
+  To access API data:
+  1. Register at https://open.weibo.com/
+  2. Create an app and get App Key + App Secret
+  3. Use OAuth2 for user authorization
+  4. API docs: https://open.weibo.com/wiki/API
+
+Rate Limiting: 2s delay, 3 concurrent
+Anti-bot: Stealth session for protected pages
+"""
+
+from __future__ import annotations
+
 import json
-import logging
+import os
+import re
 import sqlite3
-import sys
-import time
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional
 
-from scrapling import DefaultFetcher, Fetcher, Request, Response
+from scrapling.fetchers import FetcherSession, AsyncStealthySession
+from scrapling.spiders import Request, Response, Spider
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger(__name__)
-
-START_URLS: List[str] = [
-    "https://open.weibo.com/",
-]
-
-CUSTOM_UAS: List[str] = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0",
-]
-
-MAX_RETRIES = 3
-REQUEST_DELAY = 2.0
-
-BASE_DIR = Path(__file__).parent.resolve()
-DATA_DIR = BASE_DIR / "data"
-OUTPUT_DIR_LOCAL = BASE_DIR / "output"
-DATA_DB = DATA_DIR / "data.sqlite"
-JSON_OUTPUT = OUTPUT_DIR_LOCAL / "export.jsonl"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "data", "weibo_open.db")
+OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 
 
-def save_to_sqlite(records: List[Dict[str, Any]]) -> None:
-    """Save scraped records to SQLite database."""
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    
-    conn = sqlite3.connect(DATA_DB)
-    cursor = conn.cursor()
-    
-    if not records:
-        logger.warning("No records to save to SQLite")
-        conn.close()
-        return
-    
-    sample = records[0]
-    columns = []
-    insert_params = []
-    placeholders = []
-    
-    for key, value in sample.items():
-        col_name = key.lower().replace(" ", "_").replace("-", "_")
-        if isinstance(value, str):
-            col_type = "TEXT"
-        elif isinstance(value, (int, float)):
-            col_type = "REAL"
-        else:
-            col_type = "TEXT"
-        
-        columns.append((col_name, col_type))
-        insert_params.append(col_name)
-        placeholders.append("?")
-    
-    table_name = "weibo-open_records".replace("-", "_")
-    col_defs = ", ".join([c[0] + " " + c[1] for c in columns])
-    sql_create = """CREATE TABLE IF NOT EXISTS """ + table_name + """ (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        """ + ", ".join([c[0] for c in columns]) + """
-    )"""
-    cursor.execute(sql_create)
-    
-    placeholders_str = ", ".join(placeholders)
-    insert_sql = "INSERT INTO " + table_name + " (" + ", ".join(insert_params) + ") VALUES (" + placeholders_str + ")"
-    
-    for record in records:
-        values = [record.get(col[0], None) for col in columns]
-        cursor.execute(insert_sql, values)
-    
-    conn.commit()
-    conn.close()
-    logger.info("Saved {} records to {}".format(len(records), DATA_DB))
+class WeiboOpenSpider(Spider):
+    name = "weibo_open"
+    start_urls = [
+        "https://s.weibo.com/top/summary",
+        "https://weibo.com/hot/search",
+        "https://s.weibo.com/top/summary?cate=sc Socia",
+    ]
+    allowed_domains = {"weibo.com", "s.weibo.com", "open.weibo.com"}
+    concurrent_requests = 3
+    download_delay = 2.0
+    robots_txt_obey = True
 
+    def configure_sessions(self, manager):
+        manager.add("http", FetcherSession(impersonate="chrome"))
+        manager.add("stealth", AsyncStealthySession(
+            headless=True,
+            network_idle=True,
+        ), lazy=True)
 
-def save_to_json(records: List[Dict[str, Any]]) -> None:
-    """Save scraped records to JSON Lines file."""
-    OUTPUT_DIR_LOCAL.mkdir(parents=True, exist_ok=True)
-    
-    if not records:
-        logger.warning("No records to save to JSON")
-        return
-    
-    with open(JSON_OUTPUT, "a", encoding="utf-8") as f:
-        for record in records:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
-    
-    logger.info("Saved {} records to {}".format(len(records), JSON_OUTPUT))
+    async def parse(self, response: Response):
+        page_type = self._detect_page_type(response.url)
 
+        if page_type == "hot_search":
+            for row in response.css("table tbody tr, div.hot-list li, div[data-type='hot']"):
+                rank = row.css("td:first-child::text, span.rank::text").get("").strip()
+                topic = row.css("td a, a.topic, a.word").css("::text").get("").strip()
+                href = row.css("a::attr(href)").get("")
+                hot_value = row.css("td:last-child::text, span.hot-value::text").get("").strip()
 
-def parse_response(response: Response) -> List[Dict[str, Any]]:
-    """Parse response content and extract structured data."""
-    results: List[Dict[str, Any]] = []
-    
-    try:
-        parsed_data = {
-            "source_url": response.request.url,
-            "page_title": response.meta.get("title", ""),
-            "content_length": len(response.text),
-            "status_code": response.status_code,
+                if not topic:
+                    continue
+
+                if href and not href.startswith("http"):
+                    href = f"https://s.weibo.com{href}"
+
+                item = {
+                    "url": href or response.url,
+                    "rank": rank,
+                    "topic": topic,
+                    "hot_value": hot_value,
+                    "category": "热搜",
+                    "data_type": "hot_search",
+                    "scraped_at": datetime.now().isoformat(),
+                }
+                self._save_to_sqlite(item)
+                yield item
+
+                if href:
+                    yield Request(
+                        href,
+                        callback=self.parse_topic,
+                        meta={"rank": rank, "hot_value": hot_value},
+                    )
+
+        elif page_type == "topic":
+            parsed = self._parse_topic_page(response)
+            if parsed:
+                parsed["topic_rank"] = response.meta.get("rank", "")
+                parsed["topic_hot_value"] = response.meta.get("hot_value", "")
+                self._save_to_sqlite(parsed)
+                yield parsed
+
+        elif page_type == "profile":
+            parsed = self._parse_profile(response)
+            if parsed:
+                self._save_to_sqlite(parsed)
+                yield parsed
+
+            for post in response.css("div.card-wrap[action-type='feed_list_item']"):
+                post_data = self._parse_weibo_post(post, response)
+                if post_data:
+                    self._save_to_sqlite(post_data)
+                    yield post_data
+
+    async def parse_topic(self, response: Response):
+        parsed = self._parse_topic_page(response)
+        if parsed:
+            parsed["topic_rank"] = response.meta.get("rank", "")
+            parsed["topic_hot_value"] = response.meta.get("hot_value", "")
+            self._save_to_sqlite(parsed)
+            yield parsed
+
+    def _parse_topic_page(self, response: Response) -> dict | None:
+        topic_title = response.css(
+            "h1 span::text, div.main-title::text, div#pl_topic_topband h1::text"
+        ).get("").strip()
+        if not topic_title:
+            return None
+
+        description = response.css(
+            "div.topic-descr::text, p.description::text"
+        ).get("").strip()
+
+        post_count = response.css(
+            "span[node-type='follow'] span::text, span.count::text"
+        ).get("").strip()
+
+        content_parts = response.css(
+            "div.card-wrap div.txt, div.weibo-text"
+        ).css("::text").getall()
+        content = "\n".join(t.strip() for t in content_parts if t.strip())
+
+        return {
+            "url": response.url,
+            "topic": topic_title,
+            "description": description,
+            "post_count": post_count,
+            "content": content[:10000],
+            "category": "话题",
+            "data_type": "topic_page",
             "scraped_at": datetime.now().isoformat(),
         }
-        
-        results.append(parsed_data)
-        logger.info("Parsed {} record(s) from {}".format(len(results), response.request.url))
-        
-    except Exception as e:
-        logger.error("Error parsing response from {}: {}".format(response.request.url, e))
-    
-    return results
 
+    def _parse_profile(self, response: Response) -> dict | None:
+        username = response.css(
+            "h1.username::text, div.pf_username span::text"
+        ).get("").strip()
+        if not username:
+            return None
 
-def run_spider(urls: Optional[List[str]] = None, save_results: bool = True) -> List[Dict[str, Any]]:
-    """Main entry point for running the spider."""
-    urls = urls or START_URLS
-    all_records: List[Dict[str, Any]] = []
-    
-    logger.info("Starting spider for {} URL(s)...".format(len(urls)))
-    logger.info("Target: {}".format(urls[0]))
-    logger.info("Score priority: HIGH ({}))".format(95))
-    
-    for url in urls:
-        retry_count = 0
-        
-        while retry_count < MAX_RETRIES:
-            try:
-                ua = CUSTOM_UAS[retry_count % len(CUSTOM_UAS)]
-                
-                fetcher: Fetcher = DefaultFetcher(
-                    user_agent=ua,
-                    requests_per_minute=float("inf"),
-                    max_retries=0,
-                    timeout=30,
-                )
-                
-                request = Request(url)
-                response = fetcher.fetch(request)
-                
-                if response.status_code == 200:
-                    records = parse_response(response)
-                    all_records.extend(records)
-                    
-                    if save_results:
-                        save_to_sqlite(records)
-                        save_to_json(records)
-                    
-                    break
-                else:
-                    logger.warning("HTTP {} for {}, retry {}{}".format(response.status_code, url, retry_count + 1, "/" + str(MAX_RETRIES)))
-                    
-            except Exception as e:
-                logger.error("Error fetching {}: {}".format(url, e))
-            
-            retry_count += 1
-            time.sleep(REQUEST_DELAY)
-        
-        if retry_count == MAX_RETRIES:
-            logger.error("Failed to fetch {} after {} retries".format(url, MAX_RETRIES))
-        
-        time.sleep(REQUEST_DELAY)
-    
-    logger.info("Spider completed. Total records: {}".format(len(all_records)))
-    return all_records
+        followers = response.css(
+            "span[node-type='follow'] strong::text, div.pf_atten span::text"
+        ).get("").strip()
+        following = response.css(
+            "span[node-type='fans'] strong::text, div.pf_fans span::text"
+        ).get("").strip()
+        posts_count = response.css(
+            "span[node-type='weibo'] strong::text, div.pf_weibo span::text"
+        ).get("").strip()
 
+        return {
+            "url": response.url,
+            "username": username,
+            "followers": followers,
+            "following": following,
+            "posts_count": posts_count,
+            "category": "用户",
+            "data_type": "profile",
+            "scraped_at": datetime.now().isoformat(),
+        }
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Scrapling spider for Weibo Open Platform")
-    parser.add_argument("--urls", nargs="+", help="URLs to crawl (default: START_URLS)")
-    parser.add_argument("--dry-run", action="store_true", help="Run without saving results")
-    args = parser.parse_args()
-    
-    urls = args.urls if args.urls else START_URLS
-    save = not args.dry_run
-    
-    run_spider(urls=urls, save_results=save)
+    def _parse_weibo_post(self, post_el, response) -> dict | None:
+        text = post_el.css("div.txt::text, p.txt::text").get("").strip()
+        if not text:
+            return None
+
+        author = post_el.css(
+            "a.name::text, div.info span a::text"
+        ).get("").strip()
+
+        pub_time = post_el.css(
+            "a.from:first-child::text, span.from a::text"
+        ).get("").strip()
+
+        reposts = post_el.css("span[action-type='feed_list_forward']::text").get("").strip()
+        comments = post_el.css("span[action-type='feed_list_comment']::text").get("").strip()
+        likes = post_el.css("span[action-type='feed_list_like'] em::text, em.count::text").get("").strip()
+
+        return {
+            "url": response.url,
+            "author": author,
+            "content": text[:5000],
+            "pub_time": pub_time,
+            "reposts": reposts,
+            "comments": comments,
+            "likes": likes,
+            "category": "微博",
+            "data_type": "post",
+            "scraped_at": datetime.now().isoformat(),
+        }
+
+    def _detect_page_type(self, url: str) -> str:
+        if "top/summary" in url or "hot/search" in url:
+            return "hot_search"
+        if "/u/" in url or "/profile" in url:
+            return "profile"
+        if "topic" in url or "weibo?topic" in url:
+            return "topic"
+        return "hot_search"
+
+    def _save_to_sqlite(self, item: dict):
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS weibo_open (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                url TEXT,
+                topic TEXT,
+                rank TEXT,
+                hot_value TEXT,
+                author TEXT,
+                content TEXT,
+                pub_time TEXT,
+                description TEXT,
+                post_count TEXT,
+                followers TEXT,
+                following TEXT,
+                posts_count TEXT,
+                username TEXT,
+                reposts TEXT,
+                comments TEXT,
+                likes TEXT,
+                category TEXT,
+                data_type TEXT,
+                topic_rank TEXT,
+                topic_hot_value TEXT,
+                scraped_at TEXT,
+                UNIQUE(url, data_type, topic, content)
+            )
+        """)
+        try:
+            conn.execute(
+                """INSERT OR IGNORE INTO weibo_open
+                (url, topic, rank, hot_value, author, content, pub_time,
+                 description, post_count, followers, following, posts_count,
+                 username, reposts, comments, likes, category, data_type,
+                 topic_rank, topic_hot_value, scraped_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    item.get("url", ""), item.get("topic", ""), item.get("rank", ""),
+                    item.get("hot_value", ""), item.get("author", ""),
+                    item.get("content", ""), item.get("pub_time", ""),
+                    item.get("description", ""), item.get("post_count", ""),
+                    item.get("followers", ""), item.get("following", ""),
+                    item.get("posts_count", ""), item.get("username", ""),
+                    item.get("reposts", ""), item.get("comments", ""),
+                    item.get("likes", ""), item.get("category", ""),
+                    item.get("data_type", ""), item.get("topic_rank", ""),
+                    item.get("topic_hot_value", ""), item.get("scraped_at", ""),
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    async def on_close(self):
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT * FROM weibo_open ORDER BY id").fetchall()
+        conn.close()
+        output_path = os.path.join(OUTPUT_DIR, "weibo_open.json")
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump([dict(r) for r in rows], f, ensure_ascii=False, indent=2)
+        self.logger.info(f"Exported {len(rows)} items to {output_path}")

@@ -1,46 +1,50 @@
-# Wechat Mp Spider
+# WeChat Official Account Platform Spider
 
-Automated data collection from https://mp.weixin.qq.com/.
+微信公众号平台爬虫 - 通过搜狗微信搜索获取公开文章数据。
 
-## Installation
+## Source
+
+| Property | Value |
+|----------|-------|
+| URL | https://mp.weixin.qq.com/ |
+| Search Entry | https://weixin.sogou.com/ |
+| Auth Required | Partial (see below) |
+| Rate Limit | 3s delay, 2 concurrent |
+
+## Authentication Requirements
+
+### Public Access (This Spider)
+- Public article pages shared via links (`mp.weixin.qq.com/s/...`)
+- Article content, title, author, publish date
+- Account name (public profile)
+
+### Requires Authentication (NOT Covered)
+- **Article metrics** (views, likes, shares) - needs Official Account login
+- **Follower analytics** - needs Official Account login
+- **Content management** - needs Official Account login
+- **API access** - needs AppID + AppSecret from mp.weixin.qq.com
+
+To access private data, register at https://mp.weixin.qq.com/ and use the [Official API](https://developers.weixin.qq.com/doc/offiaccount/).
+
+## Data Types
+
+- **WeChat Articles** - 微信公众号公开文章正文及元数据
+
+## Quick Start
 
 ```bash
-uv pip install scrapling[fetchers]
-```
-
-## Usage
-
-```bash
-cd wechat-mp
-python spider.py
+cd fd-industry-data
+uv run python spiers/wechat-mp/spider.py
 ```
 
 ## Output
 
-- `data/wechat-mp.db` - SQLite database
-- `output/wechat-mp_items.jsonl` - JSONL streaming
-- `output/wechat-mp_complete.json` - Consolidated export
+- SQLite: `data/wechat_mp.db`
+- JSON: `output/wechat_mp.json`
 
-## Schema
+## Anti-Bot Notes
 
-Table: `wechat-mp_data`
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | INTEGER | Primary key |
-| title | TEXT | Item title |
-| description | TEXT | Description text |
-| url | TEXT | Source URL |
-| source | TEXT | Data source name |
-| scraped_at | TEXT | Timestamp |
-
-## Troubleshooting
-
-**Cloudflare:** Ensure stealth mode enabled.  
-**Rate limited:** Increase download_delay.  
-**No data:** Verify URL: `curl -I https://mp.weixin.qq.com/`  
-**Debug:** Add `-v` flag  
-
----
-
-Score: 90/100 • Ready for deployment
+- WeChat has aggressive anti-bot measures
+- Uses Sogou WeChat Search as entry point to discover public articles
+- Stealth session configured as fallback for protected pages
+- Conservative rate limiting (3s delay, 2 concurrent)

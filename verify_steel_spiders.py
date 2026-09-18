@@ -33,7 +33,7 @@ def main():
     passed_checks = 0
     
     for cat_slug, cat_name in categories:
-        cat_dir = BASE_DIR / "spiers" / cat_slug
+        cat_dir = BASE_DIR / "spiders" / cat_slug
         
         print(f"[{cat_name}]")
         print("-" * 70)

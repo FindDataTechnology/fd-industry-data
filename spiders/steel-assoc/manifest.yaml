@@ -1,0 +1,19 @@
+name: steel-assoc
+label: 钢铁行业协会(Steel Industry Associations)
+source_url: https://www.cisa.org.cn
+description: 模板生成的多源抓取骨架：按 START_URLS 抓取 5 个钢铁行业协会/权威来源首页，extract_data_from_page() 为占位实现、不解析任何字段（返回空列表），SOURCE_INFO 占位符未填充；具备 UA 轮换、重试与 SQLite/JSON 落盘逻辑。
+start_urls:
+  - https://www.cisa.org.cn
+  - https://www.worldsteel.org
+  - http://www.stats.gov.cn/
+  - https://www.steelhome.cn
+  - https://www.shfe.com.cn
+fields: []  # 页面解析为占位实现，代码中无可列举的具体字段
+spider:
+  class: SteelAssocSpider
+  download_delay: 2.0
+  concurrent_requests: 2
+  max_retries: 3
+outputs:
+  sqlite: data/association_data.db (table association_data)
+  json: output/association_data.json

@@ -1,1 +1,0 @@
-"""Weibo Open Platform" Spider.""

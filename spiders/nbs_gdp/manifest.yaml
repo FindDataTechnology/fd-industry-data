@@ -1,0 +1,64 @@
+name: nbs_gdp
+label: 国家统计局GDP与宏观指标(NBS GDP & Macroeconomic Indicators)
+source_url: https://data.stats.gov.cn/easyquery.htm
+description: 从国家统计局 easyquery API 抓取季度/年度 GDP 与月度 CPI/PPI/PMI；API 失败时回退 akshare（macro_china_gdp/cpi/ppi/pmi_yearly）。结果写入 SQLite nbs_macro 表及 nbs_gdp.json / nbs_macro.json。
+endpoints:
+  api: https://data.stats.gov.cn/easyquery.htm?m=QueryData&dbcode=...&rowcode=zb&colcode=sj
+  referer: https://data.stats.gov.cn/easyquery.htm?cn=A01
+indicators:
+  - key: gdp_quarterly
+    dbcode: hgjd
+    zbcode: A0201
+    freq: Q
+  - key: gdp_annual
+    dbcode: hgnd
+    zbcode: A0201
+    freq: A
+  - key: cpi_monthly
+    dbcode: hgyd
+    zbcode: A0901
+    freq: M
+  - key: ppi_monthly
+    dbcode: hgyd
+    zbcode: A0902
+    freq: M
+  - key: pmi_monthly
+    dbcode: hgyd
+    zbcode: A0M01
+    freq: M
+fields:
+  - name: period
+    type: str
+    description: 时期（如 2024Q1 / 2024-03 / 2024）
+  - name: value
+    type: float
+    description: 指标数值
+  - name: indicator_code
+    type: str
+    description: NBS 指标代码（如 A0201）
+  - name: indicator_name
+    type: str
+    description: 指标中文名称
+  - name: indicator_type
+    type: str
+    description: 指标键名（gdp_quarterly 等）
+  - name: unit
+    type: str
+    description: 单位（亿元 / %）
+  - name: source
+    type: str
+    description: 数据来源（NBS 或 akshare）
+  - name: fetched_at
+    type: str
+    description: 抓取时间（ISO-8601 UTC）
+spider:
+  class: NbsMacroSpider
+  download_delay: 2
+  concurrent_requests: 1
+functions:
+  - get_macro_data(indicators, start_year)
+  - get_gdp_quarterly(start_year)
+outputs:
+  sqlite: data/nbs_macro.db (table nbs_macro)
+  json_gdp: output/nbs_gdp.json
+  json_all: output/nbs_macro.json

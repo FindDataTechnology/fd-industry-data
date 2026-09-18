@@ -1,77 +1,64 @@
-# fd-open-data-protocol compliant manifest
-# MCP integration metadata
-
 name: weibo-open
-label: "Weibo Open Platform"
-description: "Official developer interface for accessing Weibo user data, status posts, and trending information. Requires application approval and OAuth authentication."
-source_url: "https://open.weibo.com/"
-priority_score: 95
-created_at: 2026-08-01T01:22:55.637016
-
-function_definitions:
-  - name: fetch_weibo_open
-    description: "Fetch data from Weibo Open Platform"
-    parameters:
-      - name: urls
-        type: array<string>
-        description: "List of URLs to scrape"
-        optional: true
-        default: ["https://open.weibo.com/"]
-      - name: limit
-        type: integer
-        description: "Maximum number of records to fetch"
-        optional: true
-        default: 1000
-    returns: array<object>
-    
-  - name: query_weibo_open
-    description: "Query stored data from Weibo Open Platform"
-    parameters:
-      - name: filters
-        type: object
-        description: "Filter criteria"
-        optional: true
-      - name: limit
-        type: integer
-        description: "Max records to return"
-        optional: true
-        default: 100
-    returns: array<object>
-
-column_schemas:
-  - name: source_url
-    type: string
-    description: "Original URL of the scraped page"
-    
-  - name: page_title
-    type: string
-    description: "HTML title of the page"
-    
-  - name: content_length
-    type: integer
-    description: "Size of page content in bytes"
-    
-  - name: status_code
-    type: integer
-    description: "HTTP status code of the request"
-    
-  - name: scraped_at
-    type: timestamp
-    description: "Timestamp when the data was collected"
-
-commands:
-  - name: fetch
-    description: "Run the scraper to collect new data"
-    command: "python spider.py --urls <url1> <url2>"
-    
-  - name: dry-run
-    description: "Test scraping without saving results"
-    command: "python spider.py --dry-run"
-    
-  - name: export-json
-    description: "Export data to JSON Lines format"
-    command: "python spider.py --format json"
-    
-  - name: export-db
-    description: "Export data to SQLite database"
-    command: "python spider.py --format sqlite"
+label: 微博开放平台(Weibo Open Platform)
+source_url: https://open.weibo.com/
+description: 微博热搜话题、公开帖子、用户影响力数据
+authentication: partial
+access_level: public_web_only
+authentication_details: |
+  PUBLIC (this spider):
+  - Weibo hot search / trending topics (s.weibo.com/top/summary)
+  - Public user profiles and posts
+  - Public topic/hashtag pages
+  
+  REQUIRES API KEY (not covered by this spider):
+  - Full search API - needs Open Platform developer registration
+  - User timeline API - needs OAuth2 authorization
+  - Comments/reposts API - needs OAuth2
+  - Direct messages - needs OAuth2
+  - Real-time data stream - needs special permission
+  
+  API Registration: https://open.weibo.com/
+  API Docs: https://open.weibo.com/wiki/API
+rate_limiting:
+  download_delay: 2.0
+  concurrent_requests: 3
+  robots_txt_obey: true
+functions:
+  - command: WeiboOpenSpider
+    description: 爬取微博热搜、公开帖子、用户信息
+    category: social-media
+    frequency: realtime
+    columns:
+      - name: url
+        type: str
+        description: 来源URL
+      - name: topic
+        type: str
+        description: 话题/热搜关键词
+      - name: rank
+        type: str
+        description: 热搜排名
+      - name: hot_value
+        type: str
+        description: 热度值
+      - name: author
+        type: str
+        description: 作者
+      - name: content
+        type: str
+        description: 内容
+      - name: reposts
+        type: str
+        description: 转发数
+      - name: comments
+        type: str
+        description: 评论数
+      - name: likes
+        type: str
+        description: 点赞数
+      - name: data_type
+        type: str
+        description: 数据类型(hot_search/topic_page/profile/post)
+      - name: scraped_at
+        type: str
+        description: 爬取时间
