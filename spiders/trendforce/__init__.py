@@ -1,1 +1,0 @@
-"""TrendForce Market Intelligence" Spider.""
