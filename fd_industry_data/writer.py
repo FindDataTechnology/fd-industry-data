@@ -67,7 +67,7 @@ def _ensure_schema_once(cur) -> None:
     """
     global _schema_done
     if not _schema_done:
-        _ensure_schema_once(cur)
+        cur.execute(_SCHEMA)
         _schema_done = True
 
 
