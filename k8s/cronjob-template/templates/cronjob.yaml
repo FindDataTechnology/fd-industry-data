@@ -30,8 +30,10 @@ spec:
         spec:
           restartPolicy: Never
           initContainers:
+            # Same image as the runner: it ships git, and the node only needs
+            # to pull one image (public mirrors are unreachable from chengsi).
             - name: checkout
-              image: {{ .Values.gitImage | default "docker.m.daocloud.io/alpine/git:2.45.0" }}
+              image: {{ .Values.image }}
               env:
                 - name: GITEE_TOKEN
                   valueFrom:
