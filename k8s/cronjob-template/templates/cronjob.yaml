@@ -47,6 +47,7 @@ spec:
                     "https://FindDataTechnology:${GITEE_TOKEN}@gitee.com/FindDataTechnology/fd-industry-data.git" /content
                   cd /content
                   git sparse-checkout set spiders/
+                  git rev-parse HEAD > /content/.commit
               volumeMounts:
                 - name: content
                   mountPath: /content
@@ -58,6 +59,10 @@ spec:
               env:
                 - name: FD_CONTENT_DIR
                   value: /content/spiders
+                - name: FD_CONTENT_COMMIT
+                  value: /content/.commit
+                - name: FD_IMAGE_TAG
+                  value: {{ .Values.image | quote }}
                 - name: FD_CRAWL_DB_URL
                   valueFrom:
                     secretKeyRef:
