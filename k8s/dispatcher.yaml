@@ -32,7 +32,7 @@ spec:
             # Same image as the dispatcher: it ships git, and the node only
             # needs to pull one image (public mirrors are unreachable from chengsi).
             - name: checkout
-              image: &image 100.64.0.8:30880/finddata/fd-industry-runner:IMAGE_TAG
+              image: &image 100.64.0.8:30880/finddata/fd-industry-runner:sha-59492c6
               env:
                 - name: GITEE_TOKEN
                   valueFrom:
