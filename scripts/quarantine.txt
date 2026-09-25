@@ -1,0 +1,29 @@
+# Sources exempt from the import-scan admission gate (inherited broken
+# content). Removing a name requires its spider module to import cleanly —
+# the gate enforces that the moment the name leaves this file. Quarantined
+# sources cannot pass admission and are flagged for repair; scheduling one
+# still runs it (and will record a failed run if it breaks).
+#
+# Reasons (2026-09-25, first in-image scan, 19/79):
+#   steel-*: NameError SOURCE_INFO undefined at module level (dead template code)
+#   github-*/nbs-stats-data: import DefaultFetcher (removed/never in scrapling 0.4 API)
+#   others: assorted drift from the current scrapling surface
+apipoer-open
+awesome-chinese-api
+chinamonitor
+cn-gov-data
+data-science-china
+datacenter-org
+flowers-yunnan
+github-awesome-datasets
+github-china-blog
+github-china-data-hub
+github-china-topics
+github-chinese-datasets
+github-datasets-topic
+nbs-stats-data
+steel-assoc
+steel-exchange
+steel-info
+steel-market
+steel-statistics
