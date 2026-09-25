@@ -1,7 +1,10 @@
 name: flower-association
-version: 1.0.0
+version: 2.0
 description: China Flower Association news and data scraper
 source: https://www.chinaflower.org.cn
+schedule: "41 3 * * *"
+memory_limit: "256Mi"
+cpu_limit: "200m"
 author: FindData Official
 license: MIT
 
