@@ -35,21 +35,17 @@ def _content_dir() -> str:
 
 
 def _load_entry(src: str, content_dir: str):
-    """Return the run_<src> callable, supporting both import styles."""
+    """Return the run_<src> callable for the source (handles hyphenated dirs)."""
+    from .loader import load_spider_module
+
     us = src.replace("-", "_")
     src_dir = os.path.join(content_dir, src)
     if not os.path.isdir(src_dir):
         print(f"fd-runner: source '{src}' not found under {content_dir}", file=sys.stderr)
         sys.exit(EXIT_SOURCE_MISSING)
 
-    sys.path.insert(0, os.path.dirname(content_dir))  # enables spiders.<src>.spider
-    sys.path.insert(0, src_dir)  # enables legacy `from spider import X`
     os.chdir(src_dir)  # spiders may read sibling data/ files
-
-    try:
-        mod = importlib.import_module(f"spiders.{us}.spider")
-    except ModuleNotFoundError:
-        mod = importlib.import_module("spider")
+    mod = load_spider_module(src, content_dir)
 
     fn = getattr(mod, f"run_{us}", None)
     if fn is None:
