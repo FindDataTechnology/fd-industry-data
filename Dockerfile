@@ -29,7 +29,7 @@ COPY scripts/ scripts/
 COPY spiders/ spiders/
 RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple pyyaml \
     && python3 scripts/validate_manifests.py \
-    && python3 scripts/conformance_gate.py
+    && python3 scripts/conformance_gate.py --roots .
 
 FROM base AS runner
 WORKDIR /app
