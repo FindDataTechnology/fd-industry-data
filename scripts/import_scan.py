@@ -8,10 +8,12 @@ image does not preinstall — the exact skew the admission gate exists to catch.
 from __future__ import annotations
 
 import importlib
+import os
 import pathlib
 import sys
 
-ROOT = pathlib.Path(__file__).resolve().parents[1] / "spiders"
+ROOT = pathlib.Path(os.environ.get("FD_CONTENT_DIR")
+                    or pathlib.Path(__file__).resolve().parents[1] / "spiders")
 
 
 def main() -> int:
