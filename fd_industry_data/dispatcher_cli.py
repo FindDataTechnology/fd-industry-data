@@ -22,7 +22,7 @@ from . import dispatch
 
 def _lookup_run(conn, pending_id: int):
     """The crawl_runs row a completed execution wrote for this pending id."""
-    with conn.cursor() as cur:
+    with conn, conn.cursor() as cur:
         cur.execute(
             "SELECT id, status FROM crawl_runs WHERE pending_run_id=%s "
             "ORDER BY id DESC LIMIT 1",
@@ -59,7 +59,7 @@ def main() -> int:
         print(f"fd-dispatcher: claimed #{row['id']} {src} (attempt {row['attempts']})")
 
         open_row = None
-        with conn.cursor() as cur:
+        with conn, conn.cursor() as cur:
             cur.execute(
                 "SELECT id FROM crawl_runs WHERE source=%s AND status='running' "
                 "ORDER BY id DESC LIMIT 1",

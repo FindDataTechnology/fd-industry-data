@@ -58,6 +58,8 @@ spec:
               command: ["python3", "-m", "fd_industry_data.dispatcher_cli"]
               workingDir: /content
               env:
+                - name: PYTHONUNBUFFERED
+                  value: "1"
                 - name: FD_DISPATCH_SITE
                   value: tencent
                 - name: FD_DISPATCH_MAX_RUNS

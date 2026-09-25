@@ -55,6 +55,22 @@ def _connect():
     return psycopg2.connect(url, connect_timeout=8)
 
 
+_schema_done = False
+
+
+def _ensure_schema_once(cur) -> None:
+    """Run the DDL battery at most once per process.
+
+    The DDL (CREATE INDEX / ALTER) takes strong locks; running it on every
+    report call piled up behind any long-lived reader. Tables persist in the
+    central DB, so per-process once is enough.
+    """
+    global _schema_done
+    if not _schema_done:
+        _ensure_schema_once(cur)
+        _schema_done = True
+
+
 def start_run(*, source, kind="runtime", commit_sha, image_tag,
               pending_run_id=None) -> int | None:
     """Insert a `running` crawl_runs row; returns its id (None on failure).
@@ -71,7 +87,7 @@ def start_run(*, source, kind="runtime", commit_sha, image_tag,
             if conn is None:
                 return None
             with conn, conn.cursor() as cur:
-                cur.execute(_SCHEMA)
+                _ensure_schema_once(cur)
                 cur.execute(
                     """INSERT INTO crawl_runs
                        (source, kind, status, started_at, commit_sha, image_tag,
@@ -212,7 +228,7 @@ def report_run(*, source, kind, status, started_at, finished_at, rows_written,
                 print("writer: FD_CRAWL_DB_URL not set; skipping report", file=sys.stderr)
                 return False
             with conn, conn.cursor() as cur:
-                cur.execute(_SCHEMA)
+                _ensure_schema_once(cur)
                 cur.execute(
                     """INSERT INTO crawl_runs
                        (source, kind, status, started_at, finished_at,
