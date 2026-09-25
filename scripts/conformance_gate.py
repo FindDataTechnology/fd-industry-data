@@ -20,6 +20,7 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS_DIR))
 import triage_audit  # noqa: E402
+import validate_manifests  # noqa: E402
 
 MANIFEST_PROTOCOL = "output/manifest-drafts/MANIFEST-PROTOCOL.md"
 
@@ -30,6 +31,8 @@ FIXES = {
     "loose-spider-file": "move into its unit dir",
     "empty-nonstandard-dir": "delete",
     "adapter-dash-underscore-pair": "keep one form",
+    "manifest-contract": "fix the manifest fields flagged by validate_manifests "
+    "(schedule/memory_limit/cpu_limit/enabled/site vs fd_industry_data/sites.yaml)",
 }
 
 
@@ -40,6 +43,9 @@ def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
     adapters: dict[str, list[tuple[Path, dict]]] = {}
 
     for root in roots:
+        for m in sorted((root / "spiders").glob("*/manifest.yaml")):
+            for e in validate_manifests.validate(m):
+                violations.append(("manifest-contract", e))
         units, _litter, empty_dirs, _codeless = triage_audit.discover_units(root)
         triage_audit.manifest_coverage(units, root)
         unit_count += len(units)

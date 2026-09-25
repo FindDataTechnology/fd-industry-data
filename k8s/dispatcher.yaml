@@ -1,0 +1,88 @@
+# Site dispatcher (crawl-platform federated dispatch): pulls pending exception
+# runs for site=tencent and executes them with the same runner entry the
+# scheduled CronJobs use. Deployed once per site with:
+#   scp k8s/dispatcher.yaml fd-deploy:/tmp/ && ssh fd-deploy \
+#     "sudo k3s kubectl apply -f /tmp/dispatcher.yaml"
+# The image tag below must be bumped together with the runner image (the
+# shared dispatch lib ships inside the image — design D3); tag updates are a
+# one-line edit + re-apply.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fd-industry-dispatcher
+  namespace: fd-industry
+  labels:
+    fd-industry/component: dispatcher
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 3600
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            fd-industry/component: dispatcher
+        spec:
+          restartPolicy: Never
+          initContainers:
+            # Same image as the dispatcher: it ships git, and the node only
+            # needs to pull one image (public mirrors are unreachable from chengsi).
+            - name: checkout
+              image: &image 100.64.0.8:30880/finddata/fd-industry-runner:IMAGE_TAG
+              env:
+                - name: GITEE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: fd-industry-gitee-token
+                      key: token
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  git clone --depth 1 --filter=blob:none --sparse \
+                    "https://FindDataTechnology:${GITEE_TOKEN}@gitee.com/FindDataTechnology/fd-industry-data.git" /content
+                  cd /content
+                  git sparse-checkout set spiders/
+                  git rev-parse HEAD > /content/.commit
+              volumeMounts:
+                - name: content
+                  mountPath: /content
+          containers:
+            - name: dispatcher
+              image: *image
+              command: ["python3", "-m", "fd_industry_data.dispatcher_cli"]
+              workingDir: /content
+              env:
+                - name: FD_DISPATCH_SITE
+                  value: tencent
+                - name: FD_DISPATCH_MAX_RUNS
+                  value: "5"
+                - name: FD_CONTENT_DIR
+                  value: /content/spiders
+                - name: FD_CONTENT_COMMIT
+                  value: /content/.commit
+                - name: FD_IMAGE_TAG
+                  value: *image
+                - name: FD_CRAWL_DB_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: fd-industry-db
+                      key: url
+              resources:
+                limits:
+                  memory: 256Mi
+                  cpu: 300m
+                requests:
+                  memory: 256Mi
+                  cpu: 100m
+              volumeMounts:
+                - name: content
+                  mountPath: /content
+          volumes:
+            - name: content
+              emptyDir: {}

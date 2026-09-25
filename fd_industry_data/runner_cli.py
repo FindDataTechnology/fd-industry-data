@@ -18,15 +18,20 @@ import importlib
 import json
 import os
 import sys
+import threading
 import time
 import traceback
 
-from .writer import report_run
+from . import cancel_event
+from .writer import cancel_requested, finish_run, open_run_for, report_run, start_run
 
 EXIT_OK = 0
 EXIT_SOURCE_MISSING = 2
 EXIT_ADAPTER_ERROR = 3
 EXIT_NO_ENTRY = 4
+_EXIT_SKIPPED = 0  # single-flight skip is a successful no-op for the caller
+
+_CANCEL_POLL_SECONDS = 15
 
 
 def _content_dir() -> str:
@@ -87,10 +92,47 @@ def main(argv: list[str] | None = None) -> int:
     started = time.time()
     fn = _load_entry(src, content_dir)
 
+    if not args.dry_run and (open_id := open_run_for(src)) is not None:
+        # single-flight: another execution of this source is still running
+        report_run(
+            source=src, kind="runtime", status="skipped",
+            started_at=started, finished_at=time.time(), rows_written=0,
+            error_head=f"single-flight: run #{open_id} still open",
+            commit_sha=_commit_sha(),
+            image_tag=os.environ.get("FD_IMAGE_TAG", "unknown"), items=[],
+        )
+        print(f"fd-runner: {src} skipped, run #{open_id} still open")
+        return _EXIT_SKIPPED
+
+    pending_run_id = None
+    if (pid_env := os.environ.get("FD_PENDING_RUN_ID")):
+        try:
+            pending_run_id = int(pid_env)
+        except ValueError:
+            pending_run_id = None
+
+    run_id = None
+    if not args.dry_run:
+        run_id = start_run(
+            source=src, commit_sha=_commit_sha(),
+            image_tag=os.environ.get("FD_IMAGE_TAG", "unknown"),
+            pending_run_id=pending_run_id,
+        )
+        if run_id is not None and (other := open_run_for(src)) not in (None, run_id):
+            # lost the start race: another run opened between guard and start
+            finish_run(run_id, status="skipped", finished_at=time.time(), rows_written=0,
+                       error_head=f"single-flight: run #{other} still open")
+            print(f"fd-runner: {src} skipped, run #{other} won the start race")
+            return _EXIT_SKIPPED
+
     status, rows, error_head, items = "success", 0, None, []
     try:
+        if run_id is not None:
+            _watch_cancel(run_id)
         items = fn(limit=args.limit) or []
         rows = len(items)
+        if cancel_event.is_set():
+            status = "cancelled"
     except ModuleNotFoundError as e:
         status, error_head = "failed", f"missing dependency: {e}"
         print(f"fd-runner: {error_head}", file=sys.stderr)
@@ -102,23 +144,40 @@ def main(argv: list[str] | None = None) -> int:
     finished = time.time()
 
     if not args.dry_run:
-        ok = report_run(
-            source=src,
-            kind="runtime",
-            status=status,
-            started_at=started,
-            finished_at=finished,
-            rows_written=rows,
-            error_head=error_head,
-            commit_sha=_commit_sha(),
-            image_tag=os.environ.get("FD_IMAGE_TAG", "unknown"),
-            items=items,
-        )
+        ok = False
+        if run_id is not None:
+            ok = finish_run(
+                run_id, status=status, finished_at=finished, rows_written=rows,
+                error_head=error_head, items=items,
+            )
+        else:
+            ok = report_run(
+                source=src, kind="runtime", status=status,
+                started_at=started, finished_at=finished, rows_written=rows,
+                error_head=error_head,
+                commit_sha=_commit_sha(),
+                image_tag=os.environ.get("FD_IMAGE_TAG", "unknown"),
+                items=items,
+            )
         if not ok:
             print("fd-runner: DB report failed; fallback written, crawl result unaffected", file=sys.stderr)
 
     print(f"fd-runner: {src} -> {status} rows={rows} in {finished - started:.1f}s")
     return EXIT_OK if status == "success" else EXIT_ADAPTER_ERROR
+
+
+def _watch_cancel(run_id: int) -> None:
+    """Background poller: set the cooperative cancel event when flagged."""
+    def loop():
+        while not cancel_event.is_set():
+            time.sleep(_CANCEL_POLL_SECONDS)
+            if cancel_requested(run_id):
+                cancel_event.EVENT.set()
+                print(f"fd-runner: cancel requested for run #{run_id}", file=sys.stderr)
+                return
+
+    t = threading.Thread(target=loop, daemon=True)
+    t.start()
 
 
 if __name__ == "__main__":

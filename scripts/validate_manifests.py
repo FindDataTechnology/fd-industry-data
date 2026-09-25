@@ -5,6 +5,7 @@ v2 fields are all optional (v1 manifests stay legal):
 - schedule: 5-field cron expression; empty/absent = not scheduled
 - memory_limit / cpu_limit: k8s quantities (defaults applied by the chart)
 - enabled: bool; false suppresses scheduling even with a schedule
+- site: registered run-site id (fd_industry_data/sites.yaml); absent = tencent
 
 Exit 0 when every manifest is valid; otherwise list per-file violations.
 """
@@ -15,6 +16,9 @@ import sys
 from pathlib import Path
 
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from fd_industry_data.sites import load_sites  # noqa: E402
 
 QUANTITY_RE = re.compile(r"^\d+(?:\.\d+)?(?:m|k|M|G|Ki|Mi|Gi)?$")
 CRON_FIELD_RE = re.compile(r"^[0-9*/,\-A-Za-z]+$")
@@ -59,6 +63,17 @@ def validate(manifest_path: Path) -> list[str]:
     enabled = data.get("enabled")
     if enabled is not None and not isinstance(enabled, bool):
         errs.append(f"{manifest_path}: enabled must be a bool, got {enabled!r}")
+
+    site = data.get("site")
+    if site is not None:
+        if not isinstance(site, str) or not site.strip():
+            errs.append(f"{manifest_path}: site must be a non-empty site id when present")
+        elif site.strip() not in (sites := load_sites()):
+            errs.append(
+                f"{manifest_path}: site {site!r} is not registered "
+                f"(known: {', '.join(sorted(sites))}); "
+                "register it in fd_industry_data/sites.yaml first"
+            )
 
     return errs
 

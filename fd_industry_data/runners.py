@@ -23,11 +23,17 @@ def run_scrapling_spider(spider: Any, start_urls: list[str], *, limit: int = 100
     """
     from scrapling.fetchers import FetcherSession
 
+    from .cancel_event import is_set as cancel_set
+
     items: list[dict] = []
 
     async def fetch_all():
         async with FetcherSession(impersonate="chrome120") as session:
             for url in start_urls:
+                if cancel_set():
+                    spider.logger.info("cancel requested; stopping early with "
+                                       f"{len(items)} items kept")
+                    break
                 try:
                     resp = await session.get(url)
                     extracted = await spider.extract_data(resp)

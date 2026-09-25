@@ -1,0 +1,12 @@
+version: "1"
+# Canonical run-site registry (crawl-platform federated dispatch).
+# `site` in spiders/<src>/manifest.yaml must name an id below; absent site
+# means the default (tencent). Adding a site is a shared-lib change and
+# ships with the runner image (design D3); re-seed crawl_sites after.
+sites:
+  - id: tencent
+    kind: k8s
+    description: tencent 主力 k3s（chengsi 单节点）— ApplicationSet CronJob + dispatcher
+  - id: nbs-workers
+    kind: docker
+    description: NBS 四机 docker worker 舰队 — coordinator 认领 site=nbs-workers
