@@ -55,6 +55,15 @@ CREATE INDEX IF NOT EXISTS pending_runs_site_idx
 ALTER TABLE crawl_runs ADD COLUMN IF NOT EXISTS cancel_requested timestamptz;
 ALTER TABLE crawl_runs ADD COLUMN IF NOT EXISTS pending_run_id bigint;
 ALTER TABLE crawl_runs ALTER COLUMN finished_at DROP NOT NULL;
+
+CREATE TABLE IF NOT EXISTS crawl_sources (
+    source     text PRIMARY KEY,
+    site       text REFERENCES crawl_sites (id),
+    schedule   text,
+    enabled    boolean NOT NULL DEFAULT true,
+    last_commit text,
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
 """
 
 SEED_SITE = """
@@ -186,3 +195,47 @@ def heartbeat_site(conn, site: str) -> None:
     """Touch crawl_sites.last_seen_at so the console can show site staleness."""
     with conn, conn.cursor() as cur:
         cur.execute("UPDATE crawl_sites SET last_seen_at = now() WHERE id = %s", (site,))
+
+
+def sync_sources(conn, content_dir: str) -> int:
+    """Upsert the source inventory from the checked-out manifests.
+
+    The console cannot read the content repo; the dispatcher (which always
+    has a fresh checkout) mirrors spiders/*/manifest.yaml into crawl_sources
+    so the platform keeps its pull-only shape: every view is DB-derived.
+    """
+    import yaml
+    from pathlib import Path
+
+    rows = []
+    for m in sorted(Path(content_dir).glob("*/manifest.yaml")):
+        try:
+            data = yaml.safe_load(m.read_text()) or {}
+        except yaml.YAMLError:
+            continue
+        if not isinstance(data, dict) or not data.get("name"):
+            continue
+        site = data.get("site") or DEFAULT_SITE
+        rows.append((str(data["name"]), site, data.get("schedule") or None,
+                     bool(data.get("enabled", True))))
+    commit = ""
+    commit_file = os.environ.get("FD_CONTENT_COMMIT", "")
+    if commit_file and os.path.isfile(commit_file):
+        try:
+            commit = open(commit_file).read().strip()[:12]
+        except OSError:
+            pass
+    with conn, conn.cursor() as cur:
+        for source, site, schedule, enabled in rows:
+            cur.execute(
+                """INSERT INTO crawl_sources (source, site, schedule, enabled, last_commit)
+                   VALUES (%s,%s,%s,%s,%s)
+                   ON CONFLICT (source) DO UPDATE SET
+                     site = EXCLUDED.site, schedule = EXCLUDED.schedule,
+                     enabled = EXCLUDED.enabled,
+                     last_commit = CASE WHEN EXCLUDED.last_commit = ''
+                                   THEN crawl_sources.last_commit ELSE EXCLUDED.last_commit END,
+                     updated_at = now()""",
+                (source, site, schedule, enabled, commit),
+            )
+    return len(rows)

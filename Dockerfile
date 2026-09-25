@@ -27,6 +27,7 @@ FROM base AS gate
 WORKDIR /w
 COPY scripts/ scripts/
 COPY spiders/ spiders/
+COPY fd_industry_data/ ./fd_industry_data/
 RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple pyyaml \
     && python3 scripts/validate_manifests.py \
     && python3 scripts/conformance_gate.py --roots .

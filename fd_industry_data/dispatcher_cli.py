@@ -39,6 +39,11 @@ def main() -> int:
 
     conn = dispatch.connect()
     dispatch.ensure_schema(conn)
+    content_dir = os.environ.get("FD_CONTENT_DIR") or os.path.join(
+        os.getcwd(), "spiders")
+    if os.path.isdir(content_dir):
+        n = dispatch.sync_sources(conn, content_dir)
+        print(f"fd-dispatcher: inventory synced, {n} source(s)")
     expired = dispatch.expire_leases(conn)
     if expired:
         print(f"fd-dispatcher: expired {expired} stale lease(s)")
