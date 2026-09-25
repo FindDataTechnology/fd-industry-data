@@ -42,41 +42,20 @@ pipeline {
         }
         stage('Gate: manifest v2 + conformance') {
             steps {
-                sh '''#!/bin/bash
-                    set -e
-                    docker run --rm -v "$PWD":/w -w /w ${PYIMG} sh -c \
-                      "pip install -q -i ${TSINGHUA} pyyaml && python3 scripts/validate_manifests.py && python3 scripts/conformance_gate.py"
-                '''
+                // Jenkins agents are pods: no workspace bind mounts into docker.
+                // Checks ride the build context via the Dockerfile `gate` target.
+                sh 'docker build --target gate -t fd-industry-gate:"${IMAGE_TAG}" .'
             }
         }
         stage('Build runner image') {
             steps {
-                sh 'docker build -t "${IMAGE}" .'
+                sh 'docker build --target runner -t "${IMAGE}" .'
             }
         }
         stage('Gate: import scan in built image') {
             steps {
-                sh '''#!/bin/bash
-                    set -e
-                    docker run --rm -i -v "$PWD/spiders:/content/spiders" -w /content -e FD_CONTENT_DIR=/content/spiders \
-                      "${IMAGE}" python - <<'PY'
-import importlib, pathlib, sys
-failed = []
-for d in sorted(pathlib.Path("/content/spiders").iterdir()):
-    if not (d / "spider.py").is_file() or d.name.startswith((".", "_")):
-        continue
-    name = f"spiders.{d.name.replace('-', '_')}.spider"
-    try:
-        importlib.import_module(name)
-    except Exception as e:
-        failed.append(f"{d.name}: {type(e).__name__}: {e}")
-if failed:
-    print("\\n".join(failed), file=sys.stderr)
-    print(f"import scan: {len(failed)} failed of scanned", file=sys.stderr)
-    sys.exit(1)
-print("import scan: all spider modules import cleanly")
-PY
-                '''
+                // `scan` is FROM runner + fresh spiders; reuses cached layers.
+                sh 'docker build --target scan -t fd-industry-scan:"${IMAGE_TAG}" .'
             }
         }
         stage('Push runner image') {
