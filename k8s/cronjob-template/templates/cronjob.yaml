@@ -53,7 +53,7 @@ spec:
           containers:
             - name: runner
               image: {{ .Values.image }}
-              args: ["{{ .Values.source }}", "--limit", {{ .Values.limit | default 100 }}]
+              args: ["{{ .Values.source }}", "--limit", "{{ .Values.limit | default 100 }}"]
               workingDir: /content
               env:
                 - name: FD_CONTENT_DIR
