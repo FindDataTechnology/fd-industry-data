@@ -58,7 +58,7 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                     set -e
-                    docker run --rm -v "$PWD/spiders:/content/spiders" -w /content -e FD_CONTENT_DIR=/content/spiders \
+                    docker run --rm -i -v "$PWD/spiders:/content/spiders" -w /content -e FD_CONTENT_DIR=/content/spiders \
                       "${IMAGE}" python - <<'PY'
 import importlib, pathlib, sys
 failed = []
