@@ -4,8 +4,10 @@ Rendered once per data source by the fd-industry ApplicationSet.
 spiders/<src>/manifest.yaml (flat v2 fields); `image`, `namespace`,
 `gitTokenSecret` and DB wiring come from the ApplicationSet template.
 A source without a `schedule` renders zero resources (silent by design).
+Absent manifest fields arrive via `helm --set` as the literal "<no value>",
+so both empty and that sentinel must mean "off".
 */ -}}
-{{- if .Values.schedule }}
+{{- if and .Values.schedule (ne .Values.schedule "<no value>") }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
