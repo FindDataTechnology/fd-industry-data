@@ -4,7 +4,9 @@
 # decision (see openspec gitops-crawl-runtime, design D3).
 FROM docker.m.daocloud.io/library/python:3.12-slim
 
-RUN apt-get update \
+RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null; \
+    sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list 2>/dev/null; \
+    apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
