@@ -31,7 +31,7 @@ spec:
           restartPolicy: Never
           initContainers:
             - name: checkout
-              image: {{ .Values.gitImage | default "alpine/git:2.45.0" }}
+              image: {{ .Values.gitImage | default "docker.m.daocloud.io/alpine/git:2.45.0" }}
               env:
                 - name: GITEE_TOKEN
                   valueFrom:
