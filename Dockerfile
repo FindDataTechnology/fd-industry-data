@@ -42,6 +42,6 @@ ENTRYPOINT ["fd-runner"]
 
 FROM runner AS scan
 COPY spiders/ /content/spiders/
-COPY scripts/import_scan.py /tmp/import_scan.py
+COPY scripts/import_scan.py scripts/quarantine.txt /tmp/
 WORKDIR /content
 RUN FD_CONTENT_DIR=/content/spiders python3 /tmp/import_scan.py
