@@ -26,7 +26,7 @@ DEFAULT_OUTPUT = REPO_ROOT / "output" / "triage"
 
 # --- discovery ---------------------------------------------------------------
 PRUNE_DIRS = {"archive", ".venv", ".git", "__pycache__", "node_modules", ".idea",
-              ".vscode", "data", "output", "logs"}
+              ".vscode", "data", "output", "logs", "templates"}
 PRUNE_SUFFIXES = (".egg-info",)
 SPIDER_FILENAME = "spider.py"
 LOOSE_SPIDER_RE = re.compile(r"_spider\.py$")

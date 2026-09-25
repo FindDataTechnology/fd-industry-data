@@ -1,0 +1,35 @@
+version: "2"
+name: my-source              # = spiders/<src>/ 目录名，运行时标识符，合入后不可改名
+label: My Source Human Label
+source_url: https://example.com/data/
+# site: tencent              # 可选，缺省 tencent；仅允许 fd_industry_data/sites.yaml 登记过的站点 id
+# schedule: "23 3 * * *"     # 可选，5 段 cron；不填 = 静默不调度（点亮时才补）
+# memory_limit: "384Mi"      # 可选，缺省用全局默认
+# cpu_limit: "300m"
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: get_my_source
+    description: Fetch records from My Source
+    frequency: on_demand
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: title
+        type: string
+        description: Record title
+concepts:
+  - column: title
+    concept: organization.name
+    entity_type: organization
+    measure: value
+    unit: string
+    frequency: on_demand
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
