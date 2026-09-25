@@ -1,7 +1,7 @@
 name: wanfangdata
 version: 1.0.0
 label: Wanfangdata
-description: High-priority data source scraper (score: 85)
+description: "High-priority data source scraper (score: 85)"
 source_url: https://www.wanfangdata.com.cn/
 author: FindData Official
 license: MIT

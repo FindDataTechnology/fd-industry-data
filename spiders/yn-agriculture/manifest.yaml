@@ -1,7 +1,7 @@
 name: yn-agriculture
 version: 1.0.0
 label: Yn Agriculture
-description: High-priority data source scraper (score: 88)
+description: "High-priority data source scraper (score: 88)"
 source_url: http://nongye.yn.gov.cn
 author: FindData Official
 license: MIT

@@ -1,7 +1,7 @@
 name: stat-gov
 version: 1.0.0
 label: Stat Gov
-description: High-priority data source scraper (score: 85)
+description: "High-priority data source scraper (score: 85)"
 source_url: https://www.stat.gov.cn/
 author: FindData Official
 license: MIT

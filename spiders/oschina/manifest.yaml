@@ -1,7 +1,7 @@
 name: oschina
 version: 1.0.0
 label: Oschina
-description: High-priority data source scraper (score: 85)
+description: "High-priority data source scraper (score: 85)"
 source_url: https://www.oschina.net/project/stats
 author: FindData Official
 license: MIT

@@ -1,7 +1,7 @@
 name: qbox
 version: 1.0.0
 label: Qbox
-description: High-priority data source scraper (score: 85)
+description: "High-priority data source scraper (score: 85)"
 source_url: https://gs.qbox.cn/
 author: FindData Official
 license: MIT
