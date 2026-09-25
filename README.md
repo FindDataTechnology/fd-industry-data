@@ -122,3 +122,11 @@ The remote browser can be any CDP-compatible service (e.g., `browserless/chrome`
 ## License
 
 MIT
+
+## Runtime: gitops 内容通道（gitops-crawl-runtime）
+
+稳定运行时 = `finddata/fd-industry-runner` 镜像（Jenkins job `fd-industry-runner` 低频构建，含三段准入门：manifest v2 校验 → conformance gate → 镜像内 import 扫描，红则不推镜像）。内容 = 本仓 `spiders/<src>/`，经 chengsi ArgoCD 的 ApplicationSet（`fd-industry-crawl`）按 manifest v2 字段渲染 per-source CronJob。
+
+**加源三步**：① `spiders/<src>/`（manifest.yaml + spider.py，入口 `run_<src>(limit)`）→ ② push 过 CI 准入门 → ③ manifest 补 `schedule`（如 `"23 3 * * *"`，可选 `memory_limit`/`cpu_limit`）即点亮；清空 schedule 或 `enabled: false` 即停用（prune）。无 schedule 的源静默，不产生任何运行。19 个存量坏源见 `scripts/quarantine.txt`（修复后从清单移除即受门禁约束）。
+
+**遥测**：每次运行写中央表 `fd_open_data.crawl_runs`（source/kind/status/rows/commit/image_tag，成败皆报，报到失败本地兜底不伤主流程）；健康度卡片 `dashboards/crawl-health.html`（`python3 dashboards/crawl_health.py` 重生成）。特殊源 Job 用 `scripts/report_special_run.sh` 一行报到。
