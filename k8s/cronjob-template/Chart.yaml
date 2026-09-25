@@ -1,0 +1,6 @@
+apiVersion: v2
+name: fd-industry-cronjob
+description: Per-source CronJob rendered by the fd-industry ApplicationSet; values are injected from spiders/<src>/manifest.yaml fields.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

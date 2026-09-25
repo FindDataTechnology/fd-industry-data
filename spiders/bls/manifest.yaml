@@ -1,7 +1,10 @@
-version: "1"
+version: "2"
 name: bls
 label: U.S. Bureau of Labor Statistics
 source_url: https://www.bls.gov/data/
+schedule: "23 3 * * *"
+memory_limit: "384Mi"
+cpu_limit: "300m"
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

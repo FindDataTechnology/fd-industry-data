@@ -1,0 +1,76 @@
+{{- /*
+Rendered once per data source by the fd-industry ApplicationSet.
+`source`/`schedule`/`memoryLimit`/`cpuLimit` come from the source's
+spiders/<src>/manifest.yaml (flat v2 fields); `image`, `namespace`,
+`gitTokenSecret` and DB wiring come from the ApplicationSet template.
+A source without a `schedule` renders zero resources (silent by design).
+*/ -}}
+{{- if .Values.schedule }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fd-industry-{{ .Values.source }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: fd-industry-appset
+    fd-industry/source: {{ .Values.source }}
+spec:
+  schedule: "{{ .Values.schedule }}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: {{ .Values.deadlineSeconds | default 7200 }}
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            fd-industry/source: {{ .Values.source }}
+        spec:
+          restartPolicy: Never
+          initContainers:
+            - name: checkout
+              image: {{ .Values.gitImage | default "alpine/git:2.45.0" }}
+              env:
+                - name: GITEE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.gitTokenSecret }}
+                      key: token
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+                  git clone --depth 1 --filter=blob:none --sparse \
+                    "https://FindDataTechnology:${GITEE_TOKEN}@gitee.com/FindDataTechnology/fd-industry-data.git" /content
+                  cd /content
+                  git sparse-checkout set spiders/
+              volumeMounts:
+                - name: content
+                  mountPath: /content
+          containers:
+            - name: runner
+              image: {{ .Values.image }}
+              args: ["{{ .Values.source }}", "--limit", "{{ .Values.limit | default 100 | quote }}"]
+              workingDir: /content
+              env:
+                - name: FD_CONTENT_DIR
+                  value: /content/spiders
+                - name: FD_CRAWL_DB_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.dbSecret | default "fd-industry-db" }}
+                      key: url
+              resources:
+                limits:
+                  memory: {{ .Values.memoryLimit | default "384Mi" }}
+                  cpu: {{ .Values.cpuLimit | default "300m" }}
+                requests:
+                  memory: {{ .Values.memoryLimit | default "384Mi" }}
+                  cpu: 100m
+          volumes:
+            - name: content
+              emptyDir: {}
+{{- end }}
