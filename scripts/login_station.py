@@ -97,7 +97,7 @@ def main() -> int:
     procs = _start_desktop()
     rc = 1
     try:
-        from scripts.login_session import load_login_unit  # type: ignore
+        from login_session import load_login_unit  # same dir as this script
 
         login = load_login_unit(source)
         automation = getattr(login, "automation", "assisted")
