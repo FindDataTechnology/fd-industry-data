@@ -60,3 +60,20 @@ git push  ->  Jenkins gate  ->  Console 待点亮可见
 要点：落仓用工作区既有 git 凭据（平台组件保持只读）；落仓永远不点亮
 （schedule 会被剥除并提示）；spider 必须带 `run_<src>(limit)` 入口（缺即拒，
 模板见 `templates/new-source/`）。契约由内容仓单方裁决，harness 只是适配。
+## 认证源（登录态爬取，session-pool）
+
+需要登录的源走身份池：manifest 加 `auth_profile: <名>`，然后为每个账号建身份并登录：
+
+```bash
+# 1) 源声明（manifest v3）：auth_profile: rmfyalk
+# 2) 登录（驱动源仓 spiders/<src>/login.py 的 login(account) 单元；自动或人辅助）
+python3 scripts/login_session.py <src> <account_alias>
+# 3) 试跑/点亮与普通源相同；dispatcher 会租借身份并注入 FD_ACCOUNT/FD_SESSION_JAR_PATH
+```
+
+要点：每源多账号（五态状态机：login_required/active/cooldown/banned/retired）；会话
+Fernet 加密存 RustFS platform-sessions bucket（密钥 k8s secret platform-session-key）；
+租借是表语义（同身份不并发、TTL 回收）；失效双路反馈（runner 识别 401/验证码上报 +
+产出骤降推断）；Console `/panel/auth` 看身份矩阵/需登录队列/事件流，MCP `auth_status/
+auth_events/auth_request_login` 供 agent 操作。登录单元自动化程度按源声明（rmfyalk=人辅助
+OAuth；auth-smoke=自动测试单元模板）。
