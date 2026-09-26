@@ -42,8 +42,11 @@ def fresh_pending(conn, *, status="pending", attempts=0, lease_until=None,
 
 
 def main() -> int:
-    url = os.environ.get("FD_CRAWL_DB_URL") or (
-        "postgresql://fd:28uxsi3mQyYUOqmf1XMbp9iZ@100.64.0.3:30432/fd_open_data")
+    url = os.environ.get("FD_CRAWL_DB_URL")
+    if not url:
+        print("verify_dispatch_semantics: FD_CRAWL_DB_URL must be set "
+              "(central ops DSN); never hardcode it here", file=sys.stderr)
+        return 1
     os.environ["FD_CRAWL_DB_URL"] = url  # writer helpers read the env, not args
     ok = True
     conn = dispatch.connect(url)
