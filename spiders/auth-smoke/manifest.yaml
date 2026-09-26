@@ -1,0 +1,13 @@
+version: "2"
+name: auth-smoke
+label: Auth pool smoke probe (verifies lease->inject->use chain, trigger-only)
+source_url: https://internal.example/none
+auth_profile: auth-smoke
+# no schedule: trigger-only probe for the authenticated-crawling chain
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions: []
+concepts: []
+entities: []
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

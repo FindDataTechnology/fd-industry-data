@@ -1,0 +1,14 @@
+version: "2"
+name: rmfyalk
+label: Rmfyalk case library (login-gated; crawl adapter is a follow-up port)
+source_url: https://rmfyalk.court.gov.cn
+auth_profile: rmfyalk
+# no schedule: crawl adapter not ported yet; the login unit establishes the
+# platform session pool side (session-pool task 3.2)
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions: []
+concepts: []
+entities: []
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
