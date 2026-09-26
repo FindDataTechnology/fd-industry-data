@@ -1,0 +1,28 @@
+version: "2"
+name: dispatch-smoke
+label: Dispatch smoke probe (site health check, trigger-only)
+source_url: https://internal.example/none
+site: nbs-workers
+# no schedule: trigger-only probe for verifying a site's claim->execute->report chain
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: get_dispatch_smoke
+    description: Return one row with hostname and timestamp (no network)
+    frequency: on_demand
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Ignored beyond capping rows
+    columns:
+      - name: host
+        type: string
+        description: Hostname of the executing site
+      - name: ts
+        type: string
+        description: Execution timestamp
+concepts: []
+entities: []
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
