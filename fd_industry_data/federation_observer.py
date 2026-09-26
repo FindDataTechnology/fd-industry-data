@@ -55,7 +55,9 @@ def source_for(job: dict, cronjobs: list[str]) -> str | None:
 
 
 def finished_at(job: dict) -> str | None:
-    return ((job.get("status") or {}).get("completionTimestamp")
+    # batch/v1 Job uses `completionTime`; `completionTimestamp` is the
+    # CronJob field — mixing them up silently reports nothing.
+    return ((job.get("status") or {}).get("completionTime")
             or (job.get("status") or {}).get("startTime"))
 
 
@@ -91,7 +93,7 @@ def observe(ns: str) -> int:
         if not src or not ts:
             continue
         status = job.get("status", {})
-        if status.get("completionTimestamp") is None:
+        if status.get("completionTime") is None:
             continue  # only finished Jobs report
         with conn.cursor() as cur:
             cur.execute(
