@@ -362,6 +362,7 @@ def assign_egress(conn, source, account_alias, *, proxy_id=None):
                 """
                 SELECT p.id FROM proxies p
                 WHERE p.retired_at IS NULL
+                  AND p.ip <> 'direct' AND p.port IS NOT NULL
                   AND NOT EXISTS (SELECT 1 FROM crawl_identities c
                                   WHERE c.source = %s
                                     AND c.egress_ref = 'proxy:' || p.id)
