@@ -42,6 +42,8 @@ def load_login_unit(src: str):
     fn = getattr(mod, "login", None)
     if not callable(fn):
         raise SystemExit(f"login_session: {path} exposes no login(account) callable")
+    # expose the unit's declared automation level on the callable
+    fn.automation = getattr(mod, "automation", None)
     return fn
 
 

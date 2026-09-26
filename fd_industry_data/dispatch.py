@@ -241,6 +241,6 @@ def sync_sources(conn, content_dir: str) -> int:
                      last_commit = CASE WHEN EXCLUDED.last_commit = ''
                                    THEN crawl_sources.last_commit ELSE EXCLUDED.last_commit END,
                      updated_at = now()""",
-                (source, site, schedule, enabled, commit),
+                (source, site, schedule, enabled, auth_profile, commit),
             )
     return len(rows)
