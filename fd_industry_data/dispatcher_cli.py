@@ -102,8 +102,17 @@ def main() -> int:
                     json.dump(jar, f)
                 env["FD_ACCOUNT"] = ident["account_alias"]
                 env["FD_SESSION_JAR_PATH"] = jar_path
+                with conn.cursor() as cur:
+                    cur.execute("SELECT egress_ref FROM crawl_identities WHERE id=%s",
+                                (ident["id"],))
+                    erow = cur.fetchone()
+                egress = _auth.resolve_egress(conn, erow[0] if erow else None)
+                if egress:
+                    for k in ("HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy"):
+                        env[k] = egress["proxy_url"]
+                    env["FD_EGRESS_REF"] = erow[0]
                 print(f"fd-dispatcher: leased identity '{ident['account_alias']}' "
-                      f"for {src}")
+                      f"for {src}" + (f" via {erow[0]}" if egress else ""))
             except Exception as e:  # noqa: BLE001 - jar problems free the lease
                 _auth.release_identity(conn, ident["id"], ident["lease_token"],
                                        success=False)

@@ -21,6 +21,7 @@ RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.li
     sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list 2>/dev/null; \
     apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
+       xvfb x11vnc websockify novnc fonts-noto-cjk fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
 FROM base AS gate
@@ -38,7 +39,8 @@ COPY pyproject.toml README.md ./
 COPY fd_industry_data/ ./fd_industry_data/
 COPY spiders/ ./spiders/
 RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple \
-        . psycopg2-binary pyyaml cryptography minio
+        . psycopg2-binary pyyaml cryptography minio playwright \
+    && python3 -m playwright install --with-deps chromium
 ENTRYPOINT ["fd-runner"]
 
 FROM runner AS scan

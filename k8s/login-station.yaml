@@ -1,49 +1,42 @@
-# Login station (session-pool): a throwaway pod for acquiring sessions.
+# Login station (login-station-console): Job template + RBAC + env secrets.
 #
-# v1 reality: the primary login path is the operator Mac via
-#   python3 scripts/login_session.py <src> <account>
-# (headed Playwright; wenshu precedent). This manifest is the cluster-side
-# shape for sources that do NOT need operator-machine properties:
-# run the source's login unit against browser-cdp (BROWSER_CDP_URL) with
-# the identity's egress binding, then the session lands in the pool —
-# the login itself never touches the cluster's crawl pods.
+# Stations run on xinru-master (fd-mcp ns) so the panel — same cluster — can
+# reverse-proxy the noVNC channel without any NodePort/public exposure.
+# The panel creates one Job per login request via its own ServiceAccount
+# (station-launcher RBAC below) and tracks it in crawl_login_stations.
 #
-# The pod is created on demand (never a Deployment):
-#   kubectl -n fd-industry run login-<src>-<acct> --image=<runner-sha> \
-#     --env=... --command -- python3 scripts/login_session.py <src> <acct>
-# Assisted logins (human slider/OAuth) still need an observable browser:
-# noVNC wiring inside this pod is deliberately deferred (spec D4 notes the
-# observation channel must stay port-forward-only); until then assisted
-# units run on the operator machine.
+# One-time setup on xinru-master:
+#   sudo k3s kubectl apply -f login-station.yaml        (RBAC + secrets refs)
+#   # secrets (fd-mcp ns): fd-industry-db / fd-industry-rustfs /
+#   # platform-session-key — same values as tencent; created at deploy time.
 apiVersion: v1
-kind: Pod
-metadata:
-  name: login-station-template
-  namespace: fd-industry
-  labels:
-    fd-industry/component: login-station
-spec:
-  restartPolicy: Never
-  activeDeadlineSeconds: 1800
-  containers:
-    - name: login
-      image: 100.64.0.8:30880/finddata/fd-industry-runner:sha-f0a89b3
-      command: ["python3", "scripts/login_session.py"]
-      # args: [<src>, <account_alias>]
-      env:
-        - name: FD_CRAWL_DB_URL
-          valueFrom: {secretKeyRef: {name: fd-industry-db, key: url}}
-        - name: RUSTFS_ENDPOINT
-          valueFrom: {secretKeyRef: {name: fd-industry-rustfs, key: endpoint}}
-        - name: RUSTFS_ACCESS_KEY
-          valueFrom: {secretKeyRef: {name: fd-industry-rustfs, key: access-key}}
-        - name: RUSTFS_SECRET_KEY
-          valueFrom: {secretKeyRef: {name: fd-industry-rustfs, key: secret-key}}
-        - name: PLATFORM_SESSION_KEY
-          valueFrom: {secretKeyRef: {name: platform-session-key, key: key}}
-        # identity egress goes here once fd-proxy-service grows per-identity
-        # binding (open question in design.md); today logins share the source egress
-        # - name: HTTPS_PROXY
-        #   value: <identity-bound egress>
-      resources:
-        limits: {memory: 1Gi, cpu: "1"}
+kind: ServiceAccount
+metadata: {name: station-launcher, namespace: fd-mcp}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: station-launcher, namespace: fd-mcp}
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services"]
+    verbs: ["get", "list", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: station-launcher, namespace: fd-mcp}
+subjects:
+  - {kind: ServiceAccount, name: fd-panel, namespace: fd-mcp}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: station-launcher}
+---
+# Station Job template (rendered by the panel per login request):
+#   name: login-<src>-<alias>-<rand>, namespace: fd-mcp
+#   image: runner (station-capable tag)
+#   command: ["python3", "scripts/login_station.py", "--station", "<src>", "<alias>"]
+#   env: FD_CRAWL_DB_URL/RUSTFS_*/PLATFORM_SESSION_KEY (secrets),
+#        STATION_ID, PROXY_URL (identity egress), FD_SCHEMA_MANAGED=1,
+#        FD_STATION_DEADLINE_SECONDS=1500
+#   + a ClusterIP Service selecting the job pod, port 6080 (noVNC web),
+#     which the panel reverse-proxies at /panel/auth/station/<id>/

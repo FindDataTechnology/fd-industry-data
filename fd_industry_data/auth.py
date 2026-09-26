@@ -321,3 +321,93 @@ def pool_status(conn, source: str) -> list[dict]:
                     "FROM crawl_identities WHERE source=%s ORDER BY id", (source,))
         cols = [d[0] for d in cur.description]
         return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+
+# ── identity egress (auto proxy assignment) ─────────────────────────────
+
+
+def _proxy_url(row) -> str:
+    scheme, auth, ip, port = row["scheme"], row["auth"], row["ip"], row["port"]
+    cred = f"{auth}@" if auth else ""
+    return f"{scheme}://{cred}{ip}:{port}"
+
+
+def assign_egress(conn, source, account_alias, *, proxy_id=None):
+    """Bind an identity to a proxy (auto least-used unless proxy_id given).
+
+    Policy: healthy (not retired), not already bound to another identity of
+    the same source, globally least-referenced. Recorded on the identity row
+    and as an event; returns the egress_ref ('proxy:<id>') or None when the
+    pool is dry. Idempotent: an already-bound identity keeps its proxy.
+    """
+    with conn, conn.cursor() as cur:
+        cur.execute("SELECT id, egress_ref FROM crawl_identities "
+                    "WHERE source=%s AND account_alias=%s",
+                    (source, account_alias))
+        row = cur.fetchone()
+        if row is None:
+            return None
+        ident_id, current = row
+        if (current or "").startswith("proxy:"):
+            return current
+
+        if proxy_id is not None:
+            cur.execute("SELECT id FROM proxies WHERE id=%s AND retired_at IS NULL",
+                        (proxy_id,))
+            if cur.fetchone() is None:
+                return None
+            chosen = proxy_id
+        else:
+            cur.execute(
+                """
+                SELECT p.id FROM proxies p
+                WHERE p.retired_at IS NULL
+                  AND NOT EXISTS (SELECT 1 FROM crawl_identities c
+                                  WHERE c.source = %s
+                                    AND c.egress_ref = 'proxy:' || p.id)
+                ORDER BY (SELECT count(*) FROM crawl_identities c
+                          WHERE c.egress_ref = 'proxy:' || p.id) ASC,
+                         p.id ASC
+                LIMIT 1
+                """, (source,))
+            r = cur.fetchone()
+            if r is None:
+                _event(cur, ident_id, "note", "egress assignment: pool dry")
+                return None
+            chosen = r[0]
+        egress_ref = f"proxy:{chosen}"
+        cur.execute("UPDATE crawl_identities SET egress_ref=%s, updated_at=now() "
+                    "WHERE id=%s", (egress_ref, ident_id))
+        _event(cur, ident_id, "note", f"egress assigned {egress_ref}")
+        return egress_ref
+
+
+def rebind_egress(conn, source, account_alias, *, proxy_id=None):
+    """Explicit rebind (pool re-selection or a chosen proxy)."""
+    with conn, conn.cursor() as cur:
+        cur.execute("SELECT id FROM crawl_identities WHERE source=%s AND account_alias=%s",
+                    (source, account_alias))
+        row = cur.fetchone()
+        if row is None:
+            return None
+        cur.execute("UPDATE crawl_identities SET egress_ref=NULL, updated_at=now() "
+                    "WHERE id=%s", (row[0],))
+        _event(cur, row[0], "note", "egress unbound for rebind")
+    return assign_egress(conn, source, account_alias, proxy_id=proxy_id)
+
+
+def resolve_egress(conn, egress_ref):
+    """egress_ref -> {proxy_url, proxy_id}; None for unbound/unknown."""
+    if not (egress_ref or "").startswith("proxy:"):
+        return None
+    pid = egress_ref.split(":", 1)[1]
+    with conn.cursor() as cur:
+        cur.execute("SELECT scheme, auth, ip, port FROM proxies "
+                    "WHERE id=%s AND retired_at IS NULL", (pid,))
+        row = cur.fetchone()
+    if row is None:
+        return None
+    d = dict(zip(("scheme", "auth", "ip", "port"), row))
+    d["proxy_id"] = int(pid)
+    d["proxy_url"] = _proxy_url(d)
+    return d
