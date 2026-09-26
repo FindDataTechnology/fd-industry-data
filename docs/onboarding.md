@@ -38,3 +38,25 @@
 - scrapyd 线（law/concept）：联邦成员，报到即可，不迁移。
 - 触发例外（立即跑/回填/临时改频）：Console 或 `platform_trigger` 写
   `pending_runs`，目标站点 dispatcher 认领执行——永不直达执行节点。
+
+## 从 harness 生成源（fd-scraw-harness → 落仓通道）
+
+发现工作台的产出可一键落仓，替代手工复制+对齐：
+
+```
+harness discover/analyze/generate/approve
+        |
+        v  export_manifest  (v2 对齐：version=2、无调度字段、附 spider 路径/内容)
+        v
+python3 scripts/land_source.py <manifest.yaml> <spider.py>
+        |  本地三件检查（validate_manifests / conformance gate / py_compile）
+        v  全绿才 commit，红则原子拒绝（不留半成品）
+git push  ->  Jenkins gate  ->  Console 待点亮可见
+        |
+        v  platform_trigger 试跑（看 crawl_runs 产出）
+        v  补 schedule 提交 = 点亮（独立提交，人控节奏）
+```
+
+要点：落仓用工作区既有 git 凭据（平台组件保持只读）；落仓永远不点亮
+（schedule 会被剥除并提示）；spider 必须带 `run_<src>(limit)` 入口（缺即拒，
+模板见 `templates/new-source/`）。契约由内容仓单方裁决，harness 只是适配。
