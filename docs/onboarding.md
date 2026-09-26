@@ -77,3 +77,10 @@ Fernet 加密存 RustFS platform-sessions bucket（密钥 k8s secret platform-se
 产出骤降推断）；Console `/panel/auth` 看身份矩阵/需登录队列/事件流，MCP `auth_status/
 auth_events/auth_request_login` 供 agent 操作。登录单元自动化程度按源声明（rmfyalk=人辅助
 OAuth；auth-smoke=自动测试单元模板）。
+### Console 内登录（login-station-console，默认路径）
+
+上述第 2 步的登录现在默认在 Console 完成：`/panel/auth` 面板「新建账号」（自动分配独立
+出口 proxy）→ 对 login_required 身份点「登录」→ 页内观察窗（集群登录站 headful 浏览器，
+经 panel 反代、零公网暴露）→ 人辅助滑块/全自动单元完成 → 会话入池、身份 active → 后续
+爬取自动租借该身份并走同一出口。MCP `auth_launch_login` 可代拉起。需要操作员家 IP 的源
+（如 wenshu）仍走本机 `scripts/login_session.py`（面板标注不提供站内登录）。
