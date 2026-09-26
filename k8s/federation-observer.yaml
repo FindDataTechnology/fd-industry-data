@@ -1,0 +1,81 @@
+# Federation observer (crawl-platform 6.1/6.2): mirrors finished Jobs of the
+# legacy law line (scraw ns) into central crawl_runs, kind='federation'.
+# Read-only for the legacy line — zero touch on its workloads.
+#
+# Deploy on xinru-master (the cluster hosting the legacy CronJobs):
+#   1) one-time secret (value = central PG url, same as tencent fd-industry-db):
+#      sudo k3s kubectl -n scraw create secret generic federation-db \
+#        --from-literal=url='postgresql://fd:...@10.0.0.9:30432/fd_open_data'
+#   2) set the image tag below to the current fd-industry-runner sha, then:
+#      sudo k3s kubectl apply -f federation-observer.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: federation-observer
+  namespace: scraw
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: federation-observer
+  namespace: scraw
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: federation-observer
+  namespace: scraw
+subjects:
+  - kind: ServiceAccount
+    name: federation-observer
+    namespace: scraw
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: federation-observer
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: federation-observer
+  namespace: scraw
+  labels:
+    fd-industry/component: federation-observer
+spec:
+  schedule: "*/15 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 300
+      backoffLimit: 1
+      template:
+        spec:
+          serviceAccountName: federation-observer
+          restartPolicy: Never
+          containers:
+            - name: observer
+              image: 100.64.0.8:30880/finddata/fd-industry-runner:sha-2fd6fef
+              command: ["python3", "-m", "fd_industry_data.federation_observer"]
+              env:
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+                - name: FED_NAMESPACE
+                  value: scraw
+                - name: FD_CRAWL_DB_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: federation-db
+                      key: url
+              resources:
+                limits:
+                  memory: 128Mi
+                  cpu: 200m
+                requests:
+                  memory: 64Mi
+                  cpu: 50m
