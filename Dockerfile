@@ -40,7 +40,8 @@ COPY fd_industry_data/ ./fd_industry_data/
 COPY spiders/ ./spiders/
 RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple \
         . psycopg2-binary pyyaml cryptography minio playwright \
-    && python3 -m playwright install --with-deps chromium
+    && PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright \
+       python3 -m playwright install --with-deps chromium
 ENTRYPOINT ["fd-runner"]
 
 FROM runner AS scan
