@@ -188,7 +188,9 @@ def request_login(conn, source: str, account_alias: str, *,
             """INSERT INTO crawl_identities (source, account_alias, automation,
                  credentials_secret_ref)
                VALUES (%s,%s,%s,%s)
-               ON CONFLICT (source, account_alias) DO NOTHING""",
+               ON CONFLICT (source, account_alias) DO UPDATE SET
+                 status = 'login_required', lease_owner = NULL, lease_token = NULL,
+                 lease_expires_at = NULL, updated_at = now()""",
             (source, account_alias, automation, credentials_secret_ref))
         cur.execute("SELECT id FROM crawl_identities WHERE source=%s AND account_alias=%s",
                     (source, account_alias))
