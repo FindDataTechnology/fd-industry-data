@@ -60,7 +60,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: observer
-              image: 100.64.0.8:30880/finddata/fd-industry-runner:sha-2fd6fef
+              image: 100.64.0.8:30880/finddata/fd-industry-runner:sha-b9e009d
               command: ["python3", "-m", "fd_industry_data.federation_observer"]
               env:
                 - name: PYTHONUNBUFFERED
