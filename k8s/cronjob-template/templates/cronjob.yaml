@@ -72,6 +72,8 @@ spec:
                     secretKeyRef:
                       name: {{ .Values.dbSecret | default "fd-industry-db" }}
                       key: url
+                - name: FD_SCHEMA_MANAGED
+                  value: "1"
               resources:
                 limits:
                   memory: {{ .Values.memoryLimit | default "384Mi" }}
