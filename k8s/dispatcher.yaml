@@ -32,7 +32,7 @@ spec:
             # Same image as the dispatcher: it ships git, and the node only
             # needs to pull one image (public mirrors are unreachable from chengsi).
             - name: checkout
-              image: &image 100.64.0.8:30880/finddata/fd-industry-runner:sha-dd43fed
+              image: &image 100.64.0.8:30880/finddata/fd-industry-runner:sha-8eee77b
               env:
                 - name: GITEE_TOKEN
                   valueFrom:
@@ -77,6 +77,26 @@ spec:
                     secretKeyRef:
                       name: fd-industry-db
                       key: url
+                - name: RUSTFS_ENDPOINT
+                  valueFrom:
+                    secretKeyRef:
+                      name: fd-industry-rustfs
+                      key: endpoint
+                - name: RUSTFS_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: fd-industry-rustfs
+                      key: access-key
+                - name: RUSTFS_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: fd-industry-rustfs
+                      key: secret-key
+                - name: PLATFORM_SESSION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: platform-session-key
+                      key: key
               resources:
                 limits:
                   memory: 256Mi
