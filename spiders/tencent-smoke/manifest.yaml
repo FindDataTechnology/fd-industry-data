@@ -1,0 +1,18 @@
+version: '2'
+name: tencent-smoke
+label: Tencent site dispatch probe (trigger-only, no network)
+source_url: https://internal.example/none
+scanner_mode: upstream-curated
+ranking_seed:
+- 0.5
+- 0.5
+functions:
+- command: get_tencent_smoke
+  description: Return one row with hostname and timestamp (no network)
+  frequency: on_demand
+  columns:
+  - name: host
+    type: str
+    description: Hostname of the executing site
+concepts: []
+entities: []
