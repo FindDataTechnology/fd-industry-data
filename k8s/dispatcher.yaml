@@ -32,7 +32,7 @@ spec:
             # Same image as the dispatcher: it ships git, and the node only
             # needs to pull one image (public mirrors are unreachable from chengsi).
             - name: checkout
-              image: &image 100.64.0.8:30880/finddata/fd-industry-runner:sha-d6f03b2
+              image: &image 100.64.0.8:30880/finddata/fd-industry-runner:sha-dd43fed
               env:
                 - name: GITEE_TOKEN
                   valueFrom:
@@ -59,6 +59,8 @@ spec:
               workingDir: /content
               env:
                 - name: PYTHONUNBUFFERED
+                  value: "1"
+                - name: FD_SCHEMA_MANAGED
                   value: "1"
                 - name: FD_DISPATCH_SITE
                   value: tencent
