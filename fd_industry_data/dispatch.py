@@ -88,6 +88,8 @@ def connect(url: str | None = None):
 
 def ensure_schema(conn) -> None:
     """Idempotent DDL + seed sites from the packaged registry (same style as writer)."""
+    if os.environ.get("FD_SCHEMA_MANAGED", "") == "1":
+        return  # deploy-managed schema; the runtime role has DML rights only
     sites = [
         (s["id"], s.get("description", ""), s.get("kind", "docker"))
         for s in load_sites().values()

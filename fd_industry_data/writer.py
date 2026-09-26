@@ -66,6 +66,9 @@ def _ensure_schema_once(cur) -> None:
     central DB, so per-process once is enough.
     """
     global _schema_done
+    if os.environ.get("FD_SCHEMA_MANAGED", "") == "1":
+        _schema_done = True  # schema is deploy-managed; runtime holds no DDL rights
+        return
     if not _schema_done:
         cur.execute(_SCHEMA)
         _schema_done = True
