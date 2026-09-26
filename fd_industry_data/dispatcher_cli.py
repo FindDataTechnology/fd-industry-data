@@ -12,6 +12,7 @@ Env: FD_DISPATCH_SITE (default tencent), FD_DISPATCH_MAX_RUNS (default 5),
 """
 from __future__ import annotations
 
+import json
 import os
 import socket
 import subprocess
@@ -47,6 +48,8 @@ def main() -> int:
     expired = dispatch.expire_leases(conn)
     if expired:
         print(f"fd-dispatcher: expired {expired} stale lease(s)")
+    from . import auth as _auth
+    _auth.expire_leases(conn)
     dispatch.heartbeat_site(conn, site)
 
     done = 0
@@ -77,6 +80,37 @@ def main() -> int:
         env = {**os.environ, "FD_PENDING_RUN_ID": str(row["id"])}
         cmd = [sys.executable, "-m", "fd_industry_data.runner_cli", src,
                "--limit", str(limit)]
+
+        ident = None
+        jar_path = None
+        with conn.cursor() as cur:
+            cur.execute("SELECT auth_profile FROM crawl_sources WHERE source=%s", (src,))
+            prof = cur.fetchone()
+        if prof and prof[0]:
+            ident = _auth.lease_identity(conn, src, claimed_by)
+            if ident is None:
+                dispatch.finish_pending(
+                    conn, row["id"], run_id=None, status="failed",
+                    error_head="auth pool dry: no active unleased identity")
+                print(f"fd-dispatcher: skipped #{row['id']} {src}, auth pool dry")
+                done += 1
+                continue
+            try:
+                jar = _auth.fetch_jar(ident["session_ref"]) if ident["session_ref"] else {}
+                jar_path = f"/tmp/session-{ident['account_alias']}.json"
+                with open(jar_path, "w") as f:
+                    json.dump(jar, f)
+                env["FD_ACCOUNT"] = ident["account_alias"]
+                env["FD_SESSION_JAR_PATH"] = jar_path
+                print(f"fd-dispatcher: leased identity '{ident['account_alias']}' "
+                      f"for {src}")
+            except Exception as e:  # noqa: BLE001 - jar problems free the lease
+                _auth.release_identity(conn, ident["id"], ident["lease_token"],
+                                       success=False)
+                ident = None
+                print(f"fd-dispatcher: session jar unavailable for {src}: {e}",
+                      file=sys.stderr)
+
         try:
             proc = subprocess.run(cmd, env=env)
             run_id, run_status = _lookup_run(conn, row["id"])
@@ -85,6 +119,22 @@ def main() -> int:
             dispatch.finish_pending(conn, row["id"], run_id=run_id, status=pending_status,
                            error_head=None if run_status in ("success", "cancelled")
                            else f"runner exit {proc.returncode}")
+            if ident is not None:
+                ok = run_status == "success"
+                _auth.release_identity(conn, ident["id"], ident["lease_token"],
+                                       success=ok)
+                if run_id is not None:
+                    with conn.cursor() as cur:
+                        cur.execute("SELECT rows_written FROM crawl_runs WHERE id=%s",
+                                    (run_id,))
+                        r = cur.fetchone()
+                    _auth.record_run_outcome(conn, ident["id"],
+                                             r[0] if r else 0)
+            if jar_path:
+                try:
+                    os.unlink(jar_path)
+                except OSError:
+                    pass
             print(f"fd-dispatcher: #{row['id']} {src} -> {pending_status} "
                   f"(crawl_runs #{run_id})")
         except Exception as e:  # noqa: BLE001 - one bad row must not kill the loop

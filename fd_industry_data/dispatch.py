@@ -219,7 +219,8 @@ def sync_sources(conn, content_dir: str) -> int:
             continue
         site = data.get("site") or DEFAULT_SITE
         rows.append((str(data["name"]), site, data.get("schedule") or None,
-                     bool(data.get("enabled", True))))
+                     bool(data.get("enabled", True)),
+                     (data.get("auth_profile") or None)))
     commit = ""
     commit_file = os.environ.get("FD_CONTENT_COMMIT", "")
     if commit_file and os.path.isfile(commit_file):
@@ -228,13 +229,15 @@ def sync_sources(conn, content_dir: str) -> int:
         except OSError:
             pass
     with conn, conn.cursor() as cur:
-        for source, site, schedule, enabled in rows:
+        for source, site, schedule, enabled, auth_profile in rows:
             cur.execute(
-                """INSERT INTO crawl_sources (source, site, schedule, enabled, last_commit)
-                   VALUES (%s,%s,%s,%s,%s)
+                """INSERT INTO crawl_sources (source, site, schedule, enabled,
+                     auth_profile, last_commit)
+                   VALUES (%s,%s,%s,%s,%s,%s)
                    ON CONFLICT (source) DO UPDATE SET
                      site = EXCLUDED.site, schedule = EXCLUDED.schedule,
                      enabled = EXCLUDED.enabled,
+                     auth_profile = EXCLUDED.auth_profile,
                      last_commit = CASE WHEN EXCLUDED.last_commit = ''
                                    THEN crawl_sources.last_commit ELSE EXCLUDED.last_commit END,
                      updated_at = now()""",

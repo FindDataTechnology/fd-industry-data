@@ -111,12 +111,13 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError:
             pending_run_id = None
 
+    account = os.environ.get("FD_ACCOUNT") or None
     run_id = None
     if not args.dry_run:
         run_id = start_run(
             source=src, commit_sha=_commit_sha(),
             image_tag=os.environ.get("FD_IMAGE_TAG", "unknown"),
-            pending_run_id=pending_run_id,
+            pending_run_id=pending_run_id, identity_alias=account,
         )
         if run_id is not None and (other := open_run_for(src)) not in (None, run_id):
             # lost the start race: another run opened between guard and start
@@ -143,6 +144,17 @@ def main(argv: list[str] | None = None) -> int:
         traceback.print_exc()
     finished = time.time()
 
+    if status == "failed" and account and _looks_like_auth_failure(error_head):
+        # dual-path feedback, runner side: return the identity to the pool
+        try:
+            from . import auth as _auth
+            from .dispatch import connect as _connect
+            _auth.report_auth_failed(_connect(), src, account,
+                                     f"runner heuristic: {error_head}")
+            print(f"fd-runner: auth failure reported for account '{account}'")
+        except Exception as e:  # noqa: BLE001 - never mask the crawl result
+            print(f"fd-runner: auth event report failed: {e}", file=sys.stderr)
+
     if not args.dry_run:
         ok = False
         if run_id is not None:
@@ -164,6 +176,17 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"fd-runner: {src} -> {status} rows={rows} in {finished - started:.1f}s")
     return EXIT_OK if status == "success" else EXIT_ADAPTER_ERROR
+
+
+_AUTH_FAILURE_RE = ("401", "未登录", "login required", "please log in",
+                    "captcha", "验证码", "登录失效", "session expired")
+
+
+def _looks_like_auth_failure(error_head) -> bool:
+    if not error_head:
+        return False
+    head = error_head.lower()
+    return any(k in head for k in _AUTH_FAILURE_RE)
 
 
 def _watch_cancel(run_id: int) -> None:

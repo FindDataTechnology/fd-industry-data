@@ -64,6 +64,10 @@ def validate(manifest_path: Path) -> list[str]:
     if enabled is not None and not isinstance(enabled, bool):
         errs.append(f"{manifest_path}: enabled must be a bool, got {enabled!r}")
 
+    profile = data.get("auth_profile")
+    if profile is not None and (not isinstance(profile, str) or not profile.strip()):
+        errs.append(f"{manifest_path}: auth_profile must be a non-empty name when present")
+
     site = data.get("site")
     if site is not None:
         if not isinstance(site, str) or not site.strip():

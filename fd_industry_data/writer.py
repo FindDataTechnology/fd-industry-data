@@ -75,7 +75,7 @@ def _ensure_schema_once(cur) -> None:
 
 
 def start_run(*, source, kind="runtime", commit_sha, image_tag,
-              pending_run_id=None) -> int | None:
+              pending_run_id=None, identity_alias=None) -> int | None:
     """Insert a `running` crawl_runs row; returns its id (None on failure).
 
     Two-phase counterpart of report_run: single-flight guards and cancel
@@ -94,10 +94,11 @@ def start_run(*, source, kind="runtime", commit_sha, image_tag,
                 cur.execute(
                     """INSERT INTO crawl_runs
                        (source, kind, status, started_at, commit_sha, image_tag,
-                        pending_run_id)
-                       VALUES (%s,%s,'running',to_timestamp(%s),%s,%s,%s)
+                        pending_run_id, identity_alias)
+                       VALUES (%s,%s,'running',to_timestamp(%s),%s,%s,%s,%s)
                        RETURNING id""",
-                    (source, kind, time.time(), commit_sha, image_tag, pending_run_id),
+                    (source, kind, time.time(), commit_sha, image_tag,
+                     pending_run_id, identity_alias),
                 )
                 return cur.fetchone()[0]
         except Exception as e:  # noqa: BLE001 - reporting must never break the crawl
