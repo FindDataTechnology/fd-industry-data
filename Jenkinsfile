@@ -71,4 +71,19 @@ pipeline {
             }
         }
     }
+    post {
+        always {
+            sh '''#!/bin/bash
+                imgs=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep '^100.64.0.8:30880/' || true)
+                if [ -n "$imgs" ]; then
+                    echo "post-build cleanup: removing local build images:"
+                    echo "$imgs"
+                    echo "$imgs" | xargs -r docker rmi >/dev/null 2>&1 || true
+                fi
+                docker container prune -f >/dev/null 2>&1 || true
+                docker image prune -f >/dev/null 2>&1 || true
+                docker builder prune -a -f --filter until=24h >/dev/null 2>&1 || true
+            '''
+        }
+    }
 }
