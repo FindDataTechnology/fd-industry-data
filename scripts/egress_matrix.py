@@ -31,6 +31,16 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 SPIDERS = REPO / "spiders"
 OUT_DIR = REPO / "output" / "egress-matrix"
+
+
+def set_dirs(spiders: str | None, out: str | None) -> None:
+    """Allow bind-mounted runs (image ships spiders/, not scripts/)."""
+    global SPIDERS, OUT_DIR
+    if spiders:
+        SPIDERS = Path(spiders)
+    if out:
+        OUT_DIR = Path(out)
+        OUT_DIR.mkdir(parents=True, exist_ok=True)
 PROBE_TIMEOUT_S = 10
 SAME_HOST_GAP_S = 2.0
 DEFAULT_BUDGET_S = 600
@@ -218,7 +228,10 @@ def main() -> int:
                     help="combine site shards into matrix + report")
     ap.add_argument("--budget", type=int, default=DEFAULT_BUDGET_S,
                     help="wall-clock budget per site round (s)")
+    ap.add_argument("--spiders", help="spiders/ dir override (bind mounts)")
+    ap.add_argument("--out", help="output dir override (bind mounts)")
     args = ap.parse_args()
+    set_dirs(args.spiders, args.out)
     if args.merge:
         merge()
         return 0

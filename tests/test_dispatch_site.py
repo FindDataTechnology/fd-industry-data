@@ -85,3 +85,44 @@ def test_heartbeat_touches_last_seen_for_site():
     sql, params = conn.executed[0]
     assert "UPDATE crawl_sites SET last_seen_at" in sql
     assert params == ("zihan",)
+
+
+# --- schedule-driven enqueue (tencent-crawl-fleet-expansion 4.3) ---
+
+from fd_industry_data.dispatch import cron_matches  # noqa: E402
+
+
+def test_cron_everyday_daily():
+    # "19 4 * * *" — daily 04:19; 04:19 matches, 04:20 does not
+    assert cron_matches("19 4 * * *", 19, 4, 29, 9, 1)
+    assert not cron_matches("19 4 * * *", 20, 4, 29, 9, 1)
+
+
+def test_cron_step_minutes():
+    # "*/5 * * * *" matches any 5-min boundary
+    assert cron_matches("*/5 * * * *", 15, 7, 1, 1, 2)
+    assert not cron_matches("*/5 * * * *", 17, 7, 1, 1, 2)
+
+
+def test_cron_weekday_window():
+    # "27 4 * * 1-5" — weekdays only; Wed(2) ok, Sat(5) no
+    assert cron_matches("27 4 * * 1-5", 27, 4, 30, 9, 2)
+    assert not cron_matches("27 4 * * 1-5", 27, 4, 26, 9, 5)
+
+
+def test_cron_monthly_day():
+    # "37 4 6 * *" — the 6th of any month
+    assert cron_matches("37 4 6 * *", 37, 4, 6, 3, 0)
+    assert not cron_matches("37 4 6 * *", 37, 4, 7, 3, 0)
+
+
+def test_cron_dom_dow_or_rule():
+    # "0 0 1 * 1" — 1st of month OR any Monday (vixie OR rule)
+    assert cron_matches("0 0 1 * 1", 0, 0, 1, 9, 3)   # 1st, not Monday
+    assert cron_matches("0 0 1 * 1", 0, 0, 8, 9, 0)   # Monday, not 1st
+    assert not cron_matches("0 0 1 * 1", 0, 0, 9, 9, 2)  # neither
+
+
+def test_cron_bad_expr_never_matches():
+    assert not cron_matches("not a cron", 0, 0, 1, 1, 0)
+    assert not cron_matches("* * * *", 0, 0, 1, 1, 0)

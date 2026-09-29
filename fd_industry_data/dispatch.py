@@ -15,6 +15,7 @@ failures never break the crawl; queue failures raise to the caller.
 from __future__ import annotations
 
 import os
+from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
 
 from .sites import DEFAULT_SITE, load_sites
@@ -204,6 +205,95 @@ def heartbeat_site(conn, site: str) -> None:
     """Touch crawl_sites.last_seen_at so the console can show site staleness."""
     with conn, conn.cursor() as cur:
         cur.execute("UPDATE crawl_sites SET last_seen_at = now() WHERE id = %s", (site,))
+
+
+# ---------------------------------------------------------------------------
+# Schedule-driven enqueue for docker sites. k8s-site sources get their cadence
+# from AppSet CronJobs; docker sites have no cluster scheduler, so the local
+# dispatcher tick evaluates crawl_sources.schedule itself and queues due runs.
+# ---------------------------------------------------------------------------
+
+def _cron_field(field: str, value: int, lo: int, hi: int) -> bool:
+    """One 5-field cron field: '*', 'n', '*/s', 'a-b', comma lists of those."""
+    if field == "*":
+        return True
+    for part in field.split(","):
+        step = 1
+        if "/" in part:
+            part, step_s = part.split("/", 1)
+            step = int(step_s)
+        if part == "*":
+            start, end = lo, hi
+        elif "-" in part:
+            a, b = part.split("-", 1)
+            start, end = int(a), int(b)
+        else:
+            start = end = int(part)
+            if step != 1:  # '5/10' == '5-hi/10' in vixie cron
+                end = hi
+        if start <= value <= end and (value - start) % step == 0:
+            return True
+    return False
+
+
+def cron_matches(expr: str, minute: int, hour: int, dom: int, month: int,
+                 dow: int) -> bool:
+    """Vixie-style match with the standard dom/dow OR rule (either restricted
+    field matching satisfies the day)."""
+    f = expr.split()
+    if len(f) != 5:
+        return False
+    if not (_cron_field(f[0], minute, 0, 59) and _cron_field(f[1], hour, 0, 23)
+            and _cron_field(f[3], month, 1, 12)):
+        return False
+    dom_f, dow_f = f[2], f[4]
+    dom_restricted, dow_restricted = dom_f != "*", dow_f != "*"
+    dom_ok = _cron_field(dom_f, dom, 1, 31)
+    # Python weekday (Mon=0) -> cron dow (Sun=0)
+    dow_ok = _cron_field(dow_f, (dow + 1) % 7, 0, 6)
+    if dom_restricted and dow_restricted:
+        return dom_ok or dow_ok
+    return dom_ok and dow_ok
+
+
+def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
+    """Queue one run per due scheduled source of a docker site.
+
+    Due = the schedule matched any 5-minute boundary within the grace window
+    AND no open/recent run covers it (pending/claimed row, or a crawl_runs
+    row newer than the window start). Returns the enqueued source names.
+    """
+    now = datetime.now(timezone.utc)
+    enqueued: list[str] = []
+    with conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT source, schedule FROM crawl_sources "
+            "WHERE site = %s AND enabled AND schedule IS NOT NULL", (site,))
+        for source, schedule in cur.fetchall() or []:
+            due = False
+            for back in range(0, window_minutes + 1, 5):
+                t = now - timedelta(minutes=back)
+                if cron_matches(schedule, t.minute, t.hour, t.day, t.month,
+                                t.weekday()):
+                    due = True
+                    break
+            if not due:
+                continue
+            cur.execute(
+                "SELECT 1 FROM pending_runs WHERE source = %s AND site = %s "
+                "AND status IN ('pending', 'claimed') LIMIT 1", (source, site))
+            if cur.fetchone():
+                continue
+            cur.execute(
+                "SELECT 1 FROM crawl_runs WHERE source = %s AND started_at > %s "
+                "LIMIT 1", (source, now - timedelta(minutes=window_minutes)))
+            if cur.fetchone():
+                continue
+            queue_run(conn, source, site=site,
+                      requested_by="schedule-tick",
+                      known_sources=None)
+            enqueued.append(source)
+    return enqueued
 
 
 def sync_sources(conn, content_dir: str) -> int:

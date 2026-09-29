@@ -51,6 +51,12 @@ def main() -> int:
     from . import auth as _auth
     _auth.expire_leases(conn)
     dispatch.heartbeat_site(conn, site)
+    from .sites import load_sites
+    if load_sites().get(site, {}).get("kind") == "docker":
+        due = dispatch.enqueue_due(conn, site)
+        if due:
+            print(f"fd-dispatcher: schedule enqueued {len(due)} due run(s): "
+                  + ", ".join(due))
 
     done = 0
     while done < max_runs:
