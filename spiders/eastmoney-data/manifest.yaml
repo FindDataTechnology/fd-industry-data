@@ -1,3 +1,5 @@
+schedule: "35 4 * * *"
+site: xinru-server2
 # fd-open-data-protocol compliant manifest
 
 name: eastmoney-data

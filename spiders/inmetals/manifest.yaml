@@ -1,4 +1,7 @@
 version: '1'
+schedule: "51 4 * * *"
+site: zihan
+
 name: inmetals
 label: Inmetals Metal Prices
 source_url: https://www.inmetals.com

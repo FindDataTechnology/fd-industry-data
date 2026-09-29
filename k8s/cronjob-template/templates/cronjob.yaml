@@ -1,13 +1,16 @@
 {{- /*
 Rendered once per data source by the fd-industry ApplicationSet.
-`source`/`schedule`/`memoryLimit`/`cpuLimit` come from the source's
+`source`/`schedule`/`memoryLimit`/`cpuLimit`/`site` come from the source's
 spiders/<src>/manifest.yaml (flat v2 fields); `image`, `namespace`,
 `gitTokenSecret` and DB wiring come from the ApplicationSet template.
 A source without a `schedule` renders zero resources (silent by design).
+A source routed to a non-tencent (docker) site renders nothing here — its
+cadence is owned by that site's dispatcher tick, never by a cluster CronJob.
 Absent manifest fields arrive via `helm --set` as the literal "<no value>",
 so both empty and that sentinel must mean "off".
 */ -}}
-{{- if and .Values.schedule (ne .Values.schedule "<no value>") }}
+{{- $site := .Values.site | default "tencent" }}
+{{- if and .Values.schedule (ne .Values.schedule "<no value>") (eq $site "tencent") }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:

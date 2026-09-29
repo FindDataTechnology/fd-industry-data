@@ -1,4 +1,7 @@
 version: '1'
+schedule: "59 4 * * *"
+site: zihan
+
 name: metal-com
 label: Metal.com Nonferrous Metals
 source_url: https://www.metal.com

@@ -1,4 +1,7 @@
 version: '1'
+schedule: "55 4 * * *"
+site: xinru-server1
+
 name: kitco
 label: Kitco Precious Metals
 source_url: https://www.kitco.com

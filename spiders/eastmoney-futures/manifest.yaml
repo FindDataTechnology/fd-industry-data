@@ -1,3 +1,5 @@
+schedule: "39 4 * * *"
+site: xinru-server1
 # fd-open-data-protocol compliant manifest
 # MCP integration metadata
 
