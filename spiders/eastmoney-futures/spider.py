@@ -153,9 +153,12 @@ def parse_payload(text: str, url: str = "") -> List[Dict[str, Any]]:
     return records
 
 
-def run_spider(urls: Optional[List[str]] = None, save_results: bool = True) -> List[Dict[str, Any]]:
-    urls = urls or START_URLS
-    urls = urls[:MAX_URLS_PER_RUN]
+def _crawl_records(
+    urls: List[str],
+    save_results: bool = True,
+    max_records: int = MAX_RECORDS_PER_RUN,
+) -> List[Dict[str, Any]]:
+    """Core fetch/parse loop shared by ``run_spider`` and the dispatch entry."""
     all_records: List[Dict[str, Any]] = []
     logger.info("Starting spider for {} URL(s)...".format(len(urls)))
     logger.info("Target: {}".format(urls[0]))
@@ -182,7 +185,7 @@ def run_spider(urls: Optional[List[str]] = None, save_results: bool = True) -> L
                         }
                         records = [parsed_data]
                         logger.warning("No data rows from {}, metadata fallback only".format(url))
-                    records = records[:MAX_RECORDS_PER_RUN]
+                    records = records[:max_records]
                     all_records.extend(records)
                     if save_results:
                         save_to_sqlite(records)
@@ -199,6 +202,25 @@ def run_spider(urls: Optional[List[str]] = None, save_results: bool = True) -> L
         time.sleep(REQUEST_DELAY)
     logger.info("Spider completed. Total records: {}".format(len(all_records)))
     return all_records
+
+
+def run_spider(urls: Optional[List[str]] = None, save_results: bool = True) -> List[Dict[str, Any]]:
+    urls = urls or START_URLS
+    urls = urls[:MAX_URLS_PER_RUN]
+    return _crawl_records(urls, save_results=save_results, max_records=MAX_RECORDS_PER_RUN)
+
+
+def run_eastmoney_futures(limit: int = 100) -> List[Dict[str, Any]]:
+    """Entry point for fd-open-data-protocol dispatch (``fd-runner eastmoney-futures --limit N``).
+
+    Reuses the ``run_spider`` fetch loop (Referer/UA headers, retries, delays)
+    but does not write the local sqlite/jsonl artifacts: the runtime checks
+    ``spiders/`` out read-only (git sparse-checkout) and persists the returned
+    items in the central DB itself.
+    """
+    return _crawl_records(
+        START_URLS[:MAX_URLS_PER_RUN], save_results=False, max_records=limit
+    )[:limit]
 
 
 if __name__ == "__main__":

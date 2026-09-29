@@ -624,10 +624,10 @@ class InmetalsSpider(Spider):
 
 
 
-def run_inmetals(urls=None, save=True):
-    """Run the inmetals spider. Returns True on success."""
-    spider = InmetalsSpider()
-    return spider.run_spider(urls=urls, save=save)
+def run_inmetals(limit: int = 100) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch."""
+    from fd_industry_data.runners import run_scrapling_spider
+    return run_scrapling_spider(InmetalsSpider(), START_URLS, limit=limit)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")

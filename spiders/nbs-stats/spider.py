@@ -217,16 +217,18 @@ async def _fetch_nbs_indicator(
     url = _build_nbs_url(config["dbcode"], config["zbcode"], start_period)
     logger.info("Fetching NBS %s/%s: %s", category, indicator, url[:120])
 
-    session = FetcherSession(impersonate="chrome")
     try:
-        response = await session.fetch(
-            url,
-            headers={
-                "Referer": NBS_REFERER,
-                "Accept": "application/json, text/javascript, */*; q=0.01",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-        )
+        # FetcherSession is a factory context manager in scrapling 0.4.x: the
+        # yielded session (not the manager) carries the .get() method.
+        async with FetcherSession(impersonate="chrome") as session:
+            response = await session.get(
+                url,
+                headers={
+                    "Referer": NBS_REFERER,
+                    "Accept": "application/json, text/javascript, */*; q=0.01",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            )
     except Exception as e:
         logger.warning("NBS fetch failed: %s", e)
         return []
@@ -416,6 +418,49 @@ def get_price_indices(start_year: int = 2010) -> list[dict[str, Any]]:
     """Fetch CPI/PPI data from NBS."""
     results = asyncio.run(get_nbs_data(["price_indices"], start_year))
     return results.get("price_indices", [])
+
+
+def run_nbs_stats(limit: int = 100) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch (``fd-runner nbs-stats``).
+
+    This source polls the NBS easyquery JSON API per (category, indicator):
+    ``NbsStatsSpider`` has no static ``start_urls`` (query URLs are built with
+    a cache-busting timestamp) and its ``parse()`` needs per-request meta, so
+    the shared ``run_scrapling_spider`` helper does not fit. This drives
+    ``_fetch_nbs_indicator`` directly with the same semantics: per-request
+    errors are logged and skipped, the cooperative cancel event is honored,
+    and fetching stops once ``limit`` records are collected.
+    """
+    from fd_industry_data.cancel_event import is_set as cancel_set
+
+    items: list[dict[str, Any]] = []
+
+    async def fetch_all():
+        for category, cat_config in INDICATOR_CATEGORIES.items():
+            for indicator in cat_config:
+                if cancel_set():
+                    logger.info(
+                        "cancel requested; stopping early with %d items kept",
+                        len(items),
+                    )
+                    return items
+                if len(items) >= limit:
+                    return items
+                fetched = await _fetch_nbs_indicator(
+                    category, indicator, NbsStatsSpider.start_year
+                )
+                if fetched:
+                    items.extend(fetched)
+                    logger.info(
+                        "run_nbs_stats: %d records for %s/%s",
+                        len(fetched),
+                        category,
+                        indicator,
+                    )
+                await asyncio.sleep(NbsStatsSpider.download_delay)
+        return items
+
+    return asyncio.run(fetch_all())[:limit]
 
 
 if __name__ == "__main__":

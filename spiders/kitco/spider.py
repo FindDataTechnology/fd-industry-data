@@ -624,10 +624,10 @@ class KitcoSpider(Spider):
 
 
 
-def run_kitco(urls=None, save=True):
-    """Run the kitco spider. Returns True on success."""
-    spider = KitcoSpider()
-    return spider.run_spider(urls=urls, save=save)
+def run_kitco(limit: int = 2000) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch."""
+    from fd_industry_data.runners import run_scrapling_spider
+    return run_scrapling_spider(KitcoSpider(), START_URLS, limit=limit)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")

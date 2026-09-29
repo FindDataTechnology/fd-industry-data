@@ -624,10 +624,10 @@ class MetalcomSpider(Spider):
 
 
 
-def run_metal_com(urls=None, save=True):
-    """Run the metal-com spider. Returns True on success."""
-    spider = MetalcomSpider()
-    return spider.run_spider(urls=urls, save=save)
+def run_metal_com(limit: int = 100) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch."""
+    from fd_industry_data.runners import run_scrapling_spider
+    return run_scrapling_spider(MetalcomSpider(), START_URLS, limit=limit)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run spider")
