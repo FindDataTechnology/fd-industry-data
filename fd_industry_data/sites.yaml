@@ -10,3 +10,12 @@ sites:
   - id: nbs-workers
     kind: docker
     description: NBS 四机 docker worker 舰队 — coordinator 认领 site=nbs-workers
+  - id: zihan
+    kind: docker
+    description: zihan docker worker — 与 fd-mcp 业务服务共存，限资源共享
+  - id: xinru-server1
+    kind: docker
+    description: xinru-server1 docker worker — 独立 k3s 空载，仅 docker 认领
+  - id: xinru-server2
+    kind: docker
+    description: xinru-server2 docker worker — 与 mihomo/gost/遗留 PG 共存，直连出口

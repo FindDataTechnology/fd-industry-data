@@ -135,8 +135,15 @@ def claim_next(conn, site: str, claimed_by: str, lease_seconds: int = 1800):
 
     Uses FOR UPDATE SKIP LOCKED so concurrent dispatchers of the same site
     never claim the same row; attempts increments on every claim so
-    expire_leases can cap retries.
+    expire_leases can cap retries. Unregistered site ids are refused loudly
+    (same contract as queue_run) instead of silently returning idle.
     """
+    sites = load_sites()
+    if site not in sites:
+        raise ValueError(
+            f"site {site!r} is not registered; known sites: "
+            + ", ".join(sorted(sites))
+        )
     with conn, conn.cursor() as cur:
         cur.execute(
             """
