@@ -2,7 +2,8 @@ name: flower-association
 version: 2.0
 description: China Flower Association news and data scraper
 source: https://www.chinaflower.org.cn
-# schedule withdrawn: spider.py has no run_ entry (runner contract); relight after adding run_flower_association
+source_url: https://www.chinaflower.org.cn
+# schedule empty (silent); run_flower_association entry now present — set a cron here to relight
 memory_limit: "256Mi"
 cpu_limit: "200m"
 author: FindData Official

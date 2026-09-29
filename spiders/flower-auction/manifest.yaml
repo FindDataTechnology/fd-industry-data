@@ -1,4 +1,7 @@
 version: "1"
+schedule: "07 5 * * *"
+site: zihan
+
 name: flower-auction
 label: 昆明国际花卉拍卖中心
 source_url: http://www.kifc.cn

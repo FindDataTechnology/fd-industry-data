@@ -2,6 +2,7 @@ name: flower-trading
 version: 1.0.0
 description: Kunming Flower Trading Center price and variety data scraper
 source: https://www.kunmingflower.com
+source_url: https://www.kunmingflower.com
 author: FindData Official
 license: MIT
 

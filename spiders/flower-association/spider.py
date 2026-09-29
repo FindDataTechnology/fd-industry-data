@@ -125,3 +125,50 @@ class FlowerAssociationSpider(Spider):
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump([dict(r) for r in rows], f, ensure_ascii=False, indent=2)
         self.logger.info(f"Exported {len(rows)} items to {output_path}")
+
+
+def run_flower_association(limit: int = 100) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch (``fd-runner flower-association --limit N``).
+
+    Mirrors ``parse``'s listing-level extraction without the async engine and
+    without writing the local sqlite/json artifacts: the runtime checks
+    ``spiders/`` out read-only and persists the returned items in the central
+    DB itself. Detail-page content is left empty; each record carries the
+    listing entry's url/title/date plus its section category.
+    """
+    from scrapling import Fetcher
+
+    items: list[dict] = []
+    fetcher = Fetcher(auto_match=False, impersonate="chrome")
+    spider = FlowerAssociationSpider()
+
+    for url in FlowerAssociationSpider.start_urls:
+        if len(items) >= limit:
+            break
+        try:
+            response = fetcher.get(url, timeout=30, stealthy_headers=True)
+            if response.status != 200:
+                continue
+            if spider._detect_page_type(url) != "listing":
+                continue  # home page only links to the listing sections
+            for item_elem in response.css("div.news-list li, div.list-item, ul.news-list li"):
+                title = item_elem.css("a::text").get("").strip()
+                link = item_elem.css("a::attr(href)").get("")
+                date = item_elem.css("span.date, span.time, em::text").get("").strip()
+                if not (title and link):
+                    continue
+                items.append({
+                    "url": response.urljoin(link),
+                    "title": title,
+                    "content": "",
+                    "publish_date": date,
+                    "source": "中国花卉协会",
+                    "category": spider._extract_category(url),
+                    "scraped_at": datetime.now().isoformat(),
+                })
+                if len(items) >= limit:
+                    break
+        except Exception:
+            pass
+
+    return items[:limit]

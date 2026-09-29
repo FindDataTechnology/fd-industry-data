@@ -184,3 +184,40 @@ class FlowerTradingSpider(Spider):
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump([dict(r) for r in rows], f, ensure_ascii=False, indent=2)
         self.logger.info(f"Exported {len(rows)} items to {output_path}")
+
+
+def run_flower_trading(limit: int = 100) -> list[dict]:
+    """Entry point for fd-open-data-protocol dispatch (``fd-runner flower-trading``).
+
+    Fetches the spider's start URLs and reuses its parse helpers
+    (``_parse_price_row`` / ``_parse_variety_card``) without writing the local
+    sqlite/json artifacts: the caller persists the returned items itself.
+    """
+    from scrapling import Fetcher
+
+    items: list[dict] = []
+    fetcher = Fetcher(auto_match=False, impersonate="chrome")
+    spider = FlowerTradingSpider()
+
+    for url in FlowerTradingSpider.start_urls:
+        try:
+            response = fetcher.get(url, timeout=30, stealthy_headers=True)
+            if response.status != 200:
+                continue
+            page_type = spider._detect_page_type(url)
+            if page_type == "price_list":
+                for row in response.css("table.price-table tr, div.price-item, div.trade-record"):
+                    parsed = spider._parse_price_row(row, response)
+                    if parsed:
+                        items.append(parsed)
+            elif page_type == "variety":
+                for card in response.css("div.variety-card, div.product-item, li.variety-item"):
+                    parsed = spider._parse_variety_card(card, response)
+                    if parsed:
+                        items.append(parsed)
+        except Exception:
+            pass
+        if len(items) >= limit:
+            break
+
+    return items[:limit]
