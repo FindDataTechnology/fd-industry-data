@@ -81,6 +81,7 @@ pipeline {
                     echo "$imgs" | xargs -r docker rmi >/dev/null 2>&1 || true
                 fi
                 docker container prune -f >/dev/null 2>&1 || true
+                docker image rm fd-industry-scan:"$IMAGE_TAG" fd-industry-gate:"$IMAGE_TAG" >/dev/null 2>&1 || true
                 docker image prune -f >/dev/null 2>&1 || true
                 docker builder prune -a -f --filter until=24h >/dev/null 2>&1 || true
             '''
