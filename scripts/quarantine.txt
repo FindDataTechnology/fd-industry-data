@@ -4,26 +4,11 @@
 # sources cannot pass admission and are flagged for repair; scheduling one
 # still runs it (and will record a failed run if it breaks).
 #
-# Reasons (2026-09-25, first in-image scan, 19/79):
-#   steel-*: NameError SOURCE_INFO undefined at module level (dead template code)
-#   github-*/nbs-stats-data: import DefaultFetcher (removed/never in scrapling 0.4 API)
-#   others: assorted drift from the current scrapling surface
-apipoer-open
-awesome-chinese-api
+# Reasons (2026-09-25, first in-image scan, 19/79; tencent-crawl-fleet-expansion
+# 2026-09-29: 17 of the 19 retired as catalog/duplicate/dead-template sources —
+# the steel-* family duplicated cisa/worldsteel, github-*/nbs-stats-data were
+# catalog listings; see openspec/changes/tencent-crawl-fleet-expansion).
+#   chinamonitor: assorted drift from the current scrapling surface (silent)
+#   flowers-yunnan: same drift; flower family kept silent pending user decision
 chinamonitor
-cn-gov-data
-data-science-china
-datacenter-org
 flowers-yunnan
-github-awesome-datasets
-github-china-blog
-github-china-data-hub
-github-china-topics
-github-chinese-datasets
-github-datasets-topic
-nbs-stats-data
-steel-assoc
-steel-exchange
-steel-info
-steel-market
-steel-statistics
