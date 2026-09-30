@@ -15,7 +15,12 @@
 # docker run does not work (host daemon cannot see pod paths). All checks
 # must ride the docker build context.
 
-FROM docker.m.daocloud.io/library/python:3.12-slim AS base
+# Base image and apt mirror are ARG-able: empty defaults = upstream sources
+# (GitHub Actions, US runners). CN build boxes pass
+#   --build-arg BASE_IMAGE=docker.m.daocloud.io/library/python:3.12-slim --build-arg APT_MIRROR=mirrors.tuna.tsinghua.edu.cn
+ARG BASE_IMAGE=python:3.12-slim
+FROM ${BASE_IMAGE} AS base
+ARG APT_MIRROR=""
 
 RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null; \
     sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list 2>/dev/null; \
