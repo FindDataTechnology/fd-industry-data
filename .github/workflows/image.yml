@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  REGISTRY: ccr.ccs.tencentyun.com
+  REGISTRY: hkccr.ccs.tencentyun.com
   NAMESPACE: finddata
   IMAGE_NAME: fd-industry-runner
   DOCKERFILE: Dockerfile
