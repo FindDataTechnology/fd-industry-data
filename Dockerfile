@@ -21,9 +21,12 @@
 ARG BASE_IMAGE=python:3.12-slim
 FROM ${BASE_IMAGE} AS base
 ARG APT_MIRROR=""
+ARG PIP_INDEX_URL=""
 
-RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null; \
-    sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list 2>/dev/null; \
+RUN if [ -n "$APT_MIRROR" ]; then \
+        sed -i "s|deb.debian.org|$APT_MIRROR|g" /etc/apt/sources.list.d/debian.sources 2>/dev/null; \
+        sed -i "s|deb.debian.org|$APT_MIRROR|g" /etc/apt/sources.list 2>/dev/null; \
+    fi; \
     apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
        xvfb x11vnc websockify novnc fonts-noto-cjk fonts-liberation \
@@ -34,7 +37,8 @@ WORKDIR /w
 COPY scripts/ scripts/
 COPY spiders/ spiders/
 COPY fd_industry_data/ ./fd_industry_data/
-RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple pyyaml \
+RUN PIP_FLAGS=""; [ -n "$PIP_INDEX_URL" ] && PIP_FLAGS="-i $PIP_INDEX_URL"; \
+    pip install --no-cache-dir $PIP_FLAGS pyyaml \
     && python3 scripts/validate_manifests.py \
     && python3 scripts/conformance_gate.py --roots .
 
@@ -43,10 +47,11 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY fd_industry_data/ ./fd_industry_data/
 COPY spiders/ ./spiders/
-RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple \
+RUN PIP_FLAGS=""; [ -n "$PIP_INDEX_URL" ] && PIP_FLAGS="-i $PIP_INDEX_URL"; \
+    pip install --no-cache-dir $PIP_FLAGS \
         . psycopg2-binary pyyaml cryptography minio playwright \
-    && PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright \
-       python3 -m playwright install --with-deps chromium
+    && PW_HOST=""; [ -n "$PLAYWRIGHT_DOWNLOAD_HOST" ] && PW_HOST="PLAYWRIGHT_DOWNLOAD_HOST=$PLAYWRIGHT_DOWNLOAD_HOST"; \
+       env $PW_HOST python3 -m playwright install --with-deps chromium
 ENTRYPOINT ["fd-runner"]
 
 FROM runner AS scan

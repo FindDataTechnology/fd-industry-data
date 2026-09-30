@@ -2,10 +2,9 @@
 # Standard channel per openspec tcr-image-pipeline (2026-09-30 user directive).
 # Jenkins→Harbor remains the fallback channel for this repo.
 #
-# NOTE: the fd-industry-runner content admission gate (conformance/scans) is
-# NOT replicated here — it spans the multi-repo finddata workspace and stays
-# with the Jenkins fd-industry-runner job (fallback) or a manual pre-release
-# run until it becomes repo-self-contained.
+# NOTE: the fd-industry-runner content admission gate (validate_manifests +
+# conformance_gate) runs inside the Dockerfile `gate` stage on every build,
+# so a red gate fails the build before any push — same protection as Jenkins.
 name: image
 
 on:
