@@ -262,37 +262,48 @@ def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
     Due = the schedule matched any 5-minute boundary within the grace window
     AND no open/recent run covers it (pending/claimed row, or a crawl_runs
     row newer than the window start). Returns the enqueued source names.
+    Queueing happens OUTSIDE the read transaction — queue_run opens its own,
+    and psycopg2 forbids re-entering a connection's transaction block.
     """
     now = datetime.now(timezone.utc)
-    enqueued: list[str] = []
+    due: list[str] = []
     with conn, conn.cursor() as cur:
         cur.execute(
             "SELECT source, schedule FROM crawl_sources "
             "WHERE site = %s AND enabled AND schedule IS NOT NULL", (site,))
-        for source, schedule in cur.fetchall() or []:
-            due = False
-            for back in range(0, window_minutes + 1, 5):
-                t = now - timedelta(minutes=back)
-                if cron_matches(schedule, t.minute, t.hour, t.day, t.month,
-                                t.weekday()):
-                    due = True
-                    break
-            if not due:
-                continue
-            cur.execute(
-                "SELECT 1 FROM pending_runs WHERE source = %s AND site = %s "
-                "AND status IN ('pending', 'claimed') LIMIT 1", (source, site))
-            if cur.fetchone():
-                continue
-            cur.execute(
-                "SELECT 1 FROM crawl_runs WHERE source = %s AND started_at > %s "
-                "LIMIT 1", (source, now - timedelta(minutes=window_minutes)))
-            if cur.fetchone():
-                continue
-            queue_run(conn, source, site=site,
-                      requested_by="schedule-tick",
-                      known_sources=None)
-            enqueued.append(source)
+        candidates = cur.fetchall() or []
+        open_rows: dict[str, int] = {}
+        cur.execute(
+            "SELECT source, count(*) FROM pending_runs "
+            "WHERE site = %s AND status IN ('pending', 'claimed') "
+            "GROUP BY source", (site,))
+        open_rows = dict(cur.fetchall() or [])
+        cur.execute(
+            "SELECT source, max(started_at) FROM crawl_runs "
+            "WHERE started_at > %s GROUP BY source",
+            (now - timedelta(minutes=window_minutes),))
+        recent = dict(cur.fetchall() or [])
+    for source, schedule in candidates:
+        hit = False
+        for back in range(0, window_minutes + 1, 5):
+            t = now - timedelta(minutes=back)
+            if cron_matches(schedule, t.minute, t.hour, t.day, t.month,
+                            t.weekday()):
+                hit = True
+                break
+        if not hit:
+            continue
+        if open_rows.get(source, 0) > 0:
+            continue
+        if source in recent:
+            continue
+        due.append(source)
+    enqueued: list[str] = []
+    for source in due:
+        queue_run(conn, source, site=site,
+                  requested_by="schedule-tick",
+                  known_sources=None)
+        enqueued.append(source)
     return enqueued
 
 

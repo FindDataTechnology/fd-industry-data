@@ -126,3 +126,22 @@ def test_cron_dom_dow_or_rule():
 def test_cron_bad_expr_never_matches():
     assert not cron_matches("not a cron", 0, 0, 1, 1, 0)
     assert not cron_matches("* * * *", 0, 0, 1, 1, 0)
+
+
+# --- enqueue_due transaction regression (real PG; recursive with-conn crashed
+#     every scheduled tick on the docker workers before this) ---
+
+def test_enqueue_due_no_recursive_reentry():
+    import os
+    import pytest
+    url = os.environ.get("FD_CRAWL_DB_URL")
+    if not url:
+        pytest.skip("FD_CRAWL_DB_URL not set; central-PG test")
+    from fd_industry_data import dispatch
+    conn = dispatch.connect(url)
+    conn.autocommit = False
+    try:
+        # must not raise ProgrammingError (recursive tx re-entry)
+        dispatch.enqueue_due(conn, "zihan", window_minutes=15)
+    finally:
+        conn.close()
