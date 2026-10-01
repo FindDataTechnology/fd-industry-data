@@ -2,12 +2,209 @@ from scrapling.spiders import Spider, Response, Request
 from scrapling.fetchers import FetcherSession
 import sqlite3
 import json
+import logging
 import os
+import urllib.parse
 from datetime import datetime
+
+from lxml import html as _lxml_html
 
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "data", "cisa_data.db")
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
+
+# ---------------------------------------------------------------------------
+# chinaisa.org.cn 数据门户（中钢协数据门户，注意与上方 cisa.org.cn 兄弟站区分）
+# 新通道：独立函数 get_chinaisa_data()，不动既有 CISASpider / 既有 run_cisa 行为。
+# ---------------------------------------------------------------------------
+_log = logging.getLogger("cisa.spider")
+
+CHINAISA_HOST = "https://www.chinaisa.org.cn"
+# POST 端点（实测有效）：表单字段只有一个 params=<URL 编码的 JSON 字符串>
+# （站点前端 psUtil.post: JSON.stringify(params) -> encodeURI -> $.post(path, {"params": ...})）
+CHINAISA_COLUMNLIST_URL = CHINAISA_HOST + "/gxportal/xfpt/portal/getColumnList"
+CHINAISA_LIST_PAGE_URL = CHINAISA_HOST + "/gxportal/xfgl/portal/list.html"
+# 栏目 id（取自门户首页导航 list.html?columnId=...，实测有效）：
+#   统计发布   —— 粗钢产量旬报 / 钢材库存旬报 等统计稿件
+#   综合价格指数 —— 周度「国内市场八个品种价格及指数」
+CHINAISA_COLUMN_STATS = "2e3c87064bdfc0e43d542d87fce8bcbc8fe0463d5a3da04d7e11b4c7d692194b"
+CHINAISA_COLUMN_PRICE = "63913b906a7a663f7f71961952b1ddfa845714b5982655b773a62b85dd3b064e"
+# 站点原生分页大小（list.js: locationUrl(pageNo, 25)），只发实测有效参数
+CHINAISA_PAGE_SIZE = 25
+CHINAISA_MAX_PAGES_PER_COLUMN = 4
+
+CHINAISA_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Referer": CHINAISA_LIST_PAGE_URL,
+    "X-Requested-With": "XMLHttpRequest",
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+}
+
+
+def _encode_uri(s: str) -> str:
+    """Replicate JavaScript encodeURI (used by the site's own psUtil.post)."""
+    keep = set(";,:@&=+$-_.!~*'()#/?")
+    return "".join(
+        c if (c.isalnum() or c in keep) else urllib.parse.quote(c, safe="")
+        for c in s
+    )
+
+
+def _chinaisa_body(column_id: str, page_no: int | None = None) -> bytes:
+    """Build the POST body: single form field `params` = encodeURI(JSON).
+
+    载荷只含实测有效字段：columnId（栏目 id）+ 可选 param（encodeURI 过的
+    {"pageNo","pageSize"} 分页 JSON，与站点 list.js 的 locationUrl 完全一致）。
+    """
+    payload: dict = {"columnId": column_id}
+    if page_no is not None:
+        payload["param"] = _encode_uri(
+            json.dumps(
+                {"pageNo": page_no, "pageSize": CHINAISA_PAGE_SIZE},
+                separators=(",", ":"),
+                ensure_ascii=False,
+            )
+        )
+    return ("params=" + urllib.parse.quote(_encode_uri(json.dumps(payload, separators=(",", ":"), ensure_ascii=False)), safe="")).encode("utf-8")
+
+
+async def _fetch_chinaisa_column(session, column_id: str, page_no: int | None) -> list[dict] | None:
+    """POST one getColumnList request and parse articleListHtml into rows.
+
+    Returns None on 5xx/非 JSON/缺 articleListHtml（调用方记录后跳过，不重试）。
+    """
+    try:
+        r = await session.post(CHINAISA_COLUMNLIST_URL, data=_chinaisa_body(column_id, page_no), headers=CHINAISA_HEADERS)
+    except Exception as exc:
+        _log.warning("chinaisa getColumnList POST failed (column=%s page=%s): %s", column_id, page_no, exc)
+        return None
+    if r.status != 200:
+        _log.warning("chinaisa getColumnList HTTP %s (column=%s page=%s) — skip", r.status, column_id, page_no)
+        return None
+    body = r.body if isinstance(r.body, bytes) else (r.text or "").encode("utf-8", "replace")
+    try:
+        data = json.loads(body.decode("utf-8", "replace"))
+    except Exception:
+        _log.warning("chinaisa getColumnList returned non-JSON (column=%s page=%s) — skip", column_id, page_no)
+        return None
+    article_html = data.get("articleListHtml")
+    if not isinstance(article_html, str) or not article_html:
+        # e.g. {"code":301,"message":"未获得所需要的参数"} — 参数被服务端拒绝
+        _log.warning("chinaisa getColumnList rejected (column=%s page=%s): %s", column_id, page_no, body[:120])
+        return None
+    return _parse_chinaisa_list(article_html, column_id)
+
+
+def _parse_chinaisa_list(article_html: str, column_id: str) -> list[dict]:
+    """Parse the embedded articleListHtml fragment into schema rows."""
+    doc = _lxml_html.fromstring(f"<div>{article_html}</div>")
+    rows: list[dict] = []
+    now_iso = datetime.now().isoformat()
+    source_url = f"{CHINAISA_LIST_PAGE_URL}?columnId={column_id}"
+    for li in doc.cssselect("ul.list > li"):
+        a = li.cssselect("a")
+        if not a:
+            continue  # 分隔线等非条目节点，留空不写脏行
+        title = (a[0].get("title") or a[0].text_content() or "").strip()
+        href = (a[0].get("href") or "").strip()
+        span = li.cssselect("span.times")
+        publish_date = span[0].text_content().strip().strip("[] ") if span else ""
+        if not title:
+            continue
+        if column_id == CHINAISA_COLUMN_PRICE:
+            report_type = "周价格指数"
+        elif "旬报" in title:
+            report_type = "旬报"
+        else:
+            report_type = "统计发布"
+        url = href if href.startswith("http") else CHINAISA_HOST + "/gxportal/xfgl/portal/" + href.lstrip("/")
+        # 数值在 contentpdf/content 详情（PDF 附件为主），列表层无可解析数值：
+        # value/unit 留空（None），不写脏行。
+        rows.append({
+            "report_type": report_type,
+            "title": title,
+            "publish_date": publish_date,
+            "url": url,
+            "value": None,
+            "unit": None,
+            "scraped_at": now_iso,
+            "source_url": source_url,
+        })
+    return rows
+
+
+def _dedupe(rows: list[dict]) -> list[dict]:
+    seen: set[tuple] = set()
+    out: list[dict] = []
+    for r in rows:
+        key = (r.get("report_type"), r.get("title"), r.get("publish_date"))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(r)
+    return out
+
+
+async def _get_chinaisa_data_async(limit: int) -> list[dict]:
+    """Two proven columns (旬报 via 统计发布, weekly price index via 综合价格指数)."""
+    limit = max(0, int(limit))
+    if limit == 0:
+        return []
+    half = max(1, limit // 2)
+    plan = [
+        (CHINAISA_COLUMN_STATS, half),
+        (CHINAISA_COLUMN_PRICE, limit - half),
+    ]
+    results: list[dict] = []
+    async with FetcherSession(impersonate="chrome120", timeout=25, verify=False, stealthy_headers=False) as s:
+        for column_id, budget in plan:
+            if budget <= 0 or len(results) >= limit:
+                break
+            taken = 0
+            prev_titles: set[str] | None = None
+            for page_no in range(1, CHINAISA_MAX_PAGES_PER_COLUMN + 1):
+                if taken >= budget or len(results) >= limit:
+                    break
+                rows = await _fetch_chinaisa_column(s, column_id, page_no)
+                if rows is None:
+                    break  # 5xx/空/参数被拒：记录后跳过，不重试
+                titles = {r["title"] for r in rows}
+                if prev_titles is not None and titles == prev_titles:
+                    break  # 服务端翻页未生效，防重复
+                prev_titles = titles
+                for r in rows:
+                    if taken >= budget or len(results) >= limit:
+                        break
+                    results.append(r)
+                    taken += 1
+                if len(rows) < CHINAISA_PAGE_SIZE:
+                    break  # 末页
+    return _dedupe(results)[:limit]
+
+
+def get_chinaisa_data(limit: int = 100) -> list[dict]:
+    """Fetch article listings from the CISA data portal (chinaisa.org.cn).
+
+    中钢协数据门户（chinaisa.org.cn，区别于既有 cisa.org.cn 兄弟站）：
+    - 统计发布栏目：粗钢产量旬报 / 钢材库存旬报（旬度口径，worldsteel 不覆盖中国旬度）
+    - 综合价格指数栏目：周度「国内市场八个品种价格及指数」
+
+    端点：POST /gxportal/xfpt/portal/getColumnList，表单字段 params=<URL 编码 JSON>，
+    载荷只含实测有效参数（columnId + 可选分页 param）。
+
+    Args:
+        limit: Maximum records to return (default: 100)
+
+    Returns:
+        List of dicts: report_type / title / publish_date / url / value / unit /
+        scraped_at / source_url. value/unit 为 None（数值在 PDF 附件中，列表层不可解析）。
+    """
+    import asyncio
+
+    return asyncio.run(_get_chinaisa_data_async(limit))
 
 
 class CISASpider(Spider):
@@ -420,14 +617,12 @@ class CISASpider(Spider):
                 self.logger.error(f"Failed to export {category}: {e}")
 
 
-def run_cisa(limit: int = 100) -> list[dict]:
-    """Fetch data from CISA (China Iron & Steel Association).
+def _run_cisa_legacy(limit: int = 100) -> list[dict]:
+    """Legacy cisa.org.cn crawler — body unchanged from the original run_cisa.
 
-    Args:
-        limit: Maximum records to return (default: 100)
-
-    Returns:
-        List of scraped records as dicts.
+    (Renamed only; fd-runner entry point is the merged run_cisa below. The
+    legacy path is known-broken with scrapling 0.4.x — Spider has no
+    parse_start_response/request — so run_cisa wraps this in try/except.)
     """
     spider = CISASpider()
     results = []
@@ -471,6 +666,41 @@ def run_cisa(limit: int = 100) -> list[dict]:
     print(f"{'='*50}")
 
     return results
+
+
+def run_cisa(limit: int = 100) -> list[dict]:
+    """fd-runner single entry point (CronJob only calls this).
+
+    Merged two-channel result, total <= limit:
+      1. Legacy cisa.org.cn crawler (_run_cisa_legacy, behavior unchanged) —
+         wrapped in try/except so a legacy failure cannot take down the
+         chinaisa channel. Known state: the legacy path raises with scrapling
+         0.4.x (Spider.parse_start_response does not exist) and yields [].
+      2. chinaisa.org.cn data portal (get_chinaisa_data).
+
+    Args:
+        limit: Maximum records to return (default: 100)
+
+    Returns:
+        Merged list of records as dicts (legacy rows first, then chinaisa rows).
+    """
+    results: list[dict] = []
+
+    # Channel 1: legacy cisa.org.cn (wrapped — see docstring)
+    try:
+        results.extend(_run_cisa_legacy(limit=limit))
+    except Exception as exc:
+        _log.warning("legacy cisa.org.cn channel failed (skipped): %s: %s", type(exc).__name__, exc)
+
+    # Channel 2: chinaisa.org.cn data portal
+    remaining = limit - len(results)
+    if remaining > 0:
+        try:
+            results.extend(get_chinaisa_data(limit=remaining))
+        except Exception as exc:
+            _log.warning("chinaisa.org.cn channel failed (skipped): %s: %s", type(exc).__name__, exc)
+
+    return results[:limit]
 
 
 if __name__ == "__main__":

@@ -32,6 +32,39 @@ functions:
       - name: scraped_at
         type: string
         description: ISO timestamp
+  - command: get_chinaisa_data
+    description: 中钢协数据门户 (chinaisa.org.cn) 统计发布与综合价格指数栏目列表：粗钢产量旬报/钢材库存旬报 + 周度八品种价格及指数
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: report_type
+        type: string
+        description: 稿件类型（旬报 / 周价格指数 / 统计发布）
+      - name: title
+        type: string
+        description: 稿件标题
+      - name: publish_date
+        type: string
+        description: 发布日期 (YYYY-MM-DD)
+      - name: url
+        type: string
+        description: 稿件详情/附件链接
+      - name: value
+        type: float
+        description: 数值（列表层不可解析，为空）
+      - name: unit
+        type: string
+        description: 单位（列表层不可解析，为空）
+      - name: scraped_at
+        type: string
+        description: ISO timestamp
+      - name: source_url
+        type: string
+        description: 栏目列表页 URL
 concepts:
   - column: title
     concept: organization.name

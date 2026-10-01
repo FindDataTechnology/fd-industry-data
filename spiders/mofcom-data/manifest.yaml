@@ -1,0 +1,46 @@
+version: "2"
+name: mofcom-data
+label: 商务部数据中心
+source_url: https://data.mofcom.gov.cn/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_mofcom_data
+    description: 商务部数据中心三口径时间序列（货物进出口月度、服务贸易历年、利用外资月度）
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: period
+        type: string
+        description: 统计期 YYYY-MM（服务贸易年度值记为当年 12 月期）
+      - name: indicator
+        type: string
+        description: 指标中文名（货物进出口/服务贸易/利用外资细分指标，含当月值/累计值口径）
+      - name: value
+        type: float
+        description: 指标值；源端缺失（"—"/空）时为 null
+      - name: unit
+        type: string
+        description: 计量单位（亿美元、亿元人民币、家）
+      - name: scraped_at
+        type: string
+        description: ISO 提取时间戳
+      - name: source_url
+        type: string
+        description: 数据端点 URL
+concepts:
+  - column: indicator
+    concept: trade.mofcom_indicator
+    entity_type: country
+    measure: value
+    unit: string
+    frequency: monthly
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

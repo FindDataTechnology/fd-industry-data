@@ -1,0 +1,58 @@
+version: "2"
+name: miit-gxsj
+label: 工信部软件业/通信业月度运行数据 (MIIT Software & Telecom Monthly)
+source_url: https://www.miit.gov.cn/gxsj/tjfx/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_miit_gxsj
+    description: 工信部运行监测协调局「软件业/通信业」月度运行情况：栏目文章列表(build/unit 接口)+正文关键指标抽取（软件业务收入/电信业务收入/流量/用户规模等）
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum metric rows to return (default 100)
+    columns:
+      - name: channel
+        type: str
+        description: 栏目（软件业/通信业）
+      - name: title
+        type: str
+        description: 文章标题
+      - name: publish_date
+        type: str
+        description: 发布日期（YYYY-MM-DD）
+      - name: url
+        type: str
+        description: 文章正文页 URL
+      - name: metric
+        type: str
+        description: 指标名（如 软件业务收入、电信业务收入、移动互联网累计流量）
+      - name: value
+        type: float
+        description: 指标数值（增速行为带符号百分比，下降为负）
+      - name: unit
+        type: str
+        description: 单位（亿元/万亿元/亿美元/亿GB/% 等）
+      - name: excerpt
+        type: str
+        description: 原文中数字上下文短句
+      - name: scraped_at
+        type: str
+        description: ISO 抓取时间
+      - name: source_url
+        type: str
+        description: 栏目 build/unit 列表接口 URL（数据溯源）
+concepts:
+  - column: value
+    concept: industry.monthly_operation_metric
+    entity_type: country
+    measure: value
+    unit: mixed
+    frequency: monthly
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

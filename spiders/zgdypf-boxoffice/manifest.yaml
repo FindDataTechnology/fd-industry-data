@@ -1,0 +1,88 @@
+version: "2"
+name: zgdypf-boxoffice
+label: 国家电影专资办电影票房（日榜/周榜）
+source_url: https://zgdypf.zgdypw.cn/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_zgdypf_boxoffice
+    description: Fetch daily/weekly China box office rankings (含服务费口径, 万元) from 国家电影专资办数据中心 zgdypw.cn
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: period
+        type: str
+        description: 数据日期 YYYY-MM-DD（周榜为周一锚定日）
+      - name: scope
+        type: str
+        description: day=日榜 / week=周榜
+      - name: film_code
+        type: str
+        description: 影片编码（大盘行为空）
+      - name: film_name
+        type: str
+        description: 影片名；scope=day/week 汇总行固定为「大盘」
+      - name: ranking
+        type: int
+        description: 榜单名次（大盘行=0）
+      - name: box_office_wan
+        type: float
+        description: 票房（万元，含服务费口径；"<0.1" 记 0.05）
+      - name: box_office_split_wan
+        type: float
+        description: 分账票房（万元，含服务费对照口径）
+      - name: box_office_rate
+        type: str
+        description: 票房占比（如 31.50%）
+      - name: session_rate
+        type: str
+        description: 场次占比（仅日榜）
+      - name: seat_rate
+        type: str
+        description: 座位占比（仅日榜）
+      - name: online_sales_rate
+        type: str
+        description: 网售占比（仅日榜）
+      - name: release_days
+        type: int
+        description: 已上映天数（仅日榜）
+      - name: total_sales_desc
+        type: str
+        description: 累计票房原始串（如 4.24亿，仅日榜）
+      - name: avg_price
+        type: float
+        description: 平均票价（元，仅周榜）
+      - name: avg_attendance
+        type: float
+        description: 场均人次（仅周榜）
+      - name: release_date
+        type: str
+        description: 影片上映日（仅周榜）
+      - name: scraped_at
+        type: str
+        description: ISO 提取时间
+      - name: source_url
+        type: str
+        description: 取数端点 URL
+concepts:
+  - column: film_name
+    concept: media_work.title
+    entity_type: country
+    measure: value
+    unit: string
+    frequency: daily
+  - column: box_office_wan
+    concept: media.box_office
+    entity_type: country
+    measure: value
+    unit: 万元
+    frequency: daily
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

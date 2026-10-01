@@ -6,6 +6,7 @@ description: |
   国家统计局官方统计数据，包括GDP、CPI/PPI、工业生产、人口就业等宏观经济指标。
   National Bureau of Statistics comprehensive data including GDP, CPI/PPI,
   industrial production, population and employment indicators.
+  另含流通领域重要生产资料市场价格（旬度，stats.gov.cn /sj/zxfb/ 文章内联表）。
 
 authentication:
   required: false
@@ -43,6 +44,51 @@ functions:
         type: int
         description: 起始年份
         default: 2010
+
+  - command: get_circulation_prices
+    description: |
+      流通领域重要生产资料市场价格变动情况（旬度发布，每期约50品种；
+      实测类别分组为：黑色金属/有色金属/化工产品/煤炭/石油天然气/
+      非金属矿物制品/农业生产资料/农产品/林产品）。解析 stats.gov.cn
+      「最新发布」文章内联 HTML 表格，最新一期在前。
+    category: macro-economic
+    frequency: monthly
+    parameters:
+      limit:
+        type: int
+        description: 最多返回行数
+        default: 100
+    columns:
+      period:
+        type: str
+        description: 旬区间（如 2026-09-11~2026-09-20）
+      category:
+        type: str
+        description: 品类分组（取自文章表内分类行）
+      product_name:
+        type: str
+        description: 产品名称（含规格型号）
+      price:
+        type: float
+        description: 本期价格（元）；「—」/空记 null
+      price_unit:
+        type: str
+        description: 计价单位（吨、千克等，取自「单位」列）
+      price_change:
+        type: float
+        description: 比上期价格涨跌（元）；「—」/空记 null
+      mom_pct:
+        type: str
+        description: 涨跌幅（%，比上期）；「—」/空记 null
+      yoy_pct:
+        type: str
+        description: 同比涨幅（%，当前表头无此列，恒为 null，留作表头扩展）
+      scraped_at:
+        type: str
+        description: 抓取时间（ISO格式）
+      source_url:
+        type: str
+        description: 文章 URL（www.stats.gov.cn/sj/zxfb/…）
 
 columns:
   period:

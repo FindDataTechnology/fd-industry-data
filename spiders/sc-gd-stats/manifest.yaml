@@ -1,0 +1,73 @@
+version: "2"
+name: sc-gd-stats
+label: 四川/广东统计局月度主要指标
+source_url: https://tjj.sc.gov.cn/scstjj/c112117/list.shtml
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_sc_gd_stats
+    description: Fetch the latest monthly key economic indicator tables from Sichuan and Guangdong provincial statistics bureaus (one row per indicator)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: province
+        type: str
+        description: Source province (sichuan / guangdong)
+      - name: period
+        type: str
+        description: Period the table covers, YYYY-MM (e.g. 2026-08)
+      - name: indicator
+        type: str
+        description: Indicator name as published
+      - name: value
+        type: float
+        description: Sichuan monthly value / Guangdong 1-N月 cumulative value; None where the table shows「—」
+      - name: unit
+        type: str
+        description: Unit extracted from the indicator name (亿元/万吨/元/...; 上年同期=100 for index rows)
+      - name: growth_yoy
+        type: str
+        description: Year-on-year growth % as published (string, kept even when the absolute value is「—」)
+      - name: value_cum
+        type: float
+        description: Sichuan 1-N月 cumulative value; None for Guangdong (its value column is already cumulative)
+      - name: growth_cum
+        type: str
+        description: Sichuan cumulative growth %; None for Guangdong
+      - name: row_index
+        type: int
+        description: Original table row index in the source article (audit key; gaps = header/section/footnote rows)
+      - name: title
+        type: str
+        description: Article title (carries the 期号, e.g. 2026年1—8月四川省国民经济主要指标数据)
+      - name: url
+        type: str
+        description: Article URL the row was parsed from
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Listing URL of the provincial column
+concepts:
+  - column: indicator
+    concept: economic.indicator_name
+    entity_type: region
+    measure: value
+    unit: string
+    frequency: monthly
+  - column: value
+    concept: economic.indicator_value
+    entity_type: region
+    measure: value
+    unit: mixed
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,61 @@
+version: "2"
+name: chinawuliu-logistics
+label: 中国物流与采购联合会-统计数据（公路运价周指数/LPI/电商物流指数）
+source_url: http://www.chinawuliu.com.cn/xsyj/tjsj/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_chinawuliu_logistics
+    description: >-
+      Fetch China Highway Logistics weekly freight price index, Logistics
+      Prosperity Index (LPI) and e-commerce logistics index from the CFLP
+      statistics column (信息统计-统计数据)
+    frequency: weekly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (default 100; first crawl backfills 12 months)
+    columns:
+      - name: period
+        type: str
+        description: 期号（周指数 YYYY-MM-DD 报告日，月度指数 YYYY-MM）
+      - name: channel
+        type: str
+        description: 口径：weekly-freight / lpi / e-commerce
+      - name: index_name
+        type: str
+        description: 指数名称（中国公路物流运价指数 / 中国物流业景气指数 / 中国电商物流指数）
+      - name: value
+        type: float
+        description: 指数值
+      - name: yoy
+        type: str
+        description: 同比变化（带符号字符串，缺失为 null）
+      - name: mom
+        type: str
+        description: 环比变化（带符号字符串：周指数 %、LPI pp、电商指数 点；缺失为 null）
+      - name: title
+        type: str
+        description: 文章标题
+      - name: url
+        type: str
+        description: 文章 URL
+      - name: scraped_at
+        type: str
+        description: ISO8601 抓取时间
+      - name: source_url
+        type: str
+        description: 栏目入口 URL
+concepts:
+  - column: value
+    concept: logistics.index_value
+    entity_type: country
+    measure: value
+    unit: point_or_percent
+    frequency: weekly
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

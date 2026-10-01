@@ -1,0 +1,65 @@
+version: "2"
+name: nifdc-batchcert
+label: 中检院生物制品批签发公示 (NIFDC Biological Product Batch Release)
+source_url: https://bio.nidc.org.cn/pqf/search.do?formAction=pqfXxpt
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_nifdc_batchcert
+    description: Fetch weekly biological product batch-release (批签发) public-notice rows from NIFDC/NIDC (中国药品检定研究院)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+      - name: product_name
+        type: str
+        required: false
+        description: Optional substring filter on 产品名称 (applied client-side over fetched rows)
+    columns:
+      - name: seq_no
+        type: str
+        description: 序号 (row number within the weekly notice)
+      - name: product_name
+        type: str
+        description: 产品名称
+      - name: batch_no
+        type: str
+        description: 批号
+      - name: expire_date
+        type: str
+        description: 有效期至 (original format, e.g. 2029年4月24日)
+      - name: license_holder
+        type: str
+        description: 上市许可持有人 (marketing authorization holder / manufacturer)
+      - name: cert_no
+        type: str
+        description: 证书编号 (批签发证明文件编号)
+      - name: issue_conclusion
+        type: str
+        description: 签发结论 (e.g. 予以签发)
+      - name: issuing_agency
+        type: str
+        description: 批签发机构
+      - name: issue_date_window
+        type: str
+        description: 所属周公示的签发日期区间 (e.g. 签发日期：2026年9月14日至2026年9月20日)
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Weekly notice page URL the row was parsed from
+concepts:
+  - column: product_name
+    concept: biologic.batch_release
+    entity_type: organization
+    measure: value
+    unit: string
+    frequency: monthly
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

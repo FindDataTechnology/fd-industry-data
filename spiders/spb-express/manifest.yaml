@@ -1,0 +1,76 @@
+version: "2"
+name: spb-express
+label: 国家邮政局快递月报
+source_url: https://www.spb.gov.cn/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_spb_express
+    description: Fetch monthly express-industry operating stats (volume, revenue, CR8) and China Express Development Index releases from spb.gov.cn
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (operating reports first, then development-index releases)
+    columns:
+      - name: period
+        type: string
+        description: 期号 YYYY-MM（累计口径截止月）
+      - name: title
+        type: string
+        description: 文章标题
+      - name: url
+        type: string
+        description: 文章页 URL（https）
+      - name: expr_volume
+        type: float
+        description: 快递业务量累计完成（亿件）
+      - name: revenue
+        type: float
+        description: 快递业务收入累计完成（亿元）
+      - name: cr8
+        type: float
+        description: 快递品牌集中度指数 CR8（优先业务量口径；旧版为单一集中度指数）
+      - name: growth_yoy
+        type: string
+        description: 累计同比增速摘要（业务量/收入）
+      - name: channel
+        type: string
+        description: 栏目（运行情况 / 发展指数）
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: string
+        description: 数据来源文章页 URL（https）
+concepts:
+  - column: cr8
+    concept: logistics.express_cr8
+    entity_type: industry
+    measure: value
+    unit: percent
+    frequency: monthly
+  - column: expr_volume
+    concept: logistics.express_volume
+    entity_type: industry
+    measure: value
+    unit: 100M_items
+    frequency: monthly
+  - column: revenue
+    concept: logistics.express_revenue
+    entity_type: industry
+    measure: value
+    unit: 100M_CNY
+    frequency: monthly
+  - column: title
+    concept: document.title
+    entity_type: industry
+    measure: value
+    unit: string
+    frequency: monthly
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

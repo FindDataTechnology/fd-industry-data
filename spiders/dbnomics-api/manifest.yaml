@@ -1,0 +1,56 @@
+version: "2"
+name: dbnomics-api
+label: DBnomics Aggregation API
+source_url: https://db.nomics.world/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_dbnomics_api
+    description: Fetch full observation history of whitelisted statistical series (providers ECB/IMF/OECD, Eurostat optional) from the DBnomics v22 aggregation API; default sequence ECB EXR D.CNY.EUR.SP00.A (daily CNY/EUR reference rate)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (most recent observations kept per series)
+      - name: default_sequences
+        type: array<string>
+        required: false
+        description: Series list as "provider/dataset/code" strings; provider whitelist ECB/IMF/OECD (+ESTAT optional), others refused before any request. Default ["ECB/EXR/D.CNY.EUR.SP00.A"]
+    columns:
+      - name: provider
+        type: str
+        description: Provider code (ECB, IMF, OECD, ESTAT)
+      - name: dataset
+        type: str
+        description: Dataset code (e.g. EXR exchange rates)
+      - name: series_code
+        type: str
+        description: Dot-separated series code (e.g. D.CNY.EUR.SP00.A)
+      - name: series_name
+        type: str
+        description: Human-readable series name from DBnomics
+      - name: period
+        type: str
+        description: Observation period start day (YYYY-MM-DD)
+      - name: value
+        type: float
+        description: Observation value; upstream 'NA' cells are omitted, never fabricated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
+concepts:
+  - column: value
+    concept: economic.exchange_rate
+    entity_type: country
+    measure: value
+    unit: rate
+    frequency: monthly
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

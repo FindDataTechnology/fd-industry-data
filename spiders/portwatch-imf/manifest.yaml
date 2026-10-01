@@ -1,0 +1,67 @@
+version: "2"
+name: portwatch-imf
+label: IMF PortWatch Daily Ports & Chokepoints
+source_url: https://portwatch.imf.org/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_portwatch_imf
+    description: Fetch the latest available day of IMF PortWatch daily maritime flow records from the ArcGIS FeatureServer — per-port port calls and import/export tonnes (Daily_Ports_Data) plus per-chokepoint transit counts and transiting tonnes (Daily_Chokepoints_Data)
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return across both services; one full day is ~2065 ports rows + ~28 chokepoints rows, so pass >= 2200 for complete-day coverage
+    columns:
+      - name: service
+        type: str
+        description: Source service tag (ports or chokepoints)
+      - name: port_id
+        type: str
+        description: PortWatch location id (portid, e.g. cnsha or chokepoint1)
+      - name: port_name
+        type: str
+        description: Port or chokepoint name
+      - name: country
+        type: str
+        description: Country name (ports service only; empty for chokepoints)
+      - name: iso3
+        type: str
+        description: ISO3 country code (ports service only; empty for chokepoints)
+      - name: date
+        type: str
+        description: Observation day YYYY-MM-DD (upstream esriFieldTypeDateOnly)
+      - name: portcalls
+        type: int
+        description: Total port calls that day (ports service only; null for chokepoints)
+      - name: import_tonnes
+        type: int
+        description: Total imports that day in tonnes (ports service only; null for chokepoints)
+      - name: export_tonnes
+        type: int
+        description: Total exports that day in tonnes (ports service only; null for chokepoints)
+      - name: transit_vessels
+        type: int
+        description: Total vessel transits that day (chokepoints service n_total; null for ports)
+      - name: throughput_tonnes
+        type: int
+        description: Total transiting cargo that day in tonnes (chokepoints service capacity; null for ports)
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact query URL of the pagination page the row was parsed from
+concepts:
+  - column: portcalls
+    concept: logistics.port_calls
+    entity_type: location
+    measure: value
+    unit: count
+    frequency: daily
+entities:
+  - entity_type: location
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

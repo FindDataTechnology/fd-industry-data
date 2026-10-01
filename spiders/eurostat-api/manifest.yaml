@@ -1,0 +1,64 @@
+version: "2"
+name: eurostat-api
+label: Eurostat Dissemination API
+source_url: https://ec.europa.eu/eurostat/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_eurostat_api
+    description: Fetch manufacturing production index (sts_inpr_m), consumer confidence indicator (ei_bsco_m) and agricultural output price index (apri_pi_outq) series for DE/FR/IT from the Eurostat dissemination API (JSON-stat 2.0)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: dataset
+        type: str
+        description: Eurostat dataset code (sts_inpr_m, ei_bsco_m, apri_pi_outq)
+      - name: geo
+        type: str
+        description: Country code (DE, FR, IT)
+      - name: freq
+        type: str
+        description: Frequency code (M monthly, Q quarterly)
+      - name: unit
+        type: str
+        description: Unit code (I21 index 2021=100, I20 index 2020=100, BAL balance)
+      - name: indic
+        type: str
+        description: Indicator dimension code (indic_bt PRD, indic BS-CSMCI, am_item AM010000)
+      - name: s_adj
+        type: str
+        description: Seasonal adjustment code (NSA unadjusted, SA seasonally adjusted); empty when the dataset has no such dimension
+      - name: nace_r2
+        type: str
+        description: NACE Rev.2 code (C manufacturing, C20 chemicals); empty when not applicable
+      - name: p_adj
+        type: str
+        description: Price adjustment code (NI nominal index); empty when not applicable
+      - name: period
+        type: str
+        description: Period label (YYYY-MM monthly, YYYY-QN quarterly)
+      - name: value
+        type: float
+        description: Index value or survey balance; upstream null cells are omitted, never fabricated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
+concepts:
+  - column: value
+    concept: economic.index_value
+    entity_type: country
+    measure: value
+    unit: index
+    frequency: monthly
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
