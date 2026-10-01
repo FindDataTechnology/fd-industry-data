@@ -4,6 +4,7 @@ label: Eurostat Dissemination API
 source_url: https://ec.europa.eu/eurostat/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
+schedule: "43 3 20 * *"
 functions:
   - command: run_eurostat_api
     description: Fetch manufacturing production index (sts_inpr_m), consumer confidence indicator (ei_bsco_m) and agricultural output price index (apri_pi_outq) series for DE/FR/IT from the Eurostat dissemination API (JSON-stat 2.0)

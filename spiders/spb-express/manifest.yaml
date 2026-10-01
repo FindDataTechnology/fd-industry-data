@@ -4,6 +4,7 @@ label: 国家邮政局快递月报
 source_url: https://www.spb.gov.cn/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
+schedule: "3 3 18 * *"
 functions:
   - command: run_spb_express
     description: Fetch monthly express-industry operating stats (volume, revenue, CR8) and China Express Development Index releases from spb.gov.cn

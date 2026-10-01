@@ -49,8 +49,8 @@ HDRS = {
 TIMEOUT = 25
 CST = timezone(timedelta(hours=8))
 
-DEFAULT_DAYS = 370  # 首爬回补：滚动 12 个月窗口（点亮首爬后回调为稳态 3）
-DEFAULT_WEEKS = 53  # 首爬回补：近 53 个周一锚定周榜（点亮首爬后回调为稳态 2）
+DEFAULT_DAYS = 3   # 稳态：今日+昨日+营业日 catch-up（首爬 370 天回补已于 2026-10-02 完成并留痕 crawl_runs #724）
+DEFAULT_WEEKS = 2  # 稳态：本周+上周（周一锚定）
 
 
 def _clean_num(raw) -> float | None:
@@ -245,8 +245,8 @@ def run_zgdypf_boxoffice(
 ) -> list[dict]:
     """fd-runner 入口：返回日榜（含大盘行）+ 周榜行，≤limit 条。
 
-    days/weeks/end_date 为内部辅助参数（当前默认 days=370, weeks=53 首爬回补口径，
-    稳态将回调为 days=3, weeks=2；从 end_date 回看）；周榜日期内部强制锚定周一，
+    days/weeks/end_date 为内部辅助参数（稳态默认 days=3, weeks=2，从今天回看；
+    首爬回补曾用 370/53 并留痕 crawl_runs #724）；周榜日期内部强制锚定周一，
     绝不发送白名单之外的参数。
     """
     end = date.fromisoformat(end_date) if end_date else _cst_today()

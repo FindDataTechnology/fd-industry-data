@@ -4,6 +4,7 @@ label: 四川/广东统计局月度主要指标
 source_url: https://tjj.sc.gov.cn/scstjj/c112117/list.shtml
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
+schedule: "47 2 19 * *"
 functions:
   - command: run_sc_gd_stats
     description: Fetch the latest monthly key economic indicator tables from Sichuan and Guangdong provincial statistics bureaus (one row per indicator)

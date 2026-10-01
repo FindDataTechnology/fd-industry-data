@@ -4,6 +4,7 @@ label: 工信部软件业/通信业月度运行数据 (MIIT Software & Telecom M
 source_url: https://www.miit.gov.cn/gxsj/tjfx/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
+schedule: "17 3 2 * *"
 functions:
   - command: run_miit_gxsj
     description: 工信部运行监测协调局「软件业/通信业」月度运行情况：栏目文章列表(build/unit 接口)+正文关键指标抽取（软件业务收入/电信业务收入/流量/用户规模等）

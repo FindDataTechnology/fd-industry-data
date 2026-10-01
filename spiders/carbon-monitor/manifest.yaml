@@ -4,6 +4,8 @@ label: Carbon Monitor daily CO2 emissions
 source_url: https://datas.carbonmonitor.org/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
+schedule: "37 4 * * *"
+memory_limit: "512Mi"
 functions:
   - command: run_carbon_monitor
     description: Fetch the Carbon Monitor full daily CO2 emissions dataset (carbon_global, country x sector, 2019-, ~650k rows) and return the newest rows first; source=energy_global switches to the global daily energy-by-fuel companion dataset

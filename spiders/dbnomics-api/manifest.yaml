@@ -4,6 +4,7 @@ label: DBnomics Aggregation API
 source_url: https://db.nomics.world/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
+schedule: "57 2 15 * *"
 functions:
   - command: run_dbnomics_api
     description: Fetch full observation history of whitelisted statistical series (providers ECB/IMF/OECD, Eurostat optional) from the DBnomics v22 aggregation API; default sequence ECB EXR D.CNY.EUR.SP00.A (daily CNY/EUR reference rate)

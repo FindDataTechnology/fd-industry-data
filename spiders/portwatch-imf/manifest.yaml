@@ -4,6 +4,7 @@ label: IMF PortWatch Daily Ports & Chokepoints
 source_url: https://portwatch.imf.org/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
+schedule: "41 1 * * *"
 functions:
   - command: run_portwatch_imf
     description: Fetch the latest available day of IMF PortWatch daily maritime flow records from the ArcGIS FeatureServer — per-port port calls and import/export tonnes (Daily_Ports_Data) plus per-chokepoint transit counts and transiting tonnes (Daily_Chokepoints_Data)
