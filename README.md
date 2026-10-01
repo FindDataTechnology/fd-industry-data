@@ -1,5 +1,7 @@
 # FD Industry Data Spiders
 
+> **Wire (柏讯) product line** · the open-data supply line of [FindData](https://www.finddatatech.cloud/products/wire) — industry data spiders
+
 Scrapling-based spiders for collecting flower industry data and open dataset metadata from Chinese and international sources.
 
 ## Spiders
