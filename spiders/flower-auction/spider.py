@@ -13,13 +13,11 @@ OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
 class FlowerAuctionSpider(Spider):
     name = "flower_auction"
     start_urls = [
-        "http://www.kifc.cn/",
-        "http://www.kifc.cn/auction",
-        "http://www.kifc.cn/price",
-        "http://www.kifc.cn/data",
-        "http://www.kifc.cn/market",
+        "https://www.kifa.net/info.do?method=index&type=%E8%A1%8C%E6%83%85%E5%88%86%E6%9E%90",
+        "https://www.kifa.net/kIFAPriceIndex.do?method=index",
+        "https://www.kifa.net/breedQuotation.do?method=index",
     ]
-    allowed_domains = {"kifc.cn"}
+    allowed_domains = {"kifa.net"}
     concurrent_requests = 4
     download_delay = 2.0
     robots_txt_obey = True
@@ -146,7 +144,7 @@ class FlowerAuctionSpider(Spider):
         }
 
     def _detect_page_type(self, url: str) -> str:
-        if url.rstrip("/") in ("http://www.kifc.cn", "http://www.kifc.cn/"):
+        if url.rstrip("/") in ("https://www.kifa.net", "https://www.kifa.net/"):
             return "home"
         if "/auction" in url or "/result" in url:
             return "auction_list"
