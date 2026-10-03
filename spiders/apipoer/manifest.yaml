@@ -5,7 +5,7 @@ source_url: https://open.apipoer.com/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
-  - command: get_apipoer_data
+  - command: run_apipoer
     description: Fetch data from API Power Platform
     frequency: on_demand
     parameters:

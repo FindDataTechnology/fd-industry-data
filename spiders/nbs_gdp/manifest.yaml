@@ -56,8 +56,12 @@ spider:
   download_delay: 2
   concurrent_requests: 1
 functions:
-  - get_macro_data(indicators, start_year)
-  - get_gdp_quarterly(start_year)
+  - command: get_macro_data
+    description: 宏观指标（indicators 列表 + 起始年；走 easyquery/akshare 双路径）
+    frequency: on_demand
+  - command: get_gdp_quarterly
+    description: GDP 季度序列（起始年）
+    frequency: quarterly
 outputs:
   sqlite: data/nbs_macro.db (table nbs_macro)
   json_gdp: output/nbs_gdp.json

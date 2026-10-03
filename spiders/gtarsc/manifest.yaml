@@ -7,7 +7,7 @@ ranking_seed:
 - 0.5
 - 0.5
 functions:
-- command: get_gtarsc_data
+- command: run_gtarsc
   description: Scrape tropical agriculture research data from GTARSC
   frequency: monthly
   parameters:

@@ -5,7 +5,7 @@ source_url: http://www.agri-info.cn/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
-  - command: get_agri_info_data
+  - command: run_agri_info
     description: Fetch data from Agricultural Information Network
     frequency: on_demand
     parameters:

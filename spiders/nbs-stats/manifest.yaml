@@ -26,8 +26,8 @@ anti_bot:
   details: Chrome browser impersonation via curl_cffi with proper headers
 
 functions:
-  - command: get_nbs_data
-    description: 获取国家统计局综合数据
+  - command: run_nbs_stats
+    description: "fd-runner 唯一入口：两条相互隔离路径——easyquery 宏观指标（GDP/CPI/PPI/工业/人口/就业）+ 流通领域生产资料价格（旬度）。注：data.stats.gov.cn 对部分出口段 WAF 403（实测家宽 IPv4/IPv6 均 403），生产 tencent 站正常；两路径隔离，单路径失败自动降级不拖死另一条"
     category: macro-economic
     frequency: monthly
     parameters:

@@ -5,7 +5,7 @@ source_url: http://www.cisia.org.cn/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
-  - command: get_cisia_data
+  - command: run_cisia
     description: Fetch data from 中国无机盐工业协会 (China Inorganic Salt Industry Association)
     frequency: on_demand
     parameters:

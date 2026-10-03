@@ -1,5 +1,5 @@
 from scrapling.spiders import Spider, Response, Request
-from scrapling.fetchers import FetcherSession, AsyncStealthySession, Fetcher, DefaultFetcher
+from scrapling.fetchers import FetcherSession, AsyncStealthySession, Fetcher
 import sqlite3
 import json
 import os

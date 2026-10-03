@@ -5,7 +5,7 @@ source_url: https://www.mof.gov.cn/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
-  - command: get_mof_data
+  - command: run_mof
     description: 抓取财政部公开数据、政策文件、财政收支统计等信息
     frequency: on_demand
     parameters:

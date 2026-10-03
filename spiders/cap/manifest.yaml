@@ -5,7 +5,7 @@ source_url: https://www.cap.gov.cn/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
-  - command: get_cap_data
+  - command: run_cap
     description: Fetch data from China Appraisal Society
     frequency: on_demand
     parameters:

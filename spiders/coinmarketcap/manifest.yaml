@@ -5,7 +5,7 @@ source_url: https://coinmarketcap.com/api/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
-  - command: get_coinmarketcap_data
+  - command: run_coinmarketcap
     description: Fetch data from CoinMarketCap Cryptocurrency Data
     frequency: on_demand
     parameters:

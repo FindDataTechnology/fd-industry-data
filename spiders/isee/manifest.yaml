@@ -7,7 +7,7 @@ ranking_seed:
 - 0.5
 - 0.5
 functions:
-- command: get_isee_data
+- command: run_isee
   description: Scrape environmental data from ISEE platform
   frequency: daily
   parameters:

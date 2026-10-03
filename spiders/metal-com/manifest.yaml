@@ -10,7 +10,7 @@ ranking_seed:
 - 0.5
 - 0.5
 functions:
-- command: get_metal_com_data
+- command: run_metal_com
   description: Scrape nonferrous metal price and market data from Metal.com
   frequency: daily
   parameters:

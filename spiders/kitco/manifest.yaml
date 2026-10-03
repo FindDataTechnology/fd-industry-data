@@ -10,7 +10,7 @@ ranking_seed:
 - 0.5
 - 0.5
 functions:
-- command: get_kitco_data
+- command: run_kitco
   description: Scrape precious and base metal price data from Kitco
   frequency: daily
   parameters:

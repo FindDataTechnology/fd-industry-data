@@ -6,8 +6,8 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "29 1 5,15,25 * *"
 functions:
-  - command: get_cisa_data
-    description: Fetch data from 中国钢铁工业协会 (China Iron and Steel Association)
+  - command: run_cisa
+    description: "fd-runner 唯一入口（并入两通道）：chinaisa.org.cn 门户为主（旬报/周价格/统计发布），legacy cisa.org.cn 通道异常自动吞掉记 warning"
     frequency: on_demand
     parameters:
       - name: limit

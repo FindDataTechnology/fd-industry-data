@@ -52,6 +52,25 @@ Archives the `dead`-classified legacy manifests from the triage report
 manifests are verified byte-identical and a re-run is a no-op. Dry-run by
 default; `--apply` executes.
 
+## Manifest 命令漂移检查 — `check_manifest_commands.py`
+
+只读 lint：逐个导入 `spiders/<slug>/spider.py`，校验 `functions[].command` 指向真实
+存在的符号，并提示平台约定入口 `run_<slug>(limit)` 是否存在（runners.py 约定）。
+发现漂移退出码非零。背景：2026-10-04 修掉 20 处存量模板漂移
+（`get_<x>_data` → 真实 `run_<slug>`，含 cisa/nbs-stats/kitco/metal-com 等），
+此类问题 `validate_manifests` / conformance gate 不覆盖（只查布局与调度字段）。
+
+```bash
+python3 scripts/check_manifest_commands.py    # 0 = 无漂移
+```
+
+**已知遗留（均无 schedule，休眠态，待 hygiene 批处理或退役）**：
+- `flowers-yunnan`：scrapling 0.4 API 破损（`DefaultFetcher` 已不存在且被真实使用）——需移植，非元数据问题；
+- `nbs_gdp` 无 `run_*` 入口（`get_macro_data`/`get_gdp_quarterly` 真实可用，manifest 已规范为 dict 形态）；
+- 旧模板形态（`functions[].name`/CLI-command 字符串，无 `run_*` 入口）：
+  `nhc` `polygon` `stat-gov` `wanfangdata` `yn-agriculture` `yunnan-flowers`
+  `people-daily` `toutiao-open` `wechat-mp` `weibo-open`。
+
 ## Other
 
 - `generate_manifests.py` / `register_manifests.py` / `import_manifest.py` — manifest drafting pipeline (protocol: `output/manifest-drafts/MANIFEST-PROTOCOL.md`).

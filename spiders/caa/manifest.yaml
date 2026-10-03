@@ -5,7 +5,7 @@ source_url: http://www.caa.org.cn/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
-  - command: get_caa_data
+  - command: run_caa
     description: Fetch data from China Air Transport Association
     frequency: on_demand
     parameters:

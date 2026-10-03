@@ -7,7 +7,7 @@ ranking_seed:
 - 0.5
 - 0.5
 functions:
-- command: get_kunfloralexport_data
+- command: run_kunfloralexport
   description: Scrape flower export trade data from Kunfloral
   frequency: daily
   parameters:

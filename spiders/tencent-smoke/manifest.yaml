@@ -7,7 +7,7 @@ ranking_seed:
 - 0.5
 - 0.5
 functions:
-- command: get_tencent_smoke
+- command: run_tencent_smoke
   description: Return one row with hostname and timestamp (no network)
   frequency: on_demand
   columns:

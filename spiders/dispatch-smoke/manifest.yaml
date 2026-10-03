@@ -7,7 +7,7 @@ site: nbs-workers
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
-  - command: get_dispatch_smoke
+  - command: run_dispatch_smoke
     description: Return one row with hostname and timestamp (no network)
     frequency: on_demand
     parameters:

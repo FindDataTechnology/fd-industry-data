@@ -5,7 +5,7 @@ source_url: https://www.chinamonitor.com.cn/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
-  - command: get_chinamonitor_data
+  - command: run_chinamonitor
     description: Fetch data from 中国监控网 (China Monitor)
     frequency: on_demand
     parameters:

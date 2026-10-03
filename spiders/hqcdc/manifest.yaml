@@ -7,7 +7,7 @@ ranking_seed:
 - 0.5
 - 0.5
 functions:
-- command: get_hqcdc_data
+- command: run_hqcdc
   description: Scrape chemical product data from HQCDC
   frequency: daily
   parameters:

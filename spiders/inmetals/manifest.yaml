@@ -10,7 +10,7 @@ ranking_seed:
 - 0.5
 - 0.5
 functions:
-- command: get_inmetals_data
+- command: run_inmetals
   description: Scrape metal price data from Inmetals
   frequency: daily
   parameters:

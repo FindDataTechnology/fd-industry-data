@@ -7,7 +7,7 @@ ranking_seed:
 - 0.5
 - 0.5
 functions:
-- command: get_intrinio_data
+- command: run_intrinio
   description: Scrape financial data and API endpoint info from Intrinio
   frequency: daily
   parameters:
