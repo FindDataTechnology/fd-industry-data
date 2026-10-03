@@ -223,8 +223,12 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
 
 # ── 接线：SUBMIT / STATUS（poster/fetcher 可注入） ─────────────────────────
 
-def _default_poster(url: str, key: str, idem: str, body: str) -> tuple[int, str]:
-    """a2a 消息发送：JSON-RPC message/send 封装（文本指令在 parts[0].text）。"""
+def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900) -> tuple[int, str]:
+    """a2a 消息发送：JSON-RPC message/send 封装（文本指令在 parts[0].text）。
+
+    首投可能触发整回合（实测 110s+），SUBMIT 超时放宽到 15 分钟；超时按未完成
+    处理：下次运行重投，agent 侧 inbox 去重保证安全（只回执不动手）。
+    """
     import uuid
     payload = {
         "jsonrpc": "2.0",
@@ -248,7 +252,7 @@ def _default_poster(url: str, key: str, idem: str, body: str) -> tuple[int, str]
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.status, resp.read(8000).decode("utf-8", "replace")
     except urllib.error.HTTPError as e:  # noqa: BLE001
         return e.code, e.read(8000).decode("utf-8", "replace")
@@ -342,7 +346,7 @@ TERMINAL_MAP = {"done": "fixed-pending-human", "manual": "manual"}
 
 def sync_status(outdir: Path, url: str, key: str, fetcher=None) -> list[dict]:
     """回读未终态工单的 STATUS，映射进生命周期与终态枚举。"""
-    fetcher = fetcher or (lambda u, k, idem, body: _default_poster(u, k, idem, body))
+    fetcher = fetcher or (lambda u, k, idem, body: _default_poster(u, k, idem, body, timeout=120))
     results: list[dict] = []
     if not outdir.is_dir():
         return results
