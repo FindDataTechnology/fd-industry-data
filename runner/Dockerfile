@@ -5,7 +5,7 @@
 # runner 发行包在构建期下载（GitHub 托管 runner 出网快）；目标机不访问 GitHub releases。
 FROM debian:bookworm-slim
 
-ARG RUNNER_VERSION=2.325.0
+ARG RUNNER_VERSION=2.337.0
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
