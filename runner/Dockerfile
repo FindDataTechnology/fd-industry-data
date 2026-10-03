@@ -24,8 +24,8 @@ RUN curl -fsSL -o /tmp/runner.tar.gz \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY runner/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh && mkdir -p /runner-data/_work \
-    && chown -R runner:runner /actions-runner /runner-data
+RUN chmod +x /entrypoint.sh && mkdir -p /data/runner \
+    && chown -R runner:runner /actions-runner /data
 
 USER runner
 WORKDIR /actions-runner

@@ -11,6 +11,7 @@ TOKEN=$(gh api -X POST repos/FindDataTechnology/fd-industry-data/actions/runners
 
 docker pull hkccr.ccs.tencentyun.com/finddata/fd-health-runner:main
 docker rm -f fd-health-runner 2>/dev/null || true
+mkdir -p /opt/fd-health-runner && chown 1000:1000 /opt/fd-health-runner   # 属主必须=镜像内 runner 用户
 docker run -d --name fd-health-runner --restart unless-stopped \
   -e RUNNER_URL=https://github.com/FindDataTechnology/fd-industry-data \
   -e RUNNER_TOKEN="$TOKEN" \
