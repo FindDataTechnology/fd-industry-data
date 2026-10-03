@@ -5,10 +5,7 @@
 # still runs it (and will record a failed run if it breaks).
 #
 # Reasons (2026-09-25, first in-image scan, 19/79; tencent-crawl-fleet-expansion
-# 2026-09-29: 17 of the 19 retired as catalog/duplicate/dead-template sources —
-# the steel-* family duplicated cisa/worldsteel, github-*/nbs-stats-data were
-# catalog listings; see openspec/changes/tencent-crawl-fleet-expansion).
-#   chinamonitor: assorted drift from the current scrapling surface (silent)
-#   flowers-yunnan: same drift; flower family kept silent pending user decision
-chinamonitor
-flowers-yunnan
+# 2026-09-29: 17 of the 19 retired as catalog/duplicate/dead-template sources).
+# 2026-10-04 dormant-unit-hygiene: 两项残留均已收口——chinamonitor 死导入已修
+# （import 干净，满足本文件的移出条件）；flowers-yunnan 归档至
+# archive/triage-cleanup-20261004/spiders/。当前无隔离源。

@@ -1,7 +1,7 @@
 # Flower Auction Spider (昆明国际花卉拍卖中心)
 
 ## Overview
-Scrapes auction results, price data, and market analysis from Kunming International Flower Auction Center (http://www.kifc.cn).
+Scrapes auction results, price data, and market analysis from Kunming International Flower Auction Center (kifa.net；曾误标 kifc.cn——那是同名他司站点，见 2026-10-04 dormant-unit-hygiene 修正).
 
 ## Data Sources
 - **Auction Results** (`/auction`): Historical auction data with prices and volumes

@@ -2,17 +2,19 @@
 
 > **Wire (柏讯) product line** · the open-data supply line of [FindData](https://www.finddatatech.cloud/products/wire) — industry data spiders
 
-Scrapling-based spiders for collecting flower industry data and open dataset metadata from Chinese and international sources.
+Scrapling/HTTP 适配器构成的行业数据爬虫内容仓（fd-industry-data）：在役源清单以
+`spiders/*/manifest.yaml` 为准（接入流程见 `docs/onboarding.md`），休眠与退役单元的
+历史内容见 `archive/`。
 
 ## Spiders
 
 | Spider | Source | Description |
 |--------|--------|-------------|
-| **flower-association** | chinaflower.org.cn | China Flower Association news, policies, market data |
-| **flower-trading** | kunmingflower.com | Kunming Flower Trading Center prices and varieties |
-| **flower-auction** | kifc.cn | Kunming International Flower Auction Center auction data |
-| **kaggle** | kaggle.com/datasets | Kaggle dataset metadata (flower, China, agriculture) |
-| **github-datasets** | github.com | GitHub awesome China dataset repositories |
+| **flower-auction** | kifa.net | Kunming International Flower Auction Center 花拍数据（已按「需非云出口」parked，见 manifest 与 README） |
+
+> 完整在役源以各目录 `manifest.yaml` 为准；休眠/退役单元（2026-10-04 批次等）见
+> `archive/triage-cleanup-*` 的 INDEX。活跃的数据源侦察簿在 finddata 工作区
+> `data-source-scouting/INDUSTRY-DATA-SOURCES.md`。
 
 ## Requirements
 
@@ -30,24 +32,11 @@ scrapling install --force
 ### Run Individual Spiders
 
 ```bash
-# China Flower Association
-cd spiders/flower-association
-python spider.py
+# 平台约定的标准入口（内容通道调度即调用它）
+python3 -c "import sys; sys.path.insert(0,'.'); from spiders.flower_auction.spider import run_flower_auction; print(run_flower_auction(limit=5))"
 
-# Kunming Flower Trading Center
-cd spiders/flower-trading
-python spider.py
-
-# Kunming International Flower Auction Center
+# 或按单元目录调试
 cd spiders/flower-auction
-python spider.py
-
-# Kaggle Datasets
-cd spiders/kaggle
-python spider.py
-
-# GitHub Datasets
-cd spiders/github-datasets
 python spider.py
 ```
 
@@ -101,7 +90,7 @@ Each spider has its own `manifest.yaml` with:
 
 ### Remote Browser (Playwright via CDP)
 
-By default, browser-enabled spiders (flower-auction, flower-trading) use a local headless Chromium instance. To use a remote browser (e.g., on k8s), set `BROWSER_CDP_URL`:
+By default, browser-enabled spiders (flower-auction) use a local headless Chromium instance. To use a remote browser (e.g., on k8s), set `BROWSER_CDP_URL`:
 
 ```bash
 # Local browser (default)

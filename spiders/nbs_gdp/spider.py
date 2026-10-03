@@ -225,7 +225,11 @@ def _fetch_via_akshare(indicator: str = "gdp_quarterly", start_year: int = 2010)
 
     freq = INDICATORS.get(indicator, {}).get("freq", "Q")
     zbcode = INDICATORS.get(indicator, {}).get("zbcode", "")
-    unit = _UNIT_MAP.get(indicator, "")
+    # akshare *_yearly 系列返回同比增速（%），与 easyquery 绝对值口径不同：单位随源标注
+    if indicator in ("gdp_quarterly", "gdp_annual"):
+        unit = "%"
+    else:
+        unit = _UNIT_MAP.get(indicator, "")
 
     items: list[dict[str, Any]] = []
     for _, row in df.iterrows():
@@ -264,16 +268,16 @@ async def _fetch_nbs_direct(indicator: str, start_year: int = 2010) -> list[dict
     url = _build_nbs_url(config["dbcode"], config["zbcode"], start_year)
     logger.info("Fetching NBS API: %s", url[:120])
 
-    session = FetcherSession(impersonate="chrome")
     try:
-        response = await session.fetch(
-            url,
-            headers={
-                "Referer": NBS_REFERER,
-                "Accept": "application/json, text/javascript, */*; q=0.01",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-        )
+        async with FetcherSession(impersonate="chrome") as session:
+            response = await session.get(
+                url,
+                headers={
+                    "Referer": NBS_REFERER,
+                    "Accept": "application/json, text/javascript, */*; q=0.01",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            )
     except Exception as e:
         logger.warning("NBS direct fetch failed: %s", e)
         return []
@@ -282,11 +286,12 @@ async def _fetch_nbs_direct(indicator: str, start_year: int = 2010) -> list[dict
         logger.warning("NBS API status=%s", response.status)
         return []
 
-    if not response.text or len(response.text) < 100:
-        logger.warning("NBS API response too short (%d bytes)", len(response.text or ""))
+    text = (response.body or b"").decode("utf-8", "replace")
+    if len(text) < 100:
+        logger.warning("NBS API response too short (%d bytes)", len(text))
         return []
 
-    return _parse_nbs_response(response.text, indicator, config["freq"])
+    return _parse_nbs_response(text, indicator, config["freq"])
 
 
 def _fetch_indicator(indicator: str, start_year: int = 2010) -> list[dict[str, Any]]:
@@ -461,6 +466,15 @@ def get_macro_data(
 def get_gdp_quarterly(start_year: int = 2010) -> list[dict[str, Any]]:
     """Fetch quarterly GDP data from NBS (with akshare fallback)."""
     return get_macro_data(["gdp_quarterly"], start_year)
+
+
+def run_nbs_gdp(limit: int = 100) -> list[dict[str, Any]]:
+    """fd-runner 入口（dormant-unit-hygiene 规范）：默认组合 gdp_quarterly+cpi_monthly+ppi_monthly。
+
+    `get_macro_data` / `get_gdp_quarterly` 原名保留，供 provider/catalog（NBS MCP 命令面）使用。
+    """
+    rows = get_macro_data(["gdp_quarterly", "cpi_monthly", "ppi_monthly"])
+    return rows[:limit] if limit else rows
 
 
 if __name__ == "__main__":

@@ -64,12 +64,11 @@ default; `--apply` executes.
 python3 scripts/check_manifest_commands.py    # 0 = 无漂移
 ```
 
-**已知遗留（均无 schedule，休眠态，待 hygiene 批处理或退役）**：
-- `flowers-yunnan`：scrapling 0.4 API 破损（`DefaultFetcher` 已不存在且被真实使用）——需移植，非元数据问题；
-- `nbs_gdp` 无 `run_*` 入口（`get_macro_data`/`get_gdp_quarterly` 真实可用，manifest 已规范为 dict 形态）；
-- 旧模板形态（`functions[].name`/CLI-command 字符串，无 `run_*` 入口）：
-  `nhc` `polygon` `stat-gov` `wanfangdata` `yn-agriculture` `yunnan-flowers`
-  `people-daily` `toutiao-open` `wechat-mp` `weibo-open`。
+**已收口（2026-10-04，change `dormant-unit-hygiene`）**：`nbs_gdp` 已规范（新增
+`run_nbs_gdp` 包装；`get_macro_data`/`get_gdp_quarterly` 原名保留，供 provider/catalog
+的 NBS MCP 命令面使用）；`flowers-yunnan` 等 14 个休眠单元经三路实跑证据定性后归档至
+`archive/triage-cleanup-20261004/spiders/`（逐单元证据见其 INDEX.md）。本 lint 此后应为
+0 问题；新增单元请保持 `run_<slug>(limit)` 约定。
 
 ## Other
 

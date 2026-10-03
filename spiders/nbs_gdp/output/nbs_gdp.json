@@ -5,9 +5,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.224365+00:00"
+    "fetched_at": "2026-10-03T19:00:34.556507+00:00"
   },
   {
     "period": "2011Q2",
@@ -15,9 +15,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.224578+00:00"
+    "fetched_at": "2026-10-03T19:00:34.556588+00:00"
   },
   {
     "period": "2011Q3",
@@ -25,9 +25,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.224686+00:00"
+    "fetched_at": "2026-10-03T19:00:34.556643+00:00"
   },
   {
     "period": "2011Q4",
@@ -35,9 +35,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.224812+00:00"
+    "fetched_at": "2026-10-03T19:00:34.556697+00:00"
   },
   {
     "period": "2012Q1",
@@ -45,9 +45,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.224878+00:00"
+    "fetched_at": "2026-10-03T19:00:34.556740+00:00"
   },
   {
     "period": "2012Q2",
@@ -55,9 +55,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.224928+00:00"
+    "fetched_at": "2026-10-03T19:00:34.556781+00:00"
   },
   {
     "period": "2012Q3",
@@ -65,9 +65,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.224970+00:00"
+    "fetched_at": "2026-10-03T19:00:34.556821+00:00"
   },
   {
     "period": "2012Q4",
@@ -75,9 +75,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225008+00:00"
+    "fetched_at": "2026-10-03T19:00:34.556859+00:00"
   },
   {
     "period": "2013Q1",
@@ -85,9 +85,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225044+00:00"
+    "fetched_at": "2026-10-03T19:00:34.556896+00:00"
   },
   {
     "period": "2013Q2",
@@ -95,9 +95,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225078+00:00"
+    "fetched_at": "2026-10-03T19:00:34.556933+00:00"
   },
   {
     "period": "2013Q3",
@@ -105,9 +105,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225112+00:00"
+    "fetched_at": "2026-10-03T19:00:34.556969+00:00"
   },
   {
     "period": "2013Q4",
@@ -115,9 +115,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225147+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557006+00:00"
   },
   {
     "period": "2014Q1",
@@ -125,9 +125,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225180+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557042+00:00"
   },
   {
     "period": "2014Q2",
@@ -135,9 +135,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225213+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557078+00:00"
   },
   {
     "period": "2014Q3",
@@ -145,9 +145,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225245+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557113+00:00"
   },
   {
     "period": "2014Q4",
@@ -155,9 +155,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225277+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557149+00:00"
   },
   {
     "period": "2015Q1",
@@ -165,9 +165,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225310+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557184+00:00"
   },
   {
     "period": "2015Q2",
@@ -175,9 +175,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225341+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557219+00:00"
   },
   {
     "period": "2015Q3",
@@ -185,9 +185,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225373+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557253+00:00"
   },
   {
     "period": "2015Q4",
@@ -195,9 +195,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225403+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557287+00:00"
   },
   {
     "period": "2016Q1",
@@ -205,9 +205,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225435+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557323+00:00"
   },
   {
     "period": "2016Q2",
@@ -215,9 +215,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225467+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557358+00:00"
   },
   {
     "period": "2016Q3",
@@ -225,9 +225,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225499+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557392+00:00"
   },
   {
     "period": "2016Q4",
@@ -235,9 +235,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225530+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557426+00:00"
   },
   {
     "period": "2017Q1",
@@ -245,9 +245,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225561+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557460+00:00"
   },
   {
     "period": "2017Q2",
@@ -255,9 +255,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225593+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557494+00:00"
   },
   {
     "period": "2017Q3",
@@ -265,9 +265,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225625+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557529+00:00"
   },
   {
     "period": "2017Q4",
@@ -275,9 +275,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225655+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557562+00:00"
   },
   {
     "period": "2018Q1",
@@ -285,9 +285,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225684+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557596+00:00"
   },
   {
     "period": "2018Q2",
@@ -295,9 +295,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225711+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557630+00:00"
   },
   {
     "period": "2018Q3",
@@ -305,9 +305,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225738+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557664+00:00"
   },
   {
     "period": "2018Q4",
@@ -315,9 +315,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225766+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557698+00:00"
   },
   {
     "period": "2019Q1",
@@ -325,9 +325,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225792+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557732+00:00"
   },
   {
     "period": "2019Q2",
@@ -335,9 +335,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225820+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557766+00:00"
   },
   {
     "period": "2019Q3",
@@ -345,9 +345,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225846+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557800+00:00"
   },
   {
     "period": "2019Q4",
@@ -355,9 +355,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225873+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557833+00:00"
   },
   {
     "period": "2020Q1",
@@ -365,9 +365,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225900+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557867+00:00"
   },
   {
     "period": "2020Q2",
@@ -375,9 +375,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225926+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557901+00:00"
   },
   {
     "period": "2020Q3",
@@ -385,9 +385,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225953+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557935+00:00"
   },
   {
     "period": "2020Q4",
@@ -395,9 +395,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.225979+00:00"
+    "fetched_at": "2026-10-03T19:00:34.557968+00:00"
   },
   {
     "period": "2021Q1",
@@ -405,9 +405,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226006+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558002+00:00"
   },
   {
     "period": "2021Q2",
@@ -415,9 +415,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226033+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558036+00:00"
   },
   {
     "period": "2021Q3",
@@ -425,9 +425,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226060+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558070+00:00"
   },
   {
     "period": "2021Q4",
@@ -435,9 +435,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226086+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558103+00:00"
   },
   {
     "period": "2022Q1",
@@ -445,9 +445,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226113+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558136+00:00"
   },
   {
     "period": "2022Q2",
@@ -455,9 +455,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226141+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558169+00:00"
   },
   {
     "period": "2022Q3",
@@ -465,9 +465,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226168+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558203+00:00"
   },
   {
     "period": "2022Q4",
@@ -475,9 +475,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226218+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558264+00:00"
   },
   {
     "period": "2023Q1",
@@ -485,9 +485,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226265+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558325+00:00"
   },
   {
     "period": "2023Q2",
@@ -495,9 +495,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226291+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558359+00:00"
   },
   {
     "period": "2023Q3",
@@ -505,9 +505,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226317+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558393+00:00"
   },
   {
     "period": "2023Q4",
@@ -515,9 +515,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226344+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558426+00:00"
   },
   {
     "period": "2024Q1",
@@ -525,9 +525,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226370+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558459+00:00"
   },
   {
     "period": "2024Q2",
@@ -535,9 +535,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226397+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558493+00:00"
   },
   {
     "period": "2024Q3",
@@ -545,9 +545,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226423+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558527+00:00"
   },
   {
     "period": "2024Q4",
@@ -555,9 +555,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226449+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558560+00:00"
   },
   {
     "period": "2025Q1",
@@ -565,9 +565,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226475+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558593+00:00"
   },
   {
     "period": "2025Q2",
@@ -575,9 +575,9 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226501+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558626+00:00"
   },
   {
     "period": "2025Q3",
@@ -585,8 +585,8 @@
     "indicator_code": "A0201",
     "indicator_name": "gdp_quarterly",
     "indicator_type": "gdp_quarterly",
-    "unit": "亿元",
+    "unit": "%",
     "source": "akshare",
-    "fetched_at": "2026-07-30T06:24:32.226527+00:00"
+    "fetched_at": "2026-10-03T19:00:34.558660+00:00"
   }
 ]

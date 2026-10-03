@@ -56,11 +56,15 @@ spider:
   download_delay: 2
   concurrent_requests: 1
 functions:
+  - command: run_nbs_gdp
+    description: "fd-runner 入口（dormant-unit-hygiene 规范）：默认组合 gdp_quarterly+cpi_monthly+ppi_monthly，limit 截断；easyquery 优先、akshare 回退（akshare 出数为同比增速 %）"
+    category: macro-economic
+    frequency: monthly
   - command: get_macro_data
-    description: 宏观指标（indicators 列表 + 起始年；走 easyquery/akshare 双路径）
+    description: 全指标拉取（provider/catalog 的 NBS MCP 命令面引用；原名保留）
     frequency: on_demand
   - command: get_gdp_quarterly
-    description: GDP 季度序列（起始年）
+    description: GDP 季度序列（provider/catalog 的 NBS MCP 命令面引用；原名保留）
     frequency: quarterly
 outputs:
   sqlite: data/nbs_macro.db (table nbs_macro)

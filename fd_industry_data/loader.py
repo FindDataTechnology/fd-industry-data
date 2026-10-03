@@ -1,6 +1,6 @@
 """Load a content spider module regardless of directory naming.
 
-Source dirs mix `bls` and `yunnan-flowers` styles. Hyphenated dirs cannot be
+Source dirs mix `bls` and `metal-com` styles. Hyphenated dirs cannot be
 imported as package submodules, so we try the package path first and fall
 back to loading spider.py by file path under a unique module name. The
 source dir is also prepended to sys.path so intra-dir imports keep working.
