@@ -1,6 +1,7 @@
 {
-  "at": "2026-10-03T16:21:35.735598+00:00",
+  "at": "2026-10-03T20:54:04.348841+00:00",
   "source": "psql",
+  "config_source": "db:health_config",
   "sources_seen": 41,
   "healthy": 17,
   "written": [],
@@ -41,13 +42,5 @@
       "response": "**已入队并当轮处理完毕：`manual` 终态（演练单，未做任何修复、未开 PR）**\n\n- **回执**：`已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261004-drill-wiring-deadbeef.yaml（队列第 1 位）` → 读单后按工单指示即刻转终态。\n- **判据**：`source=drill-wiring`、`category=null`、`failing_runs=[]`、`needs_human=true`，`suggested_action` 明写「链路演练…无需修复；收到即按 manual 终态终止」，`notes` 明写「不产生任何代码变更」——属演练单而非真实故障，故未触碰 `spiders/metal-com/`、无分支、无 PR（仓内 open PR 0、仅 main）。\n- **接线发现（值得看）**：该单 `lifecycle` 记载 2026-10-03T16:14:27Z 的一次 submit 被门面回 `JSON-RPC -32600 Inval"
     }
   ],
-  "status": [
-    {
-      "ticket": "20261004-drill-wiring-deadbeef.yaml",
-      "http_status": 200,
-      "state": "manual",
-      "note": "",
-      "pr_url": ""
-    }
-  ]
+  "status": []
 }
