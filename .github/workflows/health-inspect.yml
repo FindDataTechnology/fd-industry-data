@@ -3,9 +3,13 @@
 # 流程：读中央库 crawl_runs（只读）→ 分诊出单落 reports/health-tickets/ →
 #       SUBMIT 给萬星 spider-heal Agent Service → STATUS 回读同步生命周期 → 回写提交。
 #
+# 自包含设计：不使用任何 actions（避免 runner 经代理下载 action 的偶发 TLS 失败），
+# 全部步骤为 shell + 内建 python3；每次全新浅克隆（免疫工作区残留状态）。
+# 网络经 fd-health-proxy（mihomo 出口）；所有 git 网络操作带重试。
+#
 # 依赖（一次性，见 docs/health-loop.md「运维配置」）：
-#   - self-hosted runner（labels: self-hosted, fd-health），落位 xinru-server1
-#   - secrets: FD_CENTRAL_PG_DSN（只读账号）、WANXING_SPIDER_HEAL_KEY（finddata 调用键）
+#   - self-hosted runner（labels: self-hosted, fd-health；k8s Deployment fd-health-runner）
+#   - secrets: FD_CENTRAL_PG_DSN（中央库只读）、WANXING_SPIDER_HEAL_KEY（finddata 调用键）
 #   - vars（可选）: WANXING_SPIDER_HEAL_URL、FD_HEALTH_CONFIG
 name: health-inspect
 
@@ -31,9 +35,23 @@ jobs:
     runs-on: [self-hosted, fd-health]
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (shell clone, retry)
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          rm -rf src
+          for i in 1 2 3 4 5; do
+            if git clone --depth=1 \
+                 "https://x-access-token:${{ github.token }}@github.com/FindDataTechnology/fd-industry-data.git" src; then
+              break
+            fi
+            echo "clone attempt $i failed; retrying in 8s"
+            rm -rf src
+            sleep 8
+          done
+          test -d src/.git
 
       - name: Inspector + SUBMIT/STATUS
+        working-directory: src
         env:
           FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
           WANXING_SPIDER_HEAL_KEY: ${{ secrets.WANXING_SPIDER_HEAL_KEY }}
@@ -46,14 +64,22 @@ jobs:
             --summary-file reports/health-tickets/last-run.json
 
       - name: Commit tickets & summary
+        working-directory: src
         run: |
           git config user.name  "fd-health-bot"
           git config user.email "fd-health-bot@finddatatech.cloud"
-          git pull --rebase --autostash || true
           git add reports/health-tickets
           if git diff --cached --quiet; then
             echo "no ticket changes"
             exit 0
           fi
           git commit -m "health: tickets $(date -u +%F)"
-          git push || { git pull --rebase && git push; }
+          for i in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "push attempt $i failed; rebase+retry in 8s"
+            git pull --rebase origin main || true
+            sleep 8
+          done
+          echo "push failed after retries"; exit 1
