@@ -1,34 +1,33 @@
 # fd-health-runner 镜像（GHA self-hosted runner）
 
-自愈闭环巡检 workflow（`health-inspect.yml`）的执行载体。走标准镜像通道：
-**GitHub Actions 构建 → TCR（hkccr）→ 目标机 docker pull**，不手工装包、不传文件。
+自愈闭环巡检 workflow（`health-inspect.yml`）的执行载体。构建走标准镜像通道
+（**GitHub Actions → TCR（hkccr）**），部署走标准 GitOps 通道（**ArgoCD**）。
 
-## 目标机部署（xinru-server1）
+## 标准部署（k8s / ArgoCD — cheap 集群 fd-prod）
+
+清单事实源：`fd-infra-deploy/all-services/prod/fd-health-runner.yaml`
+（Deployment + PVC，automated.selfHeal 自动同步）。首次上线：
 
 ```bash
-# 一次性：注册 token（本机 gh 有权即可，1 小时有效）
+# 1) 一次性注册 token 入库（不进 git）
 TOKEN=$(gh api -X POST repos/FindDataTechnology/fd-industry-data/actions/runners/registration-token --jq .token)
-
-docker pull hkccr.ccs.tencentyun.com/finddata/fd-health-runner:main
-docker rm -f fd-health-runner 2>/dev/null || true
-mkdir -p /opt/fd-health-runner && chown 1000:1000 /opt/fd-health-runner   # 属主必须=镜像内 runner 用户
-docker run -d --name fd-health-runner --restart unless-stopped \
-  -e RUNNER_URL=https://github.com/FindDataTechnology/fd-industry-data \
-  -e RUNNER_TOKEN="$TOKEN" \
-  -e RUNNER_NAME=xinru-server1-health \
-  -e RUNNER_LABELS=fd-health \
-  -v /opt/fd-health-runner:/runner-data \
-  hkccr.ccs.tencentyun.com/finddata/fd-health-runner:main
+kubectl -n fd-prod create secret generic fd-health-runner-token \
+  --from-literal=RUNNER_TOKEN="$TOKEN" --dry-run=client -o yaml | kubectl apply -f -
+# 2) 提交清单（本仓 fd-infra-deploy）→ ArgoCD 一个轮询周期内拉起
 ```
 
-- 注册状态在容器内（`/actions-runner/.runner`）：宿主机重启由 `--restart` 兜底；
-  若 `docker rm` 重建容器，需要重新生成 token 再跑一次上面的两步。
-- 升级 = 重推镜像（改 `runner/Dockerfile` 的 `RUNNER_VERSION` 或依赖）→ 目标机
-  `docker pull && docker rm -f && docker run`（同配方）。
-- 工作目录/产物在宿主 `/opt/fd-health-runner`（干净可删）。
+- 注册状态与工作目录都在 PVC（`fd-health-runner-data`，`/data`）：Pod 重建免 token；
+  彻底换注册 = 删 PVC + 更新 secret + rollout restart。
+- 升级 runner 版本/依赖：改 `fd-industry-data/runner/Dockerfile` → 推 main 触发
+  `health-runner-image` 构建 → 将清单里的 `sha-*` 标签改为新构建 sha（不可变标签纪律）。
+- 镜像链路：GHA 推 **hkccr**（海外快推）→ cheap-3 `tcr-relay-sync.sh` 自动回灌 **ccr**（repos.conf 已登记本镜像）→
+  集群清单用 `ccr.ccs.tencentyun.com/...` + `tcr-ccr` pull secret（hkccr 的香港 COS blob 国内节点拉不动）。
+- 出网要求：GitHub（注册/接活）+ 中央库 PG 走 tailscale mesh（100.64.0.3:30432，只读角色）。
 
-## 本地构建（可选调试）
+## 本地调试（不用于服务器部署）
 
 ```bash
 docker build -f runner/Dockerfile -t fd-health-runner:dev .
+docker run --rm -e RUNNER_URL=... -e RUNNER_TOKEN=... \
+  -v /tmp/fd-health-state:/data fd-health-runner:dev
 ```
