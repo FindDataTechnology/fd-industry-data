@@ -1,13 +1,14 @@
-"""自愈闭环配置：默认值 + JSON 覆盖。
+"""自愈闭环配置：默认值 + JSON 文件覆盖 + 中央库 health_config 表。
 
-v1：配置来源为内置默认值，可经 FD_HEALTH_CONFIG 指向 JSON 文件覆盖。
-中央库配置表 + Console 设置页（任务 2.1）落地后，本模块增加 DB 读取源，
-字段名保持不变。
+优先级（由调用方组装）：--config/FD_HEALTH_CONFIG 文件 > 中央库 `public.health_config`
+表（spider-self-heal-l2 任务 2.1 中央库形态；Console 设置页待后续）> 内置默认值。
+中央库读取经 `psql` 子进程（与遥测同路径，纯 stdlib），不可达/空表时返回 None 由调用方回退。
 """
 from __future__ import annotations
 
 import json
 import os
+import subprocess
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
@@ -58,9 +59,35 @@ class HealthConfig:
 
 DEFAULTS = HealthConfig()
 
+_KNOWN_KEYS = (
+    "max_daily_tickets",
+    "master_switch",
+    "lookback_hours",
+    "telemetry_sql",
+    "expected_period_overrides",
+    "excluded_sources",
+)
+
+
+def _config_from_doc(doc: dict) -> HealthConfig:
+    """把 {key: value} 字典（文件或中央库行）合并进默认值；未知键忽略。"""
+    overrides: dict = {}
+    if "thresholds" in doc:
+        overrides["thresholds"] = Thresholds(**doc["thresholds"])
+    for key in _KNOWN_KEYS:
+        if key not in doc:
+            continue
+        value = doc[key]
+        if key == "expected_period_overrides":
+            value = {str(k): float(v) for k, v in (value or {}).items()}
+        elif key == "excluded_sources":
+            value = tuple(value or [])
+        overrides[key] = value
+    return replace(DEFAULTS, **overrides)
+
 
 def load_config(path: str | Path | None = None) -> HealthConfig:
-    """默认值 + JSON 覆盖。path 缺省取环境变量 FD_HEALTH_CONFIG。"""
+    """默认值 + JSON 文件覆盖。path 缺省取环境变量 FD_HEALTH_CONFIG。"""
     p = Path(path) if path else None
     if p is None:
         env = os.environ.get("FD_HEALTH_CONFIG", "").strip()
@@ -68,16 +95,39 @@ def load_config(path: str | Path | None = None) -> HealthConfig:
     if p is None or not p.exists():
         return DEFAULTS
     doc = json.loads(p.read_text(encoding="utf-8"))
-    overrides: dict = {}
-    if "thresholds" in doc:
-        overrides["thresholds"] = Thresholds(**doc["thresholds"])
-    for key in ("max_daily_tickets", "master_switch", "lookback_hours", "telemetry_sql"):
-        if key in doc:
-            overrides[key] = doc[key]
-    if "expected_period_overrides" in doc:
-        overrides["expected_period_overrides"] = {
-            str(k): float(v) for k, v in doc["expected_period_overrides"].items()
-        }
-    if "excluded_sources" in doc:
-        overrides["excluded_sources"] = tuple(doc["excluded_sources"])
-    return replace(DEFAULTS, **overrides)
+    return _config_from_doc(doc)
+
+
+def load_config_from_db(dsn: str, binary: str = "psql", timeout: int = 30) -> HealthConfig | None:
+    """读中央库 `public.health_config` 表（key/value jsonb）；不可达/空表返回 None。
+
+    纯只读；供巡检器与萬星 spider-heal 的总闸/限流读取（坐标见 docs/health-loop.md）。
+    """
+    if not dsn:
+        return None
+    try:
+        proc = subprocess.run(
+            [binary, dsn, "-At", "-F", "\t", "-c",
+             "SELECT key, value FROM public.health_config"],
+            capture_output=True, text=True, timeout=timeout,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    doc: dict = {}
+    known = {"thresholds", *_KNOWN_KEYS}
+    for line in proc.stdout.splitlines():
+        if not line.strip():
+            continue
+        key, _, raw = line.partition("\t")
+        key = key.strip()
+        if key not in known:
+            continue
+        try:
+            doc[key] = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+    if not doc:
+        return None
+    return _config_from_doc(doc)

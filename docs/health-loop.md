@@ -58,9 +58,21 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
 3. **集群内 secret（不进 git）**：`tcr-ccr`（ccr 拉取凭据）、`fd-health-proxy`（mihomo 出口
    `100.64.0.7:30081`，cheap 节点无 GitHub 直连；NO_PROXY 含 mesh 与 finddatatech 域）、
    `fd-health-runner-token`（一次性注册 token）。
-4. **通知通道**：spider-heal 部署绑定通道当前 `test-channel`，待运营换正式。
-5. **限流/总闸 MCP**（契约待办③）：中央库配置注册为 MCP server 并请运营重部署追加引用；
-   未落地前总闸等价手段 = `POST /api/packs/<pack>/deployments/spider-heal/pause|resume`。
+4. **通知通道**（2026-10-04 核）：spider-heal 绑定通道当前 `test-channel`；换正式有硬前置——
+   正式接收方需先在群里/微信向目标 bot（qinfa 或选定 bot）**发一条任意消息**（bot 见过会话才能绑定），
+   之后萬星侧一条命令完成绑定+重部署（配方在 paas `docs/spider-heal-pack.md`）。
+5. **限流/总闸坐标**（2026-10-04 已提供）：中央库 `fd_open_data.public.health_config`
+   （key/value jsonb，6 键：master_switch / max_daily_tickets / lookback_hours /
+   thresholds / excluded_sources / expected_period_overrides；updated_at 记录变更时间）。
+   讀取凭据 = GHA secret `FD_CENTRAL_PG_DSN` 同款只读账号 `fd_health_ro`（mesh
+   `100.64.0.3:30432`）；萬星可用平台既有 MCP shim 模式包一层注册 + 重部署追加 mcpServers 引用。
+   过渡期等价手段 = `POST /api/packs/<pack>/deployments/spider-heal/pause|resume`。
+   巡检器自身的配置优先级：`--config`/`FD_HEALTH_CONFIG`（文件）> 中央库 `health_config` 表 > 默认值
+   （last-run.json 的 `config_source` 字段可见来源：`file:` / `db:health_config` / `defaults`）。
+6. **万星侧其余状态**（2026-10-04 交接）：runner 默认模型/计费已核验（deepseek-v4.1-flash、
+   部署键 sub2api id 31 逐请求记账）；git PAT 实测权限超出契约（可见 12 仓 admin）——
+   建议重新签发仅 fd-industry-data、Contents RW + Pull requests RW 的 fine-grained PAT，
+   萬星一条命令轮换（SECRET_GIT_PAT 省略其余即保留）。
 
 ## 演练配方（task 5.2，避开平台滚动窗口）
 

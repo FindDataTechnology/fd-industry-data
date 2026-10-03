@@ -23,7 +23,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 from fd_industry_data.health import inspector  # noqa: E402
-from fd_industry_data.health.config import load_config  # noqa: E402
+from fd_industry_data.health.config import load_config, load_config_from_db  # noqa: E402
 
 DEFAULT_URL = (
     "https://platform.finddatatech.cloud/api/wanxing/v1/a2a/"
@@ -46,12 +46,19 @@ def main() -> int:
     ap.add_argument("--summary-file", default=None)
     args = ap.parse_args()
 
+    import os
+
     repo = Path(args.repo)
     outdir = Path(args.outdir)
-    config = load_config(args.config)
+    # 配置优先级：--config/FD_HEALTH_CONFIG（文件） > 中央库 health_config 表 > 默认值
+    cfg_path = args.config or os.environ.get("FD_HEALTH_CONFIG", "").strip() or None
+    if cfg_path:
+        config, cfg_src = load_config(cfg_path), f"file:{cfg_path}"
+    else:
+        config = load_config_from_db(os.environ.get("FD_CENTRAL_PG_DSN", ""))
+        cfg_src = "db:health_config" if config else "defaults"
+        config = config or load_config(None)
     now = datetime.now(timezone.utc)
-
-    import os
 
     if args.snapshot:
         records = inspector.load_runs_from_snapshot(args.snapshot)
@@ -67,6 +74,7 @@ def main() -> int:
     summary: dict = {
         "at": now.isoformat(),
         "source": source_kind,
+        "config_source": cfg_src,
         "sources_seen": len(runs_by_source),
         "healthy": stats["healthy"],
         "written": stats["written"],
