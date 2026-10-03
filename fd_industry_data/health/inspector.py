@@ -224,16 +224,63 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
 # ── 接线：SUBMIT / STATUS（poster/fetcher 可注入） ─────────────────────────
 
 def _default_poster(url: str, key: str, idem: str, body: str) -> tuple[int, str]:
-    req = urllib.request.Request(url, data=body.encode("utf-8"), method="POST", headers={
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "text/plain; charset=utf-8",
-        "Idempotency-Key": idem,
-    })
+    """a2a 消息发送：JSON-RPC message/send 封装（文本指令在 parts[0].text）。"""
+    import uuid
+    payload = {
+        "jsonrpc": "2.0",
+        "id": str(uuid.uuid4()),
+        "method": "message/send",
+        "params": {
+            "message": {
+                "role": "user",
+                "kind": "message",
+                "messageId": idem,
+                "parts": [{"kind": "text", "text": body}],
+            }
+        },
+    }
+    req = urllib.request.Request(
+        url, data=json.dumps(payload).encode("utf-8"), method="POST",
+        headers={
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "Idempotency-Key": idem,
+        },
+    )
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
-            return resp.status, resp.read(4000).decode("utf-8", "replace")
+            return resp.status, resp.read(8000).decode("utf-8", "replace")
     except urllib.error.HTTPError as e:  # noqa: BLE001
-        return e.code, e.read(4000).decode("utf-8", "replace")
+        return e.code, e.read(8000).decode("utf-8", "replace")
+
+
+def extract_message_text(text: str) -> str:
+    """从 a2a JSON-RPC 回执中提取文本（result.parts[].text）；非 JSON 原样返回。"""
+    try:
+        doc = json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        return text
+    if isinstance(doc, dict):
+        if doc.get("error"):
+            return json.dumps(doc["error"], ensure_ascii=False)
+        result = doc.get("result")
+        if isinstance(result, dict):
+            for part in result.get("parts") or []:
+                if isinstance(part, dict) and "text" in part:
+                    return str(part["text"])
+    return text
+
+
+def _submit_recorded(doc: dict) -> bool:
+    """是否已有成功的 SUBMIT 记录（失败回执允许重试）。"""
+    for e in doc.get("lifecycle") or []:
+        if e.get("event") != "submitted":
+            continue
+        resp = str(e.get("response", "")).lower()
+        if e.get("ok") is False or "invalid request" in resp or "error" in resp or "unauthorized" in resp:
+            continue
+        return True
+    return False
 
 
 def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config: HealthConfig,
@@ -245,8 +292,7 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
         return results
     for p in sorted(outdir.glob("*.yaml")):
         doc = ticket_mod.load_ticket(p)
-        events = [e.get("event") for e in doc.get("lifecycle") or []]
-        if "submitted" in events:
+        if _submit_recorded(doc):
             continue
         rel = f"reports/health-tickets/{p.name}"
         entry = {"ticket": p.name, "submitted": False, "reason": ""}
@@ -258,8 +304,11 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
         else:
             try:
                 status, text = poster(url, key, p.name[:-5], f"SUBMIT {repo_slug} {rel}")
-                entry.update({"submitted": status < 400, "http_status": status, "response": text[:500]})
-                ticket_mod.append_event(doc, "submitted", http_status=status, response=text[:300])
+                message = extract_message_text(text)
+                failed = status >= 400 or "invalid request" in message.lower() or "error" in message.lower()
+                entry.update({"submitted": not failed, "http_status": status, "response": message[:500]})
+                ticket_mod.append_event(doc, "submitted", http_status=status, ok=not failed,
+                                        response=message[:300])
             except Exception as e:  # noqa: BLE001 — 网络失败留痕不炸
                 entry.update({"reason": f"submit failed: {type(e).__name__}: {e}"[:300]})
                 ticket_mod.append_event(doc, "submit-failed", error=str(e)[:300])
@@ -308,7 +357,7 @@ def sync_status(outdir: Path, url: str, key: str, fetcher=None) -> list[dict]:
             p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
             results.append({"ticket": p.name, "state": None, "error": str(e)[:200]})
             continue
-        parsed = parse_status(text)
+        parsed = parse_status(extract_message_text(text))
         ticket_mod.append_event(doc, "status", http_status=status, state=parsed["state"],
                                 note=parsed["note"], pr_url=parsed["pr_url"])
         if parsed["state"] in TERMINAL_MAP:

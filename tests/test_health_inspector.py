@@ -239,3 +239,28 @@ def test_sync_status_mapping(tmp_path):
 def test_parse_status_fallback_text():
     parsed = inspector.parse_status("STATUS for ... state=manual: ticket unreadable")
     assert parsed["state"] == "manual"
+
+
+def test_extract_message_text_and_resubmit_after_error(tmp_path):
+    # a2a JSON-RPC 回执 → 文本提取
+    env = '{"jsonrpc":"2.0","id":1,"result":{"parts":[{"kind":"text","text":"**QUEUE — 2 单，均终态"}]}}'
+    assert "QUEUE" in inspector.extract_message_text(env)
+    assert "Invalid Request" in inspector.extract_message_text('{"error":{"message":"Invalid Request"}}')
+
+    # 失败回执（Invalid Request）允许重试，成功后才记 submitted
+    outdir = tmp_path / "tickets"
+    p = _mk_ticket(outdir, "alpha")
+    bodies = []
+
+    def poster(url, key, idem, body):
+        bodies.append(body)
+        if len(bodies) == 1:
+            return 200, '{"jsonrpc":"2.0","id":null,"error":{"code":-32600,"message":"Invalid Request"}}'
+        return 200, '{"jsonrpc":"2.0","id":2,"result":{"parts":[{"kind":"text","text":"已入队"}]}}'
+
+    res1 = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS, poster=poster)
+    assert res1[0]["submitted"] is False
+    res2 = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS, poster=poster)
+    assert res2 and res2[0]["submitted"] is True       # 失败后重试成功
+    res3 = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS, poster=poster)
+    assert res3 == [] and len(bodies) == 2             # 成功后退化为不重发
