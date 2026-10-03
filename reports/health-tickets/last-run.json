@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-03T16:14:26.306930+00:00",
+  "at": "2026-10-03T16:17:07.128024+00:00",
   "source": "psql",
   "sources_seen": 41,
   "healthy": 17,
@@ -35,16 +35,14 @@
   "submit": [
     {
       "ticket": "20261004-drill-wiring-deadbeef.yaml",
-      "submitted": true,
-      "reason": "",
-      "http_status": 200,
-      "response": "{\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32600,\"message\":\"Invalid Request\"}}"
+      "submitted": false,
+      "reason": "submit failed: TimeoutError: The read operation timed out"
     }
   ],
   "status": [
     {
       "ticket": "20261004-drill-wiring-deadbeef.yaml",
-      "http_status": 200,
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""

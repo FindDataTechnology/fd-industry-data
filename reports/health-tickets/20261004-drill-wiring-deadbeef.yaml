@@ -33,4 +33,13 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-10-03T16:18:08.204163+00:00'
+  event: submit-failed
+  error: The read operation timed out
+- at: '2026-10-03T16:18:08.546983+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
