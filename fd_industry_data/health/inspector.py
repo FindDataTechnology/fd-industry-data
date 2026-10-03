@@ -275,6 +275,20 @@ def extract_message_text(text: str) -> str:
     return text
 
 
+def _looks_failed(status: int, raw_text: str, message: str) -> bool:
+    """判定 SUBMIT 回执是否失败：HTTP 非 2xx / JSON-RPC error 信封 / 明确拒绝文案。"""
+    if status >= 400:
+        return True
+    try:
+        doc = json.loads(raw_text)
+        if isinstance(doc, dict) and doc.get("error"):
+            return True
+    except (json.JSONDecodeError, TypeError):
+        pass
+    lowered = message.lower()
+    return any(k in lowered for k in ("invalid request", "unauthorized", "not allowed", "拒绝"))
+
+
 def _submit_recorded(doc: dict) -> bool:
     """是否已有成功的 SUBMIT 记录（失败回执允许重试）。"""
     for e in doc.get("lifecycle") or []:
@@ -309,7 +323,7 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
             try:
                 status, text = poster(url, key, p.name[:-5], f"SUBMIT {repo_slug} {rel}")
                 message = extract_message_text(text)
-                failed = status >= 400 or "invalid request" in message.lower() or "error" in message.lower()
+                failed = _looks_failed(status, text, message)
                 entry.update({"submitted": not failed, "http_status": status, "response": message[:500]})
                 ticket_mod.append_event(doc, "submitted", http_status=status, ok=not failed,
                                         response=message[:300])
