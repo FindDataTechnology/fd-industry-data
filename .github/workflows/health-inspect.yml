@@ -49,11 +49,11 @@ jobs:
         run: |
           git config user.name  "fd-health-bot"
           git config user.email "fd-health-bot@finddatatech.cloud"
+          git pull --rebase --autostash || true
           git add reports/health-tickets
           if git diff --cached --quiet; then
             echo "no ticket changes"
-          else
-            git pull --rebase --autostash || true
-            git commit -m "health: tickets $(date -u +%F)"
-            git push
+            exit 0
           fi
+          git commit -m "health: tickets $(date -u +%F)"
+          git push || { git pull --rebase && git push; }
