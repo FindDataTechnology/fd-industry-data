@@ -1,0 +1,52 @@
+# 自愈闭环 · 巡检器（spider-self-heal-l2）
+#
+# 流程：读中央库 crawl_runs（只读）→ 分诊出单落 reports/health-tickets/ →
+#       SUBMIT 给萬星 spider-heal Agent Service → STATUS 回读同步生命周期 → 回写提交。
+#
+# 依赖（一次性，见 docs/health-loop.md「运维配置」）：
+#   - self-hosted runner（labels: self-hosted, fd-health），落位 xinru-server1
+#   - secrets: FD_CENTRAL_PG_DSN（只读账号）、WANXING_SPIDER_HEAL_KEY（finddata 调用键）
+#   - vars（可选）: WANXING_SPIDER_HEAL_URL、FD_HEALTH_CONFIG
+name: health-inspect
+
+on:
+  schedule:
+    - cron: "17 19 * * *" # 每日 03:17 CST
+  workflow_dispatch: {}
+
+concurrency:
+  group: health-inspect
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: [self-hosted, fd-health]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inspector + SUBMIT/STATUS
+        env:
+          FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
+          WANXING_SPIDER_HEAL_KEY: ${{ secrets.WANXING_SPIDER_HEAL_KEY }}
+          WANXING_SPIDER_HEAL_URL: ${{ vars.WANXING_SPIDER_HEAL_URL || 'https://platform.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal' }}
+          FD_HEALTH_CONFIG: ${{ vars.FD_HEALTH_CONFIG }}
+        run: |
+          python3 scripts/health_inspect.py --from-pg --submit-new --sync-status \
+            --summary-file reports/health-tickets/last-run.json
+
+      - name: Commit tickets & summary
+        run: |
+          git config user.name  "fd-health-bot"
+          git config user.email "fd-health-bot@finddatatech.cloud"
+          git add reports/health-tickets
+          if git diff --cached --quiet; then
+            echo "no ticket changes"
+          else
+            git pull --rebase --autostash || true
+            git commit -m "health: tickets $(date -u +%F)"
+            git push
+          fi
