@@ -276,7 +276,10 @@ def extract_message_text(text: str) -> str:
 
 
 def _looks_failed(status: int, raw_text: str, message: str) -> bool:
-    """判定 SUBMIT 回执是否失败：HTTP 非 2xx / JSON-RPC error 信封 / 明确拒绝文案。"""
+    """判定 SUBMIT 回执是否失败：HTTP 非 2xx / JSON-RPC error 信封 / 回执开头的明确拒绝。
+
+    仅看回执开头（前 60 字符）与错误信封——回执正文里引述历史错误不应判失败。
+    """
     if status >= 400:
         return True
     try:
@@ -285,8 +288,8 @@ def _looks_failed(status: int, raw_text: str, message: str) -> bool:
             return True
     except (json.JSONDecodeError, TypeError):
         pass
-    lowered = message.lower()
-    return any(k in lowered for k in ("invalid request", "unauthorized", "not allowed", "拒绝"))
+    head = message.strip()[:60].lower()
+    return head.startswith(("invalid request", "unauthorized", "not allowed", "拒绝", "未通过"))
 
 
 def _submit_recorded(doc: dict) -> bool:
@@ -310,6 +313,8 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
         return results
     for p in sorted(outdir.glob("*.yaml")):
         doc = ticket_mod.load_ticket(p)
+        if doc.get("terminal") is not None:
+            continue  # 已终态工单不重投
         if _submit_recorded(doc):
             continue
         rel = f"reports/health-tickets/{p.name}"

@@ -241,6 +241,24 @@ def test_parse_status_fallback_text():
     assert parsed["state"] == "manual"
 
 
+def test_submit_skips_terminal_and_quoted_error(tmp_path):
+    # 已终态工单不重投
+    outdir = tmp_path / "tickets"
+    _mk_ticket(outdir, "alpha", terminal="fixed-pending-human")
+    calls = []
+    res = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS,
+                                       poster=lambda *a: calls.append(a) or (200, "queued"))
+    assert res == [] and calls == []
+
+    # 回执正文引述历史错误不判失败（仅开头/信封判失败）
+    _mk_ticket(outdir, "beta")
+    res2 = inspector.submit_new_tickets(
+        outdir, "Org/repo", "https://x", "k", DEFAULTS,
+        poster=lambda *a: (200, '{"result":{"parts":[{"text":"已入队并当轮处理完毕；说明：历史一次 submit 曾回 Invalid Request"}]}}'),
+    )
+    assert res2 and res2[0]["submitted"] is True
+
+
 def test_extract_message_text_and_resubmit_after_error(tmp_path):
     # a2a JSON-RPC 回执 → 文本提取
     env = '{"jsonrpc":"2.0","id":1,"result":{"parts":[{"kind":"text","text":"**QUEUE — 2 单，均终态"}]}}'
