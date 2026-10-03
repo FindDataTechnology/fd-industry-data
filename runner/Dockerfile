@@ -9,7 +9,7 @@ ARG RUNNER_VERSION=2.337.0
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git jq libicu72 postgresql-client tzdata \
+      ca-certificates curl git jq libicu72 postgresql-client python3 python3-yaml tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -d /home/runner -s /bin/bash runner
