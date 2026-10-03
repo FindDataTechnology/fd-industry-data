@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-03T16:03:04.109052+00:00",
+  "at": "2026-10-03T16:14:26.306930+00:00",
   "source": "psql",
   "sources_seen": 41,
   "healthy": 17,
@@ -32,6 +32,22 @@
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [],
-  "status": []
+  "submit": [
+    {
+      "ticket": "20261004-drill-wiring-deadbeef.yaml",
+      "submitted": true,
+      "reason": "",
+      "http_status": 200,
+      "response": "{\"jsonrpc\":\"2.0\",\"id\":null,\"error\":{\"code\":-32600,\"message\":\"Invalid Request\"}}"
+    }
+  ],
+  "status": [
+    {
+      "ticket": "20261004-drill-wiring-deadbeef.yaml",
+      "http_status": 200,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    }
+  ]
 }

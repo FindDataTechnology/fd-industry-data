@@ -15,11 +15,22 @@ evidence:
   notes: 这是自愈闭环的接线演练工单（maintainer 合成），不指向真实故障；期望终态 manual，不产生任何代码变更
 verify:
   commands:
-    - "echo 'wiring drill — no repair expected; terminate as manual'"
+  - echo 'wiring drill — no repair expected; terminate as manual'
 golden: []
 lifecycle:
-  - at: '2026-10-04T00:20:00+00:00'
-    event: created
-    by: maintainer
-    note: wiring drill
+- at: '2026-10-04T00:20:00+00:00'
+  event: created
+  by: maintainer
+  note: wiring drill
+- at: '2026-10-03T16:14:27.674292+00:00'
+  event: submitted
+  http_status: 200
+  response: '{"jsonrpc":"2.0","id":null,"error":{"code":-32600,"message":"Invalid
+    Request"}}'
+- at: '2026-10-03T16:14:27.858114+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
