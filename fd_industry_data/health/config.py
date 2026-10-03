@@ -42,10 +42,11 @@ class HealthConfig:
     master_switch: bool = True
     # 巡检回看窗口（小时）
     lookback_hours: float = 720.0
-    # 遥测读取 SQL（中央库 crawl_runs；列名以运维实况为准，可经配置覆盖）
+    # 遥测读取 SQL（中央库 crawl_runs；列名=运维实况 2026-10-04 核验：
+    # error_head 为错误摘要列，无独立 http_status 列——http 状态从 error 文本判定）
     telemetry_sql: str = (
         "SELECT source, status, started_at, COALESCE(rows_written,0), "
-        "COALESCE(error_summary,''), COALESCE(http_status::text,'') "
+        "COALESCE(error_head,''), '' "
         "FROM crawl_runs WHERE started_at >= now() - interval '30 days' "
         "ORDER BY source, started_at"
     )
