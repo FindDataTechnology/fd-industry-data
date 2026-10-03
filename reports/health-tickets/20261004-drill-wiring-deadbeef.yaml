@@ -42,4 +42,27 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-10-03T16:21:37.254241+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  response: '**已入队并当轮处理完毕：`manual` 终态（演练单，未做任何修复、未开 PR）**
+
+
+    - **回执**：`已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261004-drill-wiring-deadbeef.yaml（队列第
+    1 位）` → 读单后按工单指示即刻转终态。
+
+    - **判据**：`source=drill-wiring`、`category=null`、`failing_runs=[]`、`needs_human=true`，`suggested_action`
+    明写「链路演练…无需修复；收到'
+- at: '2026-10-03T16:22:05.755169+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-10-03T16:22:05.755208+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual
