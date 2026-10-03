@@ -1,0 +1,25 @@
+ticket_id: 20261004-drill-wiring-deadbeef
+source: drill-wiring
+unit: spiders/metal-com/
+created_at: '2026-10-04T00:20:00+00:00'
+category: null
+needs_human: true
+suspected_anti_bot: false
+suggested_action: 链路演练：验证 SUBMIT/STATUS 接线，无需修复；收到即按 manual 终态终止
+evidence:
+  window:
+    from: '2026-10-04T00:20:00+00:00'
+    to: '2026-10-04T00:20:00+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 这是自愈闭环的接线演练工单（maintainer 合成），不指向真实故障；期望终态 manual，不产生任何代码变更
+verify:
+  commands:
+    - "echo 'wiring drill — no repair expected; terminate as manual'"
+golden: []
+lifecycle:
+  - at: '2026-10-04T00:20:00+00:00'
+    event: created
+    by: maintainer
+    note: wiring drill
+terminal: null

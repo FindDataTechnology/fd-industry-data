@@ -1,0 +1,14 @@
+{
+  "sample_id": "001-sc-gd-stats",
+  "created": "2026-10-03",
+  "target": "run_sc_gd_stats",
+  "params": {"limit": 5},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "province", "equals": "sichuan"},
+      {"field": "indicator", "equals": "一、规模以上工业增加值"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-dbnomics-api",
+  "created": "2026-10-03",
+  "target": "run_dbnomics_api",
+  "params": {"limit": 5},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "provider", "equals": "ECB"},
+      {"field": "dataset", "equals": "EXR"},
+      {"field": "series_code", "equals": "D.CNY.EUR.SP00.A"},
+      {"field": "source_url", "equals": "https://api.db.nomics.world/v22/series/ECB/EXR/D.CNY.EUR.SP00.A?observations=1"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

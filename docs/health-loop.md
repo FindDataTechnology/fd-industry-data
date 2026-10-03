@@ -45,17 +45,22 @@ python3 scripts/health_verify.py --ticket reports/health-tickets/<f>.yaml
 python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
 ```
 
-## 运维配置（一次性，待办）
+## 运维配置（一次性，已落地 2026-10-04）
 
-1. **self-hosted runner**（落位 xinru-server1）：GitHub 仓 Settings → Actions → Runners →
-   New runner 取 token；在 server1 上 `./config.sh --url <repo> --token <T> --labels fd-health`
-   + `./svc.sh install && ./svc.sh start`。出网不通时经 gost 出口（参考 xinru-server2 链路）。
-2. **secrets**：`FD_CENTRAL_PG_DSN`（中央库**只读**账号）、`WANXING_SPIDER_HEAL_KEY`
-   （finddata 调用键，需运营加入萬星允许清单）。
-3. **vars（可选）**：`WANXING_SPIDER_HEAL_URL`、`FD_HEALTH_CONFIG`（JSON 覆盖阈值/限流/总闸）。
-4. **通知通道**：请运营把 spider-heal 部署绑定的通道从 `test-channel` 换到正式通道。
+1. **self-hosted runner（k8s/ArgoCD 标准通道）**：清单事实源
+   `fd-infra-deploy/all-services/prod/fd-health-runner.yaml`（cheap 集群 fd-prod，
+   ArgoCD 自动同步）→ Pod `fd-health-runner`（镜像 `ccr.ccs.tencentyun.com/finddata/fd-health-runner:sha-*`，
+   构建=fd-industry-data 仓 `health-runner-image` workflow → hkccr → cheap-3 tcr-relay 回灌 ccr）。
+   名称 `cheap-health-runner`，labels `fd-health`。注册状态在 PVC `fd-health-runner-data`（`/data`），
+   重建免 token；换注册 = 删 PVC + 更新 `fd-health-runner-token` secret + rollout restart。
+2. **secrets（GHA）**：`FD_CENTRAL_PG_DSN`（中央库**只读**账号 fd_health_ro，经 tailscale mesh
+   100.64.0.3:30432）、`WANXING_SPIDER_HEAL_KEY`（finddata 调用键，已在萬星允许清单）。
+3. **集群内 secret（不进 git）**：`tcr-ccr`（ccr 拉取凭据）、`fd-health-proxy`（mihomo 出口
+   `100.64.0.7:30081`，cheap 节点无 GitHub 直连；NO_PROXY 含 mesh 与 finddatatech 域）、
+   `fd-health-runner-token`（一次性注册 token）。
+4. **通知通道**：spider-heal 部署绑定通道当前 `test-channel`，待运营换正式。
 5. **限流/总闸 MCP**（契约待办③）：中央库配置注册为 MCP server 并请运营重部署追加引用；
-   未落地前总闸的等价手段 = `POST /api/packs/<pack>/deployments/spider-heal/pause|resume`。
+   未落地前总闸等价手段 = `POST /api/packs/<pack>/deployments/spider-heal/pause|resume`。
 
 ## 演练配方（task 5.2，避开平台滚动窗口）
 

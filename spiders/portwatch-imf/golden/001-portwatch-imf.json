@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-portwatch-imf",
+  "created": "2026-10-03",
+  "target": "run_portwatch_imf",
+  "params": {"limit": 5},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "service", "equals": "ports"},
+      {"field": "port_id", "equals": "fso0"},
+      {"field": "port_name", "equals": "Brazil - Offshore Oil Terminal 1"},
+      {"field": "country", "equals": "Brazil"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

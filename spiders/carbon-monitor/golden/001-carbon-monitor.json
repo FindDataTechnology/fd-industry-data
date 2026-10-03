@@ -1,0 +1,14 @@
+{
+  "sample_id": "001-carbon-monitor",
+  "created": "2026-10-03",
+  "target": "run_carbon_monitor",
+  "params": {"limit": 12, "source": "carbon_global"},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "dataset", "equals": "carbon_global"},
+      {"field": "sector", "equals": "Power"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}
