@@ -1,0 +1,14 @@
+{
+  "sample_id": "001-mofcom-data",
+  "created": "2026-10-03",
+  "target": "run_mofcom_data",
+  "params": {"limit": 12},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "indicator", "equals": "进出口总额（当月值）"},
+      {"field": "source_url", "equals": "https://data.mofcom.gov.cn/datamofcom/front/totalmonth/query"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

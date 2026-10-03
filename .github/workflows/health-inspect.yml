@@ -12,7 +12,12 @@ name: health-inspect
 on:
   schedule:
     - cron: "17 19 * * *" # 每日 03:17 CST
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "仅出单不 SUBMIT（校准期用）"
+        type: boolean
+        default: false
 
 concurrency:
   group: health-inspect
@@ -35,7 +40,9 @@ jobs:
           WANXING_SPIDER_HEAL_URL: ${{ vars.WANXING_SPIDER_HEAL_URL || 'https://platform.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal' }}
           FD_HEALTH_CONFIG: ${{ vars.FD_HEALTH_CONFIG }}
         run: |
-          python3 scripts/health_inspect.py --from-pg --submit-new --sync-status \
+          ARGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          python3 scripts/health_inspect.py --from-pg --submit-new --sync-status $ARGS \
             --summary-file reports/health-tickets/last-run.json
 
       - name: Commit tickets & summary

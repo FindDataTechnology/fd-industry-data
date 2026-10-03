@@ -1,0 +1,14 @@
+{
+  "sample_id": "001-miit-gxsj",
+  "created": "2026-10-03",
+  "target": "run_miit_gxsj",
+  "params": {"limit": 6},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "channel", "equals": "软件业"},
+      {"field": "metric", "equals": "软件业务收入"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

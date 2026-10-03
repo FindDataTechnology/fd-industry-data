@@ -1,0 +1,14 @@
+{
+  "sample_id": "001-zgdypf-boxoffice",
+  "created": "2026-10-03",
+  "target": "run_zgdypf_boxoffice",
+  "params": {"limit": 8, "days": 1, "weeks": 1},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "scope", "equals": "day"},
+      {"field": "film_name", "equals": "大盘"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

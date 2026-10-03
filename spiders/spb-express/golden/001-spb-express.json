@@ -1,0 +1,14 @@
+{
+  "sample_id": "001-spb-express",
+  "created": "2026-10-03",
+  "target": "run_spb_express",
+  "params": {"limit": 3},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "channel", "equals": "运行情况"},
+      {"field": "url", "equals": "https://www.spb.gov.cn/gjyzj/c100015/c100016/202607/a31abbec99be4e0d80188b1a25fe1fe6.shtml"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}
