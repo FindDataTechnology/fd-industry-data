@@ -11,21 +11,30 @@ evidence:
     from: '2026-10-04T05:30:00+00:00'
     to: '2026-10-04T05:35:00+00:00'
   failing_runs:
-    - started_at: '2026-10-04T05:30:00+00:00'
-      status: failed
-      rows: 1
-      error_summary: "golden 重放失配：title_brand '' != 'SMM'（页面 HTTP 200 正常返回，解析面失配）"
-      http_status: 200
+  - started_at: '2026-10-04T05:30:00+00:00'
+    status: failed
+    rows: 1
+    error_summary: golden 重放失配：title_brand '' != 'SMM'（页面 HTTP 200 正常返回，解析面失配）
+    http_status: 200
   last_success: null
-  notes: "自愈演练夹具（spider-self-heal-l2 task 5.2）：结构层故障注入。预期修复后产出 PR；验证链=health_verify（golden 重放+真取数+manifest+conformance gate）。修复方向见 spiders/drill-heal/README.md。"
+  notes: 自愈演练夹具（spider-self-heal-l2 task 5.2）：结构层故障注入。预期修复后产出 PR；验证链=health_verify（golden
+    重放+真取数+manifest+conformance gate）。修复方向见 spiders/drill-heal/README.md。
 verify:
   commands:
-    - "python3 scripts/health_verify.py --ticket reports/health-tickets/20261004-drill-structure-00000001.yaml"
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261004-drill-structure-00000001.yaml
 golden:
-  - spiders/drill-heal/golden/001-drill-heal.json
+- spiders/drill-heal/golden/001-drill-heal.json
 lifecycle:
-  - at: '2026-10-04T05:35:00+00:00'
-    event: created
-    by: maintainer
-    note: "drill: structure fault injection（5.2 演练）"
+- at: '2026-10-04T05:35:00+00:00'
+  event: created
+  by: maintainer
+  note: 'drill: structure fault injection（5.2 演练）'
+- at: '2026-10-04T06:03:32.271765+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-10-04T06:05:32.584002+00:00'
+  event: status-failed
+  error: The read operation timed out
 terminal: null

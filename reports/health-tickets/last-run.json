@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-04T04:44:27.277900+00:00",
+  "at": "2026-10-04T05:58:30.235032+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 41,
@@ -33,6 +33,20 @@
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [],
-  "status": []
+  "submit": [
+    {
+      "ticket": "20261004-drill-structure-00000001.yaml",
+      "submitted": false,
+      "reason": "",
+      "http_status": 200,
+      "response": "{\"code\": -32032, \"message\": \"fetch failed\"}"
+    }
+  ],
+  "status": [
+    {
+      "ticket": "20261004-drill-structure-00000001.yaml",
+      "state": null,
+      "error": "The read operation timed out"
+    }
+  ]
 }
