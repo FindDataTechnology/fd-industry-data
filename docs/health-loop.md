@@ -58,9 +58,11 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
 3. **集群内 secret（不进 git）**：`tcr-ccr`（ccr 拉取凭据）、`fd-health-proxy`（mihomo 出口
    `100.64.0.7:30081`，cheap 节点无 GitHub 直连；NO_PROXY 含 mesh 与 finddatatech 域）、
    `fd-health-runner-token`（一次性注册 token）。
-4. **通知通道**（2026-10-04 核）：spider-heal 绑定通道当前 `test-channel`；换正式有硬前置——
-   正式接收方需先在群里/微信向目标 bot（qinfa 或选定 bot）**发一条任意消息**（bot 见过会话才能绑定），
-   之后萬星侧一条命令完成绑定+重部署（配方在 paas `docs/spider-heal-pack.md`）。
+4. **通知通道（✅ 2026-10-04 完成，萬星侧）**：正式通道 `fd-ops` 已绑定并随 spider-heal v4
+   重部署生效（NOTIFY_CHANNEL=fd-ops，runner drain 热切换）；验证消息 relay 实录 `fd-ops | sent`
+   且微信对话可见。`test-channel` 保留为同会话备用绑名（要清可去函）。
+   **命名坑（排障勿被带偏）**：微信里显示名「qinfa」的公众号 = 平台里名为 **test** 的 bot
+   （appId wx655b…，实际在用）；平台里另有一只名为 qinfa 的 bot（wx2983…）从未使用。
 5. **限流/总闸 MCP（✅ 2026-10-04 双向闭环）**：
    - **坐标**：中央库 `fd_open_data.public.health_config`（key/value jsonb 6 键 +
      updated_at；只读账号 `fd_health_ro`，mesh `100.64.0.3:30432`，DSN 经安全渠道、不进 git）。

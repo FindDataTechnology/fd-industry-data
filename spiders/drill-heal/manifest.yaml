@@ -1,0 +1,27 @@
+version: "1"
+name: drill-heal
+label: "自愈演练夹具 · 结构层故障注入（spider-self-heal-l2 5.2）"
+source_url: https://www.metal.com/
+scanner_mode: upstream-curated
+functions:
+  - command: run_drill_heal
+    description: "演练夹具：结构层故障（错误标记提取 title；title_brand 恒空）。预期被自愈 agent 定向修复 parser 后，golden 重放转绿并开出 PR"
+    frequency: on_demand
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: url
+        type: str
+        description: 源 URL
+      - name: title
+        type: str
+        description: 页面 <title> 文本（故障期恒空）
+      - name: title_brand
+        type: str
+        description: 品牌标识（标题含 "Shanghai Metals Market (SMM)" 时为 "SMM"）
+      - name: source
+        type: str
+        description: 数据源标识

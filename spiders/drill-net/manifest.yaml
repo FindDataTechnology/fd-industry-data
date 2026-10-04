@@ -1,0 +1,21 @@
+version: "1"
+name: drill-net
+label: "自愈演练夹具 · 网络层故障（spider-self-heal-l2 5.2，保留域永不解析）"
+source_url: https://drill-unreachable.invalid/
+scanner_mode: upstream-curated
+functions:
+  - command: run_drill_net
+    description: "演练夹具：目标为 RFC 2606 保留域（永不解析），提供真实网络层失败证据。预期=代理复测标注、无代码 diff、终态转人工"
+    frequency: on_demand
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: url
+        type: str
+        description: 源 URL（.invalid 保留域）
+      - name: status
+        type: int
+        description: HTTP 状态（正常情况下不可能返回）
