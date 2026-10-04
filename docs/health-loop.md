@@ -61,14 +61,22 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
 4. **通知通道**（2026-10-04 核）：spider-heal 绑定通道当前 `test-channel`；换正式有硬前置——
    正式接收方需先在群里/微信向目标 bot（qinfa 或选定 bot）**发一条任意消息**（bot 见过会话才能绑定），
    之后萬星侧一条命令完成绑定+重部署（配方在 paas `docs/spider-heal-pack.md`）。
-5. **限流/总闸坐标**（2026-10-04 已提供）：中央库 `fd_open_data.public.health_config`
-   （key/value jsonb，6 键：master_switch / max_daily_tickets / lookback_hours /
-   thresholds / excluded_sources / expected_period_overrides；updated_at 记录变更时间）。
-   讀取凭据 = GHA secret `FD_CENTRAL_PG_DSN` 同款只读账号 `fd_health_ro`（mesh
-   `100.64.0.3:30432`）；萬星可用平台既有 MCP shim 模式包一层注册 + 重部署追加 mcpServers 引用。
-   过渡期等价手段 = `POST /api/packs/<pack>/deployments/spider-heal/pause|resume`。
-   巡检器自身的配置优先级：`--config`/`FD_HEALTH_CONFIG`（文件）> 中央库 `health_config` 表 > 默认值
-   （last-run.json 的 `config_source` 字段可见来源：`file:` / `db:health_config` / `defaults`）。
+5. **限流/总闸 MCP（✅ 2026-10-04 双向闭环）**：
+   - **坐标**：中央库 `fd_open_data.public.health_config`（key/value jsonb 6 键 +
+     updated_at；只读账号 `fd_health_ro`，mesh `100.64.0.3:30432`，DSN 经安全渠道、不进 git）。
+   - **萬星侧落地**：只读 MCP shim（cheap1 容器 `fd-health-mcp`，tailnet `:8090`，
+     registry 条目 `fd-health-config`，pack v3 `mcpServers: ["fd-health-config"]`；
+     运维配方与三坑见 paas `servers/fd-health-mcp/README.md`）。
+   - **技能行为**：spider-heal-notify 每巡检调 `health_config_get` 对比本地
+     `gate-state.json`，键值变化发一条 `gate_change`（首次只落盘；MCP 不可达记一句不重试）。
+   - **闸门执行语义**：总闸关闭时我方巡检器在源头停止 SUBMIT（出单照旧，天然排空队列）；
+     agent 侧负责变更通知与展示。
+   - **验证记录（2026-10-04）**：本侧经 mesh 直连 shim `health_config_get` 返回真库值（独立复现）；
+     总闸 false→true **双向翻转演练**两次手动 run 均绿、`last-run.master_switch` 随库实时变化
+     （agent 侧 gate_change 落 test-channel，换绑正式通道后可见）。
+   - 过渡期等价手段 = `POST /api/packs/<pack>/deployments/spider-heal/pause|resume`。
+   - 巡检器配置优先级：`--config`/`FD_HEALTH_CONFIG`（文件）> 中央库表 > 默认值
+     （last-run.json `config_source` 可见来源：`file:` / `db:health_config` / `defaults`）。
 6. **万星侧其余状态**（2026-10-04 交接）：runner 默认模型/计费已核验（deepseek-v4.1-flash、
    部署键 sub2api id 31 逐请求记账）；git PAT 实测权限超出契约（可见 12 仓 admin）——
    建议重新签发仅 fd-industry-data、Contents RW + Pull requests RW 的 fine-grained PAT，
