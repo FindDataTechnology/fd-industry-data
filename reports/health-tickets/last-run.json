@@ -1,11 +1,24 @@
 {
-  "at": "2026-10-04T06:34:17.357249+00:00",
+  "at": "2026-10-04T22:19:46.140067+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 41,
-  "healthy": 17,
+  "healthy": 14,
   "written": [],
-  "deferred": [],
+  "deferred": [
+    {
+      "source": "flower-auction",
+      "reason": "daily cap reached"
+    },
+    {
+      "source": "inmetals",
+      "reason": "daily cap reached"
+    },
+    {
+      "source": "metal-com",
+      "reason": "daily cap reached"
+    }
+  ],
   "skipped_unknown_period": [
     "akshare",
     "auth-smoke",
@@ -35,18 +48,33 @@
   "master_switch": true,
   "submit": [
     {
-      "ticket": "20261004-drill-structure-00000001.yaml",
-      "submitted": true,
+      "ticket": "20261004-drill-gen-healthz-e1e98e04.yaml",
+      "submitted": false,
       "reason": "",
-      "attempt": 5,
-      "http_status": 200,
-      "response": "**已见过 — 未重复入队、未重复动手、未开新 PR、未 merge。**\n\n- 该单（`20261004-drill-structure-00000001`，source=drill-heal，category=structure）本会话此前已闭环：修复已开 PR #1（restore `<title>` 提取），并于 2026-10-04T06:19:45Z 被人工 scs001 merge（merge_commit 30d33f1d）；REST 复核 PR #1 = closed/merged、open PR = 0、分支仅 main，main 上 `spiders/drill-heal/spider.py` blob 3193b36d 含 `<title>` 匹配与 `title_brand=SMM` 判定 → 修复在主干生效。\n- 终态归一：state 由 `merged` 记为协议终态 `done`（retry=0，prUrl 保留）。\n- 本次投递为同单重复投递：工单远端 sha ff6305ce（2270B），terminal 仍 null，只多了投递侧噪声 lifec"
+      "attempt": 1,
+      "http_status": 409,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261004-nmc-weather-23a303a2.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
     }
   ],
   "status": [
     {
-      "ticket": "20261004-drill-structure-00000001.yaml",
-      "http_status": 200,
+      "ticket": "20261004-drill-gen-healthz-e1e98e04.yaml",
+      "http_status": 409,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261004-nmc-weather-23a303a2.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
