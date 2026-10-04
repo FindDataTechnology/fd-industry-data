@@ -1,0 +1,1 @@
+pat capability probe 2026-10-04
