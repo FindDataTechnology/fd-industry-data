@@ -86,6 +86,12 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
    `295187081+FindDataOfficial@users.noreply.github.com`；**轮换确认后请吊销旧 PAT**（旧 token 属 scs001、
    含 12 仓 admin 面：GitHub→Settings→Developer settings→Fine-grained tokens→Revoke）。
    轮换命令 = PACK_ID + SECRET_GIT_PAT + SECRET_GH_ACTOR（通道/计费省略 = 保留 fd-ops 与现绑）。
+   **轮换已实证生效（2026-10-04）**：agent 侧自验——登录名 `FindDataOfficial`、`push=true`、
+   全程未回显凭据 → **剩余 = 旧 PAT（scs001，12 仓 admin）吊销（用户）**。
+   轮换核验同时带回两项萬星侧待办：① spider-heal 技能读 `.credentials.yaml` 需按 YAML 块标量
+   解析 `git_pat: >-`（单行 sed 会读成 `>-` 误判「凭据未配置」→ 误转人工）；② 聊天类回合
+   `$DSH_HOME/spider-heal/` 状态目录不可创建（票务回合可写）——请萬星确认 gate-state/inbox
+   更新是否仅发生在票务回合。
 
 ## 演练配方（task 5.2，避开平台滚动窗口）
 
