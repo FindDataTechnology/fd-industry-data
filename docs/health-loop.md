@@ -93,12 +93,27 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
 3. 核对：profile 生命周期事件齐（submitted/status）、通知到达、PR 仅差目标单元；
 4. 人审 merge → 补 schedule 点亮 → 同一 Idempotency-Key 重放验证不产生第二笔账。
 
+## 演练记录
+
+- **2026-10-04 · 5.2 端到端真修复演练（全链通过）**：注入结构层坏源（`drill-heal`，解析面失配）
+  与网络层坏源（`drill-net`，保留域真实握手超时）→ agent 结构层回合内完成根因分诊 → 定向修复
+  → 验证链全绿（golden/真取数/manifest/gate）→ 开出 **PR #1** → 人审（diff 仅目标单元 +6/-6）
+  → squash merge → 合并后 `health_verify` verdict=ok（原红值转绿）；网络层正确判为 `network`：
+  代理复测标注、**零代码 diff**、终态 `manual`。夹具已归档 `archive/drill-spider-self-heal-20261004/`；
+  工单生命周期（含 `human-review`/`human-merged` 事件）为永久记录。
+- 演练当场揪出并修复两个真 bug（已回归）：① 终态工单被反复重投 + 失败判定把回执里
+  「引述历史错误」误判为失败；② **门面 Idempotency-Key 重放首答**——首投撞上 agent
+  不可用而缓存 `-32032`，此后同键重投永远拿到旧错误 → 幂等键改按次递增（`<ticket>-tryN`），
+  工单级去重由 agent inbox（按路径）兜底。
+
 ## 已知限制
 
 - 平台滚动窗口内 bot relay 503 时会丢一条通知（单次纪律不重试）——重要工单避开部署窗口。
-- 一致性判定所需 `crawl_runs` 列名以运维实况为准：默认 SQL 见 `config.py.telemetry_sql`，
-  可用 `FD_HEALTH_CONFIG` 覆盖（如 `rows_written`/`error_summary`/`http_status` 命名不同）。
-- Console 设置页（配置面板化）属 panel 仓改动，另行安排；当前配置经 vars/config 文件生效。
+- 门面在上游忙时返回 JSON-RPC `-32032 fetch failed`（投递侧忙语义）：我方留痕并下轮重试即可；
+  已闭环工单的重投会拿到「已见过」回执后停止。
+- 终态枚举暂缺「closed（已关闭/已合并）」态——已合并工单以 lifecycle 事件（`human-merged`）
+  留痕；拟后续小 change 补齐枚举。
+- Console 设置页（配置面板化）属 panel 仓改动，另行安排；当前配置优先级=文件 > 中央库 > 默认。
 
 ## 权限边界（不可协商）
 
