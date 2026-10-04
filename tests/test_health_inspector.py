@@ -198,7 +198,7 @@ def test_submit_calls_once_with_idempotency(tmp_path):
 
     res1 = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS, poster=poster)
     assert res1[0]["submitted"] is True
-    assert calls[0][2] == p.name[:-5]                       # Idempotency-Key = ticket_id
+    assert calls[0][2] == f"{p.name[:-5]}-try1"               # 幂等键按次递增
     assert calls[0][3] == f"SUBMIT Org/repo reports/health-tickets/{p.name}"
     res2 = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS, poster=poster)
     assert res2 == [] and len(calls) == 1                   # 已提交不重复
@@ -280,5 +280,6 @@ def test_extract_message_text_and_resubmit_after_error(tmp_path):
     assert res1[0]["submitted"] is False
     res2 = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS, poster=poster)
     assert res2 and res2[0]["submitted"] is True       # 失败后重试成功
+    assert res2[0]["attempt"] == 2                     # 幂等键按次递增（避门面重放错误首答）
     res3 = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS, poster=poster)
     assert res3 == [] and len(bodies) == 2             # 成功后退化为不重发

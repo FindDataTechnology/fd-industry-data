@@ -325,8 +325,17 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
         elif dry_run:
             entry["reason"] = "dry-run"
         else:
+            # 门面语义：同 Idempotency-Key 重放首答（含错误首答）——曾因首投撞上 agent
+            # 不可用而缓存 -32032、此后重投永远拿到旧错误。故键按次递增；工单级去重
+            # 由 agent 侧 inbox（按路径）兜底，重投安全。
+            prior = sum(
+                1 for e in doc.get("lifecycle") or []
+                if e.get("event") in ("submitted", "submit-failed")
+            )
+            idem = f"{p.name[:-5]}-try{prior + 1}"
+            entry["attempt"] = prior + 1
             try:
-                status, text = poster(url, key, p.name[:-5], f"SUBMIT {repo_slug} {rel}")
+                status, text = poster(url, key, idem, f"SUBMIT {repo_slug} {rel}")
                 message = extract_message_text(text)
                 failed = _looks_failed(status, text, message)
                 entry.update({"submitted": not failed, "http_status": status, "response": message[:500]})
