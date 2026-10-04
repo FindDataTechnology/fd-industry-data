@@ -11,20 +11,45 @@ evidence:
     from: '2026-10-04T06:25:00+00:00'
     to: '2026-10-04T06:30:00+00:00'
   failing_runs:
-    - started_at: '2026-10-04T06:28:00+00:00'
-      status: failed
-      rows: 0
-      error_summary: "URLError: <urlopen error _ssl.c:993: The handshake operation timed out>（目标 drill-unreachable.invalid 为 RFC 2606 保留域，真实网络层失败）"
-      http_status: null
+  - started_at: '2026-10-04T06:28:00+00:00'
+    status: failed
+    rows: 0
+    error_summary: 'URLError: <urlopen error _ssl.c:993: The handshake operation timed
+      out>（目标 drill-unreachable.invalid 为 RFC 2606 保留域，真实网络层失败）'
+    http_status: null
   last_success: null
-  notes: "自愈演练夹具（spider-self-heal-l2 task 5.2）：网络层故障。预期处置=代理复测标注、不产代码 diff、终态转人工；若对代码提出任何修改即为演练失败信号（应记录）。"
+  notes: 自愈演练夹具（spider-self-heal-l2 task 5.2）：网络层故障。预期处置=代理复测标注、不产代码 diff、终态转人工；若对代码提出任何修改即为演练失败信号（应记录）。
 verify:
   commands:
-    - "true  # 网络层演练：无代码修复，验证链不适用；复测由 agent 出口/代理侧完成"
+  - 'true  # 网络层演练：无代码修复，验证链不适用；复测由 agent 出口/代理侧完成'
 golden: []
 lifecycle:
-  - at: '2026-10-04T06:30:00+00:00'
-    event: created
-    by: maintainer
-    note: "drill: network fault（5.2 演练）"
-terminal: null
+- at: '2026-10-04T06:30:00+00:00'
+  event: created
+  by: maintainer
+  note: 'drill: network fault（5.2 演练）'
+- at: '2026-10-04T06:22:54.808109+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**结论：已入队 → 终态「转人工」（manual），不产代码 diff、不开 PR。**
+
+
+    依据（工单 `20261004-drill-net-00000002`，source=drill-net，unit=spiders/drill-net/，category=network）：
+
+
+    1. **分诊 = 网络层**：目标是 RFC 2606 保留域 `drill-unreachable.invalid`（DNS 永不解析），非真实数据源。
+
+    2. **出口复测（唯一出口，无代理可切换）**：直连 DNS `ENOTFOUND`、TLS 握手立即失败、HTTPS fetch `ENOTFOUND'
+- at: '2026-10-04T06:23:58.124111+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-10-04T06:23:58.124216+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual

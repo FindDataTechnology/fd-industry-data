@@ -37,4 +37,15 @@ lifecycle:
 - at: '2026-10-04T06:05:32.584002+00:00'
   event: status-failed
   error: The read operation timed out
+- at: '2026-10-04T06:22:55.384437+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-10-04T06:23:58.755198+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null

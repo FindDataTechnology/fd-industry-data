@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-04T05:58:30.235032+00:00",
+  "at": "2026-10-04T06:21:23.584122+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 41,
@@ -35,6 +35,13 @@
   "master_switch": true,
   "submit": [
     {
+      "ticket": "20261004-drill-net-00000002.yaml",
+      "submitted": true,
+      "reason": "",
+      "http_status": 200,
+      "response": "**结论：已入队 → 终态「转人工」（manual），不产代码 diff、不开 PR。**\n\n依据（工单 `20261004-drill-net-00000002`，source=drill-net，unit=spiders/drill-net/，category=network）：\n\n1. **分诊 = 网络层**：目标是 RFC 2606 保留域 `drill-unreachable.invalid`（DNS 永不解析），非真实数据源。\n2. **出口复测（唯一出口，无代理可切换）**：直连 DNS `ENOTFOUND`、TLS 握手立即失败、HTTPS fetch `ENOTFOUND`；再以工单单元真实调用 `spiders/drill-net/spider.py::run_drill_net` 复测 2 次，均 `URLError: Name or service not known`（0.05s / 0.04s）→ 失败在 DNS/解析层，与单元代码逻辑无关。凭据 refs 无 proxy/egress 键、`HTTP(S)_PROXY` 未设置，无法换出口。\n3. **"
+    },
+    {
       "ticket": "20261004-drill-structure-00000001.yaml",
       "submitted": false,
       "reason": "",
@@ -44,9 +51,18 @@
   ],
   "status": [
     {
+      "ticket": "20261004-drill-net-00000002.yaml",
+      "http_status": 200,
+      "state": "manual",
+      "note": "",
+      "pr_url": ""
+    },
+    {
       "ticket": "20261004-drill-structure-00000001.yaml",
+      "http_status": 200,
       "state": null,
-      "error": "The read operation timed out"
+      "note": "",
+      "pr_url": ""
     }
   ]
 }
