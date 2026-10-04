@@ -3,7 +3,7 @@ name: nmc-weather              # = spiders/nmc-weather/ 目录名，运行时标
 label: NMC Weather Observations
 source_url: https://www.nmc.cn/
 # site: tencent              # 缺省 tencent；本单元只访问 www.nmc.cn 公开 REST，无需换执行位
-# schedule: "..."            # 刻意不写：先静默合入，点亮是人工门
+schedule: "27 * * * *"       # 点亮（2026-10-05，人工门已过）：每小时 27 分取 NMC 实况；首个 hourly 源
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
