@@ -1,0 +1,15 @@
+{
+  "sample_id": "001-nmc-weather",
+  "created": "2026-10-04",
+  "target": "run_nmc_weather",
+  "params": {"limit": 1},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "station", "equals": "Wqsps"},
+      {"field": "source", "equals": "nmc-weather"},
+      {"field": "url", "equals": "https://www.nmc.cn/rest/weather?stationid=Wqsps"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
