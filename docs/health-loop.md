@@ -80,9 +80,12 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
    - 巡检器配置优先级：`--config`/`FD_HEALTH_CONFIG`（文件）> 中央库表 > 默认值
      （last-run.json `config_source` 可见来源：`file:` / `db:health_config` / `defaults`）。
 6. **万星侧其余状态**（2026-10-04 交接）：runner 默认模型/计费已核验（deepseek-v4.1-flash、
-   部署键 sub2api id 31 逐请求记账）；git PAT 实测权限超出契约（可见 12 仓 admin）——
-   建议重新签发仅 fd-industry-data、Contents RW + Pull requests RW 的 fine-grained PAT，
-   萬星一条命令轮换（SECRET_GIT_PAT 省略其余即保留）。
+   部署键 sub2api id 31 逐请求记账）；git PAT **已重签为窄权限并前置验证通过**（finddata 侧独立核验：目标仓 Contents+PR 双写实测 ✓；
+   非目标仓（fd-cn-report/platform/fd-daas-mcp/fd-vertical-packs）写权 403 全拒 ✓；私有仓不可见 ✓；
+   探针物已清理）——新 PAT 身份 = FindDataOfficial（id 295187081），轮换时建议同步 gh_actor 为
+   `295187081+FindDataOfficial@users.noreply.github.com`；**轮换确认后请吊销旧 PAT**（旧 token 属 scs001、
+   含 12 仓 admin 面：GitHub→Settings→Developer settings→Fine-grained tokens→Revoke）。
+   轮换命令 = PACK_ID + SECRET_GIT_PAT + SECRET_GH_ACTOR（通道/计费省略 = 保留 fd-ops 与现绑）。
 
 ## 演练配方（task 5.2，避开平台滚动窗口）
 
