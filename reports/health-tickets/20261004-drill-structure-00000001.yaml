@@ -70,4 +70,20 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-10-04T06:35:39.038125+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**已见过 — 未重复入队、未重复动手、未开新 PR、未 merge。**
+
+
+    - 该单（`20261004-drill-structure-00000001`，source=drill-heal，category=structure）本会话此前已闭环：修复已开
+    PR #1（restore `<title>` 提取），并于 2026-10-04T06:19:45Z 被人工 scs001 merge（merge_commit
+    30d33f1d）；REST 复核 PR #1 = closed/merged、open PR = 0、分支仅 main，main 上 `spiders/drill-heal'
+- at: '2026-10-04T06:35:39.637983+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
