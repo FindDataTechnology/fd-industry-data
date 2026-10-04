@@ -361,7 +361,7 @@ def parse_status(text: str) -> dict:
     except (json.JSONDecodeError, TypeError):
         pass
     if state is None:
-        m = re.search(r"\b(queued|working|pr-open|done|manual)\b", text)
+        m = re.search(r"\b(queued|working|pr-open|done|manual|merged)\b", text)
         state = m.group(1) if m else None
     if not pr_url:
         m = re.search(r"https?://\S+", text)
@@ -369,7 +369,8 @@ def parse_status(text: str) -> dict:
     return {"state": state, "note": note[:300], "pr_url": pr_url}
 
 
-TERMINAL_MAP = {"done": "fixed-pending-human", "manual": "manual"}
+# agent 状态 → 我方终态映射：done=修复完成待人工；manual=转人工；merged=人工已合并（闭环结束→closed）
+TERMINAL_MAP = {"done": "fixed-pending-human", "manual": "manual", "merged": "closed"}
 
 
 def sync_status(outdir: Path, url: str, key: str, fetcher=None) -> list[dict]:

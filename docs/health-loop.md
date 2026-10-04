@@ -120,8 +120,9 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
 - 平台滚动窗口内 bot relay 503 时会丢一条通知（单次纪律不重试）——重要工单避开部署窗口。
 - 门面在上游忙时返回 JSON-RPC `-32032 fetch failed`（投递侧忙语义）：我方留痕并下轮重试即可；
   已闭环工单的重投会拿到「已见过」回执后停止。
-- 终态枚举暂缺「closed（已关闭/已合并）」态——已合并工单以 lifecycle 事件（`human-merged`）
-  留痕；拟后续小 change 补齐枚举。
+- 终态枚举已含 `closed`（已关闭：人工合并或人工裁决后闭环，**仅人工路径可置入**）；巡检器自动把
+  agent 汇报的 `merged` 映射为 `closed`（`TERMINAL_MAP`）；`done` 仍映射 `fixed-pending-human`
+  （修复完成待人工）。首个 closed 实例 = 演练单 `20261004-drill-structure-00000001`。
 - Console 设置页（配置面板化）属 panel 仓改动，另行安排；当前配置优先级=文件 > 中央库 > 默认。
 
 ## 权限边界（不可协商）

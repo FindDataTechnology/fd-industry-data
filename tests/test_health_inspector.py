@@ -241,6 +241,27 @@ def test_parse_status_fallback_text():
     assert parsed["state"] == "manual"
 
 
+def test_merged_maps_to_closed_terminal(tmp_path):
+    from fd_industry_data.health.ticket import load_ticket, validate_ticket
+
+    outdir = tmp_path / "tickets"
+    p = _mk_ticket(outdir, "alpha")
+
+    def fetcher(url, key, idem, body):
+        return 200, "PR #1 已由人工 merge，state 更新为 merged；本单已闭环"
+
+    inspector.sync_status(outdir, "https://x", "k", fetcher=fetcher)
+    doc = load_ticket(p)
+    assert doc["terminal"] == "closed"                      # merged → closed（人工闭环）
+    errs = validate_ticket(doc)
+    assert not any("terminal" in e for e in errs), errs     # closed 是合法终态
+    ev = [e for e in doc["lifecycle"] if e["event"] == "status"][-1]
+    assert ev["state"] == "merged"
+
+    # closed 工单不再被同步/重投
+    assert inspector.sync_status(outdir, "https://x", "k", fetcher=fetcher) == []
+
+
 def test_submit_skips_terminal_and_quoted_error(tmp_path):
     # 已终态工单不重投
     outdir = tmp_path / "tickets"

@@ -47,6 +47,8 @@ TERMINALS = (
     "sample-update-pending-human",
     "manual",
     "retire-suggested",
+    # 已关闭（闭环结束）：仅由人工路径（合并/裁决）置入；自动路径不得自行置入
+    "closed",
 )
 
 _REQUIRED = ("ticket_id", "source", "unit", "created_at", "evidence", "verify", "lifecycle")

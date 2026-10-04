@@ -99,4 +99,13 @@ lifecycle:
 - at: '2026-10-04T06:37:51.234964+00:00'
   event: drill-note
   note: 5.2 演练件：agent 侧已确认『本单已闭环』（resubmit 回执 ok=True）；夹具已归档 archive/drill-spider-self-heal-20261004/
-terminal: null
+- at: '2026-10-04T13:17:32.720484+00:00'
+  event: closed-by-maintainer
+  by: maintainer
+  note: '闭环收尾：closed 枚举落地后回填首个实例（PR #1 已人工合并）'
+- at: '2026-10-04T13:17:32.720679+00:00'
+  event: terminal
+  terminal: closed
+  previous: null
+  note: 'PR #1 已人工 merge（2026-10-04T06:19:45Z）；闭环结束'
+terminal: closed
