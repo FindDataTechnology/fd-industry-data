@@ -115,6 +115,48 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
   不可用而缓存 `-32032`，此后同键重投永远拿到旧错误 → 幂等键改按次递增（`<ticket>-tryN`），
   工单级去重由 agent inbox（按路径）兜底。
 
+## 生成流（kind=generate，source-generation-flow）
+
+让 agent 按单**从零新建**一个新源单元（greenfield），与修复流共用同一套工单/验证/PR/人工门。
+
+**工单格式**（`scripts/health_new_generation_ticket.py` 生成，或手写）：
+
+```yaml
+kind: generate                  # repair（缺省）| generate
+unit: spiders/nmc-weather/      # 允许指向尚不存在的新 slug（^[a-z0-9][a-z0-9-]*$）
+category: null                  # 生成不属故障分诊，必须为空
+brief:
+  source_urls: ["https://www.nmc.cn/rest/weather?stationid=Wqsps"]
+  expectations: "取气象站实况：温度/湿度/天气描述/风速；建议行字段 station/temperature/..."
+  cadence: hourly               # 只写 brief，绝不写 schedule
+  notes: "侦察簿 W2-B：/rest/province 枚举站码；9999 为缺测占位；UA 必带"
+golden: ["spiders/nmc-weather/golden/"]   # 声明即强制：样本缺失=验证红
+verify:
+  commands: ["python3 scripts/health_verify.py --ticket reports/health-tickets/<f>.yaml"]
+```
+
+**出单工具**：
+
+```bash
+python3 scripts/health_new_generation_ticket.py --slug nmc-weather \
+  --source-url "https://www.nmc.cn/rest/weather?stationid=Wqsps" \
+  --expectations "取气象站实况：温度/湿度/天气描述" --cadence hourly \
+  --notes "侦察簿 W2-B：站码内部短码；9999 缺测"
+```
+
+**agent 技能（`spider-heal-generate`）应做的步骤**（=给萬星的需求书）：
+1. 读单：`brief.source_urls/expectations/notes`；`unit` 是新目录，仓库里读不到现状。
+2. 从 `templates/new-source/`（spider.py/manifest.yaml/CHECKLIST.md）起接新单元；参考同类在役单元
+   （README 的接入档案、manifest functions/columns、check_manifest_commands 约定 `run_<slug>(limit)`）。
+3. 实现取数 + **交付 ≥1 个 golden 样本**（断言必须跨期稳定：避开日期/波动数值，参照
+   `spiders/metal-com/golden/` 格式；样本缺失验证链判红）。
+4. 跑 `health_verify`（工单 verify 字段声明）直到 `verdict: ok`：golden 重放 + 真取数 ≥1 行 +
+   manifest 校验 + conformance gate。
+5. 开 PR（分支 `gen/<slug>`），PR 描述附验证链证据；**不写 schedule、不点亮、不 merge**。
+
+**硬边界**：巡检器只产修复单（生成是业务决定，仅人工/工具出单）；产物 PR 前双 lint/gate 必绿；
+静默合入与人工门原样适用；首个生成演练源拟定 `nmc.cn`（侦察簿 ★接：国内直连、纯 JSON）。
+
 ## 已知限制
 
 - 平台滚动窗口内 bot relay 503 时会丢一条通知（单次纪律不重试）——重要工单避开部署窗口。

@@ -5,11 +5,13 @@
     ticket_id: str            # 文件名去 .yaml，形如 20261003-<source>-<short_id>
     source: str               # 数据源 id（如 fred-data）
     unit: str                 # spider 单元路径（如 "spiders/fred-data/"）
+    kind: str                 # "repair"（缺省）| "generate"（source-generation-flow）
     created_at: str           # UTC ISO8601
-    category: str | None      # CATEGORIES 之一或 None（证据不足转人工时允许）
+    category: str | None      # CATEGORIES 之一或 None（生成单必须为 None；证据不足转人工时允许）
     needs_human: bool         # 证据不足/无法自动判定时转人工
     suspected_anti_bot: bool  # 仅 category == "contract" 允许为 True
     suggested_action: str
+    brief: dict | None        # 仅生成单：{source_urls: [...], expectations: str, cadence?: str, notes?: str}
     evidence:
       window: {from: ..., to: ...}
       failing_runs: [...]
@@ -23,9 +25,13 @@
 
 校验规则（``validate_ticket``）：
 - 必填：ticket_id / source / unit / created_at / evidence / verify / lifecycle；
-- category 非 None 时必须是 CATEGORIES 之一；
-- needs_human=False 时 category 必填（不猜类别也不许空分类）；
+- unit 必须形如 ``spiders/<slug>/``，slug 匹配 ``^[a-z0-9][a-z0-9-]*$``
+  （生成单允许指向尚不存在的 slug；是否存在由验证链判定）；
+- ``kind`` 缺省视为 ``repair``，必须属于 KINDS；
+- repair：needs_human=False 时 category 必填（不猜类别也不许空分类）；
   needs_human=True 时 category 允许 None（证据不足转人工）；
+- generate：category 必须为空（生成不属故障分诊五类）；brief 必填且含
+  非空 source_urls 列表与 expectations 字符串；
 - suspected_anti_bot 仅当 category == "contract" 才可为 True；
 - terminal 为 None 或 TERMINALS 之一。
 
@@ -35,12 +41,14 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
 
 CATEGORIES = ("network", "structure", "contract", "source-dead", "fallback")
+KINDS = ("repair", "generate")
 TERMINALS = (
     "queued",
     "fixed-pending-human",
@@ -52,6 +60,8 @@ TERMINALS = (
 )
 
 _REQUIRED = ("ticket_id", "source", "unit", "created_at", "evidence", "verify", "lifecycle")
+_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+_UNIT_RE = re.compile(r"^spiders/([^/]+)/$")
 
 
 def _utc_now_iso() -> str:
@@ -92,10 +102,12 @@ def new_ticket(
     *,
     evidence: dict,
     verify_commands: list[str],
+    kind: str = "repair",
     category: str | None = None,
     needs_human: bool = False,
     suspected_anti_bot: bool = False,
     suggested_action: str = "",
+    brief: dict | None = None,
     golden_paths: list[str] | None = None,
     created_at: str | None = None,
 ) -> dict:
@@ -108,10 +120,11 @@ def new_ticket(
     day = str(created)[:10].replace("-", "")
     filename = ticket_filename(day, source, _short_id(source, unit, created))
     ticket_id = filename[: -len(".yaml")]
-    return {
+    doc = {
         "ticket_id": ticket_id,
         "source": source,
         "unit": unit,
+        "kind": kind,
         "created_at": created,
         "category": category,
         "needs_human": bool(needs_human),
@@ -123,6 +136,9 @@ def new_ticket(
         "lifecycle": [{"at": created, "event": "created"}],
         "terminal": None,
     }
+    if brief is not None:
+        doc["brief"] = brief
+    return doc
 
 
 def validate_ticket(doc: dict) -> list[str]:
@@ -141,6 +157,18 @@ def validate_ticket(doc: dict) -> list[str]:
         value = doc.get(field)
         if value is not None and not isinstance(value, str):
             errors.append(f"{field} 必须是字符串")
+
+    unit = doc.get("unit")
+    if isinstance(unit, str):
+        m = _UNIT_RE.match(unit)
+        if not m:
+            errors.append(f"unit 必须形如 spiders/<slug>/，实际: {unit!r}")
+        elif not _SLUG_RE.match(m.group(1)):
+            errors.append(f"unit slug 非法: {m.group(1)!r}（须匹配 ^[a-z0-9][a-z0-9-]*$）")
+
+    kind = doc.get("kind", "repair")
+    if kind not in KINDS:
+        errors.append(f"kind 非法: {kind!r}，必须是 {KINDS} 之一")
 
     evidence = doc.get("evidence")
     if evidence is not None and not isinstance(evidence, dict):
@@ -170,8 +198,24 @@ def validate_ticket(doc: dict) -> list[str]:
         errors.append(
             f"category 非法: {category!r}，必须是 {CATEGORIES} 之一或 None"
         )
-    if needs_human is False and category is None:
-        errors.append("needs_human=False 时 category 不能为空（不得空分类/猜测分类）")
+
+    if kind == "generate":
+        if category is not None:
+            errors.append("kind=generate 时 category 必须为空（生成不属故障分诊五类）")
+        brief = doc.get("brief")
+        if not isinstance(brief, dict):
+            errors.append("kind=generate 时 brief 必填且为 dict")
+        else:
+            urls = brief.get("source_urls")
+            if not (isinstance(urls, list) and urls
+                    and all(isinstance(u, str) and u.strip() for u in urls)):
+                errors.append("brief.source_urls 必填且为非空字符串列表")
+            expectations = brief.get("expectations")
+            if not (isinstance(expectations, str) and expectations.strip()):
+                errors.append("brief.expectations 必填（期望产出描述）")
+    else:
+        if needs_human is False and category is None:
+            errors.append("needs_human=False 时 category 不能为空（不得空分类/猜测分类）")
 
     suspected = doc.get("suspected_anti_bot", False)
     if not isinstance(suspected, bool):

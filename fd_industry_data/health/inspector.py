@@ -201,6 +201,7 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
         doc = ticket_mod.new_ticket(
             source=item.source,
             unit=item.unit,
+            kind="repair",  # 巡检器只产修复单（生成单由人工/工具创建，source-generation-flow）
             evidence=build_evidence(item.runs, item.verdict),
             verify_commands=[],
             category=item.verdict.category,

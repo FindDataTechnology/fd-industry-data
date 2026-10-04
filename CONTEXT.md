@@ -40,6 +40,10 @@ _Avoid_: 自动修复（编排包含验证与留痕，不止改代码）
 定时只读扫描遥测并产出工单的确定性程序（GHA self-hosted job）。不是 agent、不做修复。
 _Avoid_: 监控（那是持续采集，巡检是周期诊断出单）
 
+**生成单 (Generation Ticket)**:
+`kind=generate` 的工单：携带数据源 brief（URL/期望产出/节奏），目标指向尚不存在的新单元；仅由人工或工具创建，产物必须交 golden 样本、过双 lint/gate、永不点亮。
+_Avoid_: 生成任务（任务太泛；单是带验收契约的实体）
+
 **修复执行体 (Repair Executor)**:
 执行定向修复的 agent，由壹座 Platform 承载（目录 agent + cron 自轮询工单目录），LLM 经 Platform 模型配置（后台可配）。
 _Avoid_: 自研 agent 脚本、CLI worker（均为已否决选项，见 docs/adr/0001）
