@@ -34,7 +34,25 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-10-04T22:30:38.507151+00:00'
+  event: human-review
+  by: maintainer
+  verdict: approved
+  note: 人审通过（finddata 侧独立复核）：diff 仅 spiders/nmc-weather/（5 新增文件）；复跑验证链 verdict=ok（golden
+    重放 1 行、真取数 5 行、validate_manifests 0 违规、conformance PASS 48 单元、check_manifest_commands
+    0 问题、pytest 与 main 基线一致）；缺测 9999→None、浏览器 UA、失败即红（全站失败抛异常）；未写 schedule、未点亮，边界纪律正确
+- at: '2026-10-04T22:30:38.507331+00:00'
+  event: human-merged
+  by: maintainer
+  pr: https://github.com/FindDataTechnology/fd-industry-data/pull/4
+  note: merge commit ccd4f3a（2026-10-05T06:29:33+08:00）；合并后 main 复跑 health_verify
+    verdict=ok；分支 gen/nmc-weather 已删；gitee main 已同步
+- at: '2026-10-04T22:30:38.507336+00:00'
+  event: terminal
+  terminal: closed
+  previous: null
+  note: 'PR #4 人工 merge 且合并后复核通过（verdict=ok）；静默合入完成，点亮仍为人工门（manifest 暂无 schedule）'
+terminal: closed
 brief:
   source_urls:
   - https://www.nmc.cn/rest/weather?stationid=Wqsps

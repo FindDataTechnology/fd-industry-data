@@ -34,7 +34,16 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-10-04T22:30:38.513045+00:00'
+  event: drill-note
+  note: '生成流演练件（非真实源）：PR #3 按计划关闭不合并、分支已删、夹具已归档 archive/drill-spider-generate-20261004/（spider-heal-generate
+    D6 全链验收）'
+- at: '2026-10-04T22:30:38.513061+00:00'
+  event: terminal
+  terminal: closed
+  previous: null
+  note: 演练闭环：验证链全绿后按计划收口（不合并、不点亮）
+terminal: closed
 brief:
   source_urls:
   - https://platform.finddatatech.cloud/healthz
