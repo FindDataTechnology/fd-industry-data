@@ -1,0 +1,40 @@
+version: "2"
+name: drill-gen-healthz          # = spiders/<slug>/ 目录名，运行时标识符，合入后不可改名
+label: FindData Platform Healthz (drill-gen fixture)
+source_url: https://platform.finddatatech.cloud/healthz
+# schedule 故意不写：生成单静默合入，点亮由人工决定
+# site 不写：走默认执行位（tencent）；本站点为平台自身端点，无需登记其它执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_drill_gen_healthz
+    description: Fetch the platform health-check JSON (ok / cells)
+    frequency: on_demand
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (upstream returns a single row)
+    columns:
+      - name: ok
+        type: bool
+        description: Platform health flag reported by /healthz
+      - name: cells
+        type: int
+        description: Cell count reported by /healthz (volatile — not asserted in golden)
+      - name: url
+        type: string
+        description: Source URL (https://platform.finddatatech.cloud/healthz)
+      - name: source
+        type: string
+        description: Data source identifier (drill-gen-healthz)
+      - name: uptime_ms
+        type: int
+        description: Process uptime in ms (volatile observation only — never asserted)
+      - name: scraped_at
+        type: string
+        description: Scrape timestamp (UTC ISO8601)
+concepts: []
+entities: []
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
