@@ -1,9 +1,9 @@
 {
-  "at": "2026-10-04T22:19:46.140067+00:00",
+  "at": "2026-10-04T22:49:34.875939+00:00",
   "source": "psql",
   "config_source": "db:health_config",
-  "sources_seen": 41,
-  "healthy": 14,
+  "sources_seen": 42,
+  "healthy": 15,
   "written": [],
   "deferred": [
     {
@@ -46,38 +46,6 @@
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [
-    {
-      "ticket": "20261004-drill-gen-healthz-e1e98e04.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 409,
-      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
-    },
-    {
-      "ticket": "20261004-nmc-weather-23a303a2.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 409,
-      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
-    }
-  ],
-  "status": [
-    {
-      "ticket": "20261004-drill-gen-healthz-e1e98e04.yaml",
-      "http_status": 409,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261004-nmc-weather-23a303a2.yaml",
-      "http_status": 409,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    }
-  ]
+  "submit": [],
+  "status": []
 }
