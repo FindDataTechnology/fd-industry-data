@@ -22,6 +22,17 @@ golden:
 lifecycle:
 - at: '2026-10-06T20:45:19.607625+00:00'
   event: created
+- at: '2026-10-06T23:03:20.743556+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  response: '{"code": -32033, "message": "agent route refused the turn (405)"}'
+- at: '2026-10-06T23:03:26.925404+00:00'
+  event: status
+  http_status: 429
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:
