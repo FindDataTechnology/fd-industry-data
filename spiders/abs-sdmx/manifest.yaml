@@ -1,0 +1,57 @@
+version: "2"
+name: abs-sdmx             # = spiders/abs-sdmx/ 目录名，运行时标识符，合入后不可改名
+label: ABS Building Approvals (SDMX)
+source_url: https://data.api.abs.gov.au/rest/data/BA_GCCSA/all
+# site: tencent              # 缺省 tencent；本单元只访问 data.api.abs.gov.au 官方 SDMX REST，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_abs_sdmx
+    description: Fetch monthly building approvals for Greater Sydney from ABS SDMX API (dataflow BA_GCCSA)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: "Maximum rows from the slice CSV (TIME_PERIOD ascending, 2001-07 onwards)"
+      - name: key
+        type: string
+        required: false
+        description: "SDMX filter key (MEASURE.VALUE.SECTOR.WORK_TYPE.BUILDING_TYPE.TSEST.REGION.FREQ)"
+    columns:
+      - name: period
+        type: string
+        description: Observation period as YYYY-MM (TIME_PERIOD column)
+      - name: region
+        type: string
+        description: Region code (REGION column, e.g. 1GSYD = Greater Sydney)
+      - name: measure
+        type: string
+        description: Measure code (MEASURE column, 1 = Number of dwelling units)
+      - name: unit
+        type: string
+        description: Unit of measure (UNIT_MEASURE column, e.g. NUM)
+      - name: value
+        type: float
+        description: Observed value (OBS_VALUE column, null when missing)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: economic.indicator_value
+    entity_type: region
+    measure: value
+    unit: units
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

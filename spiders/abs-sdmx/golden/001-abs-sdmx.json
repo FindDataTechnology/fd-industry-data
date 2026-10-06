@@ -1,0 +1,17 @@
+{
+  "sample_id": "001-abs-sdmx",
+  "created": "2026-10-07",
+  "target": "run_abs_sdmx",
+  "params": {"limit": 3},
+  "expect": {
+    "min_rows": 3,
+    "rows_contains": [
+      {"field": "region", "equals": "1GSYD"},
+      {"field": "period", "equals": "2001-07"},
+      {"field": "value", "equals": 2513.0},
+      {"field": "measure", "equals": "1"},
+      {"field": "source", "equals": "abs-sdmx"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
