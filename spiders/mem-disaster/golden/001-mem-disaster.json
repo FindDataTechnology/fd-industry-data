@@ -1,0 +1,17 @@
+{
+  "sample_id": "001-mem-disaster",
+  "created": "2026-10-07",
+  "target": "run_mem_disaster",
+  "params": {"limit": 3, "month": "2026-07"},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "month", "equals": "2026-07"},
+      {"field": "affected_person", "equals": 1672.9},
+      {"field": "deaths_missing", "equals": 318.0},
+      {"field": "economic_loss", "equals": 571.5},
+      {"field": "source", "equals": "mem-disaster"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
