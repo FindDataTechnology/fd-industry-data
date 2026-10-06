@@ -1,0 +1,59 @@
+version: "2"
+name: fao-empres              # = spiders/fao-empres/ 目录名，运行时标识符，合入后不可改名
+label: FAO EMPRES-i Animal Disease Events
+source_url: https://data.apps.fao.org/catalog/dataset/major-diseases-by-date-empres-i
+# site: tencent              # 缺省 tencent；本单元只访问 api.data.apps.fao.org / data.apps.fao.org 公开表面
+# schedule: 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_fao_empres
+    description: Fetch global animal disease events (WOAH mirror) from FAO EMPRES-i via the FAO BigQuery SQL proxy
+    frequency: weekly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of aggregated (month, country, disease) count rows to return
+      - name: start_date
+        type: string
+        required: false
+        description: Window start date YYYY-MM-DD (default last 30 days)
+      - name: end_date
+        type: string
+        required: false
+        description: Window end date YYYY-MM-DD (default today UTC)
+    columns:
+      - name: date
+        type: string
+        description: Event month (YYYY-MM) from observation_date, falling back to report_date when missing
+      - name: country
+        type: string
+        description: Country/territory name as reported to WOAH (e.g. Poland)
+      - name: disease
+        type: string
+        description: Major disease name (e.g. African swine fever, Influenza - Avian)
+      - name: outbreaks
+        type: int
+        description: Count of outbreak events in the (month, country, disease) cell
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: outbreaks
+    concept: animal_disease.outbreaks
+    entity_type: region
+    measure: value
+    unit: count
+    frequency: weekly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
