@@ -1,0 +1,60 @@
+version: "2"
+name: wto-eping              # = spiders/wto-eping/ 目录名，运行时标识符，合入后不可改名
+label: WTO ePing Notifications
+source_url: https://eping.wto.org/
+# site: tencent              # 缺省 tencent；本单元只访问 eping.wto.org 公开 REST，无需换执行位
+# schedule: 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_wto_eping
+    description: Fetch latest WTO TBT/SPS notifications from the anonymous ePing feed
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum notification rows to return (upstream feed caps at 10 per call)
+    columns:
+      - name: notification_id
+        type: string
+        description: WTO document symbol (e.g. G/SPS/N/KHM/3), whitespace-stripped
+      - name: type
+        type: string
+        description: Notification series derived from the document symbol (SPS or TBT)
+      - name: member
+        type: string
+        description: Notifying WTO member (e.g. Cambodia)
+      - name: date
+        type: string
+        description: Distribution date normalized to ISO YYYY-MM-DD
+      - name: date_raw
+        type: string
+        description: Upstream distribution date as dd/mm/yyyy
+      - name: title
+        type: string
+        description: Notification title, HTML stripped to plain text
+      - name: products
+        type: string
+        description: Products covered, HTML stripped to plain text
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: notification_id
+    concept: trade.notification_id
+    entity_type: organization
+    measure: value
+    unit: string
+    frequency: daily
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
