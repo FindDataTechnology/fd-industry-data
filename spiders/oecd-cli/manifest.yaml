@@ -1,0 +1,70 @@
+version: "2"
+name: oecd-cli                 # = spiders/oecd-cli/ 目录名，运行时标识符，合入后不可改名
+label: OECD Composite Leading Indicator (CLI)
+source_url: https://data-explorer.oecd.org/ (dataflow OECD.SDD.STES:DSD_STES@DF_CLI)
+# site: tencent              # 缺省 tencent；本单元只访问 sdmx.oecd.org 公开 SDMX REST，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_oecd_cli
+    description: Fetch OECD Composite Leading Indicator monthly series (CSV export) from sdmx.oecd.org
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of observation rows to return (most recent kept)
+      - name: key
+        type: string
+        required: false
+        description: "DF_CLI series key (9 segments, seed CHN.M.LI.IX._Z.NOR.IX._Z.H = China CLI, monthly index, normalized); extend to other countries by changing the leading REF_AREA segment"
+    columns:
+      - name: period
+        type: string
+        description: Monthly time period (e.g. 2020-01)
+      - name: value
+        type: float
+        description: CLI observation value (normalized index, rounded to 6 decimals; null when missing)
+      - name: series_key
+        type: string
+        description: Full DF_CLI series key (e.g. CHN.M.LI.IX._Z.NOR.IX._Z.H)
+      - name: ref_area
+        type: string
+        description: Reference area code (e.g. CHN)
+      - name: freq
+        type: string
+        description: Frequency code (M = monthly)
+      - name: measure
+        type: string
+        description: Measure code (LI = composite leading indicator)
+      - name: unit_measure
+        type: string
+        description: Unit of measure code (IX = index)
+      - name: adjustment
+        type: string
+        description: Adjustment code (NOR = normalized)
+      - name: transformation
+        type: string
+        description: Transformation code (IX = index)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: economy.leading_indicator
+    entity_type: region
+    measure: value
+    unit: index
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

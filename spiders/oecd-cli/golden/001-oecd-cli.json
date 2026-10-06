@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-oecd-cli",
+  "created": "2026-10-07",
+  "target": "run_oecd_cli",
+  "params": {"limit": 100, "key": "CHN.M.LI.IX._Z.NOR.IX._Z.H"},
+  "expect": {
+    "min_rows": 100,
+    "rows_contains": [
+      {"field": "period", "equals": "2020-01"},
+      {"field": "value", "equals": 96.25574},
+      {"field": "series_key", "equals": "CHN.M.LI.IX._Z.NOR.IX._Z.H"},
+      {"field": "source", "equals": "oecd-cli"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
