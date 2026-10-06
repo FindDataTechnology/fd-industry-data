@@ -1,0 +1,18 @@
+{
+  "sample_id": "001-noaa-ncei",
+  "created": "2026-10-07",
+  "target": "run_noaa_ncei",
+  "params": {"limit": 5, "start_date": "2020-01-01", "end_date": "2020-12-31"},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "station", "equals": "USW00023174"},
+      {"field": "source", "equals": "noaa-ncei"},
+      {"field": "date", "equals": "2020-12-31"},
+      {"field": "tmax", "equals": 20.0},
+      {"field": "tmin", "equals": 6.1},
+      {"field": "prcp", "equals": 0.0}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
