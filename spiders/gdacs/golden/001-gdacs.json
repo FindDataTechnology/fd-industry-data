@@ -1,0 +1,18 @@
+{
+  "sample_id": "001-gdacs",
+  "created": "2026-10-07",
+  "target": "run_gdacs",
+  "params": {"limit": 15, "from_date": "2020-01-01", "to_date": "2020-01-31"},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "event_id", "equals": 1203961},
+      {"field": "event_id", "equals": 273070},
+      {"field": "event_id", "equals": 1000646},
+      {"field": "type", "equals": "EQ"},
+      {"field": "alertlevel", "equals": "Orange"},
+      {"field": "source", "equals": "gdacs"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}

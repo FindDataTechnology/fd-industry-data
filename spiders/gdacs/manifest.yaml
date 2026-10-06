@@ -1,0 +1,88 @@
+version: "2"
+name: gdacs                  # = spiders/gdacs/ 目录名，运行时标识符，合入后不可改名
+label: GDACS Global Disaster Events
+source_url: https://www.gdacs.org/
+# site: tencent              # 缺省 tencent；本单元只访问 www.gdacs.org 公开 REST，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_gdacs
+    description: Fetch GDACS disaster events (multihazard EQ/TC/VO/DR/WF/FL) for a date window from the geteventlist/SEARCH archive endpoint
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of event rows to return
+      - name: from_date
+        type: string
+        required: false
+        description: Window start (YYYY-MM-DD, inclusive); default = to_date minus 30 days
+      - name: to_date
+        type: string
+        required: false
+        description: Window end (YYYY-MM-DD, inclusive); default = today UTC
+    columns:
+      - name: event_id
+        type: int
+        description: GDACS event id (globally unique)
+      - name: episode_id
+        type: int
+        description: GDACS episode id within the event
+      - name: type
+        type: string
+        description: Hazard type code (EQ/TC/VO/DR/WF/FL)
+      - name: country
+        type: string
+        description: Affected country display name(s), comma-joined when several
+      - name: iso3
+        type: string
+        description: ISO3 country code of the primary affected country
+      - name: alertlevel
+        type: string
+        description: GDACS alert level (Green/Orange/Red)
+      - name: alertscore
+        type: float
+        description: GDACS alert score (null when absent)
+      - name: name
+        type: string
+        description: Event display name (e.g. Earthquake in Cuba, Eruption Taal)
+      - name: date
+        type: string
+        description: Event start datetime from upstream fromdate (ISO, no timezone)
+      - name: todate
+        type: string
+        description: Event end datetime from upstream (ISO, no timezone)
+      - name: lat
+        type: float
+        description: Centroid latitude from the GeoJSON Point geometry (null when absent)
+      - name: lon
+        type: float
+        description: Centroid longitude from the GeoJSON Point geometry (null when absent)
+      - name: event_source
+        type: string
+        description: Upstream monitoring source label (e.g. ALASKA EC, GDACS)
+      - name: sourceid
+        type: string
+        description: Upstream source event identifier (e.g. us60007l0r)
+      - name: url
+        type: string
+        description: GDACS report page URL for the event episode
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: alertlevel
+    concept: disaster.alert_level
+    entity_type: region
+    measure: value
+    unit: string
+    frequency: daily
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
