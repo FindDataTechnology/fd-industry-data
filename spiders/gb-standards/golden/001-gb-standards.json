@@ -1,0 +1,14 @@
+{
+  "sample_id": "001-gb-standards",
+  "created": "2026-10-07",
+  "target": "run_gb_standards",
+  "params": {"limit": 5, "search_text": "GB/T 1.1-2020"},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "std_code", "equals": "GB/T 1.1-2020"},
+      {"field": "source", "equals": "gb-standards"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
