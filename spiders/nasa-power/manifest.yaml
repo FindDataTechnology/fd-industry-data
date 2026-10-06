@@ -1,0 +1,56 @@
+version: "2"
+name: nasa-power               # = spiders/nasa-power/ 目录名，运行时标识符，合入后不可改名
+label: NASA POWER Daily Point Meteorology (T2M / PRECTOTCORR)
+source_url: https://power.larc.nasa.gov/api/temporal/daily/point
+# site: tencent              # 缺省 tencent；本单元只访问 power.larc.nasa.gov 公开 REST，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_nasa_power
+    description: Fetch daily T2M / PRECTOTCORR time series at a fixed point (Urumqi 1984, MERRA-2 finalized, no key)
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of long-format rows to return (366 days x 2 parameters = 732 max)
+    columns:
+      - name: date
+        type: string
+        description: Observation date ISO (yyyy-mm-dd), from YYYYMMDD key
+      - name: parameter
+        type: string
+        description: Parameter name (T2M or PRECTOTCORR)
+      - name: value
+        type: float
+        description: Daily value (null when the -999.0 fill sentinel is returned)
+      - name: unit
+        type: string
+        description: Unit (degC for T2M, mm for PRECTOTCORR)
+      - name: lon
+        type: float
+        description: Request longitude (87.6, constant for this unit)
+      - name: lat
+        type: float
+        description: Request latitude (43.8, constant for this unit)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: weather.climate_daily
+    entity_type: location
+    measure: value
+    unit: variable
+    frequency: daily
+entities:
+  - entity_type: location
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
