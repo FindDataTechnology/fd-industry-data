@@ -1,0 +1,21 @@
+{
+  "sample_id": "001-jodi-oil",
+  "created": "2026-10-07",
+  "target": "run_jodi_oil",
+  "params": {"limit": 5, "year": 2002},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "source", "equals": "jodi-oil"},
+      {"field": "year", "equals": 2002},
+      {"field": "month", "equals": "01"},
+      {"field": "country", "equals": "AE"},
+      {"field": "product", "equals": "CRUDEOIL"},
+      {"field": "flow", "equals": "INDPROD"},
+      {"field": "unit", "equals": "KBD"},
+      {"field": "value", "equals": 1955.0},
+      {"field": "assessment", "equals": "1"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}

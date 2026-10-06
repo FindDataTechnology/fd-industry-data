@@ -1,0 +1,67 @@
+version: "2"
+name: jodi-oil              # = spiders/jodi-oil/ 目录名，运行时标识符，合入后不可改名
+label: JODI-Oil Monthly Oil Supply-Demand
+source_url: https://www.jodidata.org/oil/database/data-downloads.aspx
+# site: tencent              # 缺省 tencent；本单元只访问 www.jodidata.org 公开 CSV，无需换执行位
+# schedule: 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_jodi_oil
+    description: Fetch JODI-Oil primary monthly oil supply/demand observations for a given year
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum observation rows to return (deterministic order)
+      - name: year
+        type: int
+        required: false
+        description: Reporting year (default last closed year; files exist 2002 onward)
+    columns:
+      - name: year
+        type: int
+        description: Reporting year
+      - name: month
+        type: string
+        description: Reporting month (01-12) from TIME_PERIOD
+      - name: country
+        type: string
+        description: Reporting country code (REF_AREA, e.g. AE)
+      - name: flow
+        type: string
+        description: Flow code (FLOW_BREAKDOWN, e.g. INDPROD production, TOTIMPSB imports, TOTEXPSB exports)
+      - name: product
+        type: string
+        description: Product code (ENERGY_PRODUCT, e.g. CRUDEOIL, NGL, TOTCRUDE)
+      - name: value
+        type: float
+        description: Observed value in the stated unit (missing placeholders never emitted)
+      - name: unit
+        type: string
+        description: Unit code (UNIT_MEASURE, e.g. KBD thousand barrels per day, KTONS)
+      - name: assessment
+        type: string
+        description: Upstream quality assessment flag (ASSESSMENT_CODE, 1/2/3)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: oil.supply_demand
+    entity_type: region
+    measure: value
+    unit: variable
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
