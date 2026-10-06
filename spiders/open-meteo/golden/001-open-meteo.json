@@ -1,0 +1,17 @@
+{
+  "sample_id": "001-open-meteo",
+  "created": "2026-10-06",
+  "target": "run_open_meteo",
+  "params": {"limit": 5, "city": "beijing", "start_date": "2020-01-01", "end_date": "2020-01-05"},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "city", "equals": "beijing"},
+      {"field": "date", "equals": "2020-01-01"},
+      {"field": "temperature_2m_mean", "equals": -5.8},
+      {"field": "precipitation_sum", "equals": 0.0},
+      {"field": "source", "equals": "open-meteo"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
