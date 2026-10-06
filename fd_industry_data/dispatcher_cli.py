@@ -10,7 +10,8 @@ Two execution forms (legal-line-federation 3.1/3.2):
 - platform-native sources (kind='platform', manifest-driven): the original
   same-container subprocess running runner_cli — unchanged behavior;
 - registered federated members (kind='federated' with a runner declaration
-  in crawl_sources: runner_image / runner_command / timeout_seconds): a
+  in crawl_sources: runner_image / runner_command / timeout_seconds /
+  runner_env_from): a
   batch/v1 Job created in the local cluster via the in-cluster service
   account (stdlib urllib, same transport as federation_observer). The
   Job's image, command and deadline come from the declaration; the
@@ -60,17 +61,18 @@ def _lookup_run(conn, pending_id: int):
 # ---------------------------------------------------------------------------
 
 def source_runner(conn, src: str) -> dict | None:
-    """Runner declaration for a source: kind + image/command/timeout.
+    """Runner declaration for a source: kind + image/command/timeout/secrets.
 
     Reads the registration-seed columns of crawl_sources (kind defaults to
-    'platform'). A not-yet-migrated DB degrades to the platform path so the
-    dispatcher image may roll before the alembic migration lands.
+    'platform'; runner_env_from lists secret names for envFrom, NULL = none).
+    A not-yet-migrated DB degrades to the platform path so the dispatcher
+    image may roll before the alembic migration lands.
     """
     with conn.cursor() as cur:
         try:
             cur.execute(
-                "SELECT kind, runner_image, runner_command, timeout_seconds "
-                "FROM crawl_sources WHERE source=%s", (src,))
+                "SELECT kind, runner_image, runner_command, timeout_seconds, "
+                "runner_env_from FROM crawl_sources WHERE source=%s", (src,))
         except Exception:  # noqa: BLE001 - pre-0007 schema: platform path
             conn.rollback()
             return None
@@ -78,7 +80,8 @@ def source_runner(conn, src: str) -> dict | None:
     if row is None:
         return None
     return {"kind": row[0] or "platform", "runner_image": row[1],
-            "runner_command": row[2], "timeout_seconds": row[3]}
+            "runner_command": row[2], "timeout_seconds": row[3],
+            "runner_env_from": row[4]}
 
 
 def uses_k8s_branch(decl: dict | None) -> bool:
@@ -167,11 +170,14 @@ def active_job_for(jobs: list, src: str) -> dict | None:
 def job_body(src: str, pending_id: int, decl: dict, ns: str) -> dict:
     """batch/v1 Job for one declared federated run (<source>-<pending id>).
 
-    The declaration owns image/command/deadline; resource limits are the
-    registration hard gate (industry-crawl-gitops exemption precondition)
-    and default to the law-line profile. The Job is labeled as
-    dispatcher-managed so the federation observer's mirror stays exclusive
-    with the runner's direct report.
+    The declaration owns image/command/deadline; each runner_env_from secret
+    name becomes a per-secret envFrom secretRef on the container (crawl
+    credentials such as RustFS that the platform subprocess form gets from
+    the dispatcher env). Resource limits are the registration hard gate
+    (industry-crawl-gitops exemption precondition) and default to the
+    law-line profile. The Job is labeled as dispatcher-managed so the
+    federation observer's mirror stays exclusive with the runner's direct
+    report.
     """
     name = f"{src}-{pending_id}"
     labels = {"fd-industry/component": "dispatcher-run",
@@ -183,6 +189,22 @@ def job_body(src: str, pending_id: int, decl: dict, ns: str) -> dict:
     db_url = os.environ.get("FD_CRAWL_DB_URL", "")
     if db_url:
         env.append({"name": "FD_CRAWL_DB_URL", "value": db_url})
+    env_from = [{"secretRef": {"name": s}}
+                for s in (decl.get("runner_env_from") or [])
+                if isinstance(s, str) and s.strip()]
+    container = {
+        "name": "run",
+        "image": decl["runner_image"],
+        "imagePullPolicy": "IfNotPresent",
+        "command": decl["runner_command"],
+        "env": env,
+        "resources": {
+            "requests": {"memory": "256Mi", "cpu": "100m"},
+            "limits": {"memory": "2Gi", "cpu": "1"},
+        },
+    }
+    if env_from:
+        container["envFrom"] = env_from
     return {
         "apiVersion": "batch/v1",
         "kind": "Job",
@@ -195,17 +217,7 @@ def job_body(src: str, pending_id: int, decl: dict, ns: str) -> dict:
                 "metadata": {"labels": labels},
                 "spec": {
                     "restartPolicy": "Never",
-                    "containers": [{
-                        "name": "run",
-                        "image": decl["runner_image"],
-                        "imagePullPolicy": "IfNotPresent",
-                        "command": decl["runner_command"],
-                        "env": env,
-                        "resources": {
-                            "requests": {"memory": "256Mi", "cpu": "100m"},
-                            "limits": {"memory": "2Gi", "cpu": "1"},
-                        },
-                    }],
+                    "containers": [container],
                 },
             },
         },

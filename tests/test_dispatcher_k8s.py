@@ -105,10 +105,12 @@ def test_uses_k8s_branch_routing():
 
 
 def test_source_runner_reads_declaration():
-    conn = FakeConn(fetches=[("federated", "img:1", ["node", "bin/x.mjs"], 900)])
+    conn = FakeConn(fetches=[("federated", "img:1", ["node", "bin/x.mjs"], 900,
+                              ["law-runner-secrets"])])
     assert source_runner(conn, "flk-law-crawl") == {
         "kind": "federated", "runner_image": "img:1",
-        "runner_command": ["node", "bin/x.mjs"], "timeout_seconds": 900}
+        "runner_command": ["node", "bin/x.mjs"], "timeout_seconds": 900,
+        "runner_env_from": ["law-runner-secrets"]}
 
 
 def test_source_runner_degrades_to_platform_before_migration():
@@ -149,6 +151,35 @@ def test_job_body_defaults_when_decl_minimal(monkeypatch):
     assert body["spec"]["activeDeadlineSeconds"] == 3600
     container = body["spec"]["template"]["spec"]["containers"][0]
     assert {e["name"] for e in container["env"]} == {"PYTHONUNBUFFERED", "FD_PENDING_RUN_ID"}
+
+
+# --- runner_env_from: per-secret envFrom on the declared Job (drill 4.2) ---
+
+def test_job_body_env_from_per_secret():
+    decl = {**DECL, "runner_env_from": ["fd-industry-rustfs", "law-auth-secrets"]}
+    body = job_body("flk-law-crawl", 42, decl, "scraw")
+    container = body["spec"]["template"]["spec"]["containers"][0]
+    assert container["envFrom"] == [{"secretRef": {"name": "fd-industry-rustfs"}},
+                                    {"secretRef": {"name": "law-auth-secrets"}}]
+    # env stays independent of envFrom
+    assert {e["name"] for e in container["env"]} >= {"FD_PENDING_RUN_ID"}
+
+
+def test_job_body_null_env_from_omits_key(monkeypatch):
+    monkeypatch.setenv("FD_CRAWL_DB_URL", "postgresql://db")
+    for decl in (DECL, {**DECL, "runner_env_from": None},
+                 {**DECL, "runner_env_from": []}):
+        body = job_body("flk-law-crawl", 42, decl, "scraw")
+        container = body["spec"]["template"]["spec"]["containers"][0]
+        assert "envFrom" not in container  # NULL/missing/empty: no crash, no key
+
+
+def test_job_body_env_from_drops_junk_entries():
+    decl = {**DECL, "runner_env_from": ["s1", 42, "", None, "  ", "s2"]}
+    body = job_body("flk-law-crawl", 42, decl, "scraw")
+    container = body["spec"]["template"]["spec"]["containers"][0]
+    assert container["envFrom"] == [{"secretRef": {"name": "s1"}},
+                                    {"secretRef": {"name": "s2"}}]
 
 
 # --- single-flight refusal (third-layer counterpart on the cluster) -------
