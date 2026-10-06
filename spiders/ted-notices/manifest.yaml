@@ -1,0 +1,70 @@
+version: "2"
+name: ted-notices                # = spiders/ted-notices/ 目录名，运行时标识符，合入后不可改名
+label: TED EU Procurement Notices
+source_url: https://ted.europa.eu/
+# site: tencent              # 缺省 tencent；本单元只访问 api.ted.europa.eu 公开 REST，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_ted_notices
+    description: Fetch TED (EU Tenders Electronic Daily) notices published on a given day via the public v3 search API (1 request per run, anonymous-quota friendly)
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of notice rows to return (page size, capped at 100)
+      - name: date
+        type: string
+        required: false
+        description: Publication date YYYY-MM-DD (default yesterday UTC); queries publication-date = <date>
+    columns:
+      - name: date
+        type: string
+        description: Publication date of the notice (YYYY-MM-DD, derived from publication-date)
+      - name: notice_id
+        type: string
+        description: TED canonical publication number (e.g. 24031-2024)
+      - name: notice_type
+        type: string
+        description: Notice type code (e.g. can-standard, pin-rtl)
+      - name: buyer
+        type: string
+        description: Buyer / contracting party name (null when the upstream projection is empty, e.g. legacy notices)
+      - name: cpv
+        type: string
+        description: Semicolon-joined CPV classification codes
+      - name: value
+        type: float
+        description: Contract/tender value (null when the upstream projection is empty)
+      - name: value_currency
+        type: string
+        description: Currency of the value field (null when absent)
+      - name: title
+        type: string
+        description: Notice title (English preferred, from multilingual notice-title)
+      - name: total_notices
+        type: int
+        description: Total notices published on the date (totalNoticeCount; daily series derives from this)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: total_notices
+    concept: procurement.notices_count
+    entity_type: world
+    measure: count
+    unit: count
+    frequency: daily
+entities:
+  - entity_type: world
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

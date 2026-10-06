@@ -1,0 +1,15 @@
+{
+  "sample_id": "001-ted-notices",
+  "created": "2026-10-07",
+  "target": "run_ted_notices",
+  "params": {"limit": 10, "date": "2024-01-15"},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "date", "equals": "2024-01-15"},
+      {"field": "source", "equals": "ted-notices"},
+      {"field": "notice_id", "equals": "24031-2024"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
