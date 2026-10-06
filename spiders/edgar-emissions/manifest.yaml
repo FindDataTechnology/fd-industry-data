@@ -1,0 +1,75 @@
+version: "2"
+name: edgar-emissions        # = spiders/edgar-emissions/ 目录名，运行时标识符，合入后不可改名
+label: EDGAR Global Emissions (JRC, by Country and IPCC Sector)
+source_url: https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/EDGAR/
+# site: tencent              # 缺省 tencent；本单元只访问 jeodpp.jrc.ec.europa.eu 公开目录直链，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_edgar_emissions
+    description: Fetch EDGAR (EDGAR_2026_GHG release) CO2 emissions by country and IPCC 2006 sector as long rows (year/sector/country/emissions); one book per run, default the light annual CO2 book
+    frequency: yearly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of melted emission rows to return
+      - name: book
+        type: string
+        required: false
+        description: Which single book to fetch — "co2_annual" (default, ~4.7MB) or "co2_monthly" (~71MB)
+    columns:
+      - name: book
+        type: string
+        description: EDGAR book identifier the row was melted from (co2_annual / co2_monthly)
+      - name: year
+        type: int
+        description: Emission year (1970-2025)
+      - name: month
+        type: int
+        description: Month 1-12 (monthly book only; null for the annual book)
+      - name: country_code
+        type: string
+        description: ISO3 country code (EDGAR Country_code_A3, e.g. ABW)
+      - name: country_name
+        type: string
+        description: Country display name (EDGAR Name column)
+      - name: sector_code
+        type: string
+        description: IPCC 2006 sector code (e.g. 1.A.1.a)
+      - name: sector
+        type: string
+        description: IPCC 2006 sector standard report name (e.g. Main Activity Electricity and Heat Production)
+      - name: substance
+        type: string
+        description: Emission substance (CO2 for both whitelisted books)
+      - name: fossil_bio
+        type: string
+        description: fossil / bio split flag from EDGAR
+      - name: emissions
+        type: float
+        description: Emission value; empty cells are omitted, never fabricated
+      - name: unit
+        type: string
+        description: Unit as declared by the book (Gg)
+      - name: url
+        type: string
+        description: Source book URL the row was parsed from
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: emissions
+    concept: emission.co2
+    entity_type: country
+    measure: value
+    unit: gigagram
+    frequency: yearly
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
