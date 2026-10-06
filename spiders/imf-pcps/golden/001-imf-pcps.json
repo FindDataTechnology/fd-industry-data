@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-imf-pcps",
+  "created": "2026-10-07",
+  "target": "run_imf_pcps",
+  "params": {"limit": 150, "series": "G001.PCOIL.INDEX.M"},
+  "expect": {
+    "min_rows": 100,
+    "rows_contains": [
+      {"field": "period", "equals": "2020-M01"},
+      {"field": "value", "equals": 68.794157},
+      {"field": "series_key", "equals": "G001.PCOIL.INDEX.M"},
+      {"field": "source", "equals": "imf-pcps"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
