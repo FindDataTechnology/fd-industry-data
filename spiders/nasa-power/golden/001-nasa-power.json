@@ -1,0 +1,19 @@
+{
+  "sample_id": "001-nasa-power",
+  "created": "2026-10-07",
+  "target": "run_nasa_power",
+  "params": {"limit": 4},
+  "expect": {
+    "min_rows": 4,
+    "rows_contains": [
+      {"field": "date", "equals": "1984-01-01"},
+      {"field": "parameter", "equals": "T2M"},
+      {"field": "value", "equals": -5.88},
+      {"field": "value", "equals": 0.14},
+      {"field": "lon", "equals": 87.6},
+      {"field": "lat", "equals": 43.8},
+      {"field": "source", "equals": "nasa-power"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
