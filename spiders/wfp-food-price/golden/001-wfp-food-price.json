@@ -1,0 +1,19 @@
+{
+  "sample_id": "001-wfp-food-price",
+  "created": "2026-10-07",
+  "target": "run_wfp_food_price",
+  "params": {"limit": 1},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "country", "equals": "Afghanistan"},
+      {"field": "market", "equals": "Fayzabad"},
+      {"field": "commodity", "equals": "Bread - Retail"},
+      {"field": "month", "equals": "2014-01"},
+      {"field": "price", "equals": 50.0},
+      {"field": "currency", "equals": "AFN"},
+      {"field": "source", "equals": "wfp-food-price"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}

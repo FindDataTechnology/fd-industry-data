@@ -1,0 +1,59 @@
+version: "2"
+name: wfp-food-price          # = spiders/wfp-food-price/ 目录名，运行时标识符，合入后不可改名
+label: WFP Global Food Prices (HDX)
+source_url: https://data.humdata.org/dataset/wfp-food-prices
+# site: tencent              # 缺省 tencent；本单元只访问 data.humdata.org 公开 HTTPS，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_wfp_food_price
+    description: Fetch monthly market-level food prices (90+ countries) from the WFP global prices database hosted on HDX
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of price rows to return (streamed from the global CSV)
+    columns:
+      - name: country
+        type: string
+        description: Country name (WFP adm0_name)
+      - name: market
+        type: string
+        description: Market name (WFP mkt_name)
+      - name: commodity
+        type: string
+        description: Commodity and market segment (WFP cm_name, e.g. Bread - Retail)
+      - name: month
+        type: string
+        description: Observation month as YYYY-MM (mp_year + mp_month)
+      - name: price
+        type: float
+        description: Monthly price in local currency (mp_price)
+      - name: currency
+        type: string
+        description: ISO currency code (WFP cur_name, e.g. AFN)
+      - name: unit
+        type: string
+        description: Price unit (WFP um_name, e.g. KG)
+      - name: url
+        type: string
+        description: Resolved resource download URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: price
+    concept: market.food_price
+    entity_type: region
+    measure: value
+    unit: local_currency
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
