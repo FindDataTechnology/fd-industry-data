@@ -1,0 +1,14 @@
+{
+  "sample_id": "001-wto-eping",
+  "created": "2026-10-07",
+  "target": "run_wto_eping",
+  "params": {"limit": 10},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "source", "equals": "wto-eping"},
+      {"field": "url", "equals": "https://eping.wto.org/api/v1/notifications/getLatestNotifications"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
