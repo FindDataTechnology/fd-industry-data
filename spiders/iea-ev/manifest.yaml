@@ -1,0 +1,82 @@
+version: "2"
+name: iea-ev               # = spiders/iea-ev/ 目录名，运行时标识符，合入后不可改名
+label: IEA Global EV Data
+source_url: https://api.iea.org/evs/
+# site: tencent              # 缺省 tencent；本单元只访问 api.iea.org 公开 JSON REST，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_iea_ev
+    description: Fetch global EV sales/stock/penetration series from IEA Global EV Data API
+    frequency: yearly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of yearly rows to return (series is year-ascending)
+      - name: region
+        type: string
+        required: false
+        description: Region filter (whitelisted, e.g. World/China/Europe/USA)
+      - name: category
+        type: string
+        required: false
+        description: Historical or Projection-CPS/Projection-STEPS (whitelisted)
+      - name: parameter
+        type: string
+        required: false
+        description: EV sales / EV stock / shares / Battery deployment etc. (whitelisted)
+      - name: mode
+        type: string
+        required: false
+        description: Cars / 2 and 3 wheelers / Trucks / Vans / Buses (whitelisted)
+      - name: powertrain
+        type: string
+        required: false
+        description: BEV / PHEV / FCEV / EV (whitelisted)
+    columns:
+      - name: region
+        type: string
+        description: IEA region label (e.g. World)
+      - name: category
+        type: string
+        description: Historical or projection scenario (Projection-CPS / Projection-STEPS)
+      - name: parameter
+        type: string
+        description: Metric name (e.g. EV sales)
+      - name: mode
+        type: string
+        description: Vehicle mode (e.g. Cars)
+      - name: powertrain
+        type: string
+        description: Powertrain (e.g. BEV)
+      - name: year
+        type: int
+        description: Data year (2010-2025 historical, projections to 2035)
+      - name: unit
+        type: string
+        description: Unit as reported by IEA (e.g. Vehicles, percent)
+      - name: value
+        type: float
+        description: Metric value for the year
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: economic.indicator_value
+    entity_type: region
+    measure: value
+    unit: vehicles
+    frequency: yearly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
