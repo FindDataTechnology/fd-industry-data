@@ -1,0 +1,67 @@
+version: "2"
+name: ecb-exr                  # = spiders/ecb-exr/ 目录名，运行时标识符，合入后不可改名
+label: ECB Euro Reference Exchange Rates
+source_url: https://data.ecb.europa.eu/data/datasets/EXR
+# site: tencent              # 缺省 tencent；本单元只访问 data-api.ecb.europa.eu 公开 SDMX REST，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_ecb_exr
+    description: Fetch ECB euro reference exchange rate series (CSV export) from data-api.ecb.europa.eu
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of observation rows to return (most recent kept)
+      - name: series
+        type: string
+        required: false
+        description: "EXR series key FREQ.CURRENCY.CURRENCY_DENOM.EXR_TYPE.EXR_SUFFIX (default M.CNY.EUR.SP00.A = CNY/EUR monthly average spot); extend to daily with M->D"
+    columns:
+      - name: period
+        type: string
+        description: Observation period (e.g. 2020-01 for monthly series)
+      - name: value
+        type: float
+        description: Exchange rate (currency units per EUR, rounded to 6 decimals; null when missing)
+      - name: series_key
+        type: string
+        description: Full EXR series key (e.g. M.CNY.EUR.SP00.A)
+      - name: freq
+        type: string
+        description: Frequency code (M = monthly, D = daily)
+      - name: currency
+        type: string
+        description: Quoted currency code (e.g. CNY)
+      - name: currency_denom
+        type: string
+        description: Denominator currency code (EUR)
+      - name: exr_type
+        type: string
+        description: Exchange rate type code (SP00 = spot)
+      - name: exr_suffix
+        type: string
+        description: Series suffix code (A = average)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: finance.exchange_rate
+    entity_type: region
+    measure: value
+    unit: cny_per_eur
+    frequency: daily
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

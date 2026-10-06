@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-ecb-exr",
+  "created": "2026-10-07",
+  "target": "run_ecb_exr",
+  "params": {"limit": 100, "series": "M.CNY.EUR.SP00.A"},
+  "expect": {
+    "min_rows": 100,
+    "rows_contains": [
+      {"field": "period", "equals": "2020-01"},
+      {"field": "value", "equals": 7.683236},
+      {"field": "series_key", "equals": "M.CNY.EUR.SP00.A"},
+      {"field": "source", "equals": "ecb-exr"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
