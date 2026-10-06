@@ -1,0 +1,17 @@
+{
+  "sample_id": "001-unido-sdmx",
+  "created": "2026-10-07",
+  "target": "run_unido_sdmx",
+  "params": {"limit": 5},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "country", "equals": "156"},
+      {"field": "period", "equals": "2006 M01"},
+      {"field": "value", "equals": 26.8926011853938},
+      {"field": "source", "equals": "unido-sdmx"},
+      {"field": "url", "equals": "https://stat.unido.org/portal/sdmx/data/UNIDO/IIP/1.0/156.52.C"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
