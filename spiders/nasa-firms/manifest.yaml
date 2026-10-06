@@ -1,0 +1,80 @@
+version: "2"
+name: nasa-firms               # = spiders/nasa-firms/ 目录名，运行时标识符，合入后不可改名
+label: NASA FIRMS Active Fire Detections (S-NPP VIIRS, 24h)
+source_url: https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv
+# site: tencent              # 缺省 tencent；本单元只访问 firms.modaps.eosdis.nasa.gov 静态产品文件，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_nasa_firms
+    description: Fetch global 24h active fire detections (Suomi-NPP VIIRS C2 CSV snapshot, no key)
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of fire detection rows to return
+    columns:
+      - name: latitude
+        type: float
+        description: Detection latitude (decimal degrees)
+      - name: longitude
+        type: float
+        description: Detection longitude (decimal degrees)
+      - name: bright_ti4
+        type: float
+        description: I-band 4 brightness temperature (Kelvin)
+      - name: bright_ti5
+        type: float
+        description: I-band 5 brightness temperature (Kelvin)
+      - name: scan
+        type: float
+        description: Along-scan pixel size
+      - name: track
+        type: float
+        description: Along-track pixel size
+      - name: frp
+        type: float
+        description: Fire radiative power (MW)
+      - name: acq_date
+        type: string
+        description: Acquisition date (yyyy-mm-dd, daily rolling snapshot)
+      - name: acq_time
+        type: string
+        description: Acquisition time HHMM as string (leading zeros preserved)
+      - name: satellite
+        type: string
+        description: Satellite id (N = Suomi NPP, constant for this product)
+      - name: instrument
+        type: string
+        description: Sensor constant VIIRS (derived from product identity SUOMI_VIIRS_C2; column absent upstream)
+      - name: confidence
+        type: string
+        description: Detection confidence (l / n / h)
+      - name: version
+        type: string
+        description: Collection / processing version (e.g. 2.0NRT)
+      - name: daynight
+        type: string
+        description: Day or night flag (D / N)
+      - name: url
+        type: string
+        description: Source CSV URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: frp
+    concept: environment.fire_hotspot
+    entity_type: location
+    measure: value
+    unit: megawatt
+    frequency: daily
+entities:
+  - entity_type: location
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
