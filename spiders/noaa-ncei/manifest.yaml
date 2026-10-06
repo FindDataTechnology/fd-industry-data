@@ -1,0 +1,78 @@
+version: "2"
+name: noaa-ncei               # = spiders/noaa-ncei/ 目录名，运行时标识符，合入后不可改名
+label: NOAA NCEI GHCN Daily Station Records
+source_url: https://www.ncei.noaa.gov/access/services/data/v1
+# site: tencent              # 缺省 tencent；本单元只访问 www.ncei.noaa.gov 公开 REST，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_noaa_ncei
+    description: Fetch GHCN-Daily station records (TMAX/TMIN/PRCP) from NOAA NCEI Access Data Service
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of daily rows to return (most recent rows kept)
+      - name: station
+        type: string
+        required: false
+        description: GHCN station id (default seed USW00023174 = Los Angeles Downtown USC)
+      - name: start_date
+        type: string
+        required: false
+        description: Window start YYYY-MM-DD (default rolling last 31 days ending yesterday)
+      - name: end_date
+        type: string
+        required: false
+        description: Window end YYYY-MM-DD (must be given together with start_date)
+    columns:
+      - name: station
+        type: string
+        description: GHCN station identifier (e.g. USW00023174)
+      - name: date
+        type: string
+        description: Observation date YYYY-MM-DD
+      - name: tmax
+        type: float
+        description: Daily maximum temperature in Celsius (converted from GHCN 0.1-degree units; null when missing)
+      - name: tmin
+        type: float
+        description: Daily minimum temperature in Celsius (converted from GHCN 0.1-degree units; null when missing)
+      - name: prcp
+        type: float
+        description: Daily precipitation in mm (converted from GHCN 0.1-mm units; null when missing)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: tmax
+    concept: weather.temperature
+    entity_type: region
+    measure: max
+    unit: celsius
+    frequency: daily
+  - column: tmin
+    concept: weather.temperature
+    entity_type: region
+    measure: min
+    unit: celsius
+    frequency: daily
+  - column: prcp
+    concept: weather.precipitation
+    entity_type: region
+    measure: value
+    unit: millimeter
+    frequency: daily
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
