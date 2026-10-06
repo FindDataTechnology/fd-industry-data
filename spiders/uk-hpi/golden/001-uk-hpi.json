@@ -1,0 +1,19 @@
+{
+  "sample_id": "001-uk-hpi",
+  "created": "2026-10-07",
+  "target": "run_uk_hpi",
+  "params": {"limit": 3},
+  "expect": {
+    "min_rows": 3,
+    "rows_contains": [
+      {"field": "region", "equals": "Aberdeenshire"},
+      {"field": "area_code", "equals": "S12000034"},
+      {"field": "month", "equals": "2004-01"},
+      {"field": "average_price", "equals": 84638.0},
+      {"field": "index", "equals": 41.1},
+      {"field": "sales_volume", "equals": 388.0},
+      {"field": "source", "equals": "uk-hpi"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}

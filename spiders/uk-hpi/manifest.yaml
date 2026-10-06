@@ -1,0 +1,56 @@
+version: "2"
+name: uk-hpi               # = spiders/uk-hpi/ 目录名，运行时标识符，合入后不可改名
+label: UK House Price Index
+source_url: https://publicdata.landregistry.gov.uk/market-trend-data/house-price-index-data/
+# site: tencent              # 缺省 tencent；本单元只访问 publicdata.landregistry.gov.uk 官方固定文件，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_uk_hpi
+    description: Fetch head sample of the UK HPI full-file CSV (region x month long table, 1995 onwards)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: "Maximum rows from the head sample (file order: region alphabetical, then date ascending)"
+    columns:
+      - name: region
+        type: string
+        description: Region name (RegionName column)
+      - name: area_code
+        type: string
+        description: ONS area code (AreaCode column)
+      - name: month
+        type: string
+        description: Month label YYYY-MM (normalized from dd/mm/YYYY Date column)
+      - name: average_price
+        type: float
+        description: Average price in GBP (AveragePrice column, null when missing)
+      - name: index
+        type: float
+        description: House price index level (Index column, null when missing)
+      - name: sales_volume
+        type: float
+        description: Sales volume (SalesVolume column, null when missing)
+      - name: url
+        type: string
+        description: Source file URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: average_price
+    concept: property.average_price
+    entity_type: region
+    measure: value
+    unit: gbp
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
