@@ -1,0 +1,48 @@
+version: "2"
+name: fao-food-price              # = spiders/fao-food-price/ 目录名，运行时标识符，合入后不可改名
+label: FAO Food Price Index
+source_url: https://www.fao.org/worldfoodsituation/foodpricesindex/en/
+# site: tencent              # 缺省 tencent；本单元只访问 www.fao.org 公开页面/CSV，无需换执行位
+# schedule: 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_fao_food_price
+    description: Fetch FAO Food Price Index monthly values (headline plus meat/dairy/cereals/oils/sugar, nominal)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum (month, index_name) rows to return (deterministic order, earliest months first)
+    columns:
+      - name: month
+        type: string
+        description: Index month (YYYY-MM), 1990-01 onward
+      - name: index_name
+        type: string
+        description: Index series name (Food Price Index, Meat, Dairy, Cereals, Oils, Sugar)
+      - name: value
+        type: float
+        description: Nominal index value (2014-2016=100 base)
+      - name: url
+        type: string
+        description: Source CSV URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: food_price.index
+    entity_type: region
+    measure: value
+    unit: index
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
