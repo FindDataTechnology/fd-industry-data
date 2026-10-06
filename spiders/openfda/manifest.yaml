@@ -1,0 +1,55 @@
+version: "2"
+name: openfda                 # = spiders/openfda/ 目录名，运行时标识符，合入后不可改名
+label: openFDA Drug Adverse Event Monthly Volume
+source_url: https://open.fda.gov/
+# site: tencent              # 缺省 tencent；本单元只访问 api.fda.gov 公开 REST，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_openfda
+    description: Fetch monthly FDA adverse event volumes (meta.results.total per receivedate month) with a sampled report id
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Number of months to return (default window ends at latest published month)
+      - name: start_month
+        type: string
+        required: false
+        description: Window start (yyyy-mm); used to pin golden replays to fixed historical months
+      - name: end_month
+        type: string
+        required: false
+        description: Window end (yyyy-mm); used to pin golden replays to fixed historical months
+    columns:
+      - name: month
+        type: string
+        description: Calendar month of receivedate (ISO yyyy-mm)
+      - name: event_count
+        type: float
+        description: Adverse event reports received in the month (meta.results.total)
+      - name: sample_report_id
+        type: string
+        description: safetyreportid of the sampled detail record (limit=1 result)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: event_count
+    concept: industry.monthly_operation_metric
+    entity_type: region
+    measure: value
+    unit: count
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
