@@ -1,0 +1,17 @@
+{
+  "sample_id": "001-usgs-nwis",
+  "created": "2026-10-07",
+  "target": "run_usgs_nwis",
+  "params": {"limit": 5},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "site", "equals": "01646500"},
+      {"field": "parameter_cd", "equals": "00060"},
+      {"field": "date", "equals": "2020-01-01"},
+      {"field": "value", "equals": 7610.0},
+      {"field": "source", "equals": "usgs-nwis"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
