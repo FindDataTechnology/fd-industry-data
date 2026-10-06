@@ -1,24 +1,15 @@
 {
-  "at": "2026-10-04T22:49:34.875939+00:00",
+  "at": "2026-10-06T00:47:47.871211+00:00",
   "source": "psql",
   "config_source": "db:health_config",
-  "sources_seen": 42,
+  "sources_seen": 43,
   "healthy": 15,
-  "written": [],
-  "deferred": [
-    {
-      "source": "flower-auction",
-      "reason": "daily cap reached"
-    },
-    {
-      "source": "inmetals",
-      "reason": "daily cap reached"
-    },
-    {
-      "source": "metal-com",
-      "reason": "daily cap reached"
-    }
+  "written": [
+    "20261006-flower-auction-7e463b31.yaml",
+    "20261006-inmetals-0030bfb3.yaml",
+    "20261006-metal-com-339cfa5a.yaml"
   ],
+  "deferred": [],
   "skipped_unknown_period": [
     "akshare",
     "auth-smoke",
@@ -35,6 +26,7 @@
     "flk-law-load",
     "gov-rules-crawl",
     "gov-rules-load",
+    "legal-sources-report",
     "mfa-treaty-crawl",
     "mfa-treaty-load",
     "party-regulation-crawl",
@@ -46,6 +38,53 @@
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [],
-  "status": []
+  "submit": [
+    {
+      "ticket": "20261006-flower-auction-7e463b31.yaml",
+      "submitted": true,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 200,
+      "response": "**结论：拒绝并转人工（工单不可读）——未入队、未动手、未开 PR。**\n\n依据：`reports/health-tickets/20261006-flower-auction-7e463b31.yaml` 在 `FindDataTechnology/fd-industry-data@main` 不存在，四途径核实一致（00:47–00:51Z）：\n- contents API 对该路径 **404 ×3**；\n- `git/trees/main?recursive=1` 1357 项、`truncated=false`，无任何 `20261006` 文件，`health-tickets/` 仍只有 5 张 `20261004-*` 旧单 + README + last-run.json；\n- org 级 code search（`7e463b31` / `flower-auction` / `20261006`）均 **0 命中**；\n- 仓仅 `main` 分支、无 fork、open PR=0、HEAD 仍 `343f536`（2026-10-04T22:49:36Z）。\n\n处置"
+    },
+    {
+      "ticket": "20261006-inmetals-0030bfb3.yaml",
+      "submitted": true,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 200,
+      "response": "**结论：未入队 —— 工单不可读，终态「转人工」+ escalate_manual 通知（已送出）**\n\n依据（REST 核实，00:52Z）：\n- `reports/health-tickets/20261006-inmetals-0030bfb3.yaml` 在 main 不存在：contents 404 ×2、目录仅 5 张 `20261004-*` 单 + README/last-run、git tree（1357 项，truncated=false）无任何 `20261006` 路径、org 级 code search 三关键词 0 命中。\n- 无待合并推送：仅 main 分支（HEAD `343f5360`，10-04T22:49:36Z）、无 fork、open PR=0、pushed_at 未变。\n- 旁证源真实：目标单元 `spiders/inmetals/` 在 main 完好（未触碰）；`last-run.json` deferred 含 `inmetals: daily cap reached` → 疑巡检投递未 push（与 12 分钟前 flower-au"
+    },
+    {
+      "ticket": "20261006-metal-com-339cfa5a.yaml",
+      "submitted": true,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 200,
+      "response": "**结论：拒绝入队 → 终态 manual（转人工）**；未动手、未建分支、未开 PR、未改仓内任何文件。\n\n依据（REST 复核 00:53–00:54Z）：\n- 工单路径 `reports/health-tickets/20261006-metal-com-339cfa5a.yaml` 在 fd-industry-data@main **不存在**：contents 404；health-tickets/ 目录 7 项 sha 与上轮逐项全等、无 20261006 文件；git tree recursive（1357 项，未截断）无该路径；code search（339cfa5a / 20261006-metal-com，repo 级+org 级）0 命中；仅 main 分支、forks=0、open PR=0、pushed_at 仍 22:49:39Z。\n- 工单不可读 → 无法分诊 → 按协议终态 `manual`（inbox.json 已落盘：state=manual, retry=0, prUrl=null）；目标单元 `spiders/metal-com/`（README"
+    }
+  ],
+  "status": [
+    {
+      "ticket": "20261006-flower-auction-7e463b31.yaml",
+      "http_status": 200,
+      "state": "manual",
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261006-inmetals-0030bfb3.yaml",
+      "http_status": 200,
+      "state": "manual",
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261006-metal-com-339cfa5a.yaml",
+      "http_status": 200,
+      "state": "manual",
+      "note": "",
+      "pr_url": ""
+    }
+  ]
 }

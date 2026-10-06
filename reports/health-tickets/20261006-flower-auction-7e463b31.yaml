@@ -1,0 +1,50 @@
+ticket_id: 20261006-flower-auction-7e463b31
+source: flower-auction
+unit: spiders/flower-auction/
+kind: repair
+created_at: '2026-10-06T00:47:47.871211+00:00'
+category: null
+needs_human: true
+suspected_anti_bot: false
+suggested_action: 补充遥测样本后复检（证据不足）
+evidence:
+  window:
+    from: '2026-09-29 11:25:04.796954+00'
+    to: '2026-10-02 07:05:10.901+00'
+  failing_runs: []
+  last_success:
+    started_at: '2026-10-02 07:05:10.901+00'
+    rows: 0
+  notes: rule2:insufficient-evidence tail_failed=0<min_runs_for_verdict=3 last_success_age=89.71h
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-flower-auction-7e463b31.yaml
+golden: []
+lifecycle:
+- at: '2026-10-06T00:47:47.871211+00:00'
+  event: created
+- at: '2026-10-06T00:51:26.249258+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**结论：拒绝并转人工（工单不可读）——未入队、未动手、未开 PR。**
+
+
+    依据：`reports/health-tickets/20261006-flower-auction-7e463b31.yaml` 在 `FindDataTechnology/fd-industry-data@main`
+    不存在，四途径核实一致（00:47–00:51Z）：
+
+    - contents API 对该路径 **404 ×3**；
+
+    - `git/trees/main?recursive=1` 1357 项、`truncated=false`，无任何 `20261006` 文件，`health-tickets/` '
+- at: '2026-10-06T00:55:03.938559+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-10-06T00:55:03.938602+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual
