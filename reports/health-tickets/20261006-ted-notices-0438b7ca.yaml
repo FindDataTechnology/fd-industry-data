@@ -1,0 +1,32 @@
+ticket_id: 20261006-ted-notices-0438b7ca
+source: ted-notices
+unit: spiders/ted-notices/
+kind: generate
+created_at: '2026-10-06T20:45:18.308377+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:18.308204+00:00'
+    to: '2026-10-06T20:45:18.308204+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-ted-notices-0438b7ca.yaml
+golden:
+- spiders/ted-notices/golden/
+lifecycle:
+- at: '2026-10-06T20:45:18.308377+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://api.ted.europa.eu/v3/notices/search
+  expectations: 欧盟招标公告日度序列：按 publication-date 统计公告量，含 buyer、CPV 行业码、合同金额；行字段 date/notice_id/buyer/cpv/value
+  cadence: daily
+  notes: 侦察簿 W1-M：POST JSON（v3 notices/search 规范公开，body 按 API 文档构造）；匿名配额有限——顺序低频抓取不并发；golden
+    锚固定历史日期段公告量与首条 notice id；仅标准库 urllib POST

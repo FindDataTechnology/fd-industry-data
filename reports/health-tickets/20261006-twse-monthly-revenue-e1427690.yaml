@@ -1,0 +1,31 @@
+ticket_id: 20261006-twse-monthly-revenue-e1427690
+source: twse-monthly-revenue
+unit: spiders/twse-monthly-revenue/
+kind: generate
+created_at: '2026-10-06T20:45:18.842770+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:18.842567+00:00'
+    to: '2026-10-06T20:45:18.842567+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-twse-monthly-revenue-e1427690.yaml
+golden:
+- spiders/twse-monthly-revenue/golden/
+lifecycle:
+- at: '2026-10-06T20:45:18.842770+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://openapi.twse.com.tw/v1/opendata/t187ap05_L
+  expectations: 台湾上市公司当月营收快照：行字段 code/name/当月营收/产业别（可滤半导体类）
+  cadence: monthly
+  notes: 侦察簿 W2-1：无 key 纯 JSON 直连；历史靠正向累积（当月快照非回溯）；golden 锚字段结构+半导体业别过滤非空；仅标准库

@@ -1,0 +1,31 @@
+ticket_id: 20261006-openfda-56bbec7f
+source: openfda
+unit: spiders/openfda/
+kind: generate
+created_at: '2026-10-06T20:45:18.895543+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:18.895385+00:00'
+    to: '2026-10-06T20:45:18.895385+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-openfda-56bbec7f.yaml
+golden:
+- spiders/openfda/golden/
+lifecycle:
+- at: '2026-10-06T20:45:18.895543+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://api.fda.gov/drug/event.json?search=receivedate:2020-01-01+TO+2020-01-31&limit=1
+  expectations: FDA 不良事件月度量：按 receivedate 月度统计事件总量（meta.results.total）+抽样明细；行字段 month/event_count
+  cadence: monthly
+  notes: 侦察簿 W2-2：免 key 240/min；2004 起月度 10 万+记录；golden 锚固定历史月 total（跨期稳定）；审批/器械端点同构可扩；仅标准库

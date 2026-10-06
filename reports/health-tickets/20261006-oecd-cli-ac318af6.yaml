@@ -1,0 +1,32 @@
+ticket_id: 20261006-oecd-cli-ac318af6
+source: oecd-cli
+unit: spiders/oecd-cli/
+kind: generate
+created_at: '2026-10-06T20:45:18.683687+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:18.683493+00:00'
+    to: '2026-10-06T20:45:18.683493+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-oecd-cli-ac318af6.yaml
+golden:
+- spiders/oecd-cli/golden/
+lifecycle:
+- at: '2026-10-06T20:45:18.683687+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_CLI,CHN.M.LI.IX._Z.NOR.IX._Z.H?format=csvfilewithlabels
+  expectations: OECD 先行指数 CLI 月度：中国 key=CHN.M.LI.IX._Z.NOR.IX._Z.H；行字段 period/value；可扩各国
+  cadence: monthly
+  notes: 侦察簿 W1-A 深潜：dataflow=OECD.SDD.STES:DSD_STES@DF_CLI；CSV 导出必须 format=csvfilewithlabels；golden
+    锚固定历史月值；仅标准库

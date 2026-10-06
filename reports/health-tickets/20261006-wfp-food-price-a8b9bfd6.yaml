@@ -1,0 +1,31 @@
+ticket_id: 20261006-wfp-food-price-a8b9bfd6
+source: wfp-food-price
+unit: spiders/wfp-food-price/
+kind: generate
+created_at: '2026-10-06T20:45:19.607625+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:19.607466+00:00'
+    to: '2026-10-06T20:45:19.607466+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-wfp-food-price-a8b9bfd6.yaml
+golden:
+- spiders/wfp-food-price/golden/
+lifecycle:
+- at: '2026-10-06T20:45:19.607625+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://data.humdata.org/dataset/wfp-food-prices
+  expectations: WFP 市场粮价月度：90+ 国市场级主粮价格；行字段 country/market/commodity/month/price/currency
+  cadence: monthly
+  notes: 拷问 Q1 裁决纳入（官方统计口径）；HDX 托管资源 CSV（页内资源链接）；接前复测现行资源路径；golden 锚固定国固定市场固定月值；仅标准库

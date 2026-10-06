@@ -1,0 +1,31 @@
+ticket_id: 20261006-usgs-nwis-f0a47fcb
+source: usgs-nwis
+unit: spiders/usgs-nwis/
+kind: generate
+created_at: '2026-10-06T20:45:18.517923+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:18.517739+00:00'
+    to: '2026-10-06T20:45:18.517739+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-usgs-nwis-f0a47fcb.yaml
+golden:
+- spiders/usgs-nwis/golden/
+lifecycle:
+- at: '2026-10-06T20:45:18.517923+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://waterservices.usgs.gov/nwis/dv/?sites=01646500&startDT=2020-01-01&endDT=2020-12-31&parameterCd=00060&format=json
+  expectations: 美国水文日值：指定站点河流流量（parameterCd=00060）日序列；行字段 site/date/value
+  cadence: daily
+  notes: 侦察簿 W1-J：免 key；部分站 100+ 年历史；golden 锚固定站点固定历史年份数值；DV 端点 JSON；仅标准库

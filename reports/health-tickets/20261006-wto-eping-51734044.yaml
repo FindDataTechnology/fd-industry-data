@@ -1,0 +1,31 @@
+ticket_id: 20261006-wto-eping-51734044
+source: wto-eping
+unit: spiders/wto-eping/
+kind: generate
+created_at: '2026-10-06T20:45:19.463621+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:19.463452+00:00'
+    to: '2026-10-06T20:45:19.463452+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-wto-eping-51734044.yaml
+golden:
+- spiders/wto-eping/golden/
+lifecycle:
+- at: '2026-10-06T20:45:19.463621+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://eping.wto.org/api/v1/notifications/getLatestNotifications
+  expectations: WTO 贸易壁垒通报流：最新 TBT/SPS 通报；行字段 notification_id/type/member/date
+  cadence: daily
+  notes: 侦察簿 W3：匿名可用（当日新鲜）；HS+日期检索需免费注册——本批只接匿名最新流；1995 起全库；golden 锚固定结构字段；仅标准库

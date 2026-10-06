@@ -1,0 +1,32 @@
+ticket_id: 20261006-statcan-bulk-2bf4fdf6
+source: statcan-bulk
+unit: spiders/statcan-bulk/
+kind: generate
+created_at: '2026-10-06T20:45:19.103491+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:19.103321+00:00'
+    to: '2026-10-06T20:45:19.103321+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-statcan-bulk-2bf4fdf6.yaml
+golden:
+- spiders/statcan-bulk/golden/
+lifecycle:
+- at: '2026-10-06T20:45:19.103491+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://www150.statcan.gc.ca/n1/tbl/csv/18100205-eng.zip
+  expectations: 加拿大统计 bulk CSV：NHPI 新房价指 1981 起 + 建筑许可月度；行字段 ref_date/geography/value
+  cadence: monthly
+  notes: 侦察簿 W2-5：无 key；WDS REST 是坏的走 bulk ZIP（ZIP+CSV 标准库 zipfile/csv）；productId
+    以表目录为准（NHPI 18-10-0205 系）；golden 锚固定表固定月值；仅标准库

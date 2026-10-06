@@ -1,0 +1,31 @@
+ticket_id: 20261006-gb-standards-ca4f8b1f
+source: gb-standards
+unit: spiders/gb-standards/
+kind: generate
+created_at: '2026-10-06T20:45:18.257982+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:18.257797+00:00'
+    to: '2026-10-06T20:45:18.257797+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-gb-standards-ca4f8b1f.yaml
+golden:
+- spiders/gb-standards/golden/
+lifecycle:
+- at: '2026-10-06T20:45:18.257982+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://std.samr.gov.cn/gb/search/gbQueryPage?searchText=&pageNumber=1&pageSize=20
+  expectations: 国标监管强度序列：按月统计新发布/废止国标数量；明细行字段 标准号/名称/发布日期/实施日期/状态
+  cadence: weekly
+  notes: 侦察簿 W1-F：免鉴权纯 JSON；必须带浏览器 UA；只发实测有效参数；golden 锚固定标准号（如 GB/T 1.1-2020）查询字段（跨期稳定）；仅标准库

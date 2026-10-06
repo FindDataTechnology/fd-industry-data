@@ -1,0 +1,31 @@
+ticket_id: 20261006-boxofficemojo-c200b654
+source: boxofficemojo
+unit: spiders/boxofficemojo/
+kind: generate
+created_at: '2026-10-06T20:45:19.707992+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:19.707841+00:00'
+    to: '2026-10-06T20:45:19.707841+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-boxofficemojo-c200b654.yaml
+golden:
+- spiders/boxofficemojo/golden/
+lifecycle:
+- at: '2026-10-06T20:45:19.707992+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://www.boxofficemojo.com/year/2024/
+  expectations: 海外票房年度/周度排行：行字段 year/week/rank/title/gross（1977 起）
+  cadence: weekly
+  notes: 拷问 Q3 裁决纳入（文娱，Steam 已列 Wave C）；直连低频抓取；HTML 表结构稳定可正则；golden 锚固定历史年页数值；仅标准库

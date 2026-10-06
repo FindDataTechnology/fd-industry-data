@@ -1,0 +1,31 @@
+ticket_id: 20261006-ecb-exr-a0aee352
+source: ecb-exr
+unit: spiders/ecb-exr/
+kind: generate
+created_at: '2026-10-06T20:45:18.736602+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:18.736446+00:00'
+    to: '2026-10-06T20:45:18.736446+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-ecb-exr-a0aee352.yaml
+golden:
+- spiders/ecb-exr/golden/
+lifecycle:
+- at: '2026-10-06T20:45:18.736602+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://data-api.ecb.europa.eu/service/data/EXR/M.CNY.EUR.SP00.A?format=csvdata
+  expectations: ECB 欧元汇率月度（CNY/EUR）；行字段 period/value；日频可扩 EXR/D
+  cadence: daily
+  notes: 侦察簿 W1-C：免 key；format=csvdata 最顺滑；golden 锚固定历史月值；仅标准库

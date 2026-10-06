@@ -1,0 +1,32 @@
+ticket_id: 20261006-imf-pcps-fc45b1b5
+source: imf-pcps
+unit: spiders/imf-pcps/
+kind: generate
+created_at: '2026-10-06T20:45:18.624981+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:18.624819+00:00'
+    to: '2026-10-06T20:45:18.624819+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-imf-pcps-fc45b1b5.yaml
+golden:
+- spiders/imf-pcps/golden/
+lifecycle:
+- at: '2026-10-06T20:45:18.624981+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://api.imf.org/external/sdmx/2.1/data/PCPS/M.G001.PCOIL.INDEX.M
+  expectations: IMF 初级商品月度价格指数：key 四段（World 原油=G001.PCOIL.INDEX.M）；行字段 period/value；可扩其他商品码
+  cadence: monthly
+  notes: 侦察簿 W1-A 深潜：旧 dataservices.imf.org 已死勿用；真实 key 四段、World=G001 非 W00；只返 XML（format
+    参数被忽略）——用 xml.etree 解析；错 key 返空数据集不报错；golden 锚固定 obs（如 2020-M01 值）；仅标准库

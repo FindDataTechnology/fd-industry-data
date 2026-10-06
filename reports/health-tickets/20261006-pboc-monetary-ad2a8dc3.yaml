@@ -1,0 +1,32 @@
+ticket_id: 20261006-pboc-monetary-ad2a8dc3
+source: pboc-monetary
+unit: spiders/pboc-monetary/
+kind: generate
+created_at: '2026-10-06T20:45:19.657377+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:19.657212+00:00'
+    to: '2026-10-06T20:45:19.657212+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-pboc-monetary-ad2a8dc3.yaml
+golden:
+- spiders/pboc-monetary/golden/
+lifecycle:
+- at: '2026-10-06T20:45:19.657377+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - http://www.pbc.gov.cn/diaochatongjisi/2168/2639/index.html
+  expectations: 央行社融与货币统计月度：社会融资规模增量/存量、M0/M1/M2；行字段 month/indicator/value
+  cadence: monthly
+  notes: 拷问 Q2 裁决纳入（宏观统计口径非行情）；静态页直链 xlsx 已验证、附件 URL 规律可预测；必须浏览器 UA；xlsx=zip+xml 标准库
+    zipfile/xml.etree 可解；golden 锚固定历史月值；仅标准库

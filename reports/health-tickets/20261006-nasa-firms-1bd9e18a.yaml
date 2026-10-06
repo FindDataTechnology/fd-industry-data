@@ -1,0 +1,33 @@
+ticket_id: 20261006-nasa-firms-1bd9e18a
+source: nasa-firms
+unit: spiders/nasa-firms/
+kind: generate
+created_at: '2026-10-06T20:45:18.419491+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:18.419341+00:00'
+    to: '2026-10-06T20:45:18.419341+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-nasa-firms-1bd9e18a.yaml
+golden:
+- spiders/nasa-firms/golden/
+lifecycle:
+- at: '2026-10-06T20:45:18.419491+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv
+  expectations: 全球 24h 火点快照：CSV 固定列（latitude/longitude/brightness/acq_date/acq_time/satellite/instrument/confidence/version/frp/daynight
+    等 14 列）；每次运行落当期行
+  cadence: daily
+  notes: 侦察簿 W1-I：免 key（MAP_KEY 可选邮箱即得）；数据每日滚动——golden 锚固定列名集合 + instrument 常量（VIIRS）+
+    min_rows，绝不锚日期/计数/坐标；CSV 仅标准库 csv 模块

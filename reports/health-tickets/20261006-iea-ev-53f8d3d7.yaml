@@ -1,0 +1,32 @@
+ticket_id: 20261006-iea-ev-53f8d3d7
+source: iea-ev
+unit: spiders/iea-ev/
+kind: generate
+created_at: '2026-10-06T20:45:18.999266+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:18.999081+00:00'
+    to: '2026-10-06T20:45:18.999081+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-iea-ev-53f8d3d7.yaml
+golden:
+- spiders/iea-ev/golden/
+lifecycle:
+- at: '2026-10-06T20:45:18.999266+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://api.iea.org/evs/
+  expectations: 全球 EV 销量/保有量/渗透率：行字段 region/year/parameter/powertrain/value；2010-2025
+    + 情景投影
+  cadence: yearly
+  notes: 侦察簿 W2-3：无 key；数据按年更新；golden 锚固定 region/year 数值；仅标准库

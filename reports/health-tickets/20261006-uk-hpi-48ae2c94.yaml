@@ -1,0 +1,32 @@
+ticket_id: 20261006-uk-hpi-48ae2c94
+source: uk-hpi
+unit: spiders/uk-hpi/
+kind: generate
+created_at: '2026-10-06T20:45:19.050024+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:19.049852+00:00'
+    to: '2026-10-06T20:45:19.049852+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-uk-hpi-48ae2c94.yaml
+golden:
+- spiders/uk-hpi/golden/
+lifecycle:
+- at: '2026-10-06T20:45:19.050024+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://publicdata.landregistry.gov.uk/market-trend-data/private-rental-data/UK-HPI-full-file-2025-08.csv
+  expectations: 英国房价指数月度：region/month/average_price/sales_volume（1995 起）
+  cadence: monthly
+  notes: 侦察簿 W2-5：无 key；官方固定文件名 UK-HPI-full-file-YYYY-MM.csv（当月刷新）；文件大但支持 HTTP Range——按需取段；golden
+    锚固定 region 固定历史月数值；仅标准库

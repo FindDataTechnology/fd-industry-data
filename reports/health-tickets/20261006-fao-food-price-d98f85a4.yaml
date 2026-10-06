@@ -1,0 +1,31 @@
+ticket_id: 20261006-fao-food-price-d98f85a4
+source: fao-food-price
+unit: spiders/fao-food-price/
+kind: generate
+created_at: '2026-10-06T20:45:19.560162+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:19.560001+00:00'
+    to: '2026-10-06T20:45:19.560001+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-fao-food-price-d98f85a4.yaml
+golden:
+- spiders/fao-food-price/golden/
+lifecycle:
+- at: '2026-10-06T20:45:19.560162+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://www.fao.org/worldfoodsituation/foodpricesindex/en/
+  expectations: FAO 食品价格指数月度：总指数+肉类/谷物/油/糖分品类（名义与实际）；行字段 month/index_name/value
+  cadence: monthly
+  notes: 拷问 Q1 裁决纳入（官方统计口径非行情）；官方固定 CSV 链接（页内 data 链接，1990 起）；接前复测现行链接；golden 锚固定历史月值；仅标准库

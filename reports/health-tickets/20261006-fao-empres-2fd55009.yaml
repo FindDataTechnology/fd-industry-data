@@ -1,0 +1,32 @@
+ticket_id: 20261006-fao-empres-2fd55009
+source: fao-empres
+unit: spiders/fao-empres/
+kind: generate
+created_at: '2026-10-06T20:45:19.414358+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:19.414200+00:00'
+    to: '2026-10-06T20:45:19.414200+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-fao-empres-2fd55009.yaml
+golden:
+- spiders/fao-empres/golden/
+lifecycle:
+- at: '2026-10-06T20:45:19.414358+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://api.data.apps.fao.org/api/v2/bigquery?sql_url=https://api.data.apps.fao.org/cat-sql/empres-i/public/latest_outbreaks.sql
+  expectations: 全球动物疫病事件（WOAH 镜像）：行字段 country/disease/serotype/outbreaks/date
+  cadence: weekly
+  notes: 侦察簿 W3：免 key 直连 CSV（FAO 通用 BigQuery SQL 代理模式：sql_url 指公开 .sql，路径以 FAO SQL
+    目录为准）；2025 起 4.2 万行实测；golden 锚固定病种固定年计数；仅标准库

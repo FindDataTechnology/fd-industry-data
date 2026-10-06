@@ -1,0 +1,31 @@
+ticket_id: 20261006-mem-disaster-eccf1032
+source: mem-disaster
+unit: spiders/mem-disaster/
+kind: generate
+created_at: '2026-10-06T20:45:19.356323+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-06T20:45:19.356151+00:00'
+    to: '2026-10-06T20:45:19.356151+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-mem-disaster-eccf1032.yaml
+golden:
+- spiders/mem-disaster/golden/
+lifecycle:
+- at: '2026-10-06T20:45:19.356323+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://www.mem.gov.cn/gk/tjsj/
+  expectations: 应急管理部月度灾情通报：受灾人次/直接经济损失（亿元）/死亡失踪；行字段 month/affected_person/economic_loss
+  cadence: monthly
+  notes: 侦察簿 W3：栏目 HTML 表正则解析；响应 gzip（urllib 默认解）；月中发布——当月未出属正常容错；golden 锚固定历史月通报数值；仅标准库
