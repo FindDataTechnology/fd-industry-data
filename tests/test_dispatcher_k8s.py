@@ -150,7 +150,7 @@ def test_job_body_defaults_when_decl_minimal(monkeypatch):
                      "timeout_seconds": None}, "scraw")
     assert body["spec"]["activeDeadlineSeconds"] == 3600
     container = body["spec"]["template"]["spec"]["containers"][0]
-    assert {e["name"] for e in container["env"]} == {"PYTHONUNBUFFERED", "FD_PENDING_RUN_ID"}
+    assert {e["name"] for e in container["env"]} == {"PYTHONUNBUFFERED", "FD_PENDING_RUN_ID", "FD_SCHEMA_MANAGED"}
 
 
 # --- runner_env_from: per-secret envFrom on the declared Job (drill 4.2) ---

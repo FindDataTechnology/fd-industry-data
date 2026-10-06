@@ -185,7 +185,8 @@ def job_body(src: str, pending_id: int, decl: dict, ns: str) -> dict:
               "fd-industry/pending-run": str(pending_id),
               "fd-industry/managed-by": "fd-dispatcher"}
     env = [{"name": "PYTHONUNBUFFERED", "value": "1"},
-           {"name": "FD_PENDING_RUN_ID", "value": str(pending_id)}]
+           {"name": "FD_PENDING_RUN_ID", "value": str(pending_id)},
+           {"name": "FD_SCHEMA_MANAGED", "value": "1"}]
     db_url = os.environ.get("FD_CRAWL_DB_URL", "")
     if db_url:
         env.append({"name": "FD_CRAWL_DB_URL", "value": db_url})
