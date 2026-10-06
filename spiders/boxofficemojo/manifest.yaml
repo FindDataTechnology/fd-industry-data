@@ -1,0 +1,53 @@
+version: "2"
+name: boxofficemojo           # = spiders/boxofficemojo/ 目录名，运行时标识符，合入后不可改名
+label: Box Office Mojo Yearly Rankings
+source_url: https://www.boxofficemojo.com/year/2024/
+# site: tencent              # 缺省 tencent；本单元只访问 www.boxofficemojo.com 公开 HTML，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_boxofficemojo
+    description: Fetch yearly box office rankings (rank/title/gross) from the latest three Box Office Mojo year pages
+    frequency: weekly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of ranking rows to return (latest year first)
+    columns:
+      - name: year
+        type: int
+        description: Year of the ranking page
+      - name: week
+        type: int
+        description: ISO week number (reserved for weekly pages; null on yearly rows)
+      - name: rank
+        type: int
+        description: Rank on the yearly ranking (1 = highest gross)
+      - name: title
+        type: string
+        description: Release title
+      - name: gross
+        type: int
+        description: Yearly gross in USD as shown on the page
+      - name: url
+        type: string
+        description: Source year-page URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: gross
+    concept: entertainment.box_office_gross
+    entity_type: movie
+    measure: value
+    unit: usd
+    frequency: weekly
+entities:
+  - entity_type: movie
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

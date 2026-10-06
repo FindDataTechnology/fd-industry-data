@@ -1,0 +1,18 @@
+{
+  "sample_id": "001-boxofficemojo",
+  "created": "2026-10-07",
+  "target": "run_boxofficemojo",
+  "params": {"limit": 600},
+  "expect": {
+    "min_rows": 590,
+    "rows_contains": [
+      {"field": "source", "equals": "boxofficemojo"},
+      {"field": "year", "equals": 2024},
+      {"field": "rank", "equals": 1},
+      {"field": "title", "equals": "Inside Out 2"},
+      {"field": "gross", "equals": 652980194},
+      {"field": "gross", "equals": 636745858}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
