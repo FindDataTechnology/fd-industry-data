@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-worldbank-procnotices",
+  "created": "2026-10-07",
+  "target": "run_worldbank_procnotices",
+  "params": {"limit": 10, "qterm": "P099833"},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "notice_id", "equals": "OP00030142"},
+      {"field": "pdate", "equals": "14-Nov-2014"},
+      {"field": "project_id", "equals": "P099833"},
+      {"field": "source", "equals": "worldbank-procnotices"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
