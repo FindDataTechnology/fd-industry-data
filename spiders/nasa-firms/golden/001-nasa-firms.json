@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-nasa-firms",
+  "created": "2026-10-07",
+  "target": "run_nasa_firms",
+  "params": {"limit": 5},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "instrument", "equals": "VIIRS"},
+      {"field": "satellite", "equals": "N"},
+      {"field": "source", "equals": "nasa-firms"},
+      {"field": "url", "equals": "https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
