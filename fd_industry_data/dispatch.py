@@ -308,11 +308,15 @@ def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
 
 
 def sync_sources(conn, content_dir: str) -> int:
-    """Upsert the source inventory from the checked-out manifests.
+    """Upsert the platform source inventory from the checked-out manifests.
 
     The console cannot read the content repo; the dispatcher (which always
     has a fresh checkout) mirrors spiders/*/manifest.yaml into crawl_sources
     so the platform keeps its pull-only shape: every view is DB-derived.
+    Federated members (kind='federated', maintained by the registration
+    seed, not by any manifest) are skipped: manifest sync only owns
+    platform rows and must never overwrite or drop a registered federated
+    row (legal-line-federation 1.3). Returns the number of rows synced.
     """
     import yaml
     from pathlib import Path
@@ -336,8 +340,13 @@ def sync_sources(conn, content_dir: str) -> int:
             commit = open(commit_file).read().strip()[:12]
         except OSError:
             pass
+    synced = 0
     with conn, conn.cursor() as cur:
         for source, site, schedule, enabled, auth_profile in rows:
+            cur.execute("SELECT kind FROM crawl_sources WHERE source=%s", (source,))
+            found = cur.fetchone()
+            if found and found[0] == "federated":
+                continue  # registered federated member: not manifest-owned
             cur.execute(
                 """INSERT INTO crawl_sources (source, site, schedule, enabled,
                      auth_profile, last_commit)
@@ -351,4 +360,5 @@ def sync_sources(conn, content_dir: str) -> int:
                      updated_at = now()""",
                 (source, site, schedule, enabled, auth_profile, commit),
             )
-    return len(rows)
+            synced += 1
+    return synced

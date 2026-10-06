@@ -1,6 +1,8 @@
-"""Federated dispatch site contract (tencent-crawl-fleet-expansion 1.1-1.3):
-registry growth to five sites, heartbeat touch on claim ticks, and loud
-rejection of unregistered site ids on both enqueue and claim paths."""
+"""Federated dispatch site contract (tencent-crawl-fleet-expansion 1.1-1.3,
+legal-line-federation 1.2): registry growth to six sites (xinru-master is
+the legal-line reserve host), heartbeat touch on claim ticks, loud
+rejection of unregistered site ids on both enqueue and claim paths, and
+federated-row exclusion in manifest sync."""
 from __future__ import annotations
 
 import contextlib
@@ -14,11 +16,14 @@ from fd_industry_data import dispatch
 from fd_industry_data.sites import load_sites
 
 
-def test_packaged_registry_has_five_sites():
+def test_packaged_registry_has_six_sites():
     sites = load_sites()
     assert set(sites) == {"tencent", "nbs-workers", "zihan",
-                          "xinru-server1", "xinru-server2"}
+                          "xinru-server1", "xinru-server2", "xinru-master"}
     assert sites["tencent"]["kind"] == "k8s"
+    # legal-line reserve host (legal-line-federation exemption, hard-gated
+    # by resource limits) is a k8s site like tencent
+    assert sites["xinru-master"]["kind"] == "k8s"
     for sid in ("nbs-workers", "zihan", "xinru-server1", "xinru-server2"):
         assert sites[sid]["kind"] == "docker"
 
@@ -145,3 +150,78 @@ def test_enqueue_due_no_recursive_reentry():
         dispatch.enqueue_due(conn, "zihan", window_minutes=15)
     finally:
         conn.close()
+
+
+# --- manifest sync must not touch registered federated rows
+#     (legal-line-federation 1.3: sync owns platform rows only) ---
+
+class _QueuedConn:
+    """psycopg2 stand-in: records executes, answers fetchone from a queue."""
+
+    def __init__(self, fetches=None):
+        self.executed = []  # (single-spaced sql, params)
+        self.fetches = list(fetches or [])
+
+    def cursor(self):
+        return _QueuedCursor(self)
+
+    def rollback(self):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+class _QueuedCursor:
+    def __init__(self, conn):
+        self._conn = conn
+
+    def execute(self, sql, params=None):
+        self._conn.executed.append((" ".join(sql.split()), params))
+
+    def fetchone(self):
+        return self._conn.fetches.pop(0) if self._conn.fetches else None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _manifest_dir(tmp_path, sources):
+    root = tmp_path / "spiders"
+    for name, body in sources.items():
+        d = root / name
+        d.mkdir(parents=True)
+        (d / "manifest.yaml").write_text(body)
+    return root
+
+
+def test_sync_sources_skips_federated_rows(tmp_path):
+    content = _manifest_dir(tmp_path, {
+        "flk-law-crawl": 'name: flk-law-crawl\nschedule: "0 3 * * *"\n',
+        "bls": "name: bls\n",
+    })
+    # bls (sorted first) is not registered yet; flk-law-crawl is a
+    # registered federated member
+    conn = _QueuedConn(fetches=[(None,), ("federated",)])
+    n = dispatch.sync_sources(conn, str(content))
+    inserts = [(s, p) for s, p in conn.executed if "INSERT INTO crawl_sources" in s]
+    assert len(inserts) == 1  # only the platform row is written
+    assert inserts[0][1][0] == "bls"
+    kind_checks = [p for s, p in conn.executed if s.startswith("SELECT kind FROM crawl_sources")]
+    assert kind_checks == [("bls",), ("flk-law-crawl",)]
+    assert n == 1  # return value counts synced (platform) rows only
+
+
+def test_sync_sources_updates_platform_rows(tmp_path):
+    content = _manifest_dir(tmp_path, {"bls": 'name: bls\nschedule: "*/5 * * * *"\n'})
+    conn = _QueuedConn(fetches=[(None,)])
+    n = dispatch.sync_sources(conn, str(content))
+    assert n == 1
+    synced = [p for s, p in conn.executed if "INSERT INTO crawl_sources" in s]
+    assert synced == [("bls", "tencent", "*/5 * * * *", True, None, "")]

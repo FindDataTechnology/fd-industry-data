@@ -19,3 +19,6 @@ sites:
   - id: xinru-server2
     kind: docker
     description: xinru-server2 docker worker — 与 mihomo/gost/遗留 PG 共存，直连出口
+  - id: xinru-master
+    kind: k8s
+    description: 控制面与中央库所在机器 — 法律线保留建制宿主（legal-line-federation 豁免，以资源限额硬闸为前提），站点 dispatcher 与 federation-observer 驻此
