@@ -1,0 +1,55 @@
+version: "2"
+name: clinicaltrials          # = spiders/clinicaltrials/ 目录名，运行时标识符，合入后不可改名
+label: ClinicalTrials.gov Monthly Registration Volume
+source_url: https://clinicaltrials.gov/
+# site: tencent              # 缺省 tencent；本单元只访问 clinicaltrials.gov 公开 REST v2，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_clinicaltrials
+    description: Fetch monthly global clinical trial registration volumes (countTotal per StudyFirstPostDate month) with a sampled NCT id
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Number of months to return (default window ends at last complete month)
+      - name: start_month
+        type: string
+        required: false
+        description: Window start (yyyy-mm); used to pin golden replays to fixed historical months
+      - name: end_month
+        type: string
+        required: false
+        description: Window end (yyyy-mm); used to pin golden replays to fixed historical months
+    columns:
+      - name: month
+        type: string
+        description: Calendar month of StudyFirstPostDate (ISO yyyy-mm)
+      - name: total_count
+        type: float
+        description: Studies first posted in the month (API v2 countTotal)
+      - name: sample_nct_id
+        type: string
+        description: NCT id of the sampled study (pageSize=1 result)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: total_count
+    concept: industry.monthly_operation_metric
+    entity_type: region
+    measure: value
+    unit: count
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

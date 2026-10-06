@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-clinicaltrials",
+  "created": "2026-10-06",
+  "target": "run_clinicaltrials",
+  "params": {"limit": 2, "start_month": "2020-01", "end_month": "2020-02"},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "month", "equals": "2020-01"},
+      {"field": "total_count", "equals": 2867},
+      {"field": "source", "equals": "clinicaltrials"},
+      {"field": "url", "equals": "https://clinicaltrials.gov/api/v2/studies?countTotal=true&filter.advanced=AREA%5BStudyFirstPostDate%5DRANGE%5B2020-01-01,2020-01-31%5D&pageSize=1"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp", "sample_nct_id"]
+}
