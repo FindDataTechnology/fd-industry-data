@@ -1,0 +1,18 @@
+{
+  "sample_id": "001-pboc-monetary",
+  "created": "2026-10-07",
+  "target": "run_pboc_monetary",
+  "params": {"limit": 50},
+  "expect": {
+    "min_rows": 40,
+    "rows_contains": [
+      {"field": "source", "equals": "pboc-monetary"},
+      {"field": "indicator", "equals": "社会融资规模增量"},
+      {"field": "month", "equals": "2026-01"},
+      {"field": "value", "equals": 72185.0},
+      {"field": "value", "equals": 3471860.39},
+      {"field": "value", "equals": 146138.6}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
