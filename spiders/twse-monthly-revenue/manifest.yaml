@@ -1,0 +1,78 @@
+version: "2"
+name: twse-monthly-revenue    # = spiders/twse-monthly-revenue/ 目录名，运行时标识符，合入后不可改名
+label: TWSE Monthly Revenue Snapshot
+source_url: https://openapi.twse.com.tw/
+# site: tencent              # 缺省 tencent；本单元只访问 openapi.twse.com.tw 公开 OpenAPI，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_twse_monthly_revenue
+    description: Fetch TWSE listed companies current-month revenue snapshot (industry filterable, e.g. semiconductor)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of company rows to return
+      - name: industry
+        type: string
+        required: false
+        description: Substring filter on 產業別 (e.g. 半導體 matches 半導體業)
+    columns:
+      - name: code
+        type: string
+        description: Listed company code (公司代號)
+      - name: name
+        type: string
+        description: Company short name (公司名稱)
+      - name: industry
+        type: string
+        description: Industry classification (產業別, e.g. 半導體業)
+      - name: data_month
+        type: string
+        description: Revenue data month (資料年月, ROC normalized to ISO yyyy-mm)
+      - name: report_date
+        type: string
+        description: Snapshot report date (出表日期, ROC normalized to ISO yyyy-mm-dd)
+      - name: revenue_current
+        type: float
+        description: Current-month revenue in TWD thousands (營業收入-當月營收)
+      - name: revenue_prev
+        type: float
+        description: Previous-month revenue in TWD thousands (營業收入-上月營收)
+      - name: revenue_last_year
+        type: float
+        description: Same month last year revenue in TWD thousands (營業收入-去年當月營收)
+      - name: mom_pct
+        type: float
+        description: Month-over-month change in percent (營業收入-上月比較增減(%))
+      - name: yoy_pct
+        type: float
+        description: Year-over-year change in percent (營業收入-去年同月增減(%))
+      - name: revenue_accum
+        type: float
+        description: Year-to-date accumulated revenue in TWD thousands (累計營業收入-當月累計營收)
+      - name: note
+        type: string
+        description: Remark column (備註, '-' normalized to null)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: revenue_current
+    concept: industry.monthly_operation_metric
+    entity_type: company
+    measure: value
+    unit: twd_thousand
+    frequency: monthly
+entities:
+  - entity_type: company
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-twse-monthly-revenue",
+  "created": "2026-10-06",
+  "target": "run_twse_monthly_revenue",
+  "params": {"limit": 200, "industry": "半導體"},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "industry", "equals": "半導體業"},
+      {"field": "code", "equals": "2330"},
+      {"field": "source", "equals": "twse-monthly-revenue"},
+      {"field": "url", "equals": "https://openapi.twse.com.tw/v1/opendata/t187ap05_L"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
