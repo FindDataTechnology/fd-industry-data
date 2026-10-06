@@ -1,0 +1,64 @@
+version: "2"
+name: gb-standards               # = spiders/gb-standards/ 目录名，运行时标识符，合入后不可改名
+label: China National Standards (GB) Search
+source_url: https://std.samr.gov.cn/
+# site: tencent              # 缺省 tencent；本单元只访问 std.samr.gov.cn 公开 JSON，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_gb_standards
+    description: Fetch GB national standard records (code/name/issue/implementation date/status) from the SAMR national standard information platform search API
+    frequency: weekly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of standard rows to return (newest issue date first; pages through pageNumber as needed)
+      - name: search_text
+        type: string
+        required: false
+        description: Optional search keyword (e.g. a fixed standard number like "GB/T 1.1-2020"); empty = whole catalogue
+    columns:
+      - name: std_code
+        type: string
+        description: Standard number (C_STD_CODE, e.g. GB/T 1.1-2020)
+      - name: title
+        type: string
+        description: Standard Chinese title (C_C_NAME)
+      - name: std_nature
+        type: string
+        description: Nature of the standard (STD_NATURE, e.g. 推荐性/强制性)
+      - name: issue_date
+        type: string
+        description: Issue/publication date (ISSUE_DATE, YYYY-MM-DD)
+      - name: act_date
+        type: string
+        description: Implementation date (ACT_DATE, YYYY-MM-DD)
+      - name: state
+        type: string
+        description: Status (STATE, e.g. 现行/即将实施/废止)
+      - name: record_id
+        type: string
+        description: Upstream record id for traceability
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: state
+    concept: standard.status
+    entity_type: standard
+    measure: value
+    unit: string
+    frequency: weekly
+entities:
+  - entity_type: standard
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
