@@ -1,0 +1,52 @@
+version: "2"
+name: gleif-lei                  # = spiders/gleif-lei/ 目录名，运行时标识符，合入后不可改名
+label: GLEIF Monthly LEI Registrations
+source_url: https://www.gleif.org/
+# site: tencent              # 缺省 tencent；本单元只访问 api.gleif.org 公开 REST，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_gleif_lei
+    description: Fetch monthly new LEI registration counts from the GLEIF public API v1 (lei-records filtered by initialRegistrationDate)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of month rows to return (chronological from fixed anchor month 2020-01)
+      - name: country
+        type: string
+        required: false
+        description: Optional ISO 3166-1 alpha-2 country code to split the series by entity.legalAddress.country (null = global)
+    columns:
+      - name: month
+        type: string
+        description: Calendar month (YYYY-MM) of initial LEI registration dates
+      - name: country
+        type: string
+        description: Optional ISO country filter for the row (null on global rows)
+      - name: lei_count
+        type: int
+        description: Number of LEI records with initialRegistrationDate in the month (meta.pagination.total)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: lei_count
+    concept: organization.registrations_count
+    entity_type: world
+    measure: count
+    unit: count
+    frequency: monthly
+entities:
+  - entity_type: world
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

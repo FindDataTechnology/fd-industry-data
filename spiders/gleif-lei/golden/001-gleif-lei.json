@@ -1,0 +1,15 @@
+{
+  "sample_id": "001-gleif-lei",
+  "created": "2026-10-07",
+  "target": "run_gleif_lei",
+  "params": {"limit": 1},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "month", "equals": "2020-01"},
+      {"field": "source", "equals": "gleif-lei"},
+      {"field": "url", "equals": "https://api.gleif.org/api/v1/lei-records?page%5Bsize%5D=1&filter%5Bregistration.initialRegistrationDate%5D=2020-01-01..2020-01-31"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
