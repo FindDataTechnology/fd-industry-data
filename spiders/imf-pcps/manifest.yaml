@@ -1,0 +1,64 @@
+version: "2"
+name: imf-pcps                 # = spiders/imf-pcps/ 目录名，运行时标识符，合入后不可改名
+label: IMF Primary Commodity Price System (PCPS)
+source_url: https://data.imf.org/en/datasets/imf-res:pcps
+# site: tencent              # 缺省 tencent；本单元只访问 api.imf.org 公开 SDMX REST，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_imf_pcps
+    description: Fetch IMF PCPS commodity price series (SDMX-ML) from api.imf.org
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of observation rows to return (most recent kept)
+      - name: series
+        type: string
+        required: false
+        description: "PCPS series key COUNTRY.INDICATOR.DATA_TRANSFORMATION.FREQ (default G001.PCOIL.INDEX.M = World crude oil price index, monthly)"
+    columns:
+      - name: period
+        type: string
+        description: SDMX time period (monthly format, e.g. 2020-M01)
+      - name: value
+        type: float
+        description: Observation value (index number, rounded to 6 decimals; null when missing)
+      - name: series_key
+        type: string
+        description: Full PCPS series key (e.g. G001.PCOIL.INDEX.M)
+      - name: country
+        type: string
+        description: Country/region code (G001 = World)
+      - name: indicator
+        type: string
+        description: Commodity indicator code (e.g. PCOIL = petroleum crude oil)
+      - name: data_transformation
+        type: string
+        description: Data transformation code (INDEX = index number)
+      - name: frequency
+        type: string
+        description: Series frequency code (M = monthly)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: commodity.price_index
+    entity_type: region
+    measure: value
+    unit: index
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
