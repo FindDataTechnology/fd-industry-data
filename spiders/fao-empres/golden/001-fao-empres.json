@@ -1,0 +1,17 @@
+{
+  "sample_id": "001-fao-empres",
+  "created": "2026-10-07",
+  "target": "run_fao_empres",
+  "params": {"limit": 10, "start_date": "2023-01-01", "end_date": "2023-01-31"},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "source", "equals": "fao-empres"},
+      {"field": "date", "equals": "2023-01"},
+      {"field": "country", "equals": "Austria"},
+      {"field": "disease", "equals": "Influenza - Avian"},
+      {"field": "outbreaks", "equals": 38}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
