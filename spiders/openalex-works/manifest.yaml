@@ -1,0 +1,45 @@
+version: "2"
+name: openalex-works             # = spiders/openalex-works/ 目录名，运行时标识符，合入后不可改名
+label: OpenAlex Monthly Research Output
+source_url: https://openalex.org/
+# site: tencent              # 缺省 tencent；本单元只访问 api.openalex.org 公开 REST，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_openalex_works
+    description: Fetch monthly global research output (works count) from the OpenAlex public API
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of month rows to return (chronological from fixed anchor month 2020-01)
+    columns:
+      - name: month
+        type: string
+        description: Calendar month (YYYY-MM) of work publication dates
+      - name: works_count
+        type: int
+        description: Global number of OpenAlex works published in the month (meta.count of a per-page=1 range query)
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: works_count
+    concept: research.publications_count
+    entity_type: world
+    measure: count
+    unit: count
+    frequency: monthly
+entities:
+  - entity_type: world
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

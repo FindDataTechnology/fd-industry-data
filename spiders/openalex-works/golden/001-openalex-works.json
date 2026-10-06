@@ -1,0 +1,15 @@
+{
+  "sample_id": "001-openalex-works",
+  "created": "2026-10-07",
+  "target": "run_openalex_works",
+  "params": {"limit": 1},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "month", "equals": "2020-01"},
+      {"field": "source", "equals": "openalex-works"},
+      {"field": "url", "equals": "https://api.openalex.org/works?filter=from_publication_date%3A2020-01-01%2Cto_publication_date%3A2020-01-31&per-page=1&mailto=research%40finddata.example"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
