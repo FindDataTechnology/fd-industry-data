@@ -3,6 +3,7 @@ name: edgar-emissions        # = spiders/edgar-emissions/ 目录名，运行时�
 label: EDGAR Global Emissions (JRC, by Country and IPCC Sector)
 source_url: https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/EDGAR/
 # site: tencent              # 缺省 tencent；本单元只访问 jeodpp.jrc.ec.europa.eu 公开目录直链，无需换执行位
+schedule: "22 5 21 3 *" # 点亮（批次二）：3 月 21 日 05:22；JRC EDGAR 年度册春季更新窗口
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

@@ -4,6 +4,7 @@ label: FAO Food Price Index
 source_url: https://www.fao.org/worldfoodsituation/foodpricesindex/en/
 # site: tencent              # 缺省 tencent；本单元只访问 www.fao.org 公开页面/CSV，无需换执行位
 # schedule: 不写——静默合入，点亮留给人工门
+schedule: "15 1 7 * *"  # 点亮（批次二）：每月 7 日 01:15；FAO 食价指数首周发布后稳取
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

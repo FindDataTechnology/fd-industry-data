@@ -3,7 +3,7 @@ name: ecb-exr                  # = spiders/ecb-exr/ 目录名，运行时标识�
 label: ECB Euro Reference Exchange Rates
 source_url: https://data.ecb.europa.eu/data/datasets/EXR
 # site: tencent              # 缺省 tencent；本单元只访问 data-api.ecb.europa.eu 公开 SDMX REST，无需换执行位
-# schedule 不写——静默合入，点亮留给人工门
+schedule: "4 5 29 * *"  # 点亮（批次二·monthly 口径）：每月 29 日 05:04 取最近完整月 ECB 月均参考汇率——EXR 默认序列 M.CNY.EUR.SP00.A 为月度均值（manifest frequency 已按 merge-runbook §2 修为 monthly）；29 日为全仓 monthly 空闲日；2 月无 29 日顺延 3/1 触发（分钟 4 全仓唯一，不与他源同刻）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

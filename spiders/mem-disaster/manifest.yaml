@@ -3,6 +3,7 @@ name: mem-disaster           # = spiders/mem-disaster/ 目录名，运行时标�
 label: MEM Monthly Natural Disaster Bulletins
 source_url: https://www.mem.gov.cn/gk/tjsj/
 # site: tencent              # 缺省 tencent；本单元只访问 www.mem.gov.cn 公开栏目页，无需换执行位
+schedule: "21 4 21 * *" # 点亮（批次二）：每月 21 日 04:21；应急管理部月度灾情通报
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

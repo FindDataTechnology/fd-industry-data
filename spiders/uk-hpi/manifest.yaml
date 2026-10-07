@@ -3,6 +3,7 @@ name: uk-hpi               # = spiders/uk-hpi/ 目录名，运行时标识符，
 label: UK House Price Index
 source_url: https://publicdata.landregistry.gov.uk/market-trend-data/house-price-index-data/
 # site: tencent              # 缺省 tencent；本单元只访问 publicdata.landregistry.gov.uk 官方固定文件，无需换执行位
+schedule: "44 1 26 * *" # 点亮（批次二）：每月 26 日 01:44；UK HPI 下旬发布（与 openfda 同日不同刻，唯一同日对）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

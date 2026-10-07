@@ -3,6 +3,7 @@ name: open-meteo              # = spiders/open-meteo/ 目录名，运行时标�
 label: Open-Meteo Historical Reanalysis Daily
 source_url: https://open-meteo.com/
 # site: tencent              # 缺省 tencent；本单元只访问 archive-api.open-meteo.com 公开 REST，无需换执行位
+schedule: "38 7 * * *"  # 点亮（批次二）：07:38 取再分析日值；与 noaa-ncei 同类错峰 29 分钟
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

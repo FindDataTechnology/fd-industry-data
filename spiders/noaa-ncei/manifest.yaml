@@ -3,7 +3,7 @@ name: noaa-ncei               # = spiders/noaa-ncei/ 目录名，运行时标识
 label: NOAA NCEI GHCN Daily Station Records
 source_url: https://www.ncei.noaa.gov/access/services/data/v1
 # site: tencent              # 缺省 tencent；本单元只访问 www.ncei.noaa.gov 公开 REST，无需换执行位
-# schedule 不写——静默合入，点亮留给人工门
+schedule: "9 7 * * *"   # 点亮（批次二）：07:09 取 GHCN 站点日值
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

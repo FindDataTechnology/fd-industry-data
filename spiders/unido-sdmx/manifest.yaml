@@ -3,6 +3,7 @@ name: unido-sdmx            # = spiders/unido-sdmx/ 目录名，运行时标识�
 label: UNIDO Industrial Production Index (IIP, Monthly)
 source_url: https://stat.unido.org/portal/
 # site: tencent              # 缺省 tencent；本单元只访问 stat.unido.org 公开 SDMX REST，无需换执行位
+schedule: "49 4 28 * *" # 点亮（批次二）：每月 28 日 04:49；UNIDO 工业生产指数月度
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

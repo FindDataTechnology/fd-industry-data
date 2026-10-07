@@ -3,6 +3,7 @@ name: worldbank-procnotices  # = spiders/worldbank-procnotices/ 目录名，运�
 label: World Bank Procurement Notices
 source_url: https://search.worldbank.org/api/v2/procnotices
 # site: tencent              # 缺省 tencent；本单元只访问 search.worldbank.org 公开 REST，无需换执行位
+schedule: "12 9 * * *"  # 点亮（批次二）：09:12 取世行采购公告日度流
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

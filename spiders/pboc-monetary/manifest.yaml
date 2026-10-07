@@ -3,6 +3,7 @@ name: pboc-monetary           # = spiders/pboc-monetary/ 目录名，运行时�
 label: PBOC AFRE & Monetary Statistics (Monthly)
 source_url: https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html
 # site: tencent              # 缺省 tencent；本单元只访问 www.pbc.gov.cn 公开静态页与 xlsx，无需换执行位
+schedule: "31 4 22 * *" # 点亮（批次二）：每月 22 日 04:31；央行社融/M2 月中下旬发布
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

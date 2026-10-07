@@ -3,6 +3,7 @@ name: twse-monthly-revenue    # = spiders/twse-monthly-revenue/ 目录名，运�
 label: TWSE Monthly Revenue Snapshot
 source_url: https://openapi.twse.com.tw/
 # site: tencent              # 缺省 tencent；本单元只访问 openapi.twse.com.tw 公开 OpenAPI，无需换执行位
+schedule: "45 4 13 * *" # 点亮（批次二）：每月 13 日 04:45；台股月营收 10 日前全量披露完成后抓取
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

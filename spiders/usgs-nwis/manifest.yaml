@@ -3,6 +3,7 @@ name: usgs-nwis                # = spiders/usgs-nwis/ 目录名，运行时标�
 label: USGS NWIS Daily Streamflow (site 01646500, 2020)
 source_url: https://waterservices.usgs.gov/nwis/dv/
 # site: tencent              # 缺省 tencent；本单元只访问 waterservices.usgs.gov 公开 REST，无需换执行位
+schedule: "40 8 * * *"  # 点亮（批次二）：08:40 取水文站点日值
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

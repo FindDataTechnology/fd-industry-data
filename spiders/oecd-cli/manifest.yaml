@@ -3,7 +3,7 @@ name: oecd-cli                 # = spiders/oecd-cli/ 目录名，运行时标识
 label: OECD Composite Leading Indicator (CLI)
 source_url: https://data-explorer.oecd.org/ (dataflow OECD.SDD.STES:DSD_STES@DF_CLI)
 # site: tencent              # 缺省 tencent；本单元只访问 sdmx.oecd.org 公开 SDMX REST，无需换执行位
-# schedule 不写——静默合入，点亮留给人工门
+schedule: "24 3 16 * *" # 点亮（批次二）：每月 16 日 03:24；OECD CLI 月中发布
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

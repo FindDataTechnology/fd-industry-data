@@ -4,6 +4,7 @@ label: JODI-Oil Monthly Oil Supply-Demand
 source_url: https://www.jodidata.org/oil/database/data-downloads.aspx
 # site: tencent              # 缺省 tencent；本单元只访问 www.jodidata.org 公开 CSV，无需换执行位
 # schedule: 不写——静默合入，点亮留给人工门
+schedule: "19 3 17 * *" # 点亮（批次二）：每月 17 日 03:19；JODI-Oil 月中发布（两个月滞后）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

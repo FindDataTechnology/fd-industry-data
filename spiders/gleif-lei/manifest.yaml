@@ -3,7 +3,7 @@ name: gleif-lei                  # = spiders/gleif-lei/ 目录名，运行时标
 label: GLEIF Monthly LEI Registrations
 source_url: https://www.gleif.org/
 # site: tencent              # 缺省 tencent；本单元只访问 api.gleif.org 公开 REST，无需换执行位
-# schedule 不写——静默合入，点亮留给人工门
+schedule: "16 2 11 * *" # 点亮（批次二）：每月 11 日 02:16；GLEIF 月度文件中旬可得
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

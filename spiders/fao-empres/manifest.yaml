@@ -4,6 +4,7 @@ label: FAO EMPRES-i Animal Disease Events
 source_url: https://data.apps.fao.org/catalog/dataset/major-diseases-by-date-empres-i
 # site: tencent              # 缺省 tencent；本单元只访问 api.data.apps.fao.org / data.apps.fao.org 公开表面
 # schedule: 不写——静默合入，点亮留给人工门
+schedule: "20 4 * * 3"  # 点亮（批次二）：周三 04:20；取上周完整疫病事件窗口
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

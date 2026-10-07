@@ -3,6 +3,7 @@ name: nasa-firms               # = spiders/nasa-firms/ 目录名，运行时标�
 label: NASA FIRMS Active Fire Detections (S-NPP VIIRS, 24h)
 source_url: https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv
 # site: tencent              # 缺省 tencent；本单元只访问 firms.modaps.eosdis.nasa.gov 静态产品文件，无需换执行位
+schedule: "7 6 * * *"   # 点亮（批次二）：06:07 取 24h 火点快照，覆盖完整前日窗口
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

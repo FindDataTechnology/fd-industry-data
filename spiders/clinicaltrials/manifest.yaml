@@ -3,6 +3,7 @@ name: clinicaltrials          # = spiders/clinicaltrials/ 目录名，运行时�
 label: ClinicalTrials.gov Monthly Registration Volume
 source_url: https://clinicaltrials.gov/
 # site: tencent              # 缺省 tencent；本单元只访问 clinicaltrials.gov 公开 REST v2，无需换执行位
+schedule: "13 2 9 * *"  # 点亮（批次二）：每月 9 日 02:13；统计上月注册量
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

@@ -4,6 +4,7 @@ label: WTO ePing Notifications
 source_url: https://eping.wto.org/
 # site: tencent              # 缺省 tencent；本单元只访问 eping.wto.org 公开 REST，无需换执行位
 # schedule: 不写——静默合入，点亮留给人工门
+schedule: "42 9 * * *"  # 点亮（批次二）：09:42 取 TBT/SPS 通报流
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

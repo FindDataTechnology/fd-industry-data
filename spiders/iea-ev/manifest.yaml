@@ -3,6 +3,7 @@ name: iea-ev               # = spiders/iea-ev/ 目录名，运行时标识符，
 label: IEA Global EV Data
 source_url: https://api.iea.org/evs/
 # site: tencent              # 缺省 tencent；本单元只访问 api.iea.org 公开 JSON REST，无需换执行位
+schedule: "30 5 14 4 *" # 点亮（批次二）：4 月 14 日 05:30；对齐 IEA Global EV Outlook 历年 4 月发布
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

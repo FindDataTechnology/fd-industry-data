@@ -3,6 +3,7 @@ name: wfp-food-price          # = spiders/wfp-food-price/ 目录名，运行时�
 label: WFP Global Food Prices (HDX)
 source_url: https://data.humdata.org/dataset/wfp-food-prices
 # site: tencent              # 缺省 tencent；本单元只访问 data.humdata.org 公开 HTTPS，无需换执行位
+schedule: "50 5 1 * *"  # 点亮（批次二）：每月 1 日 05:50；月初抓上月 90+ 国市场粮价全量；上游 HDX 冻结 2021-08，知悉点亮
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

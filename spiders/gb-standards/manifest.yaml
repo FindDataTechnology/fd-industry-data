@@ -3,7 +3,7 @@ name: gb-standards               # = spiders/gb-standards/ 目录名，运行时
 label: China National Standards (GB) Search
 source_url: https://std.samr.gov.cn/
 # site: tencent              # 缺省 tencent；本单元只访问 std.samr.gov.cn 公开 JSON，无需换执行位
-# schedule 不写——静默合入，点亮留给人工门
+schedule: "25 2 * * 4"  # 点亮（批次二）：周四 02:25；国标库周度快照
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

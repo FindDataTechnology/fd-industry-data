@@ -3,7 +3,7 @@ name: ted-notices                # = spiders/ted-notices/ 目录名，运行时�
 label: TED EU Procurement Notices
 source_url: https://ted.europa.eu/
 # site: tencent              # 缺省 tencent；本单元只访问 api.ted.europa.eu 公开 REST，无需换执行位
-# schedule 不写——静默合入，点亮留给人工门
+schedule: "10 8 * * *"  # 点亮（批次二）：08:10 取欧盟招标公告日度流
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

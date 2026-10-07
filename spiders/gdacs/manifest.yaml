@@ -3,6 +3,7 @@ name: gdacs                  # = spiders/gdacs/ 目录名，运行时标识符�
 label: GDACS Global Disaster Events
 source_url: https://www.gdacs.org/
 # site: tencent              # 缺省 tencent；本单元只访问 www.gdacs.org 公开 REST，无需换执行位
+schedule: "34 5 * * *"  # 点亮（批次二）：05:34 取全球灾害事件 GeoJSON；与 ecb-exr 错 30 分钟
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

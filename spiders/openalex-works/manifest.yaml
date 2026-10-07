@@ -3,7 +3,7 @@ name: openalex-works             # = spiders/openalex-works/ 目录名，运行�
 label: OpenAlex Monthly Research Output
 source_url: https://openalex.org/
 # site: tencent              # 缺省 tencent；本单元只访问 api.openalex.org 公开 REST，无需换执行位
-# schedule 不写——静默合入，点亮留给人工门
+schedule: "26 2 23 * *" # 点亮（批次二）：每月 23 日 02:26；统计上月 works 量
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

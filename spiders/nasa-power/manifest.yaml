@@ -3,6 +3,7 @@ name: nasa-power               # = spiders/nasa-power/ 目录名，运行时标�
 label: NASA POWER Daily Point Meteorology (T2M / PRECTOTCORR)
 source_url: https://power.larc.nasa.gov/api/temporal/daily/point
 # site: tencent              # 缺省 tencent；本单元只访问 power.larc.nasa.gov 公开 REST，无需换执行位
+schedule: "36 6 * * *"  # 点亮（批次二）：06:36 取逐点气象日值；与同源 firms 错 29 分钟避免并发
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

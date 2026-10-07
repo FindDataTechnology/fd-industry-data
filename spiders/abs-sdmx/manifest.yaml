@@ -3,6 +3,7 @@ name: abs-sdmx             # = spiders/abs-sdmx/ 目录名，运行时标识符�
 label: ABS Building Approvals (SDMX)
 source_url: https://data.api.abs.gov.au/rest/data/BA_GCCSA/all
 # site: tencent              # 缺省 tencent；本单元只访问 data.api.abs.gov.au 官方 SDMX REST，无需换执行位
+schedule: "5 1 3 * *"   # 点亮（批次二）：每月 3 日 01:05；ABS 月度早月发布
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

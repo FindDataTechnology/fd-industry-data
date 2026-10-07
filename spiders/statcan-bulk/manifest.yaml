@@ -3,6 +3,7 @@ name: statcan-bulk         # = spiders/statcan-bulk/ 目录名，运行时标识
 label: Statistics Canada Bulk CSV (NHPI)
 source_url: https://www150.statcan.gc.ca/n1/tbl/csv/18100205-eng.zip
 # site: tencent              # 缺省 tencent；本单元只访问 www150.statcan.gc.ca 官方 bulk ZIP，无需换执行位
+schedule: "46 2 27 * *" # 点亮（批次二）：每月 27 日 02:46；StatCan bulk CSV（NHPI+建筑许可）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

@@ -3,7 +3,7 @@ name: imf-pcps                 # = spiders/imf-pcps/ 目录名，运行时标识
 label: IMF Primary Commodity Price System (PCPS)
 source_url: https://data.imf.org/en/datasets/imf-res:pcps
 # site: tencent              # 缺省 tencent；本单元只访问 api.imf.org 公开 SDMX REST，无需换执行位
-# schedule 不写——静默合入，点亮留给人工门
+schedule: "18 1 12 * *" # 点亮（批次二）：每月 12 日 01:18；初级商品价格指数月度
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

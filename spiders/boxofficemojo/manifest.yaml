@@ -3,6 +3,7 @@ name: boxofficemojo           # = spiders/boxofficemojo/ 目录名，运行时�
 label: Box Office Mojo Yearly Rankings
 source_url: https://www.boxofficemojo.com/year/2024/
 # site: tencent              # 缺省 tencent；本单元只访问 www.boxofficemojo.com 公开 HTML，无需换执行位
+schedule: "14 3 * * 2"  # 点亮（批次二）：周二 03:14；美票房周榜周一（美东）收周后更新
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
