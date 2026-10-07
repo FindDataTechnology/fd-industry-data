@@ -246,7 +246,8 @@ def _report_row(conn, run_id: int | None) -> tuple[int, str | None]:
 
 
 def _settle_identity(conn, src: str, ident: dict | None, *, run_id: int | None,
-                     pending_status: str, error_head: str | None = None) -> None:
+                     pending_status: str, error_head: str | None = None,
+                     auth_source: str | None = None) -> None:
     """Terminal identity bookkeeping for one k8s run, best-effort.
 
     done      -> release(success=True) + run outcome (rows of the direct
@@ -272,7 +273,7 @@ def _settle_identity(conn, src: str, ident: dict | None, *, run_id: int | None,
             detail = " | ".join(p for p in (error_head, run_error) if p)
             if _looks_like_auth_failure(detail):
                 _auth.report_auth_failed(
-                    conn, src, ident["account_alias"],
+                    conn, auth_source or src, ident["account_alias"],
                     f"dispatcher k8s heuristic: {detail}"[:500])
     except Exception as e:  # noqa: BLE001 - never mask the run outcome
         print(f"fd-dispatcher: identity settle failed for {src}: {e}",
@@ -390,7 +391,9 @@ def execute_k8s(conn, row: dict, src: str, decl: dict, ns: str, *,
         prof = cur.fetchone()
     if prof and prof[0]:
         ident = _auth.lease_identity(
-            conn, src, owner or f"{socket.gethostname()}-dispatch",
+            # identities are keyed by auth_profile (the login-unit name);
+            # for federated members it differs from the crawl source name.
+            conn, prof[0], owner or f"{socket.gethostname()}-dispatch",
             ttl_seconds=_identity_ttl(decl))
         if ident is None:
             dispatch.finish_pending(
@@ -435,7 +438,7 @@ def execute_k8s(conn, row: dict, src: str, decl: dict, ns: str, *,
                 dispatch.finish_pending(conn, row["id"], run_id=run_id,
                                         status="cancelled", error_head=None)
                 print(f"fd-dispatcher: #{row['id']} {src} cancelled, job {name} deleted")
-                _settle_identity(conn, src, ident, run_id=run_id,
+                _settle_identity(conn, src, ident, auth_source=(prof[0] if prof and prof[0] else None), run_id=run_id,
                                  pending_status="cancelled")
                 return
             state, head = job_state(get_job(ns, name))
@@ -456,7 +459,7 @@ def execute_k8s(conn, row: dict, src: str, decl: dict, ns: str, *,
                                         status=pending_status, error_head=error_head)
                 print(f"fd-dispatcher: #{row['id']} {src} -> {pending_status} "
                       f"(job {name}, crawl_runs #{run_id})")
-                _settle_identity(conn, src, ident, run_id=run_id,
+                _settle_identity(conn, src, ident, auth_source=(prof[0] if prof and prof[0] else None), run_id=run_id,
                                  pending_status=pending_status,
                                  error_head=error_head)
                 return
@@ -544,7 +547,9 @@ def main() -> int:
             cur.execute("SELECT auth_profile FROM crawl_sources WHERE source=%s", (src,))
             prof = cur.fetchone()
         if prof and prof[0]:
-            ident = _auth.lease_identity(conn, src, claimed_by)
+            # identities are keyed by auth_profile (the login-unit name), which
+            # may differ from the crawl source name for federated members.
+            ident = _auth.lease_identity(conn, prof[0], claimed_by)
             if ident is None:
                 dispatch.finish_pending(
                     conn, row["id"], run_id=None, status="failed",

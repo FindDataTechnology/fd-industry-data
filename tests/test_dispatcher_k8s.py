@@ -407,7 +407,7 @@ def test_identity_injected_into_job_env(monkeypatch, finished, no_sleep, authpoo
         assert env[k] == "http://u:p@10.0.0.7:8080"
     assert env["FD_EGRESS_REF"] == "proxy:7"
     # lease TTL covers the declared job deadline
-    assert authpool["leased"] == [{"src": "flk-law-crawl", "owner": "tester",
+    assert authpool["leased"] == [{"src": "rmfyalk-case-crawl", "owner": "tester",
                                    "ttl": 22200}]
     # terminal settle: success release + run outcome from the direct report
     assert authpool["released"] == [{"id": 5, "token": "tok-5", "success": True}]
@@ -476,7 +476,7 @@ def test_failed_job_with_auth_error_reports_auth_failed(monkeypatch, finished,
     assert authpool["released"] == [{"id": 5, "token": "tok-5", "success": False}]
     assert authpool["outcomes"] == []
     src, alias, detail = authpool["auth_failed"][0]
-    assert (src, alias) == ("flk-law-crawl", "acct001")
+    assert (src, alias) == ("rmfyalk-case-crawl", "acct001")
     assert "401" in detail and "dispatcher k8s heuristic" in detail
 
 
