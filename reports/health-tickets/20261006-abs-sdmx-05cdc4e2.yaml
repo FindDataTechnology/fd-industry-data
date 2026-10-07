@@ -33,7 +33,21 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-10-07T05:13:12.514280+00:00'
+  event: fallback-direct-build
+  reason: 門面 -32033 agent route refused（2026-10-06 起全命令拒），按 design D1 转人工直建；PR https://github.com/FindDataTechnology/fd-industry-data/pull/33
+    验证链全绿 + 独立复核通过
+- at: '2026-10-07T05:13:12.514463+00:00'
+  event: human-merged
+  by: maintainer
+  pr: https://github.com/FindDataTechnology/fd-industry-data/pull/33
+  note: 整波合并（用户授权，波级报告 31 张全过独立复核）
+- at: '2026-10-07T05:13:12.514470+00:00'
+  event: terminal
+  terminal: closed
+  previous: null
+  note: 批次二 Wave A 整波合并收口
+terminal: closed
 brief:
   source_urls:
   - https://data.api.abs.gov.au/rest/data/BA_GCCSA/all?format=csv
