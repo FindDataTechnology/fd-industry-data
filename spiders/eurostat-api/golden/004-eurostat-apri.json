@@ -1,0 +1,20 @@
+{
+  "sample_id": "004-eurostat-apri",
+  "created": "2026-10-07",
+  "target": "run_eurostat_apri",
+  "params": {"limit": 500},
+  "expect": {
+    "min_rows": 20,
+    "rows_contains": [
+      {"field": "dataset", "equals": "apri_pi_outq"},
+      {"field": "geo", "equals": "EU27_2020"},
+      {"field": "unit", "equals": "I20"},
+      {"field": "indic", "equals": "AM141000"},
+      {"field": "p_adj", "equals": "NI"},
+      {"field": "period", "equals": "2026-Q2"},
+      {"field": "value", "equals": "135.29"},
+      {"field": "source_url", "equals": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/apri_pi_outq?format=JSON&lang=EN&freq=Q&am_item=AM141000&p_adj=NI&unit=I20&geo=EU27_2020&sinceTimePeriod=2000-Q1"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

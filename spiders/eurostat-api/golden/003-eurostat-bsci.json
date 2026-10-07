@@ -1,0 +1,20 @@
+{
+  "sample_id": "003-eurostat-bsci",
+  "created": "2026-10-07",
+  "target": "run_eurostat_bsci",
+  "params": {"limit": 1000},
+  "expect": {
+    "min_rows": 450,
+    "rows_contains": [
+      {"field": "dataset", "equals": "ei_bsco_m"},
+      {"field": "geo", "equals": "EU27_2020"},
+      {"field": "unit", "equals": "BAL"},
+      {"field": "indic", "equals": "BS-CSMCI"},
+      {"field": "s_adj", "equals": "NSA"},
+      {"field": "period", "equals": "2026-09"},
+      {"field": "value", "equals": "-15.6"},
+      {"field": "source_url", "equals": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ei_bsco_m?format=JSON&lang=EN&freq=M&indic=BS-CSMCI&s_adj=NSA&unit=BAL&geo=EU27_2020&sinceTimePeriod=1980-01"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}
