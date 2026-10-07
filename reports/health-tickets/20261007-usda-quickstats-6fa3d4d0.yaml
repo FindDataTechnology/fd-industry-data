@@ -22,7 +22,21 @@ golden:
 lifecycle:
 - at: '2026-10-07T11:05:15.238913+00:00'
   event: created
-terminal: null
+- at: '2026-10-07T12:59:21.422721+00:00'
+  event: fallback-direct-build
+  reason: 門面 -32033 故障期人工直建（design D1）；PR https://github.com/FindDataTechnology/fd-industry-data/pull/36
+    验证链全绿+独立复核通过
+- at: '2026-10-07T12:59:21.422724+00:00'
+  event: human-merged
+  by: maintainer
+  pr: https://github.com/FindDataTechnology/fd-industry-data/pull/36
+  note: Wave B 整波合并（用户授权；13/13 复核全过零打回）
+- at: '2026-10-07T12:59:21.422727+00:00'
+  event: terminal
+  terminal: closed
+  previous: null
+  note: 批次二 Wave B 整波合并收口
+terminal: closed
 brief:
   source_urls:
   - https://quickstats.nass.usda.gov/api/api_GET?key=<USDA_QUICKSTATS_KEY>&source_desc=SURVEY&sector_desc=CROPS&commodity_desc=CORN&statisticcat_desc=YIELD&agg_level_desc=NATIONAL&year__GE=2020&format=JSON

@@ -22,7 +22,21 @@ golden:
 lifecycle:
 - at: '2026-10-07T11:05:15.533728+00:00'
   event: created
-terminal: null
+- at: '2026-10-07T12:59:21.406437+00:00'
+  event: fallback-direct-build
+  reason: 門面 -32033 故障期人工直建（design D1）；PR https://github.com/FindDataTechnology/fd-industry-data/pull/44
+    验证链全绿+独立复核通过
+- at: '2026-10-07T12:59:21.406443+00:00'
+  event: human-merged
+  by: maintainer
+  pr: https://github.com/FindDataTechnology/fd-industry-data/pull/44
+  note: Wave B 整波合并（用户授权；13/13 复核全过零打回）
+- at: '2026-10-07T12:59:21.406447+00:00'
+  event: terminal
+  terminal: closed
+  previous: null
+  note: 批次二 Wave B 整波合并收口
+terminal: closed
 brief:
   source_urls:
   - https://api.e-stat.go.jp/rest/3.0/app/json/getStatsList?appId=<ESTAT_APP_ID>&searchWord=%E7%99%BE%E8%B2%A8%E5%BA%97&limit=10

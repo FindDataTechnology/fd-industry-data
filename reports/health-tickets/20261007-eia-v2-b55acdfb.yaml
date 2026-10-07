@@ -22,7 +22,21 @@ golden:
 lifecycle:
 - at: '2026-10-07T11:05:15.115390+00:00'
   event: created
-terminal: null
+- at: '2026-10-07T12:59:21.395206+00:00'
+  event: fallback-direct-build
+  reason: 門面 -32033 故障期人工直建（design D1）；PR https://github.com/FindDataTechnology/fd-industry-data/pull/40
+    验证链全绿+独立复核通过
+- at: '2026-10-07T12:59:21.395218+00:00'
+  event: human-merged
+  by: maintainer
+  pr: https://github.com/FindDataTechnology/fd-industry-data/pull/40
+  note: Wave B 整波合并（用户授权；13/13 复核全过零打回）
+- at: '2026-10-07T12:59:21.395221+00:00'
+  event: terminal
+  terminal: closed
+  previous: null
+  note: 批次二 Wave B 整波合并收口
+terminal: closed
 brief:
   source_urls:
   - https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=<EIA_API_KEY>&frequency=hourly&data[0]=value&start=2020-01-01T00&end=2020-01-07T23&sort[0][column]=period&sort[0][direction]=asc&length=100
