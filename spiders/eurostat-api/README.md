@@ -78,6 +78,56 @@ IT 3 条（121.4 → 119.5）。
  "indic": "PRD", "nace_r2": "C", "s_adj": "NSA", "p_adj": ""}
 ```
 
+## Batch2 Wave C 四扩展（端点 / 参数 / 锚值 / 复测证据）
+
+四个专用入口（同一 base URL，各一个 dataset×维度组合，均在 2026-10-07 实测冻结）：
+`run_eurostat_c20` / `run_eurostat_bsci` / `run_eurostat_apri` / `run_eurostat_comext`，
+锚值冻结于 `golden/002..005`。所有查询都过 `_assert_nonempty` 硬断言——
+Eurostat 对无数据参数组返回 **HTTP 200 空集**，空集必须硬失败，绝不能当零行成功。
+
+### C20 化工生产指数 — run_eurostat_c20
+
+- 端点：`https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sts_inpr_m`
+- 参数：`freq=M&indic_bt=PRD&nace_r2=C20&s_adj=CA&unit=I21&geo=EU27_2020&sinceTimePeriod=2000-01`
+  （`s_adj=NSA`×C20 为空集，唯一活组合是 CA；`indic_bt=PROD` 已死）
+- 锚值：**2026-07 = 81.8**（I21, PRD, CA, EU27_2020），golden/002 冻结同一 source_url。
+
+### 消费者信心 NSA 变体 — run_eurostat_bsci
+
+- 端点：`https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ei_bsco_m`
+- 参数：`freq=M&indic=BS-CSMCI&s_adj=NSA&unit=BAL&geo=EU27_2020&sinceTimePeriod=1980-01`
+  （序列维自 1980-01 声明，EU27_2020 实值从 1985-01 起；SA 口径由原 run_eurostat_api 覆盖）
+- 锚值：**2026-09 = -15.6**（BAL, BS-CSMCI, NSA），golden/003 冻结。
+- 禁用：`ei_bsci` 上游 404（实测），永不使用。
+
+### 农业产出价格指数 — run_eurostat_apri
+
+- 端点：`https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/apri_pi_outq`
+- 参数：`freq=Q&am_item=AM141000&p_adj=NI&unit=I20&geo=EU27_2020&sinceTimePeriod=2000-Q1`
+  （AM141000 实值 2020-Q1..最新，基期 2020=100）
+- 锚值：**2026-Q2 = 135.29**（I20, NI），golden/004 冻结。
+- 禁用：`apri_pi05_outq` 已死（实测），农业价格一律用 `apri_pi_outq`。
+
+### 中欧月度贸易 — run_eurostat_comext
+
+- 端点：`https://ec.europa.eu/eurostat/api/comext/dissemination/sdmx/2.1/data/DS-045409`
+  （SDMX 2.1 GenericData XML；`/statistics/1.0` 分发段对 comext 404，永不改道）
+- 键面：`M.EU27_2020.CN.{HS6}.{flow}.VALUE_IN_EUROS?startPeriod={since}`；
+  reporter/partner 只收 ISO 码（EU27_2020/CN，旧码 1A/1Z 静默空集）。
+- **贸易流方向（2026-10-07 复核双探针定案）：flow=1 = EU 进口（中国对欧出口视角），
+  flow=2 = EU 出口。** 首版误用 flow=2，实采成了欧盟对华出口，已改 1 并重锚。定案证据：
+  - HS 360410（烟花爆竹，中国垄断欧盟供给）：flow=1 自 2025-01 起连续 19 个月实值
+    （€7.45M → €27.09M）；flow=2 仅 2 个零星观测（2025-02=€169,007、2026-03=€34,453）。
+  - HS 854142 @2025-01：flow=1 = €3,917,107 vs flow=2 = €95,058。
+- HS2022 码位断点：854140（HS2017）数据止于 2021-12（since 2018-01）；
+  HS2022 的 854141/854142/854143/854149 自 2022-01 起（since 2022-01）。
+- 锚值（golden/005 冻结）：**854142 @2025-01 = 3917107（EUR，EU 自华进口）**；
+  复测冒烟（limit=500）：268 行（48+55×4），全部 flow=1，
+  854140=2018-01..2021-12，HS2022 四码=2022-01..2026-07。
+- 口径修正：measure 列为 `trade_value`（欧元贸易额语义，manifest 绑
+  `economic.trade_value` / `unit: EUR`），与其余四入口的指数语义 `value`
+  （`economic.index_value`）拆分——金额不再错挂指数 concept。
+
 ## 本地自检
 
 ```bash

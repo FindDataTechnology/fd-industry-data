@@ -187,7 +187,7 @@ functions:
         type: str
         description: Exact API request URL the row was parsed from
   - command: run_eurostat_comext
-    description: Fetch EU-China monthly trade (comext DS-045409, DSD v6.5) for the HS6 photosensitive-semiconductor family via the api/comext/dissemination SDMX 2.1 segment (the /statistics segment 404s for comext) — EU27_2020 reporter, CN partner, flow=2 imports, VALUE_IN_EUROS; products follow the HS revision break (854140 since 2018-01 ends 2021-12, HS2022 codes 854141/854142/854143/854149 since 2022-01); asserts a non-empty parse per product query (legacy reporter codes 1A/1Z yield silent empty sets)
+    description: Fetch EU-China monthly trade (comext DS-045409, DSD v6.5) for the HS6 photosensitive-semiconductor family via the api/comext/dissemination SDMX 2.1 segment (the /statistics segment 404s for comext) — EU27_2020 reporter, CN partner, flow=1 EU imports (the China→EU export view; re-measured 2026-10-07 — the earlier flow=2 series was EU exports and was re-pointed), VALUE_IN_EUROS; products follow the HS revision break (854140 since 2018-01 ends 2021-12, HS2022 codes 854141/854142/854143/854149 since 2022-01); asserts a non-empty parse per product query (legacy reporter codes 1A/1Z yield silent empty sets)
     frequency: monthly
     parameters:
       - name: limit
@@ -227,13 +227,13 @@ functions:
         description: HS6 commodity code (854140 HS2017 until 2021-12; 854141/854142/854143/854149 HS2022 from 2022-01)
       - name: flow
         type: str
-        description: Trade flow code (2 = EU imports)
+        description: Trade flow code (1 = EU imports, the China→EU export view; flow=2 = EU exports — direction re-measured 2026-10-07 with HS 360410, where flow=1 shows 19 consecutive import months vs 2 sporadic export observations)
       - name: period
         type: str
         description: Period label (YYYY-MM)
-      - name: value
+      - name: trade_value
         type: float
-        description: Trade value in euros; missing observations are omitted, never fabricated
+        description: Trade value in euros (EU imports from the partner under the pinned flow); missing observations are omitted, never fabricated
       - name: scraped_at
         type: str
         description: ISO timestamp of extraction
@@ -241,11 +241,21 @@ functions:
         type: str
         description: Exact API request URL the row was parsed from
 concepts:
+  # run_eurostat_api / _c20 / _bsci / _apri: index & survey-balance semantics.
   - column: value
     concept: economic.index_value
     entity_type: country
     measure: value
     unit: index
+    frequency: monthly
+  # run_eurostat_comext: EUR trade amounts (金额 ≠ 指数 — a dedicated measure
+  # column keyed to its own concept, mirroring the un-comtrade primary_value
+  # pattern; a monetary amount must not bind to economic.index_value).
+  - column: trade_value
+    concept: economic.trade_value
+    entity_type: country
+    measure: value
+    unit: EUR
     frequency: monthly
 entities:
   - entity_type: country
