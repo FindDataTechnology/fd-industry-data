@@ -1,0 +1,22 @@
+{
+  "sample_id": "001-census-m3",
+  "created": "2026-10-07",
+  "target": "run_census_m3",
+  "params": {"limit": 20},
+  "expect": {
+    "min_rows": 16,
+    "rows_contains": [
+      {"field": "time", "equals": "2020-01"},
+      {"field": "seasonally_adj", "equals": "no"},
+      {"field": "category_code", "equals": "MTM"},
+      {"field": "data_type_code", "equals": "VS"},
+      {"field": "data_type_code", "equals": "MI"},
+      {"field": "data_type_code", "equals": "NO"},
+      {"field": "source", "equals": "census-m3"},
+      {"field": "cell_value", "equals": 435587.0},
+      {"field": "cell_value", "equals": 244888.0},
+      {"field": "cell_value", "equals": 439561.0}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
