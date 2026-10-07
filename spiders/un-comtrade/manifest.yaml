@@ -1,0 +1,116 @@
+version: "2"
+name: un-comtrade             # = spiders/un-comtrade/ 目录名，运行时标识符，合入后不可改名
+label: UN Comtrade Annual HS Trade Flows (keyed)
+source_url: https://comtradeapi.un.org/
+# site: tencent              # 缺省 tencent；本单元只访问 comtradeapi.un.org 海外公开 REST，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_un_comtrade
+    description: Fetch one annual HS6 trade-flow record combo from the UN Comtrade production API (data/v1/get; default China 156 / 2023 / cmdCode 854142 lithium-ion batteries / flow X export / partner 0 world); auth via Ocp-Apim-Subscription-Key header (env COMTRADE_API_KEY), free tier 500 calls/day self-throttled (1 request per invocation)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return; also sent as maxRecords (capped at 100000)
+      - name: reporter_code
+        type: int
+        required: false
+        description: UN reporter country code (default 156 = China)
+      - name: period
+        type: string
+        required: false
+        description: Reference year (default "2023"; annual frequency A)
+      - name: cmd_code
+        type: string
+        required: false
+        description: HS6 commodity code (default "854142" = lithium-ion accumulators)
+      - name: flow_code
+        type: string
+        required: false
+        description: Trade flow code (default "X" = export; M = import)
+      - name: partner_code
+        type: int
+        required: false
+        description: Partner code (default 0 = world)
+    columns:
+      - name: period
+        type: string
+        description: Reference period label ("2023" for annual)
+      - name: ref_year
+        type: int
+        description: Reference year (2023)
+      - name: ref_month
+        type: int
+        description: Upstream internal month marker (52 = annual)
+      - name: reporter_code
+        type: int
+        description: Reporter country code (156 = China)
+      - name: flow_code
+        type: string
+        description: Trade flow code (X export, M import)
+      - name: partner_code
+        type: int
+        description: Partner code (0 = world)
+      - name: partner2_code
+        type: int
+        description: Second partner code (0 = n/a)
+      - name: classification_code
+        type: string
+        description: Upstream classification revision actually used (e.g. H6 = HS2022)
+      - name: cmd_code
+        type: string
+        description: HS6 commodity code (854142 = lithium-ion accumulators)
+      - name: customs_code
+        type: string
+        description: Customs procedure code (C00 = general)
+      - name: mos_code
+        type: string
+        description: Mode of transport code ("0" = n/a for aggregates)
+      - name: qty
+        type: float
+        description: Quantity in the upstream qty unit (null when absent, never fabricated)
+      - name: net_wgt
+        type: float
+        description: Net weight in kg (null when absent)
+      - name: gross_wgt
+        type: float
+        description: Gross weight in kg (null when absent)
+      - name: fob_value
+        type: float
+        description: FOB value in USD (null when absent)
+      - name: cif_value
+        type: float
+        description: CIF value in USD (null when absent)
+      - name: primary_value
+        type: float
+        description: Primary trade value in USD (golden-anchored frozen 2023 figure)
+      - name: is_reported
+        type: bool
+        description: Whether the record was directly reported by the country
+      - name: is_aggregate
+        type: bool
+        description: Whether the record is an aggregate
+      - name: source
+        type: string
+        description: Data source identifier (un-comtrade)
+      - name: source_url
+        type: string
+        description: Exact API request URL (key travels in a header, so the URL carries no credential)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: primary_value
+    concept: trade.flow_value
+    entity_type: country
+    measure: value
+    unit: usd
+    frequency: annual
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
