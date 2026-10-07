@@ -1,0 +1,16 @@
+{
+  "sample_id": "002-openchargemap-poi-uuid",
+  "created": "2026-10-07",
+  "target": "run_openchargemap",
+  "params": {"limit": 50, "latitude": 48.4998228, "longitude": 9.1533116, "distance_km": 2},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "uuid", "equals": "39B6C0CE-6C7C-4E66-9DF5-93DF49682756"},
+      {"field": "id", "equals": 511254},
+      {"field": "country_id", "equals": 87},
+      {"field": "source", "equals": "openchargemap"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "date_last_verified", "date_created"]
+}
