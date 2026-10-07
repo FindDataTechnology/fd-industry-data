@@ -1,0 +1,105 @@
+version: "2"
+name: usda-quickstats           # = spiders/usda-quickstats/ 目录名，运行时标识符，合入后不可改名
+label: USDA NASS Quick Stats (US Agricultural Survey)
+source_url: https://quickstats.nass.usda.gov/api/
+# site: tencent              # 缺省 tencent；本单元只访问 quickstats.nass.usda.gov 官方 API，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_usda_quickstats
+    description: Fetch USDA NASS Quick Stats survey rows (crop area/yield/production etc.) via the official api_GET endpoint; key injected from env QUICKSTATS_API_KEY, years sharded one request per year (single response capped at 50,000 rows)
+    frequency: weekly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of rows to return across all year shards (default 100)
+      - name: commodity
+        type: string
+        required: false
+        description: commodity_desc value (default CORN)
+      - name: years
+        type: string
+        required: false
+        description: Year shard selector - int, "2020", "2019,2020" or "2018-2020"; one API request per year (default 2020)
+      - name: agg_level
+        type: string
+        required: false
+        description: agg_level_desc value (default NATIONAL; e.g. STATE, COUNTY)
+      - name: statisticcat
+        type: string
+        required: false
+        description: statisticcat_desc value (default AREA PLANTED; e.g. YIELD, PRODUCTION)
+      - name: state
+        type: string
+        required: false
+        description: Optional US state filter - 2-letter code goes to state_alpha, otherwise state_name (default null)
+      - name: reference_period
+        type: string
+        required: false
+        description: Optional reference_period_desc value (e.g. YEAR to pick the annual figure)
+      - name: unit
+        type: string
+        required: false
+        description: Optional unit_desc value (e.g. ACRES to exclude PCT BY TYPE rows)
+    columns:
+      - name: commodity
+        type: string
+        description: commodity_desc (e.g. CORN)
+      - name: year
+        type: int
+        description: Survey year (year field)
+      - name: state
+        type: string
+        description: state_name (US TOTAL for national aggregates)
+      - name: state_alpha
+        type: string
+        description: state_alpha (US for national aggregates, else 2-letter code)
+      - name: agg_level
+        type: string
+        description: agg_level_desc (NATIONAL/STATE/COUNTY)
+      - name: statisticcat
+        type: string
+        description: statisticcat_desc (AREA PLANTED / YIELD / PRODUCTION ...)
+      - name: unit
+        type: string
+        description: unit_desc (ACRES / PCT BY TYPE / BU / ACRE ...)
+      - name: value
+        type: float
+        description: Parsed Value (commas stripped; null for withheld markers D/Z/S/NA)
+      - name: value_raw
+        type: string
+        description: Raw Value string as served (e.g. "90,432,000")
+      - name: reference_period
+        type: string
+        description: reference_period_desc (YEAR / YEAR - JUN ACREAGE / ...)
+      - name: short_desc
+        type: string
+        description: Full human-readable series description
+      - name: source_desc
+        type: string
+        description: NASS programme the row came from (SURVEY / CENSUS)
+      - name: load_time
+        type: string
+        description: NASS database load timestamp of the row
+      - name: url
+        type: string
+        description: Source request URL for the row (API key stripped)
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: agriculture.crop_area
+    entity_type: region
+    measure: value
+    unit: acre
+    frequency: yearly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
