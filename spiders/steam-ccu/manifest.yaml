@@ -2,6 +2,7 @@ version: "2"
 name: steam-ccu              # = spiders/steam-ccu/ 目录名，运行时标识符，合入后不可改名
 label: Steam concurrent players (CCU) + review aggregates for seed titles
 source_url: "https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/ (reviews: https://store.steampowered.com/appreviews/)"
+schedule: "56 7 * * *"       # 点亮（批次二 Wave C，经 fx01 出口）：daily
 egress_secret: fd-industry-egress-fx01
 # site: 未写——api/store.steampowered.com 被墙，**需代理出口**；集群 runner 代理注入就绪前不点亮（静默合入）
 # schedule: 未写——同上，代理注入后由人工门点亮

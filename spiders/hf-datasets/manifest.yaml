@@ -2,6 +2,7 @@ version: "2"
 name: hf-datasets                 # = spiders/hf-datasets/ 目录名，运行时标识符，合入后不可改名
 label: HuggingFace Hub Monthly New-Dataset Volume
 source_url: https://huggingface.co/datasets
+schedule: "56 5 29 * *"       # 点亮（批次二 Wave C，经 fx01 出口）：monthly
 egress_secret: fd-industry-egress-fx01
 # site: tencent                   # 需代理出口访问 huggingface.co（hf-mirror.com 直连兜底）；代理注入就绪前不点亮
 # schedule 留空：静默合入（批次二 Wave C），点亮留给人工门
