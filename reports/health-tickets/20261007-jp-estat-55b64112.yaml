@@ -1,0 +1,33 @@
+ticket_id: 20261007-jp-estat-55b64112
+source: jp-estat
+unit: spiders/jp-estat/
+kind: generate
+created_at: '2026-10-07T11:05:15.533728+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-07T11:05:15.533572+00:00'
+    to: '2026-10-07T11:05:15.533572+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261007-jp-estat-55b64112.yaml
+golden:
+- spiders/jp-estat/golden/
+lifecycle:
+- at: '2026-10-07T11:05:15.533728+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://api.e-stat.go.jp/rest/3.0/app/json/getStatsList?appId=<ESTAT_APP_ID>&searchWord=%E7%99%BE%E8%B2%A8%E5%BA%97&limit=10
+  expectations: 日本月度零售/服务业序列：百货・超市販売統計月度+第三次産業活動指数+特定服务业调查；先 getStatsList 检索确定 statsDataId，再
+    getStatsData 取数；行字段 time(YYYYMM)/cat01(品类)/value/unit
+  cadence: monthly
+  notes: key 传递形态：appId= 查询参数（env ESTAT_APP_ID；portal 注册后即时自动発行）；官方未公示数值化限速——低频分页（limit/page）即可，大规模持续利用按官方惯例事先联络；base=api.e-stat.go.jp/rest/3.0/app/json/（直连通）；golden
+    锚固定 statsDataId 固定历史月值（statsDataId 经 getStatsList 固化后写入 golden）；仅标准库（urllib/json）

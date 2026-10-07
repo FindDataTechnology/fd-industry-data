@@ -1,0 +1,36 @@
+ticket_id: 20261007-entsoe-e-d354141e
+source: entsoe-e
+unit: spiders/entsoe-e/
+kind: generate
+created_at: '2026-10-07T11:05:15.634283+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-07T11:05:15.633666+00:00'
+    to: '2026-10-07T11:05:15.633666+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261007-entsoe-e-d354141e.yaml
+golden:
+- spiders/entsoe-e/golden/
+lifecycle:
+- at: '2026-10-07T11:05:15.634283+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://web-api.tp.entsoe.eu/api?securityToken=<ENTSOE_SECURITY_TOKEN>&documentType=A75&processType=A01&in_Domain=10YCZ-CEPS------N&out_Domain=10YCZ-CEPS------N&periodStart=202001010000&periodEnd=202001070000
+  expectations: 欧洲电网 15min/1h 序列（2015 起，EU27）：documentType=A75 分燃料实际发电、A65 负荷、跨境流同构；行字段
+    period/position/business_type/psr_type/quantity(MW)；bidding zone 码按 ENTSO-E 区域表
+  cadence: daily
+  notes: 'key 传递形态：securityToken= 查询参数（env ENTSOE_SECURITY_TOKEN；亦可用 Authorization:
+    Bearer 头）；**唯一人工审批源（邮件至 transparency@entsoe.eu，约 3 工作日）——token 未到位本单元不启动；缺 token
+    显式报错禁止裸跑：无 token 返 401+code999 XML**；限速社区口径 400 次/分（超限临时封 10 分钟）——按 ≤1 req/s 自限+429
+    退避；时间参数必须 UTC YYYYMMDDHHMM；只返 XML——xml.etree 解析；golden 锚固定 bidding zone 固定历史期值（如
+    CZ 2020-01-01..07 A75）；仅标准库（urllib/xml.etree）'

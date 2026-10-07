@@ -1,0 +1,34 @@
+ticket_id: 20261007-ember-e945ff89
+source: ember
+unit: spiders/ember/
+kind: generate
+created_at: '2026-10-07T11:05:15.188471+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-07T11:05:15.188297+00:00'
+    to: '2026-10-07T11:05:15.188297+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261007-ember-e945ff89.yaml
+golden:
+- spiders/ember/golden/
+lifecycle:
+- at: '2026-10-07T11:05:15.188471+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://api.ember-energy.org/v1/electricity-generation/monthly?api_key=<EMBER_API_KEY>
+  expectations: 215 国电力结构/排放/装机月度：行字段 area/date/variable/category/unit/value；dataset
+    枚举见机器可读 spec https://api.ember-energy.org/v1/openapi.json
+  cadence: monthly
+  notes: key 传递形态：api_key= 查询参数（env EMBER_API_KEY；spec 代码示例实锤，非请求头）；官方未公示数值化限速，数据月更——月度任务量级远低于任何实际限制；端点形态
+    api.ember-energy.org/v1/{dataset}/{monthly,yearly}；golden 锚固定国家固定历史月值（如 area=China
+    固定月 generation 值）；仅标准库（urllib/json）

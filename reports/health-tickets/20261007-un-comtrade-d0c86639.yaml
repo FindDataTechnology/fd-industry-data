@@ -1,0 +1,37 @@
+ticket_id: 20261007-un-comtrade-d0c86639
+source: un-comtrade
+unit: spiders/un-comtrade/
+kind: generate
+created_at: '2026-10-07T11:05:15.437674+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-07T11:05:15.437526+00:00'
+    to: '2026-10-07T11:05:15.437526+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261007-un-comtrade-d0c86639.yaml
+golden:
+- spiders/un-comtrade/golden/
+lifecycle:
+- at: '2026-10-07T11:05:15.437674+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://comtradeapi.un.org/data/v1/get/C/M/HS?reporterCode=156&period=202001&cmdCode=8541&flowCode=X&partnerCode=0
+  - https://comtradeapi.un.org/public/v1/preview/C/M/HS?reporterCode=156&period=202001&cmdCode=8541&flowCode=X
+  expectations: 全球 HS6 贸易流月度（1962 起）：reporter/partner/commodity/flow 的美元额与净重；行字段 period/reporterCode/flowCode/cmdCode/partnerCode/primaryValue/netWgt；第一条
+    URL=生产（/data/v1/get，带订阅 key 请求头），第二条=开发冒烟（/public/v1/preview，免 key）
+  cadence: monthly
+  notes: key 传递形态：Ocp-Apim-Subscription-Key 请求头（env COMTRADE_SUBSCRIPTION_KEY=primary；Azure
+    APIM 双 key primary/secondary 轮换——先切 secondary 再 regenerate primary 零中断）；免费订阅层
+    500 次/天；**preview 层免 key 但单次 ≤500 行、且中国月度止于 2024-12（实测）——preview 只做开发期冒烟，生产必须走
+    /data/v1/get+订阅 key**；golden 锚固定 reporter/期次/商品码数值（中国取 ≤2024-12 期，如 156/202001/8541
+    出口额）；仅标准库（urllib/json）

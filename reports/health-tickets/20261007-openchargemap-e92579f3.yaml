@@ -1,0 +1,33 @@
+ticket_id: 20261007-openchargemap-e92579f3
+source: openchargemap
+unit: spiders/openchargemap/
+kind: generate
+created_at: '2026-10-07T11:05:15.584911+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-07T11:05:15.584376+00:00'
+    to: '2026-10-07T11:05:15.584376+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261007-openchargemap-e92579f3.yaml
+golden:
+- spiders/openchargemap/golden/
+lifecycle:
+- at: '2026-10-07T11:05:15.584911+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://api.openchargemap.io/v3/poi/?key=<OCM_API_KEY>&countrycode=US&maxresults=100&output=json
+  expectations: 全球充电桩点位（EV 基建活跃度）：POI 明细 坐标/运营商/功率/使用限制；行字段 id/uuid/address/countrycode/power_level/usage/date_created；分页
+    pagination 参数续拉
+  cadence: weekly
+  notes: key 传递形态：key= 查询参数或 x-api-key 请求头二选一——统一按查询参数用（env OCM_API_KEY；官方原话实锤两种皆可）；fair
+    use 无公示数值限速——点位量级小周任务足够；POI 总量随时间增长——golden 锚固定 POI UUID 的字段结构与存在性，绝不锚全量计数/点位总数；仅标准库（urllib/json）

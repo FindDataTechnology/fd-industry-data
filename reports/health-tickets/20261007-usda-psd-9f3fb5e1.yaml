@@ -1,0 +1,35 @@
+ticket_id: 20261007-usda-psd-9f3fb5e1
+source: usda-psd
+unit: spiders/usda-psd/
+kind: generate
+created_at: '2026-10-07T11:05:15.284780+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-07T11:05:15.284614+00:00'
+    to: '2026-10-07T11:05:15.284614+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261007-usda-psd-9f3fb5e1.yaml
+golden:
+- spiders/usda-psd/golden/
+lifecycle:
+- at: '2026-10-07T11:05:15.284780+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://api.fas.usda.gov/api/psd/commodities
+  expectations: 全球农产品供需平衡表（月度更新，1960 起）：产量/进口/出口/期末库存；行字段 commodity_code/country_code/market_year/attribute_id/value；records
+    端点按官方 swagger（api.fas.usda.gov/swagger）以 commodityCode/countryCode/marketYear
+    组合取数，接前复测现行路径
+  cadence: monthly
+  notes: key 传递形态：X-Api-Key 请求头（env USDA_PSD_KEY=api.data.gov 联邦代理平台 key；亦兼容 api_key=
+    参数与 Basic username，统一按请求头用）；配额 1,000 次/时/key 且跨 api.data.gov 全平台代理 API 合并计算，超限临时封禁；DEMO_KEY
+    可做连通冒烟但生产必须真 key；golden 锚固定 commodity/country 固定市场年数值；仅标准库（urllib/json）

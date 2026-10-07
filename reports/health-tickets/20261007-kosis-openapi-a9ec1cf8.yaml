@@ -1,0 +1,34 @@
+ticket_id: 20261007-kosis-openapi-a9ec1cf8
+source: kosis-openapi
+unit: spiders/kosis-openapi/
+kind: generate
+created_at: '2026-10-07T11:05:15.485663+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-07T11:05:15.485515+00:00'
+    to: '2026-10-07T11:05:15.485515+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261007-kosis-openapi-a9ec1cf8.yaml
+golden:
+- spiders/kosis-openapi/golden/
+lifecycle:
+- at: '2026-10-07T11:05:15.485663+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://kosis.kr/openapi/Param/statisticsParameterData.do?method=getList&apiKey=<KOSIS_API_KEY>&format=json&jsonYNg=Y&orgId=101&tblId=DT_1K41003&prdSe=M&startPrdDe=202001&endPrdDe=202012
+  expectations: 韩国月度产业/零售序列：生产/出口指数（W2-1 实测）+零售 DT_1K41003/41012（2020.01 起）+线上购物 DT_1KE10041/10071（2017.01
+    起品类细分）；行字段 prdDe/分类维度码/dt 值/unit；orgId/tblId 接前复测现行代码
+  cadence: monthly
+  notes: key 传递形态：apiKey= 查询参数（env KOSIS_API_KEY；注册流程全韩文 15-30 分钟）；**必须 https——2026-02-05
+    官方公告停供 HTTP**；2026-07-09 新增每分钟限速（社区口径约 1,000 次/分）——按 ≤1 req/s 自限最稳，注册后从公告原文复核数值回填；golden
+    锚固定 tblId 固定历史月值（如 DT_1K41003 2020-01）；仅标准库（urllib/json）

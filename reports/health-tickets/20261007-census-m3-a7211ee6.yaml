@@ -1,0 +1,33 @@
+ticket_id: 20261007-census-m3-a7211ee6
+source: census-m3
+unit: spiders/census-m3/
+kind: generate
+created_at: '2026-10-07T11:05:15.386893+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-10-07T11:05:15.386440+00:00'
+    to: '2026-10-07T11:05:15.386440+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261007-census-m3-a7211ee6.yaml
+golden:
+- spiders/census-m3/golden/
+lifecycle:
+- at: '2026-10-07T11:05:15.386893+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://api.census.gov/data/timeseries/eits/m3?get=cell_value,time_slot_id,category_code,seasonally_adj&for=us:*&time=2020-01&key=<CENSUS_API_KEY>
+  expectations: 美国制造商出货/库存/订单月度（M3，1992 起）：NAICS 分行业，334413=半导体及电子元件（出货/库存/订单）；行字段
+    time/category_code/seasonally_adj/cell_value
+  cadence: monthly
+  notes: key 传递形态：key= 查询参数（env CENSUS_API_KEY，与 census-eits 共用一把 Census key）；**同款
+    200-HTML 错误页坑——响应体首字符必须为 { 或 [，非即报错**；golden 锚固定 NAICS（如 334413）固定历史月值（1992 起长历史可锚深期）；仅标准库（urllib/json）
