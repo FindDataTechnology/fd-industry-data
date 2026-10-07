@@ -1,0 +1,22 @@
+{
+  "sample_id": "001-usda-quickstats",
+  "created": "2026-10-07",
+  "target": "run_usda_quickstats",
+  "params": {"limit": 20},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "commodity", "equals": "CORN"},
+      {"field": "year", "equals": 2020},
+      {"field": "agg_level", "equals": "NATIONAL"},
+      {"field": "statisticcat", "equals": "AREA PLANTED"},
+      {"field": "reference_period", "equals": "YEAR"},
+      {"field": "unit", "equals": "ACRES"},
+      {"field": "value", "equals": 90432000},
+      {"field": "short_desc", "equals": "CORN - ACRES PLANTED"},
+      {"field": "source", "equals": "usda-quickstats"},
+      {"field": "url", "equals": "https://quickstats.nass.usda.gov/api/api_GET/?commodity_desc=CORN&year=2020&agg_level_desc=NATIONAL&statisticcat_desc=AREA%20PLANTED&format=JSON"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp", "load_time"]
+}
