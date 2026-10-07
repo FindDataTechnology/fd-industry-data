@@ -77,6 +77,12 @@ spec:
                       key: url
                 - name: FD_SCHEMA_MANAGED
                   value: "1"
+              # Wave B keyed 源：密钥经集群 secret 注入（fd-industry ns 手工维护，
+              # 轮换=覆盖该 secret 即生效；非 git 内容，不在本清单内声明值）
+              envFrom:
+                - secretRef:
+                    name: fd-industry-source-keys
+                    optional: true
               resources:
                 limits:
                   memory: {{ .Values.memoryLimit | default "384Mi" }}
