@@ -1,0 +1,84 @@
+version: "2"
+name: amis-market            # = spiders/amis-market/ 目录名，运行时标识符，合入后不可改名
+label: AMIS Market Database (G20 crop supply/demand balances)
+source_url: "https://amis-9189b.appspot.com/fetch (portal: https://app.amis-outlook.org/)"
+# site: 未写——本单元走 appspot.com，被墙，**需代理出口**；集群 runner 代理注入就绪前不点亮（静默合入）
+# schedule: 未写——同上，代理注入后由人工门点亮
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_amis_market
+    description: "Fetch AMIS Market Database CBS supply/demand balance rows (6 commodity scopes x 6 balance elements, countries + World, marketing years 2000-2026) via the unauthenticated BigQuery SQL endpoint (single POST with JSON body); requires proxy egress"
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of rows to return (tail kept after sort by product/element/region/year; default 100)
+      - name: product
+        type: string
+        required: false
+        description: "Client-side filter on product_name (e.g. Wheat, Rice, Maize, Soybean, COARSE GRAINS, TOTAL CEREALS); default no filter"
+      - name: element
+        type: string
+        required: false
+        description: "Client-side filter on element_name (e.g. Production, Imports (NMY), Exports (NMY), Closing Stocks, Domestic Utilization, Total Utilization); default no filter"
+      - name: region
+        type: string
+        required: false
+        description: "Client-side filter on region_name (e.g. World, China, United States); default no filter"
+    columns:
+      - name: product
+        type: string
+        description: product_name (e.g. Wheat; includes aggregate scopes COARSE GRAINS / TOTAL CEREALS)
+      - name: product_code
+        type: int
+        description: amis_product product_code (1=Wheat, 4=Rice, 5=Maize, 6=Soybean, 7=COARSE GRAINS, 8=TOTAL CEREALS)
+      - name: region
+        type: string
+        description: region_name (AMIS member/observer countries + World aggregate)
+      - name: region_code
+        type: int
+        description: amis_country region_code (World = 999000)
+      - name: element
+        type: string
+        description: element_name (Production / Imports (NMY) / Exports (NMY) / Closing Stocks / Domestic Utilization / Total Utilization)
+      - name: element_code
+        type: int
+        description: amis_element element_code (5/7/10/16/20/35)
+      - name: units
+        type: string
+        description: Unit of value (Million tonnes for balance elements)
+      - name: year
+        type: int
+        description: Marketing year start (e.g. 2017 = season 2017/18)
+      - name: season
+        type: string
+        description: Marketing season label (e.g. 2017/18)
+      - name: value
+        type: float
+        description: Balance value, rounded to 6 decimals (latest revision only, max_lastupdate=1)
+      - name: last_update
+        type: string
+        description: Upstream revision timestamp of the row
+      - name: url
+        type: string
+        description: Source request URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: agriculture.supply_demand
+    entity_type: region
+    measure: value
+    unit: million tonnes
+    frequency: yearly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

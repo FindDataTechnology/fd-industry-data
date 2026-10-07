@@ -1,0 +1,52 @@
+{
+  "sample_id": "001-amis-market",
+  "created": "2026-10-07",
+  "target": "run_amis_market",
+  "params": {
+    "limit": 100,
+    "product": "Wheat",
+    "element": "Production",
+    "region": "World"
+  },
+  "expect": {
+    "min_rows": 25,
+    "rows_contains": [
+      {
+        "field": "product",
+        "equals": "Wheat"
+      },
+      {
+        "field": "element",
+        "equals": "Production"
+      },
+      {
+        "field": "region",
+        "equals": "World"
+      },
+      {
+        "field": "year",
+        "equals": 2017
+      },
+      {
+        "field": "season",
+        "equals": "2017/18"
+      },
+      {
+        "field": "value",
+        "equals": 760.318808
+      },
+      {
+        "field": "units",
+        "equals": "Million tonnes"
+      },
+      {
+        "field": "source",
+        "equals": "amis-market"
+      }
+    ]
+  },
+  "whitelist_fields": [
+    "scraped_at",
+    "last_update"
+  ]
+}
