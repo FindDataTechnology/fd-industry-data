@@ -1,0 +1,28 @@
+{
+  "sample_id": "001-ember",
+  "created": "2026-10-07",
+  "target": "run_ember",
+  "params": {
+    "limit": 17,
+    "entity_code": "DEU",
+    "start_date": "2024-01",
+    "end_date": "2024-01"
+  },
+  "expect": {
+    "min_rows": 17,
+    "rows_contains": [
+      {"field": "month", "equals": "2024-01"},
+      {"field": "entity", "equals": "Germany"},
+      {"field": "entity_code", "equals": "DEU"},
+      {"field": "series", "equals": "Wind"},
+      {"field": "series", "equals": "Coal"},
+      {"field": "series", "equals": "Total generation"},
+      {"field": "generation_twh", "equals": 18.33},
+      {"field": "generation_twh", "equals": 10.38},
+      {"field": "generation_twh", "equals": 47.7},
+      {"field": "share_of_generation_pct", "equals": 38.42},
+      {"field": "source", "equals": "ember"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}

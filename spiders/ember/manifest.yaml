@@ -1,0 +1,85 @@
+version: "2"
+name: ember                    # = spiders/ember/ 目录名，运行时标识符，合入后不可改名
+label: Ember Electricity Generation (monthly)
+source_url: https://api.ember-energy.org/v1/electricity-generation/monthly
+# site: tencent              # 缺省 tencent；本单元只访问 api.ember-energy.org 公开 REST，无需换执行位
+# 未写 schedule —— keyed 源静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_ember
+    description: Fetch monthly country electricity generation mix (TWh and share of generation) from the Ember v1 API; wide format, ISO3 entity codes, no units column upstream
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of month rows to return, newest first (client-side tail slice; the upstream limit parameter does not cap rows)
+      - name: entity_code
+        type: string
+        required: false
+        description: Ember ISO3 entity code (default DEU; ISO2 like DE is silently treated as empty upstream)
+      - name: start_date
+        type: string
+        required: false
+        description: Window start month in YYYY-MM; must be paired with end_date
+      - name: end_date
+        type: string
+        required: false
+        description: Window end month in YYYY-MM; must be paired with start_date
+      - name: series
+        type: string
+        required: false
+        description: Optional exact series name filter (e.g. Wind, Solar, Coal); unknown names yield zero rows
+    columns:
+      - name: month
+        type: string
+        description: Month in YYYY-MM (upstream date is always the 1st of the month)
+      - name: entity
+        type: string
+        description: Entity display name (e.g. Germany)
+      - name: entity_code
+        type: string
+        description: Ember ISO3 entity code (e.g. DEU)
+      - name: series
+        type: string
+        description: Generation series name (Coal/Gas/Wind/Solar/Clean/Fossil/Demand/Total generation/Net imports/...)
+      - name: is_aggregate_series
+        type: bool
+        description: True when the series is an aggregate (Clean/Fossil/Renewables/Total generation/...)
+      - name: is_aggregate_entity
+        type: bool
+        description: True when the entity is an aggregate (e.g. EU27)
+      - name: generation_twh
+        type: float
+        description: Electricity generation in TWh (unit embedded in the upstream column name; negative for Net imports)
+      - name: share_of_generation_pct
+        type: float
+        description: Share of total generation in percent (unit embedded in the upstream column name; can exceed 100 for demand-side series)
+      - name: url
+        type: string
+        description: Source request URL with the api_key masked as *** (no credentials in row data)
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: generation_twh
+    concept: energy.electricity_generation
+    entity_type: country
+    measure: value
+    unit: terawatt_hour
+    frequency: monthly
+  - column: share_of_generation_pct
+    concept: energy.electricity_generation_share
+    entity_type: country
+    measure: value
+    unit: percent
+    frequency: monthly
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
