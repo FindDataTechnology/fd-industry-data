@@ -4,6 +4,7 @@ label: UN Comtrade Annual HS Trade Flows (keyed)
 source_url: https://comtradeapi.un.org/
 # site: tencent              # 缺省 tencent；本单元只访问 comtradeapi.un.org 海外公开 REST，无需换执行位
 # schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
+schedule: "52 4 30 * *"       # 点亮（批次二 Wave B）：monthly
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

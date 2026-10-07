@@ -3,6 +3,7 @@ name: census-eits            # = spiders/census-eits/ 目录名，运行时标�
 label: US Census EITS Monthly Retail (MARTS) & Wholesale (MWTS) Sales/Inventories, 2020-01 NSA
 source_url: https://api.census.gov/data/timeseries/eits/mrts
 # site: tencent              # 缺省 tencent；本单元只访问 api.census.gov 公开 REST，无需换执行位
+schedule: "32 4 29 * *"       # 点亮（批次二 Wave B）：monthly
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

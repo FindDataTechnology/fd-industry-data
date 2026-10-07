@@ -3,6 +3,7 @@ name: usda-psd                 # = spiders/usda-psd/ 目录名，运行时标识
 label: USDA FAS PSD (Production, Supply and Distribution)
 source_url: https://api.fas.usda.gov/api/psd/commodities
 # site: tencent              # 缺省 tencent；本单元只访问 api.fas.usda.gov 官方 OpenData API，无需换执行位
+schedule: "8 4 30 * *"       # 点亮（批次二 Wave B）：monthly
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

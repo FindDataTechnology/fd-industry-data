@@ -4,6 +4,7 @@ label: Open Charge Map EV Charging POIs (keyed)
 source_url: https://openchargemap.org/
 # site: tencent              # 缺省 tencent；本单元只访问 api.openchargemap.io 公开 REST，无需换执行位
 # schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
+schedule: "54 6 * * 3"       # 点亮（批次二 Wave B）：weekly
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

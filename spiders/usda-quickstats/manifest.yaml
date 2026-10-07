@@ -3,6 +3,7 @@ name: usda-quickstats           # = spiders/usda-quickstats/ 目录名，运行�
 label: USDA NASS Quick Stats (US Agricultural Survey)
 source_url: https://quickstats.nass.usda.gov/api/
 # site: tencent              # 缺省 tencent；本单元只访问 quickstats.nass.usda.gov 官方 API，无需换执行位
+schedule: "2 6 * * 3"       # 点亮（批次二 Wave B）：weekly
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
