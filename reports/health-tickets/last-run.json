@@ -1,9 +1,9 @@
 {
-  "at": "2026-10-06T23:03:12.530726+00:00",
+  "at": "2026-10-07T23:34:57.033046+00:00",
   "source": "psql",
   "config_source": "db:health_config",
-  "sources_seen": 43,
-  "healthy": 15,
+  "sources_seen": 87,
+  "healthy": 58,
   "written": [],
   "deferred": [
     {
@@ -41,6 +41,7 @@
     "party-regulation-crawl",
     "party-regulation-load",
     "polygon",
+    "rmfyalk-case-crawl",
     "rmfyalk-case-load",
     "tencent-smoke",
     "wbgapi",
@@ -49,468 +50,33 @@
   "master_switch": true,
   "submit": [
     {
-      "ticket": "20261006-abs-sdmx-05cdc4e2.yaml",
+      "ticket": "20261007-entsoe-e-d354141e.yaml",
       "submitted": false,
       "reason": "",
       "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
+      "http_status": 404,
+      "response": "{\"code\": \"AGENT_NOT_FOUND\", \"message\": \"no such agent is deployed on this platform\"}"
     },
     {
-      "ticket": "20261006-boxofficemojo-c200b654.yaml",
+      "ticket": "20261007-kosis-openapi-a9ec1cf8.yaml",
       "submitted": false,
       "reason": "",
       "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-clinicaltrials-941ede99.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-ecb-exr-a0aee352.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-edgar-emissions-3e495c53.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-fao-empres-2fd55009.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-fao-food-price-d98f85a4.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-gb-standards-ca4f8b1f.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-gdacs-8149dca4.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-gleif-lei-b66a12c1.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-iea-ev-53f8d3d7.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-imf-pcps-fc45b1b5.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-jodi-oil-a587475b.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-mem-disaster-eccf1032.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-nasa-firms-1bd9e18a.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-nasa-power-64d35640.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-noaa-ncei-dfcec3de.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-oecd-cli-ac318af6.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-open-meteo-ee751664.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-openalex-works-b3312205.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 2,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-openfda-56bbec7f.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-pboc-monetary-ad2a8dc3.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-statcan-bulk-2bf4fdf6.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-ted-notices-0438b7ca.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-twse-monthly-revenue-e1427690.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-uk-hpi-48ae2c94.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-unido-sdmx-96c2142b.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-usgs-nwis-f0a47fcb.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-wfp-food-price-a8b9bfd6.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-worldbank-procnotices-50c670be.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (405)\"}"
-    },
-    {
-      "ticket": "20261006-wto-eping-51734044.yaml",
-      "submitted": false,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 429,
-      "response": "{\"code\": \"RATE_LIMITED\", \"message\": \"caller rate limit exceeded\"}"
+      "http_status": 404,
+      "response": "{\"code\": \"AGENT_NOT_FOUND\", \"message\": \"no such agent is deployed on this platform\"}"
     }
   ],
   "status": [
     {
-      "ticket": "20261006-abs-sdmx-05cdc4e2.yaml",
-      "http_status": 429,
+      "ticket": "20261007-entsoe-e-d354141e.yaml",
+      "http_status": 404,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261006-boxofficemojo-c200b654.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-clinicaltrials-941ede99.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-ecb-exr-a0aee352.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-edgar-emissions-3e495c53.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-fao-empres-2fd55009.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-fao-food-price-d98f85a4.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-gb-standards-ca4f8b1f.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-gdacs-8149dca4.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-gleif-lei-b66a12c1.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-iea-ev-53f8d3d7.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-imf-pcps-fc45b1b5.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-jodi-oil-a587475b.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-mem-disaster-eccf1032.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-nasa-firms-1bd9e18a.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-nasa-power-64d35640.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-noaa-ncei-dfcec3de.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-oecd-cli-ac318af6.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-open-meteo-ee751664.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-openalex-works-b3312205.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-openfda-56bbec7f.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-pboc-monetary-ad2a8dc3.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-statcan-bulk-2bf4fdf6.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-ted-notices-0438b7ca.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-twse-monthly-revenue-e1427690.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-uk-hpi-48ae2c94.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-unido-sdmx-96c2142b.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-usgs-nwis-f0a47fcb.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-wfp-food-price-a8b9bfd6.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-worldbank-procnotices-50c670be.yaml",
-      "http_status": 429,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261006-wto-eping-51734044.yaml",
-      "http_status": 429,
+      "ticket": "20261007-kosis-openapi-a9ec1cf8.yaml",
+      "http_status": 404,
       "state": null,
       "note": "",
       "pr_url": ""

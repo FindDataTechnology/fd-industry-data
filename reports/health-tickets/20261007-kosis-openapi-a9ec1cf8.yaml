@@ -25,6 +25,18 @@ lifecycle:
 - at: '2026-10-07T12:59:21.409547+00:00'
   event: fallback-direct-build
   reason: Wave B：韩国实名硬阻塞，已判排除（2026-10-07 判定）
+- at: '2026-10-07T23:35:01.867104+00:00'
+  event: submitted
+  http_status: 404
+  ok: false
+  response: '{"code": "AGENT_NOT_FOUND", "message": "no such agent is deployed on
+    this platform"}'
+- at: '2026-10-07T23:35:03.479418+00:00'
+  event: status
+  http_status: 404
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:
