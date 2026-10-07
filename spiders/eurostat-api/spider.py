@@ -1,6 +1,7 @@
-"""Eurostat dissemination API spider (JSON-stat 2.0).
+"""Eurostat dissemination API spider (JSON-stat 2.0 + comext SDMX-ML 2.1).
 
-Datasets (fixed whitelist; all combos measured live on 2026-10-02):
+Datasets (fixed whitelist; all combos measured live on 2026-10-02, extensions
+re-measured 2026-10-07):
 - sts_inpr_m   Production in industry, monthly — manufacturing production index
                (nace_r2=C manufacturing, C20 chemicals; unit=I21, s_adj=NSA, indic_bt=PRD)
 - ei_bsco_m    Consumer confidence, monthly — composite indicator BS-CSMCI, unit=BAL
@@ -9,12 +10,33 @@ Datasets (fixed whitelist; all combos measured live on 2026-10-02):
                (am_item=AM010000 cereals incl. seeds, p_adj=NI nominal, unit=I20)
                (NOTE: apri_pi05_outq is dead upstream — never use it)
 
+Batch2 Wave C extensions (one dedicated entry point each; same dissemination API):
+- run_eurostat_c20     sts_inpr_m C20 chemicals, CA-adjusted, EU27_2020 aggregate
+                       (indic_bt=PRD + unit=I21; s_adj=CA — NSA x C20 is empty)
+- run_eurostat_bsci    ei_bsco_m consumer confidence, NSA variant, since 1980-01
+- run_eurostat_apri    apri_pi_outq output price index, am_item=AM141000
+- run_eurostat_comext  DS-045409 EU-China monthly trade, HS6 PV/LED family via the
+                       api/comext/dissemination SDMX 2.1 segment (GenericData XML).
+                       The /statistics/1.0 dissemination segment 404s for comext —
+                       never route this dataset there. Reporter/partner use ISO
+                       codes (EU27_2020/CN; legacy 1A/1Z are rejected with a silent
+                       empty set). Products follow the HS revision break:
+                       854140 data ends 2021-12, HS2022 codes 854141/854142/854143/
+                       854149 carry 2022+.
+
 JSON-stat 2.0 hard constraint: the response `value` object is {flat_index: number}
 and null cells are OMITTED. Coordinates must always be rebuilt from
 `id`/`size`/`dimension[].category.index` (row-major strides); never assume the
 value dict order matches anything.
 
-Entry point (fd-runner): run_eurostat_api(limit=100) -> list[dict]
+Empty-set trap: Eurostat answers HTTP 200 with an empty `value` object (JSON-stat)
+or a header-only GenericData envelope (comext) when a parameter combo has no data.
+Every extension query therefore asserts a non-empty parse — an empty set is
+treated as upstream/parameter drift, never as success.
+
+Entry points (fd-runner):
+- run_eurostat_api(limit=100) -> list[dict]        (original three datasets)
+- run_eurostat_c20 / run_eurostat_bsci / run_eurostat_apri / run_eurostat_comext
 
 Network: overseas source — direct first; only if a direct connection fails at the
 connection layer, probe 127.0.0.1:7890 and retry once through that proxy. The
@@ -27,6 +49,7 @@ import asyncio
 import json
 import logging
 import socket
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 
@@ -272,6 +295,247 @@ async def _run(limit: int) -> list[dict]:
 def run_eurostat_api(limit: int = 100) -> list[dict]:
     """fd-runner entry point. Returns at most `limit` rows."""
     return asyncio.run(_run(max(0, int(limit))))
+
+
+# --------------------------------------------------------------------------
+# Batch2 Wave C extensions — one dedicated entry point per dataset.
+# All parameter combos below were re-measured live on 2026-10-07; frozen
+# anchor values live in golden/002..005. Every query asserts a non-empty
+# parse: Eurostat returns HTTP 200 with an empty set for unknown/renamed
+# parameter combos, which must surface as a hard failure, not silence.
+# --------------------------------------------------------------------------
+
+C20_CFG: dict = {
+    "dataset": "sts_inpr_m",
+    # PROD is the dead code (empty set); PRD + CA is the only live C20/EU27 combo.
+    "dims": {"freq": "M", "indic_bt": "PRD", "nace_r2": "C20", "s_adj": "CA", "unit": "I21"},
+    "geos": ["EU27_2020"],
+    "since": "2000-01",
+    "colmap": {"indic": "indic_bt", "nace_r2": "nace_r2", "s_adj": "s_adj", "p_adj": None},
+}
+
+BSCI_CFG: dict = {
+    "dataset": "ei_bsco_m",
+    # NSA variant: series dimension starts 1980-01, first EU27_2020 value 1985-01
+    # (null cells omitted upstream). SA is covered by the original run_eurostat_api.
+    "dims": {"freq": "M", "indic": "BS-CSMCI", "s_adj": "NSA", "unit": "BAL"},
+    "geos": ["EU27_2020"],
+    "since": "1980-01",
+    "colmap": {"indic": "indic", "nace_r2": None, "s_adj": "s_adj", "p_adj": None},
+}
+
+APRI_CFG: dict = {
+    "dataset": "apri_pi_outq",
+    # AM141000 (EU Agricultural Accounts industry 141000): values 2020-Q1..latest
+    # under base 2020=100; the window since 2000-Q1 follows the measured brief.
+    "dims": {"freq": "Q", "am_item": "AM141000", "p_adj": "NI", "unit": "I20"},
+    "geos": ["EU27_2020"],
+    "since": "2000-Q1",
+    "colmap": {"indic": "am_item", "nace_r2": None, "s_adj": None, "p_adj": "p_adj"},
+}
+
+
+def _assert_nonempty(rows: list[dict], dataset: str, url: str) -> list[dict]:
+    """Eurostat answers HTTP 200 with an empty set for dead parameter combos.
+
+    Treat a parsed-empty result as drift and fail loud instead of logging an
+    innocent-looking zero-row success.
+    """
+    if not rows:
+        raise RuntimeError(
+            f"[{dataset}] empty dataset returned (HTTP 200, 0 rows) for {url} — "
+            "parameter drift upstream?"
+        )
+    return rows
+
+
+async def _run_single(cfg: dict, limit: int) -> list[dict]:
+    scraped_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    url = _build_url(cfg)
+    doc = await _fetch_doc(url, cfg["dataset"])
+    if doc is None:
+        raise RuntimeError(f"[{cfg['dataset']}] fetch failed (see warnings) for {url}")
+    rows = _assert_nonempty(
+        _jsonstat_rows(doc, cfg["colmap"], cfg["dataset"], url, scraped_at),
+        cfg["dataset"], url,
+    )
+    logger.info("[%s] parsed %d rows from %s", cfg["dataset"], len(rows), url)
+    return rows[:limit]
+
+
+def run_eurostat_c20(limit: int = 100) -> list[dict]:
+    """C20 chemicals production index (CA-adjusted, EU27_2020, monthly).
+
+    Frozen anchor: 2026-07 = 81.8 (I21, PRD).
+    """
+    return asyncio.run(_run_single(C20_CFG, max(0, int(limit))))
+
+
+def run_eurostat_bsci(limit: int = 100) -> list[dict]:
+    """Consumer confidence indicator, NSA variant (EU27_2020, since 1980-01).
+
+    Frozen anchor: 2026-09 = -15.6 (BAL, BS-CSMCI). ei_bsci is dead upstream (404).
+    """
+    return asyncio.run(_run_single(BSCI_CFG, max(0, int(limit))))
+
+
+def run_eurostat_apri(limit: int = 100) -> list[dict]:
+    """Agricultural output price index, AM141000 (EU27_2020, quarterly).
+
+    Frozen anchor: 2026-Q2 = 135.29 (I20, NI). apri_pi05_outq is dead upstream (404).
+    """
+    return asyncio.run(_run_single(APRI_CFG, max(0, int(limit))))
+
+
+# -- comext: EU-China trade via the SDMX 2.1 dissemination segment ------------
+
+COMEXT_BASE_URL = "https://ec.europa.eu/eurostat/api/comext/dissemination/sdmx/2.1/data"
+COMEXT_DATAFLOW = "DS-045409"  # EU trade since 1988 by HS6, monthly (DSD v6.5)
+COMEXT_REPORTER = "EU27_2020"  # ISO codes only: legacy 1A/1Z -> silent empty set
+COMEXT_PARTNER = "CN"
+COMEXT_FLOW = "2"  # 2 = EU imports
+COMEXT_INDICATOR = "VALUE_IN_EUROS"
+
+# HS6 photosensitive-semiconductor family (PV cells & LEDs) across the HS
+# revision break: 854140 (HS2017) data ends 2021-12; HS2022 split carries 2022+.
+# Since-windows fixed to the measured start of each revision (2026-10-07).
+COMEXT_PRODUCTS: list[dict] = [
+    {"product": "854140", "since": "2018-01"},
+    {"product": "854141", "since": "2022-01"},
+    {"product": "854142", "since": "2022-01"},
+    {"product": "854143", "since": "2022-01"},
+    {"product": "854149", "since": "2022-01"},
+]
+
+SDMX_NS = {
+    "m": "http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message",
+    "g": "http://www.sdmx.org/resources/sdmxml/schemas/v2_1/data/generic",
+}
+
+SDMX_HDRS = {
+    "Accept": "application/vnd.sdmx.genericdata+xml;version=2.1",
+    "User-Agent": "fd-industry-data/eurostat-api (batch data pipeline)",
+}
+
+
+def _comext_url(product: str, since: str) -> str:
+    key = f"{COMEXT_DATAFLOW}/M.{COMEXT_REPORTER}.{COMEXT_PARTNER}.{product}.{COMEXT_FLOW}.{COMEXT_INDICATOR}"
+    return f"{COMEXT_BASE_URL}/{key}?startPeriod={since}"
+
+
+async def _get_sdmx(url: str, proxy: str | None) -> tuple[int | None, bytes]:
+    async with FetcherSession(
+        impersonate="chrome120", timeout=HTTP_TIMEOUT, verify=False, proxy=proxy
+    ) as session:
+        resp = await session.get(url, headers=SDMX_HDRS)
+        return resp.status, resp.body or b""
+
+
+async def _fetch_sdmx(product: str, url: str) -> str:
+    """One comext fetch honoring the sticky direct/proxy mode; returns XML text."""
+    global NET_MODE
+    modes = ["direct", "proxy"] if NET_MODE in (None, "direct") else ["proxy"]
+    status, body = None, b""
+    for mode in modes:
+        if mode == "proxy" and not _proxy_port_open():
+            logger.error("[comext] fallback proxy 127.0.0.1:7890 is not open")
+            break
+        try:
+            status, body = await _get_sdmx(url, None if mode == "direct" else FALLBACK_PROXY)
+        except Exception as exc:  # connection layer only
+            logger.warning("[comext/%s] %s connection error: %s", product, mode, exc)
+            continue
+        if status == 200 and body:
+            NET_MODE = mode
+            try:
+                return body.decode("utf-8")
+            except UnicodeDecodeError:
+                return body.decode("utf-8", errors="replace")
+        logger.warning(
+            "[comext/%s] %s HTTP %s (%d bytes) -> log-and-skip, no retry",
+            product, mode, status, len(body),
+        )
+        NET_MODE = mode
+        break
+    raise RuntimeError(f"[comext] fetch failed (HTTP {status}) for {url}")
+
+
+def _parse_sdmx_generic(xml_text: str, url: str, scraped_at: str) -> list[dict]:
+    """Flatten an SDMX-ML 2.1 GenericData message into row dicts.
+
+    The comext dataflow carries six series-key dimensions (freq, reporter,
+    partner, product, indicators, flow) observed on TIME_PERIOD. An empty set
+    is a valid envelope with zero Series — the caller asserts non-empty.
+    """
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        logger.warning("[comext] non-XML response from %s: %s", url, exc)
+        return []
+    if root.tag != f"{{{SDMX_NS['m']}}}GenericData":
+        logger.warning("[comext] unexpected payload root %s from %s", root.tag, url)
+        return []
+    rows: list[dict] = []
+    for series in root.findall(f".//{{{SDMX_NS['g']}}}Series"):
+        key = {
+            v.get("id"): v.get("value", "")
+            for v in series.findall(f"./{{{SDMX_NS['g']}}}SeriesKey/{{{SDMX_NS['g']}}}Value")
+        }
+        for obs in series.findall(f"./{{{SDMX_NS['g']}}}Obs"):
+            period_el = obs.find(f"./{{{SDMX_NS['g']}}}ObsDimension")
+            value_el = obs.find(f"./{{{SDMX_NS['g']}}}ObsValue")
+            if period_el is None or value_el is None:
+                continue
+            raw = value_el.get("value")
+            if raw is None or raw in ("", "NaN"):
+                continue  # missing observation -> skip, never fabricate
+            try:
+                value = float(raw)
+            except ValueError:
+                logger.warning("[comext] non-numeric ObsValue %r, skipped", raw)
+                continue
+            rows.append({
+                "dataset": COMEXT_DATAFLOW,
+                "geo": key.get("reporter", COMEXT_REPORTER),
+                "freq": key.get("freq", "M"),
+                "unit": key.get("indicators", COMEXT_INDICATOR),
+                "indic": COMEXT_INDICATOR,
+                "s_adj": "",
+                "nace_r2": "",
+                "p_adj": "",
+                "partner": key.get("partner", COMEXT_PARTNER),
+                "product": key.get("product", ""),
+                "flow": key.get("flow", COMEXT_FLOW),
+                "period": period_el.get("value", ""),
+                "value": value,
+                "scraped_at": scraped_at,
+                "source_url": url,
+            })
+    return rows
+
+
+async def _run_comext(limit: int) -> list[dict]:
+    scraped_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    rows: list[dict] = []
+    for item in COMEXT_PRODUCTS:
+        url = _comext_url(item["product"], item["since"])
+        xml_text = await _fetch_sdmx(item["product"], url)
+        got = _assert_nonempty(
+            _parse_sdmx_generic(xml_text, url, scraped_at), f"comext/{item['product']}", url
+        )
+        logger.info("[comext/%s] parsed %d rows from %s", item["product"], len(got), url)
+        rows.extend(got)
+    return rows[:limit]
+
+
+def run_eurostat_comext(limit: int = 500) -> list[dict]:
+    """EU-China monthly trade, HS6 photosensitive-semiconductor family.
+
+    DS-045409 via api/comext/dissemination (the /statistics segment 404s here).
+    EU imports (flow=2), VALUE_IN_EUROS, reporter EU27_2020, partner CN.
+    Frozen anchor: 854142, 2025-01 = 95058 (verified sample URL).
+    """
+    return asyncio.run(_run_comext(max(0, int(limit))))
 
 
 if __name__ == "__main__":

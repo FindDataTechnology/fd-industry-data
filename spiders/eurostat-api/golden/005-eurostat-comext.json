@@ -1,0 +1,22 @@
+{
+  "sample_id": "005-eurostat-comext",
+  "created": "2026-10-07",
+  "target": "run_eurostat_comext",
+  "params": {"limit": 500},
+  "expect": {
+    "min_rows": 200,
+    "rows_contains": [
+      {"field": "dataset", "equals": "DS-045409"},
+      {"field": "geo", "equals": "EU27_2020"},
+      {"field": "partner", "equals": "CN"},
+      {"field": "flow", "equals": "2"},
+      {"field": "unit", "equals": "VALUE_IN_EUROS"},
+      {"field": "product", "equals": "854142"},
+      {"field": "product", "equals": "854140"},
+      {"field": "period", "equals": "2025-01"},
+      {"field": "value", "equals": "95058.0"},
+      {"field": "source_url", "equals": "https://ec.europa.eu/eurostat/api/comext/dissemination/sdmx/2.1/data/DS-045409/M.EU27_2020.CN.854142.2.VALUE_IN_EUROS?startPeriod=2022-01"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

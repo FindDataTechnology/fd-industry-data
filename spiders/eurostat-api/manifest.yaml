@@ -51,6 +51,195 @@ functions:
       - name: source_url
         type: str
         description: Exact API request URL the row was parsed from
+  - command: run_eurostat_c20
+    description: Fetch C20 chemicals production index (sts_inpr_m, nace_r2=C20, indic_bt=PRD, s_adj=CA, unit=I21) for the EU27_2020 aggregate, monthly since 2000-01 (JSON-stat 2.0); asserts a non-empty parse since Eurostat returns HTTP 200 empty sets for dead parameter combos
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: dataset
+        type: str
+        description: Eurostat dataset code (always sts_inpr_m)
+      - name: geo
+        type: str
+        description: Country/aggregate code (EU27_2020)
+      - name: freq
+        type: str
+        description: Frequency code (M monthly)
+      - name: unit
+        type: str
+        description: Unit code (I21 index 2021=100)
+      - name: indic
+        type: str
+        description: Business trend indicator code (PRD production index)
+      - name: s_adj
+        type: str
+        description: Seasonal adjustment code (CA calendar adjusted)
+      - name: nace_r2
+        type: str
+        description: NACE Rev.2 code (C20 chemicals)
+      - name: p_adj
+        type: str
+        description: Price adjustment code (always empty for this dataset)
+      - name: period
+        type: str
+        description: Period label (YYYY-MM)
+      - name: value
+        type: float
+        description: Production index value; upstream null cells are omitted, never fabricated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
+  - command: run_eurostat_bsci
+    description: Fetch consumer confidence indicator (ei_bsco_m, indic=BS-CSMCI, s_adj=NSA, unit=BAL) for the EU27_2020 aggregate, monthly since 1980-01 (first actual values 1985-01, JSON-stat 2.0); asserts a non-empty parse (ei_bsci is dead upstream and must never be used)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: dataset
+        type: str
+        description: Eurostat dataset code (always ei_bsco_m)
+      - name: geo
+        type: str
+        description: Country/aggregate code (EU27_2020)
+      - name: freq
+        type: str
+        description: Frequency code (M monthly)
+      - name: unit
+        type: str
+        description: Unit code (BAL survey balance)
+      - name: indic
+        type: str
+        description: Indicator code (BS-CSMCI composite consumer confidence)
+      - name: s_adj
+        type: str
+        description: Seasonal adjustment code (NSA unadjusted)
+      - name: nace_r2
+        type: str
+        description: NACE Rev.2 code (always empty for this dataset)
+      - name: p_adj
+        type: str
+        description: Price adjustment code (always empty for this dataset)
+      - name: period
+        type: str
+        description: Period label (YYYY-MM)
+      - name: value
+        type: float
+        description: Survey balance value; upstream null cells are omitted, never fabricated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
+  - command: run_eurostat_apri
+    description: Fetch agricultural output price index (apri_pi_outq, am_item=AM141000, p_adj=NI, unit=I20) for the EU27_2020 aggregate, quarterly since 2000-Q1 (actual values 2020-Q1..latest, JSON-stat 2.0); asserts a non-empty parse (apri_pi05_outq is dead upstream and must never be used)
+    frequency: quarterly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: dataset
+        type: str
+        description: Eurostat dataset code (always apri_pi_outq)
+      - name: geo
+        type: str
+        description: Country/aggregate code (EU27_2020)
+      - name: freq
+        type: str
+        description: Frequency code (Q quarterly)
+      - name: unit
+        type: str
+        description: Unit code (I20 index 2020=100)
+      - name: indic
+        type: str
+        description: Agricultural item code (AM141000)
+      - name: s_adj
+        type: str
+        description: Seasonal adjustment code (always empty for this dataset)
+      - name: nace_r2
+        type: str
+        description: NACE Rev.2 code (always empty for this dataset)
+      - name: p_adj
+        type: str
+        description: Price adjustment code (NI nominal index)
+      - name: period
+        type: str
+        description: Period label (YYYY-QN)
+      - name: value
+        type: float
+        description: Price index value; upstream null cells are omitted, never fabricated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
+  - command: run_eurostat_comext
+    description: Fetch EU-China monthly trade (comext DS-045409, DSD v6.5) for the HS6 photosensitive-semiconductor family via the api/comext/dissemination SDMX 2.1 segment (the /statistics segment 404s for comext) — EU27_2020 reporter, CN partner, flow=2 imports, VALUE_IN_EUROS; products follow the HS revision break (854140 since 2018-01 ends 2021-12, HS2022 codes 854141/854142/854143/854149 since 2022-01); asserts a non-empty parse per product query (legacy reporter codes 1A/1Z yield silent empty sets)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: dataset
+        type: str
+        description: Comext dataflow id (always DS-045409)
+      - name: geo
+        type: str
+        description: Reporter code (EU27_2020, ISO codes only)
+      - name: freq
+        type: str
+        description: Frequency code (M monthly)
+      - name: unit
+        type: str
+        description: Indicator dimension of the dataflow (VALUE_IN_EUROS)
+      - name: indic
+        type: str
+        description: Trade indicator (always VALUE_IN_EUROS)
+      - name: s_adj
+        type: str
+        description: Seasonal adjustment code (always empty, not part of the comext DSD)
+      - name: nace_r2
+        type: str
+        description: NACE Rev.2 code (always empty, not part of the comext DSD)
+      - name: p_adj
+        type: str
+        description: Price adjustment code (always empty, not part of the comext DSD)
+      - name: partner
+        type: str
+        description: Partner code (CN)
+      - name: product
+        type: str
+        description: HS6 commodity code (854140 HS2017 until 2021-12; 854141/854142/854143/854149 HS2022 from 2022-01)
+      - name: flow
+        type: str
+        description: Trade flow code (2 = EU imports)
+      - name: period
+        type: str
+        description: Period label (YYYY-MM)
+      - name: value
+        type: float
+        description: Trade value in euros; missing observations are omitted, never fabricated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
 concepts:
   - column: value
     concept: economic.index_value
