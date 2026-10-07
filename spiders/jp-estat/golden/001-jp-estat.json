@@ -1,0 +1,18 @@
+{
+  "sample_id": "001-jp-estat",
+  "created": "2026-10-07",
+  "target": "run_jp_estat",
+  "params": {"limit": 100, "stats_data_id": "0000150041"},
+  "expect": {
+    "min_rows": 50,
+    "rows_contains": [
+      {"field": "stats_data_id", "equals": "0000150041"},
+      {"field": "time", "equals": "1993000000"},
+      {"field": "cat01", "equals": "001"},
+      {"field": "unit", "equals": "人"},
+      {"field": "value", "equals": 124451938.0},
+      {"field": "source", "equals": "jp-estat"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

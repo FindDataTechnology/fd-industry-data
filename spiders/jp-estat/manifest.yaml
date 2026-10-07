@@ -1,0 +1,77 @@
+version: "2"
+name: jp-estat                # = spiders/jp-estat/ 目录名，运行时标识符，合入后不可改名
+label: Japan e-Stat Government Statistics (keyed)
+source_url: https://www.e-stat.go.jp/
+# site: tencent              # 缺省 tencent；本单元只访问 api.e-stat.go.jp 公开 REST，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_jp_estat
+    description: Fetch stat rows from Japan e-Stat API v3 (two-step getStatsList -> getStatsData; default search word 人口 with the first TABLE_INF's statsDataId, or a pinned statsDataId); auth via appId query parameter (env ESTAT_APP_ID); rows carry time/cat01/value/unit
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return; also sent as getStatsData limit
+      - name: search_word
+        type: string
+        required: false
+        description: getStatsList search word (default 人口); first TABLE_INF's @id is used
+      - name: stats_data_id
+        type: string
+        required: false
+        description: Pin the statsDataId directly (skips the search step); golden anchor 0000150041
+    columns:
+      - name: stats_data_id
+        type: string
+        description: e-Stat statsDataId of the table (e.g. 0000150041)
+      - name: tab
+        type: string
+        description: "@tab dimension code (table segment)"
+      - name: time
+        type: string
+        description: "@time dimension code (e.g. 1993000000 = Oct 1, 1993 reference point)"
+      - name: cat01
+        type: string
+        description: "@cat01 dimension code (first category, e.g. 001 = 男女計)"
+      - name: cat02
+        type: string
+        description: "@cat02 dimension code (second category, e.g. 000 = 全年齢)"
+      - name: cat03
+        type: string
+        description: "@cat03 dimension code (third category, absent in two-category tables)"
+      - name: area
+        type: string
+        description: "@area dimension code (00000 = 全国)"
+      - name: unit
+        type: string
+        description: Unit label from @unit (e.g. 人)
+      - name: annotation
+        type: string
+        description: "@annotation footnote code(s), null when none"
+      - name: value
+        type: float
+        description: Numeric value ($ string parsed); suppressed/masked rows are skipped, never fabricated
+      - name: source
+        type: string
+        description: Data source identifier (jp-estat)
+      - name: source_url
+        type: string
+        description: Exact getStatsData request URL with appId replaced by REDACTED
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: demographics.population
+    entity_type: country
+    measure: value
+    unit: person
+    frequency: monthly
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
