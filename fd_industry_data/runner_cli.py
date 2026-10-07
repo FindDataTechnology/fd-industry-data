@@ -178,8 +178,9 @@ def main(argv: list[str] | None = None) -> int:
     return EXIT_OK if status == "success" else EXIT_ADAPTER_ERROR
 
 
-_AUTH_FAILURE_RE = ("401", "未登录", "login required", "please log in",
-                    "captcha", "验证码", "登录失效", "session expired")
+_AUTH_FAILURE_RE = ("401", "未登录", "login required", "login_required",
+                    "logged-in", "please log in", "captcha", "验证码",
+                    "登录失效", "session expired")
 
 
 def _looks_like_auth_failure(error_head) -> bool:
