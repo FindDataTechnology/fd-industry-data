@@ -22,7 +22,10 @@ Batch2 Wave C extensions (one dedicated entry point each; same dissemination API
                        codes (EU27_2020/CN; legacy 1A/1Z are rejected with a silent
                        empty set). Products follow the HS revision break:
                        854140 data ends 2021-12, HS2022 codes 854141/854142/854143/
-                       854149 carry 2022+.
+                       854149 carry 2022+. Flow direction re-measured 2026-10-07:
+                       flow=1 = EU imports (the China→EU export view — the intended
+                       series); flow=2 = EU exports. The initially merged flow=2
+                       series was the wrong direction (EU→CN exports).
 
 JSON-stat 2.0 hard constraint: the response `value` object is {flat_index: number}
 and null cells are OMITTED. Coordinates must always be rebuilt from
@@ -393,7 +396,13 @@ COMEXT_BASE_URL = "https://ec.europa.eu/eurostat/api/comext/dissemination/sdmx/2
 COMEXT_DATAFLOW = "DS-045409"  # EU trade since 1988 by HS6, monthly (DSD v6.5)
 COMEXT_REPORTER = "EU27_2020"  # ISO codes only: legacy 1A/1Z -> silent empty set
 COMEXT_PARTNER = "CN"
-COMEXT_FLOW = "2"  # 2 = EU imports
+# Re-measured 2026-10-07 (double-probe verdict): 1 = EU imports, i.e. the
+# China->EU export view — the intended series. flow=2 is EU exports; the
+# initially merged flow=2 series collected the wrong direction. Evidence:
+# HS 360410 (fireworks, CN-monopolized EU supply) flow=1 = 19 consecutive
+# monthly obs 2025-01..2026-07 (EUR 7.4M..27.1M), flow=2 = only 2 sporadic
+# obs (EUR 169k / 34k).
+COMEXT_FLOW = "1"
 COMEXT_INDICATOR = "VALUE_IN_EUROS"
 
 # HS6 photosensitive-semiconductor family (PV cells & LEDs) across the HS
@@ -507,7 +516,10 @@ def _parse_sdmx_generic(xml_text: str, url: str, scraped_at: str) -> list[dict]:
                 "product": key.get("product", ""),
                 "flow": key.get("flow", COMEXT_FLOW),
                 "period": period_el.get("value", ""),
-                "value": value,
+                # EUR trade amount, distinct from the index-semantics `value`
+                # column of the JSON-stat entry points (concept split: manifest
+                # binds trade_value -> economic.trade_value, unit EUR).
+                "trade_value": value,
                 "scraped_at": scraped_at,
                 "source_url": url,
             })
@@ -532,8 +544,13 @@ def run_eurostat_comext(limit: int = 500) -> list[dict]:
     """EU-China monthly trade, HS6 photosensitive-semiconductor family.
 
     DS-045409 via api/comext/dissemination (the /statistics segment 404s here).
-    EU imports (flow=2), VALUE_IN_EUROS, reporter EU27_2020, partner CN.
-    Frozen anchor: 854142, 2025-01 = 95058 (verified sample URL).
+    EU imports (flow=1 = the China→EU export view; flow=2 is EU exports),
+    VALUE_IN_EUROS, reporter EU27_2020, partner CN. Rows carry the EUR amount
+    in `trade_value` (trade-amount semantics, concept economic.trade_value —
+    not the index-semantics `value` column of the other four entry points).
+    Frozen anchor: 854142, 2025-01 = 3917107 (EUR, EU imports from China;
+    verified sample URL — the previously frozen 95058 was the flow=2 EU-export
+    value and its series was re-pointed to flow=1 on 2026-10-07).
     """
     return asyncio.run(_run_comext(max(0, int(limit))))
 
