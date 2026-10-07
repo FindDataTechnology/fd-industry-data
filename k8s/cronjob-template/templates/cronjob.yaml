@@ -83,7 +83,7 @@ spec:
                 - secretRef:
                     name: fd-industry-source-keys
                     optional: true
-              {{- $egressSecret := .Values.egress_secret | default "" }}
+              {{- $egressSecret := .Values.egressSecret | default "" }}
               {{- if and $egressSecret (ne $egressSecret "<no value>") }}
               # 需代理源：egress_secret 指向含 HTTPS_PROXY/HTTP_PROXY 的 secret，
               # runner 内 urllib 尊重该环境变量走对应出口
