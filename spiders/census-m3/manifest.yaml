@@ -2,8 +2,9 @@ version: "2"
 name: census-m3              # = spiders/census-m3/ 目录名，运行时标识符，合入后不可改名
 label: US Census M3 Manufacturers' Shipments, Inventories & Orders (MTM total, 2020-01 NSA)
 source_url: https://api.census.gov/data/timeseries/eits/m3
+egress_secret: fd-industry-egress-fx01
 # site: tencent              # 缺省 tencent；本单元只访问 api.census.gov 公开 REST，无需换执行位
-# schedule: 暂缓点亮——api.census.gov 从 tencent 站 Errno 101 不可达（2026-10-07 首爬实证），待代理出口/换站
+schedule: "48 4 29 * *"       # 点亮（批次二 Wave B，经 fx01 出口）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
