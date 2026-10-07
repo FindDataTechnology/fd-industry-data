@@ -1,0 +1,57 @@
+version: "2"
+name: statcan-bulk         # = spiders/statcan-bulk/ 目录名，运行时标识符，合入后不可改名
+label: Statistics Canada Bulk CSV (NHPI)
+source_url: https://www150.statcan.gc.ca/n1/tbl/csv/18100205-eng.zip
+# site: tencent              # 缺省 tencent；本单元只访问 www150.statcan.gc.ca 官方 bulk ZIP，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_statcan_bulk
+    description: Fetch head rows of the StatCan bulk ZIP CSV (table 18-10-0205 New Housing Price Index, monthly since 1981)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: "Maximum rows from the bulk CSV head (REF_DATE ascending, new months append at the end)"
+      - name: product_id
+        type: string
+        required: false
+        description: "StatCan productId (8 digits, e.g. 18100205; hyphens tolerated)"
+    columns:
+      - name: ref_date
+        type: string
+        description: Reference period as YYYY-MM (REF_DATE column)
+      - name: geography
+        type: string
+        description: Geography label (GEO column, e.g. Canada)
+      - name: series
+        type: string
+        description: Series member of the table dimension (e.g. Total (house and land))
+      - name: uom
+        type: string
+        description: Unit of measure (UOM column, e.g. Index, 201612=100)
+      - name: value
+        type: float
+        description: Observed value (VALUE column, null when missing)
+      - name: url
+        type: string
+        description: Source ZIP URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: economic.index_value
+    entity_type: region
+    measure: value
+    unit: index
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
