@@ -36,6 +36,10 @@ lifecycle:
   terminal: closed
   previous: null
   note: 批次二 Wave B 整波合并收口
+- at: '2026-10-07T13:11:38.417083+00:00'
+  event: note
+  text: 2026-10-07 首爬实证：api.census.gov 从 tencent 站 Errno 101 不可达，点亮回熄待代理出口/换站（与 hf/amis/steam
+    同组）
 terminal: closed
 brief:
   source_urls:
