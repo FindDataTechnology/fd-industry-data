@@ -18,14 +18,21 @@ Two execution forms (legal-line-federation 3.1/3.2):
   dispatcher gates creation on cluster-side single-flight (an active Job
   of the same source -> skipped/failed, same contract as the DB-level
   guard) and honors crawl_runs.cancel_requested by deleting the Job and
-  writing the cancel outcome.
+  writing the cancel outcome. A declared auth_profile is leased from the
+  platform identity pool and injected inline into the Job env
+  (FD_ACCOUNT / FD_SESSION_JAR + the standard proxy variables), then
+  released by run outcome — the same contract as the subprocess path,
+  with the jar inlined because a Job pod cannot see the dispatcher's
+  filesystem.
 
 Usage (container entrypoint): python3 -m fd_industry_data.dispatcher_cli
 Env: FD_DISPATCH_SITE (default tencent), FD_DISPATCH_MAX_RUNS (default 5),
      FD_CRAWL_DB_URL, FD_CONTENT_DIR, FD_CONTENT_COMMIT, FD_IMAGE_TAG,
      FD_DISPATCH_NAMESPACE (target ns for federated Jobs; default the
      pod's own namespace, else scraw), FD_DISPATCH_POLL_SECONDS (Job
-     poll interval, default 10).
+     poll interval, default 10), PLATFORM_SESSION_KEY + RUSTFS_ENDPOINT/
+     RUSTFS_ACCESS_KEY/RUSTFS_SECRET_KEY (identity pool jar store, only
+     read for profiled sources).
 """
 from __future__ import annotations
 
@@ -38,7 +45,9 @@ import time
 import urllib.error
 import urllib.request
 
+from . import auth as _auth
 from . import dispatch
+from .runner_cli import _looks_like_auth_failure
 
 _SA_DIR = "/var/run/secrets/kubernetes.io/serviceaccount"
 
@@ -167,13 +176,119 @@ def active_job_for(jobs: list, src: str) -> dict | None:
     return None
 
 
-def job_body(src: str, pending_id: int, decl: dict, ns: str) -> dict:
+# ---------------------------------------------------------------------------
+# identity pool segment for profiled federated sources (task 1.1/1.2): same
+# contract as the docker path in main(), jar inlined instead of a /tmp path.
+# ---------------------------------------------------------------------------
+
+def _identity_ttl(decl: dict) -> int:
+    """Lease TTL covering the Job's effective deadline plus settle slack.
+
+    The effective deadline is the declared timeout_seconds (default 3600,
+    same default as activeDeadlineSeconds in job_body, so the lease always
+    outlives the Job).
+    """
+    deadline = int(decl.get("timeout_seconds") or 3600)
+    return max(3600, deadline + 600)
+
+
+def _identity_env(conn, ident: dict) -> list[dict]:
+    """Job env for one leased identity: inline jar, account, bound egress.
+
+    The Job pod cannot see the dispatcher's filesystem, so the decrypted
+    session jar travels inline as FD_SESSION_JAR (the docker path writes
+    /tmp/session-<alias>.json and exports FD_SESSION_JAR_PATH instead).
+    The identity's bound egress, when it resolves, becomes the standard
+    proxy variables plus FD_EGRESS_REF; an unbound identity injects no
+    proxy at all. Any failure here is the caller's cue to free the lease.
+    """
+    jar = _auth.fetch_jar(ident["session_ref"]) if ident["session_ref"] else {}
+    env = [{"name": "FD_ACCOUNT", "value": ident["account_alias"]},
+           {"name": "FD_SESSION_JAR",
+            "value": json.dumps(jar, ensure_ascii=False)}]
+    with conn.cursor() as cur:
+        cur.execute("SELECT egress_ref FROM crawl_identities WHERE id=%s",
+                    (ident["id"],))
+        erow = cur.fetchone()
+    egress = _auth.resolve_egress(conn, erow[0] if erow else None)
+    if egress:
+        for k in ("HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy"):
+            env.append({"name": k, "value": egress["proxy_url"]})
+        env.append({"name": "FD_EGRESS_REF", "value": erow[0]})
+    return env
+
+
+def _release_identity(conn, ident: dict | None, *, success: bool, src: str) -> None:
+    """Best-effort lease release; the lease may already be TTL-recycled.
+
+    Token mismatch after expiry recycling is a no-op in the pool UPDATE,
+    and a release error must never break the pending lifecycle.
+    """
+    if ident is None:
+        return
+    try:
+        _auth.release_identity(conn, ident["id"], ident["lease_token"],
+                               success=success)
+    except Exception as e:  # noqa: BLE001 - a dangling lease is a TTL concern
+        print(f"fd-dispatcher: lease release failed for {src} "
+              f"(identity {ident['id']}): {e}", file=sys.stderr)
+
+
+def _report_row(conn, run_id: int | None) -> tuple[int, str | None]:
+    """(rows_written, error_head) of the direct crawl_runs report, (0, None) absent."""
+    if run_id is None:
+        return 0, None
+    with conn.cursor() as cur:
+        cur.execute("SELECT rows_written, error_head FROM crawl_runs WHERE id=%s",
+                    (run_id,))
+        row = cur.fetchone()
+    return ((row[0] or 0), row[1]) if row else (0, None)
+
+
+def _settle_identity(conn, src: str, ident: dict | None, *, run_id: int | None,
+                     pending_status: str, error_head: str | None = None) -> None:
+    """Terminal identity bookkeeping for one k8s run, best-effort.
+
+    done      -> release(success=True) + run outcome (rows of the direct
+                 report; a missing report counts as zero);
+    failed    -> release(success=False) + dual-path auth feedback when the
+                 error text (Job condition head or the runner's own report)
+                 matches the runner's auth-failure vocabulary — the federated
+                 runner image reports no auth events itself;
+    cancelled -> release(success=False) only.
+
+    Runs after the pending row is closed: it must never raise into the
+    dispatcher loop, and an expired/recycled lease is tolerated.
+    """
+    if ident is None:
+        return
+    _release_identity(conn, ident, success=(pending_status == "done"), src=src)
+    try:
+        if pending_status == "done":
+            rows, _ = _report_row(conn, run_id)
+            _auth.record_run_outcome(conn, ident["id"], rows)
+        elif pending_status == "failed":
+            _, run_error = _report_row(conn, run_id)
+            detail = " | ".join(p for p in (error_head, run_error) if p)
+            if _looks_like_auth_failure(detail):
+                _auth.report_auth_failed(
+                    conn, src, ident["account_alias"],
+                    f"dispatcher k8s heuristic: {detail}"[:500])
+    except Exception as e:  # noqa: BLE001 - never mask the run outcome
+        print(f"fd-dispatcher: identity settle failed for {src}: {e}",
+              file=sys.stderr)
+
+
+def job_body(src: str, pending_id: int, decl: dict, ns: str, *,
+             identity_env: list[dict] | None = None) -> dict:
     """batch/v1 Job for one declared federated run (<source>-<pending id>).
 
     The declaration owns image/command/deadline; each runner_env_from secret
     name becomes a per-secret envFrom secretRef on the container (crawl
     credentials such as RustFS that the platform subprocess form gets from
-    the dispatcher env). Resource limits are the registration hard gate
+    the dispatcher env). identity_env carries the leased identity's
+    FD_ACCOUNT / FD_SESSION_JAR / proxy variables when the source declares
+    an auth_profile. Resource limits are the registration hard gate
     (industry-crawl-gitops exemption precondition) and default to the
     law-line profile. The Job is labeled as dispatcher-managed so the
     federation observer's mirror stays exclusive with the runner's direct
@@ -190,6 +305,7 @@ def job_body(src: str, pending_id: int, decl: dict, ns: str) -> dict:
     db_url = os.environ.get("FD_CRAWL_DB_URL", "")
     if db_url:
         env.append({"name": "FD_CRAWL_DB_URL", "value": db_url})
+    env.extend(identity_env or [])
     env_from = [{"secretRef": {"name": s}}
                 for s in (decl.get("runner_env_from") or [])
                 if isinstance(s, str) and s.strip()]
@@ -238,15 +354,21 @@ def _run_and_cancel(conn, pending_id: int):
 
 
 def execute_k8s(conn, row: dict, src: str, decl: dict, ns: str, *,
-                poll_seconds: int | None = None) -> None:
+                poll_seconds: int | None = None,
+                owner: str | None = None) -> None:
     """Claim-to-terminal lifecycle for one federated pending row.
 
-    Gate -> create -> poll -> finish: refuse when the source already has an
-    active Job in the namespace (cluster-side single-flight, same contract
-    as the DB-level guard), create the declared Job (adopting a same-name
-    Job left by a prior lapsed attempt), then poll until terminal — closing
-    the pending row from the linked crawl_runs report, or deleting the Job
-    and writing the cancel outcome when cancel_requested appears.
+    Gate -> lease -> create -> poll -> finish -> settle: refuse when the
+    source already has an active Job in the namespace (cluster-side
+    single-flight, same contract as the DB-level guard), lease the pool
+    identity when the source declares an auth_profile and inject it into
+    the Job env (pool dry or an unavailable session jar refuses the run —
+    no Job, no unauthenticated execution), create the declared Job
+    (adopting a same-name Job left by a prior lapsed attempt), then poll
+    until terminal — closing the pending row from the linked crawl_runs
+    report, or deleting the Job and writing the cancel outcome when
+    cancel_requested appears. The identity is settled by outcome
+    (release + run outcome / auth feedback) after the row is closed.
     """
     poll_seconds = int(poll_seconds
                        or os.environ.get("FD_DISPATCH_POLL_SECONDS", "10"))
@@ -259,50 +381,91 @@ def execute_k8s(conn, row: dict, src: str, decl: dict, ns: str, *,
               f"active job in {ns} (single-flight)")
         return
 
-    body = job_body(src, row["id"], decl, ns)
+    # Identity segment (same SQL/contract as the docker path below):
+    # lease -> fetch jar -> resolve the bound egress -> Job env.
+    ident = None
+    ident_env: list[dict] = []
+    with conn.cursor() as cur:
+        cur.execute("SELECT auth_profile FROM crawl_sources WHERE source=%s", (src,))
+        prof = cur.fetchone()
+    if prof and prof[0]:
+        ident = _auth.lease_identity(
+            conn, src, owner or f"{socket.gethostname()}-dispatch",
+            ttl_seconds=_identity_ttl(decl))
+        if ident is None:
+            dispatch.finish_pending(
+                conn, row["id"], run_id=None, status="failed",
+                error_head="auth pool dry: no active unleased identity")
+            print(f"fd-dispatcher: skipped #{row['id']} {src}, auth pool dry")
+            return
+        try:
+            ident_env = _identity_env(conn, ident)
+        except Exception as e:  # noqa: BLE001 - jar problems free the lease
+            _release_identity(conn, ident, success=False, src=src)
+            dispatch.finish_pending(
+                conn, row["id"], run_id=None, status="failed",
+                error_head=f"session jar unavailable: {e}")
+            print(f"fd-dispatcher: session jar unavailable for {src}: {e}",
+                  file=sys.stderr)
+            return
+        print(f"fd-dispatcher: leased identity '{ident['account_alias']}' "
+              f"for {src} (inline jar)")
+
+    body = job_body(src, row["id"], decl, ns, identity_env=ident_env)
     name = body["metadata"]["name"]
     try:
-        create_job(ns, body)
-    except urllib.error.HTTPError as e:
-        if e.code != 409:  # Job of a lapsed prior attempt: adopt and poll it
-            raise
-        print(f"fd-dispatcher: adopting existing job {name}")
+        try:
+            create_job(ns, body)
+        except urllib.error.HTTPError as e:
+            if e.code != 409:  # Job of a lapsed prior attempt: adopt and poll it
+                raise
+            print(f"fd-dispatcher: adopting existing job {name}")
 
-    while True:
-        run_id, run_status, cancel = _run_and_cancel(conn, row["id"])
-        if cancel:
-            delete_job(ns, name)
-            if run_id is not None:
-                # The killed runner cannot write its own finish; close the
-                # crawl_runs row from the dispatcher side so it leaves running.
-                with conn, conn.cursor() as cur:
-                    cur.execute(
-                        "UPDATE crawl_runs SET status='cancelled', finished_at=now() "
-                        "WHERE id=%s AND status='running'", (run_id,))
-            dispatch.finish_pending(conn, row["id"], run_id=run_id,
-                                    status="cancelled", error_head=None)
-            print(f"fd-dispatcher: #{row['id']} {src} cancelled, job {name} deleted")
-            return
-        state, head = job_state(get_job(ns, name))
-        if state != "active":
-            run_id, run_status = _lookup_run(conn, row["id"])
-            if run_status == "success":
-                pending_status = "done"
-            elif run_status == "cancelled":
-                pending_status = "cancelled"
-            elif state == "success":
-                pending_status = "done"  # terminal Job state when no report linked
-            else:
-                pending_status = "failed"
-            error_head = None
-            if pending_status == "failed":
-                error_head = head or f"job {state} without runner report"
-            dispatch.finish_pending(conn, row["id"], run_id=run_id,
-                                    status=pending_status, error_head=error_head)
-            print(f"fd-dispatcher: #{row['id']} {src} -> {pending_status} "
-                  f"(job {name}, crawl_runs #{run_id})")
-            return
-        time.sleep(poll_seconds)
+        while True:
+            run_id, run_status, cancel = _run_and_cancel(conn, row["id"])
+            if cancel:
+                delete_job(ns, name)
+                if run_id is not None:
+                    # The killed runner cannot write its own finish; close the
+                    # crawl_runs row from the dispatcher side so it leaves running.
+                    with conn, conn.cursor() as cur:
+                        cur.execute(
+                            "UPDATE crawl_runs SET status='cancelled', finished_at=now() "
+                            "WHERE id=%s AND status='running'", (run_id,))
+                dispatch.finish_pending(conn, row["id"], run_id=run_id,
+                                        status="cancelled", error_head=None)
+                print(f"fd-dispatcher: #{row['id']} {src} cancelled, job {name} deleted")
+                _settle_identity(conn, src, ident, run_id=run_id,
+                                 pending_status="cancelled")
+                return
+            state, head = job_state(get_job(ns, name))
+            if state != "active":
+                run_id, run_status = _lookup_run(conn, row["id"])
+                if run_status == "success":
+                    pending_status = "done"
+                elif run_status == "cancelled":
+                    pending_status = "cancelled"
+                elif state == "success":
+                    pending_status = "done"  # terminal Job state when no report linked
+                else:
+                    pending_status = "failed"
+                error_head = None
+                if pending_status == "failed":
+                    error_head = head or f"job {state} without runner report"
+                dispatch.finish_pending(conn, row["id"], run_id=run_id,
+                                        status=pending_status, error_head=error_head)
+                print(f"fd-dispatcher: #{row['id']} {src} -> {pending_status} "
+                      f"(job {name}, crawl_runs #{run_id})")
+                _settle_identity(conn, src, ident, run_id=run_id,
+                                 pending_status=pending_status,
+                                 error_head=error_head)
+                return
+            time.sleep(poll_seconds)
+    except Exception:
+        # Job lifecycle broke after leasing: free the identity before the
+        # caller writes the failed pending row.
+        _release_identity(conn, ident, success=False, src=src)
+        raise
 
 
 def main() -> int:
@@ -320,7 +483,6 @@ def main() -> int:
     expired = dispatch.expire_leases(conn)
     if expired:
         print(f"fd-dispatcher: expired {expired} stale lease(s)")
-    from . import auth as _auth
     _auth.expire_leases(conn)
     dispatch.heartbeat_site(conn, site)
     from .sites import load_sites
@@ -358,11 +520,12 @@ def main() -> int:
         decl = source_runner(conn, src)
         if uses_k8s_branch(decl):
             # Federated member: create the declared Job in the local cluster
-            # instead of the subprocess form (no auth-pool leasing — declared
-            # images carry their own identity).
+            # instead of the subprocess form. Profiled sources get their
+            # identity leased and injected by execute_k8s (task 1.1/1.2),
+            # same pool contract as the subprocess path below.
             ns = os.environ.get("FD_DISPATCH_NAMESPACE") or _in_cluster_ns()
             try:
-                execute_k8s(conn, row, src, decl, ns)
+                execute_k8s(conn, row, src, decl, ns, owner=claimed_by)
             except Exception as e:  # noqa: BLE001 - one bad row must not kill the loop
                 dispatch.finish_pending(conn, row["id"], run_id=None, status="failed",
                                error_head=f"dispatcher k8s error: {e}")

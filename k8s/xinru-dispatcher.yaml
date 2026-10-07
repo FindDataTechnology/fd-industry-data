@@ -1,10 +1,17 @@
-# Site dispatcher for xinru-master (legal-line-federation 3.3): pulls pending
-# exception runs for site=xinru-master and executes registered federated
+# Site dispatcher for the legal-line site (legal-line-federation 3.3): pulls
+# pending exception runs for its site and executes registered federated
 # members (kind='federated' + runner declaration in crawl_sources) as batch/v1
 # Jobs in this namespace via the in-cluster service account. Platform-native
-# sources are not claimed by this site. One-time secret (same central PG url
-# as tencent fd-industry-db / scraw federation-db):
-#   (already present on xinru-master: secret federation-db, key url)
+# sources are not claimed by this site. One-time secrets:
+#   (already present: secret federation-db, key url — same central PG url as
+#    tencent fd-industry-db / scraw federation-db)
+#   platform-session-key (key: key) — Fernet key of the identity pool, same
+#     value as tencent fd-industry / xinru fd-mcp; the dispatcher decodes the
+#     leased identity's session jar with it
+#   flk-law-crawl-credentials (keys: rustfs-access-key / rustfs-secret-key) —
+#     RustFS credentials for the platform-sessions jar store, already used by
+#     the law-line CronJobs in this namespace; the dispatcher reads jars from
+#     the same RustFS endpoint (100.64.0.11:9000, as tencent fd-industry-rustfs)
 # Deploy with (manifest only — do not apply from CI):
 #   scp k8s/xinru-dispatcher.yaml fd-deploy:/tmp/ && ssh fd-deploy \
 #     "sudo k3s kubectl apply -f /tmp/xinru-dispatcher.yaml"
@@ -79,7 +86,7 @@ spec:
                 - name: FD_SCHEMA_MANAGED
                   value: "1"
                 - name: FD_DISPATCH_SITE
-                  value: xinru-master
+                  value: xinru-server1
                 - name: FD_DISPATCH_MAX_RUNS
                   value: "5"
                 - name: FD_DISPATCH_NAMESPACE
@@ -89,6 +96,27 @@ spec:
                     secretKeyRef:
                       name: federation-db
                       key: url
+                # identity pool (task 3.2): dispatcher leases a session
+                # identity for profiled federated sources and inlines its jar
+                # into the Job env; the Fernet key + RustFS credentials
+                # mirror the tencent dispatcher (same jar store, same key).
+                - name: PLATFORM_SESSION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: platform-session-key
+                      key: key
+                - name: RUSTFS_ENDPOINT
+                  value: "http://100.64.0.11:9000"
+                - name: RUSTFS_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: flk-law-crawl-credentials
+                      key: rustfs-access-key
+                - name: RUSTFS_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: flk-law-crawl-credentials
+                      key: rustfs-secret-key
               resources:
                 # registration hard gate: every workload on the exemption host
                 # carries limits (industry-crawl-gitops, legal-line-federation D6)
