@@ -292,3 +292,9 @@ def test_job_state_transitions():
     assert job_state(JOB_DONE) == ("success", None)
     state, head = job_state(JOB_FAILED)
     assert state == "failed" and "DeadlineExceeded" in head
+
+def test_cancel_writes_crawl_runs_terminal(monkeypatch):
+    """取消时 dispatcher 必须回写 crawl_runs 终态（被杀 runner 写不了）。"""
+    import inspect
+    src = inspect.getsource(__import__("fd_industry_data.dispatcher_cli", fromlist=["x"]).execute_k8s)
+    assert "status='cancelled'" in src and "crawl_runs" in src
