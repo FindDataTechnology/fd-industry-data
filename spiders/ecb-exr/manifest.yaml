@@ -9,7 +9,7 @@ ranking_seed: [0.5, 0.5]
 functions:
   - command: run_ecb_exr
     description: Fetch ECB euro reference exchange rate series (CSV export) from data-api.ecb.europa.eu
-    frequency: daily
+    frequency: monthly
     parameters:
       - name: limit
         type: int
@@ -59,7 +59,7 @@ concepts:
     entity_type: region
     measure: value
     unit: cny_per_eur
-    frequency: daily
+    frequency: monthly
 entities:
   - entity_type: region
     coverage: universe
