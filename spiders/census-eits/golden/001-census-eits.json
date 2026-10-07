@@ -1,0 +1,22 @@
+{
+  "sample_id": "001-census-eits",
+  "created": "2026-10-07",
+  "target": "run_census_eits",
+  "params": {"limit": 20},
+  "expect": {
+    "min_rows": 14,
+    "rows_contains": [
+      {"field": "time", "equals": "2020-01"},
+      {"field": "seasonally_adj", "equals": "no"},
+      {"field": "category_code", "equals": "44X72"},
+      {"field": "category_code", "equals": "42"},
+      {"field": "data_type_code", "equals": "SM"},
+      {"field": "data_type_code", "equals": "IM"},
+      {"field": "source", "equals": "census-eits"},
+      {"field": "cell_value", "equals": 472427.0},
+      {"field": "cell_value", "equals": 488638.0},
+      {"field": "cell_value", "equals": 684010.0}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
