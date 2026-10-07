@@ -1,0 +1,115 @@
+version: "2"
+name: openchargemap           # = spiders/openchargemap/ 目录名，运行时标识符，合入后不可改名
+label: Open Charge Map EV Charging POIs (keyed)
+source_url: https://openchargemap.org/
+# site: tencent              # 缺省 tencent；本单元只访问 api.openchargemap.io 公开 REST，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_openchargemap
+    description: Fetch EV charging point-of-interest rows from the Open Charge Map v3 POI API (default ISO alpha-2 countrycode DE listing; optional latitude/longitude/distance_km radius filter used by the fixed-POI golden anchor); auth via key query parameter (env OCM_API_KEY); POI totals grow over time so goldens anchor structure constants only, never counts
+    frequency: weekly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return; also sent as maxresults (API max 1000)
+      - name: country_code
+        type: string
+        required: false
+        description: ISO 3166-1 alpha-2 country filter (default DE); alpha-3 codes are silently unfiltered upstream and must not be used
+      - name: latitude
+        type: float
+        required: false
+        description: Center latitude for a radius filter (requires longitude)
+      - name: longitude
+        type: float
+        required: false
+        description: Center longitude for a radius filter (requires latitude)
+      - name: distance_km
+        type: float
+        required: false
+        description: Radius in km for the geographic filter (default 10)
+    columns:
+      - name: id
+        type: int
+        description: OCM numeric POI ID
+      - name: uuid
+        type: string
+        description: OCM POI UUID (stable structural anchor, e.g. 39B6C0CE-6C7C-4E66-9DF5-93DF49682756)
+      - name: title
+        type: string
+        description: Address display title of the POI
+      - name: address
+        type: string
+        description: Street address line (AddressLine1)
+      - name: town
+        type: string
+        description: Town or city
+      - name: postcode
+        type: string
+        description: Postal code
+      - name: state_or_province
+        type: string
+        description: State or province label
+      - name: country_id
+        type: int
+        description: OCM country ID (87 = Germany)
+      - name: latitude
+        type: float
+        description: POI latitude
+      - name: longitude
+        type: float
+        description: POI longitude
+      - name: usage_type_id
+        type: int
+        description: Usage type ID (4 = public)
+      - name: status_type_id
+        type: int
+        description: Status type ID (50 = operational), null when unset
+      - name: number_of_points
+        type: int
+        description: Number of charging points, null when unset upstream
+      - name: date_created
+        type: string
+        description: POI creation timestamp (upstream, grows the dataset over time)
+      - name: date_last_verified
+        type: string
+        description: Last community verification timestamp (upstream)
+      - name: is_recently_verified
+        type: bool
+        description: Whether the POI was recently verified
+      - name: operator_id
+        type: int
+        description: Operator ID, null when unset
+      - name: data_provider_id
+        type: int
+        description: Data provider ID, null when unset
+      - name: num_connections
+        type: int
+        description: Number of connection entries on the POI
+      - name: max_power_kw
+        type: float
+        description: Maximum PowerKW across connections, null when none reported
+      - name: source
+        type: string
+        description: Data source identifier (openchargemap)
+      - name: source_url
+        type: string
+        description: Exact API request URL with the key replaced by REDACTED
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: max_power_kw
+    concept: infrastructure.ev_charging_power
+    entity_type: location
+    measure: value
+    unit: kw
+    frequency: weekly
+entities:
+  - entity_type: location
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
