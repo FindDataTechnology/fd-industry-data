@@ -1,0 +1,58 @@
+version: "2"
+name: hf-datasets                 # = spiders/hf-datasets/ 目录名，运行时标识符，合入后不可改名
+label: HuggingFace Hub Monthly New-Dataset Volume
+source_url: https://huggingface.co/datasets
+# site: tencent                   # 需代理出口访问 huggingface.co（hf-mirror.com 直连兜底）；代理注入就绪前不点亮
+# schedule 留空：静默合入（批次二 Wave C），点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_hf_datasets
+    description: Fetch monthly counts of newly created HuggingFace Hub datasets from a newest-first createdAt sample (huggingface.co with hf-mirror.com fallback)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of monthly rows to return (most recent kept)
+      - name: pages
+        type: int
+        required: false
+        description: "Listing pages to sample, newest first (page size 100; default 3 = ~300 datasets, max 10)"
+    columns:
+      - name: period
+        type: string
+        description: Calendar month of dataset createdAt (ISO yyyy-mm, UTC)
+      - name: new_datasets
+        type: int
+        description: Datasets created in the month within the sample (sample-scope count, not hub-wide)
+      - name: sampled_total
+        type: int
+        description: Total datasets sampled in this run (row-level constant for reconciliation)
+      - name: malformed_skipped
+        type: int
+        description: Sampled entries dropped for missing/invalid createdAt (row-level constant)
+      - name: endpoint_host
+        type: string
+        description: Host that actually served the sample (huggingface.co or hf-mirror.com fallback)
+      - name: url
+        type: string
+        description: First listing-page request URL for the run
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: new_datasets
+    concept: industry.monthly_operation_metric
+    entity_type: region
+    measure: value
+    unit: count
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
