@@ -1,0 +1,31 @@
+{
+  "sample_id": "001-eia-v2",
+  "created": "2026-10-07",
+  "target": "run_eia_v2",
+  "params": {
+    "limit": 16,
+    "respondent": "CISO",
+    "start": "2020-01-01T00",
+    "end": "2020-01-01T03"
+  },
+  "expect": {
+    "min_rows": 16,
+    "rows_contains": [
+      {"field": "period", "equals": "2020-01-01T00"},
+      {"field": "respondent", "equals": "CISO"},
+      {"field": "respondent_name", "equals": "California Independent System Operator"},
+      {"field": "series_type", "equals": "D"},
+      {"field": "series_type", "equals": "DF"},
+      {"field": "series_type", "equals": "NG"},
+      {"field": "series_type", "equals": "TI"},
+      {"field": "series_type_name", "equals": "Demand"},
+      {"field": "value", "equals": 22497.0},
+      {"field": "value", "equals": 22319.0},
+      {"field": "value", "equals": 11294.0},
+      {"field": "value", "equals": -5797.0},
+      {"field": "unit", "equals": "megawatthours"},
+      {"field": "source", "equals": "eia-v2"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
