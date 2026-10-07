@@ -1,0 +1,76 @@
+version: "2"
+name: eia-v2                  # = spiders/eia-v2/ 目录名，运行时标识符，合入后不可改名
+label: EIA Hourly Electric Grid (RTO region-data)
+source_url: https://api.eia.gov/v2/electricity/rto/region-data/data/
+# site: tencent              # 缺省 tencent；本单元只访问 api.eia.gov 公开 REST，无需换执行位
+# 未写 schedule —— keyed 源静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_eia_v2
+    description: Fetch US hourly balancing-authority grid data (demand/forecast/net generation/interchange) from the EIA v2 RTO region-data endpoint; parses string numbers and pages via offset
+    frequency: hourly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of hour rows to return, newest first (window tail); default 100
+      - name: respondent
+        type: string
+        required: false
+        description: EIA balancing-authority code (default CISO, e.g. PJM/ERCO/MISO; not a state name)
+      - name: start
+        type: string
+        required: false
+        description: Window start in YYYY-MM-DDTHH (UTC); must be paired with end
+      - name: end
+        type: string
+        required: false
+        description: Window end in YYYY-MM-DDTHH (UTC); must be paired with start
+      - name: series_type
+        type: string
+        required: false
+        description: Optional series filter, one of D (demand) / DF (day-ahead forecast) / NG (net generation) / TI (total interchange)
+    columns:
+      - name: period
+        type: string
+        description: Hour in YYYY-MM-DDTHH (UTC, EIA dateFormat YYYY-MM-DD"T"HH24)
+      - name: respondent
+        type: string
+        description: EIA balancing-authority code (e.g. CISO)
+      - name: respondent_name
+        type: string
+        description: Balancing-authority display name (e.g. California Independent System Operator)
+      - name: series_type
+        type: string
+        description: Series code - D demand / DF day-ahead demand forecast / NG net generation / TI total interchange
+      - name: series_type_name
+        type: string
+        description: Series code display name
+      - name: value
+        type: float
+        description: Series value in megawatthours (upstream string parsed to float; null when unparsable)
+      - name: unit
+        type: string
+        description: Unit as reported by EIA (megawatthours)
+      - name: url
+        type: string
+        description: Source request URL with the api_key masked as *** (no credentials in row data)
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: energy.electricity_grid_mwh
+    entity_type: region
+    measure: value
+    unit: megawatt_hour
+    frequency: hourly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
