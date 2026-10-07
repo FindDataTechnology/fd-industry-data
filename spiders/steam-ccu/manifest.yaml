@@ -1,0 +1,66 @@
+version: "2"
+name: steam-ccu              # = spiders/steam-ccu/ 目录名，运行时标识符，合入后不可改名
+label: Steam concurrent players (CCU) + review aggregates for seed titles
+source_url: "https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/ (reviews: https://store.steampowered.com/appreviews/)"
+# site: 未写——api/store.steampowered.com 被墙，**需代理出口**；集群 runner 代理注入就绪前不点亮（静默合入）
+# schedule: 未写——同上，代理注入后由人工门点亮
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_steam_ccu
+    description: Fetch Steam concurrent player counts (CCU) plus review aggregates (score, positive/negative/review totals, positive ratio) for a fixed list of 12 seed titles via the keyless Steam Web API / store appreviews endpoints; CCU is a real-time number (never anchored)
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of rows to return (one row per seed app, seed order kept; default 100)
+    columns:
+      - name: appid
+        type: int
+        description: Steam app id (seed constant)
+      - name: name
+        type: string
+        description: Seed title name (seed metadata; neither endpoint returns a name)
+      - name: ccu
+        type: int
+        description: Concurrent players right now (real-time number, fluctuates per call)
+      - name: review_score
+        type: int
+        description: Review score bucket 0-10 (query_summary.review_score)
+      - name: review_score_desc
+        type: string
+        description: Score label (e.g. Very Positive, Mostly Positive)
+      - name: total_positive
+        type: int
+        description: Total positive reviews (all languages, all purchase types)
+      - name: total_negative
+        type: int
+        description: Total negative reviews
+      - name: total_reviews
+        type: int
+        description: Total reviews (positive + negative)
+      - name: positive_ratio
+        type: float
+        description: total_positive / total_reviews * 100, rounded to 4 decimals (null when no reviews)
+      - name: url
+        type: string
+        description: Source request URL for the row (appreviews endpoint)
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: ccu
+    concept: entertainment.game_online_population
+    entity_type: product
+    measure: ccu
+    unit: players
+    frequency: daily
+entities:
+  - entity_type: product
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

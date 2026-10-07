@@ -1,0 +1,35 @@
+{
+  "sample_id": "001-steam-ccu",
+  "created": "2026-10-07",
+  "target": "run_steam_ccu",
+  "params": {
+    "limit": 100
+  },
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {
+        "field": "appid",
+        "equals": 730
+      },
+      {
+        "field": "name",
+        "equals": "Counter-Strike 2"
+      },
+      {
+        "field": "source",
+        "equals": "steam-ccu"
+      }
+    ]
+  },
+  "whitelist_fields": [
+    "scraped_at",
+    "ccu",
+    "review_score",
+    "review_score_desc",
+    "total_positive",
+    "total_negative",
+    "total_reviews",
+    "positive_ratio"
+  ]
+}
