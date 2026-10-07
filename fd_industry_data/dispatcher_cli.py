@@ -272,6 +272,13 @@ def execute_k8s(conn, row: dict, src: str, decl: dict, ns: str, *,
         run_id, run_status, cancel = _run_and_cancel(conn, row["id"])
         if cancel:
             delete_job(ns, name)
+            if run_id is not None:
+                # The killed runner cannot write its own finish; close the
+                # crawl_runs row from the dispatcher side so it leaves running.
+                with conn, conn.cursor() as cur:
+                    cur.execute(
+                        "UPDATE crawl_runs SET status='cancelled', finished_at=now() "
+                        "WHERE id=%s AND status='running'", (run_id,))
             dispatch.finish_pending(conn, row["id"], run_id=run_id,
                                     status="cancelled", error_head=None)
             print(f"fd-dispatcher: #{row['id']} {src} cancelled, job {name} deleted")
