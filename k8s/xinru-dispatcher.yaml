@@ -78,7 +78,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: dispatcher
-              image: ccr.ccs.tencentyun.com/finddata/fd-industry-runner:sha-90246b8
+              image: ccr.ccs.tencentyun.com/finddata/fd-industry-runner:sha-b519534
               command: ["python3", "-m", "fd_industry_data.dispatcher_cli"]
               env:
                 - name: PYTHONUNBUFFERED
