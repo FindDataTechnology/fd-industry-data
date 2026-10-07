@@ -1,0 +1,90 @@
+version: "2"
+name: usda-psd                 # = spiders/usda-psd/ 目录名，运行时标识符，合入后不可改名
+label: USDA FAS PSD (Production, Supply and Distribution)
+source_url: https://api.fas.usda.gov/api/psd/commodities
+# site: tencent              # 缺省 tencent；本单元只访问 api.fas.usda.gov 官方 OpenData API，无需换执行位
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_usda_psd
+    description: Fetch USDA FAS PSD supply-and-demand rows via the FAS OpenData records endpoint (/api/psd/commodity/{code}/country/{code}/year/{year}); api.data.gov key injected from env DATA_GOV_API_KEY as the X-Api-Key header, market years sharded one request per year; catalog lookups enrich rows with commodity/country/attribute/unit names
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of rows to return across all market-year shards (default 100)
+      - name: commodity
+        type: string
+        required: false
+        description: PSD commodityCode (default 0440000 = Corn; catalog at /api/psd/commodities)
+      - name: country
+        type: string
+        required: false
+        description: PSD countryCode (default US; "all" returns every country with full revision history)
+      - name: market_year
+        type: string
+        required: false
+        description: Market year shard selector - int, "2020", "2019,2020" or "2018-2020"; one request per year (default 2020)
+      - name: with_names
+        type: bool
+        required: false
+        description: Enrich rows with commodity/country/attribute/unit names from the PSD catalogs (default true, costs up to 4 extra api.data.gov requests)
+    columns:
+      - name: commodity_code
+        type: string
+        description: PSD commodityCode (e.g. 0440000)
+      - name: commodity_name
+        type: string
+        description: Commodity name from /api/psd/commodities (null when enrichment is off or failed)
+      - name: country_code
+        type: string
+        description: PSD countryCode (e.g. US)
+      - name: country_name
+        type: string
+        description: Country name from /api/psd/countries (null when enrichment is off or failed)
+      - name: market_year
+        type: int
+        description: PSD marketing year of the row
+      - name: calendar_year
+        type: int
+        description: Calendar year of the PSD release this row came from
+      - name: month
+        type: int
+        description: Month of the PSD release this row came from
+      - name: attribute_id
+        type: int
+        description: PSD attribute id (28 Production, 88 Exports, 176 Ending Stocks, 184 Yield ...)
+      - name: attribute_name
+        type: string
+        description: Attribute name from /api/psd/commodityAttributes (null when enrichment is off or failed)
+      - name: unit_id
+        type: int
+        description: PSD unit id (8 = 1000 MT, 4 = 1000 HA, 26 = MT/HA ...)
+      - name: unit
+        type: string
+        description: Unit description from /api/psd/unitsOfMeasure (null when enrichment is off or failed)
+      - name: value
+        type: float
+        description: Attribute value in the row's unit
+      - name: url
+        type: string
+        description: Source request URL for the row (no key - the key travels in the X-Api-Key header)
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: agriculture.supply_demand_balance
+    entity_type: country
+    measure: value
+    unit: varies_by_attribute
+    frequency: yearly
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

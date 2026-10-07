@@ -1,0 +1,24 @@
+{
+  "sample_id": "001-usda-psd",
+  "created": "2026-10-07",
+  "target": "run_usda_psd",
+  "params": {"limit": 30},
+  "expect": {
+    "min_rows": 10,
+    "rows_contains": [
+      {"field": "commodity_code", "equals": "0440000"},
+      {"field": "commodity_name", "equals": "Corn"},
+      {"field": "country_code", "equals": "US"},
+      {"field": "country_name", "equals": "United States"},
+      {"field": "market_year", "equals": 2020},
+      {"field": "attribute_id", "equals": 184},
+      {"field": "attribute_name", "equals": "Yield"},
+      {"field": "unit_id", "equals": 26},
+      {"field": "unit", "equals": "(MT/HA)"},
+      {"field": "value", "equals": 10.7608},
+      {"field": "source", "equals": "usda-psd"},
+      {"field": "url", "equals": "https://api.fas.usda.gov/api/psd/commodity/0440000/country/US/year/2020"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
