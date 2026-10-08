@@ -1,0 +1,72 @@
+version: "2"
+name: socrata-ny                  # = spiders/socrata-ny/ 目录名，运行时标识符，合入后不可改名
+label: New York State Transportation Fuels Spot Prices (Socrata)
+source_url: https://data.ny.gov/d/k7gz-mn77
+egress_secret: fd-industry-egress-fx01       # 需代理出口：data.ny.gov 从 tencent 站点直连被 Socrata 边缘 403
+# schedule 留空：静默合入（批次二 Wave C），点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_socrata_ny
+    description: Fetch weekly New York State transportation fuel spot prices (NY gasoline/diesel, WTI/Brent crude) from the data.ny.gov Socrata SODA API
+    frequency: weekly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of weekly rows to return (most recent kept; default 100, max 5000)
+    columns:
+      - name: period
+        type: string
+        description: Observation date (ISO yyyy-mm-dd, weekly series)
+      - name: ny_gasoline_spot_usd_gal
+        type: float
+        description: NY conventional gasoline spot price (USD per gallon)
+      - name: ny_diesel_spot_usd_gal
+        type: float
+        description: NY ultra-low-sulfur diesel spot price (USD per gallon)
+      - name: wti_crude_spot_usd_bbl
+        type: float
+        description: WTI crude oil spot price (USD per barrel)
+      - name: brent_crude_spot_usd_bbl
+        type: float
+        description: Brent crude oil spot price (USD per barrel)
+      - name: url
+        type: string
+        description: Request URL for the run
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: ny_gasoline_spot_usd_gal
+    concept: energy.fuel_price
+    entity_type: region
+    measure: value
+    unit: usd_per_gallon
+    frequency: weekly
+  - column: ny_diesel_spot_usd_gal
+    concept: energy.fuel_price
+    entity_type: region
+    measure: value
+    unit: usd_per_gallon
+    frequency: weekly
+  - column: wti_crude_spot_usd_bbl
+    concept: energy.crude_price
+    entity_type: region
+    measure: value
+    unit: usd_per_barrel
+    frequency: weekly
+  - column: brent_crude_spot_usd_bbl
+    concept: energy.crude_price
+    entity_type: region
+    measure: value
+    unit: usd_per_barrel
+    frequency: weekly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
