@@ -1,0 +1,61 @@
+version: "2"
+name: afdc                       # = spiders/afdc/ 目录名，运行时标识符，合入后不可改名
+label: US DOE AFDC Alternative Fueling Station Counts
+source_url: https://afdc.energy.gov/data/10332
+# site: tencent 缺省——直连 afdc.energy.gov 实测可达（本机 + tencent 站点均 200，2026-10-08），无需代理出口
+# schedule: 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_afdc
+    description: Fetch annual US alternative fueling station counts by fuel type (AFDC chart 10332 JSON, no key required)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum observation rows to return (deterministic order, most recent kept)
+      - name: year
+        type: int
+        required: false
+        description: Optional year filter (1992 onward; omit for all years)
+    columns:
+      - name: year
+        type: int
+        description: Reporting year (chart categories axis)
+      - name: fuel
+        type: string
+        description: Fuel series name as upstream code (Biodiesel / CNG / Electric / Ethanol (E85) / Hydrogen / LNG / Methanol (M85) / Propane / Renewable Diesel)
+      - name: stations
+        type: float
+        description: Number of public and private fueling stations (missing nulls never emitted)
+      - name: unit
+        type: string
+        description: Constant "stations" (normalized from chart yaxis "Number of Stations")
+      - name: chart_title
+        type: string
+        description: Upstream chart title for provenance
+      - name: upstream_updated
+        type: string
+        description: Upstream last_update label (e.g. "January 2026")
+      - name: url
+        type: string
+        description: Source request URL for the rows
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: stations
+    concept: energy.alt_fuel_stations
+    entity_type: region
+    measure: value
+    unit: count
+    frequency: yearly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
