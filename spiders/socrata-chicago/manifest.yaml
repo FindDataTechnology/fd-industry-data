@@ -1,0 +1,45 @@
+version: "2"
+name: socrata-chicago           # = spiders/socrata-chicago/ 目录名，运行时标识符，合入后不可改名
+label: Chicago CTA Bus Monthly Ridership (Socrata)
+source_url: https://data.cityofchicago.org/Transportation/CTA-Ridership-Bus-Routes-Monthly-Day-Type-Averag/bynn-gwxy
+egress_secret: fd-industry-egress-fx01       # 需代理出口：data.cityofchicago.org 从 tencent 站点直连被 Socrata 边缘 403
+# schedule 留空：静默合入（批次二 Wave C），点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_socrata_chicago
+    description: Fetch monthly CTA bus ridership totals for Chicago (all routes aggregated) from the data.cityofchicago.org Socrata SODA API
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of monthly rows to return (most recent kept; default 100, max 5000)
+    columns:
+      - name: period
+        type: string
+        description: Observation month (ISO yyyy-mm)
+      - name: bus_rides_total
+        type: int
+        description: Total CTA bus rides in the month, all routes aggregated (count)
+      - name: url
+        type: string
+        description: Request URL for the run
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: bus_rides_total
+    concept: transport.monthly_ridership
+    entity_type: region
+    measure: value
+    unit: count
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
