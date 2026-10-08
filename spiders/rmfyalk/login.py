@@ -12,6 +12,7 @@ unit only establishes the platform-side session.
 from __future__ import annotations
 
 import json
+import os
 import time
 import urllib.request
 
@@ -22,6 +23,23 @@ AUTH_HEADER = "faxin-cpws-al-token"
 HUMAN_BUDGET_SECONDS = 10 * 60
 
 automation = "assisted"
+
+
+def _human_budget_seconds() -> float:
+    """The human has ``FD_HUMAN_BUDGET_SECONDS`` to finish the OAuth login.
+
+    A fixed 600s budget made every station die while the operator was still
+    reaching the observation window (stations #16-#19, 2026-10-08): the Job's
+    own deadline (1500s/2700s) was the real window the launcher promised, so
+    the unit must follow the station env instead of a module constant.
+    Non-numeric values fall back to the built-in default."""
+    raw = os.environ.get("FD_HUMAN_BUDGET_SECONDS", "").strip()
+    if not raw:
+        return float(HUMAN_BUDGET_SECONDS)
+    try:
+        return float(raw)
+    except ValueError:
+        return float(HUMAN_BUDGET_SECONDS)
 
 
 def _entry_url() -> str:
@@ -69,7 +87,7 @@ def login(account_alias: str, proxy: dict | None = None) -> dict:
 
         page.on("response", on_response)
         page.goto(login_url, wait_until="domcontentloaded", timeout=45_000)
-        deadline = time.time() + HUMAN_BUDGET_SECONDS
+        deadline = time.time() + _human_budget_seconds()
         while not captured and time.time() < deadline:
             page.wait_for_timeout(500)
         if not captured:

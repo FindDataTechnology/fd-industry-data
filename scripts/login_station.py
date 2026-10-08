@@ -117,6 +117,12 @@ def main() -> int:
     station_id = int(os.environ["STATION_ID"])
     deadline = float(os.environ.get("FD_STATION_DEADLINE_SECONDS", "1500"))
     grace = float(os.environ.get("FD_STATION_GRACE_SECONDS", "20"))
+    # The unit's human budget must fit inside the station's own deadline: the
+    # launcher promises the operator the whole Job window, so derive the unit
+    # budget from it (60s margin to report the timeout before the Job is killed)
+    # unless the deploy explicitly pinned FD_HUMAN_BUDGET_SECONDS.
+    os.environ.setdefault(
+        "FD_HUMAN_BUDGET_SECONDS", str(max(deadline - 60.0, 60.0)))
     _report(conn, station_id, "waiting_operator",
             "station desktop up; waiting for operator/login unit")
 
