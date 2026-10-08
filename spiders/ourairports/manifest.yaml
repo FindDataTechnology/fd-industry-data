@@ -1,0 +1,54 @@
+version: "2"
+name: ourairports                # = spiders/ourairports/ 目录名，运行时标识符，合入后不可改名
+label: OurAirports Airport Dimension Type-Count Snapshot
+source_url: https://davidmegginson.github.io/ourairports-data/airports.csv
+# 直连可达（2026-10-08 实测 HTTP 200，12.7 MB，无需代理出口）：无 egress_secret、缺省 site（tencent）
+# schedule 留空：静默合入（批次三直建），点亮排期由人工门统一补
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_ourairports
+    description: Stream-parse the OurAirports airports.csv dimension table and emit a per-type airport count snapshot (plus total_airports) from a single pass
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of type rows to return (largest counts kept; default 100 covers all current types)
+    columns:
+      - name: period
+        type: string
+        description: Snapshot date (ISO yyyy-mm-dd, UTC run date — dimension tables carry no observation timestamp)
+      - name: airport_type
+        type: string
+        description: Airport type bucket (large_airport/medium_airport/small_airport/heliport/closed/seaplane_base/balloonport)
+      - name: total
+        type: int
+        description: Airports of this type in the current dimension-table build
+      - name: total_airports
+        type: int
+        description: Row-level constant — total typed airports (equals the sum of type totals, for reconciliation)
+      - name: malformed_skipped
+        type: int
+        description: Row-level constant — rows skipped for a blank type (excluded from all buckets)
+      - name: url
+        type: string
+        description: Request URL for the run
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: total
+    concept: infrastructure.airport_count
+    entity_type: world
+    measure: value
+    unit: count
+    frequency: monthly
+entities:
+  - entity_type: world
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
