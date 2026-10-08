@@ -4,6 +4,7 @@ label: OurAirports Airport Dimension Type-Count Snapshot
 source_url: https://davidmegginson.github.io/ourairports-data/airports.csv
 # 直连可达（2026-10-08 实测 HTTP 200，12.7 MB，无需代理出口）：无 egress_secret、缺省 site（tencent）
 # schedule 留空：静默合入（批次三直建），点亮排期由人工门统一补
+schedule: "41 5 12 * *"       # 点亮（批次三，monthly）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
