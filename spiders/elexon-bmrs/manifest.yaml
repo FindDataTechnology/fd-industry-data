@@ -3,6 +3,7 @@ name: elexon-bmrs              # = spiders/elexon-bmrs/ 目录名，运行时标
 label: UK Elexon BMRS Daily Effective Temperature (TEMP)
 source_url: https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP
 egress_secret: fd-industry-egress-fx01       # 需代理出口：data.elexon.co.uk 从 tencent 站点直连被 Azure WAF 403
+schedule: "33 6 * * *"       # 点亮（批次二 Wave C，经 fx01 出口）
 # schedule 留空：静默合入（批次二 Wave C），点亮留给人工门
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]

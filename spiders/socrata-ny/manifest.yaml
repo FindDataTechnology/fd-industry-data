@@ -3,6 +3,7 @@ name: socrata-ny                  # = spiders/socrata-ny/ 目录名，运行时�
 label: New York State Transportation Fuels Spot Prices (Socrata)
 source_url: https://data.ny.gov/d/k7gz-mn77
 egress_secret: fd-industry-egress-fx01       # 需代理出口：data.ny.gov 从 tencent 站点直连被 Socrata 边缘 403
+schedule: "3 5 * * *"       # 点亮（批次二 Wave C，经 fx01 出口）
 # schedule 留空：静默合入（批次二 Wave C），点亮留给人工门
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]

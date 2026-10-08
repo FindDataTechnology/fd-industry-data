@@ -3,6 +3,7 @@ name: socrata-chicago           # = spiders/socrata-chicago/ 目录名，运行�
 label: Chicago CTA Bus Monthly Ridership (Socrata)
 source_url: https://data.cityofchicago.org/Transportation/CTA-Ridership-Bus-Routes-Monthly-Day-Type-Averag/bynn-gwxy
 egress_secret: fd-industry-egress-fx01       # 需代理出口：data.cityofchicago.org 从 tencent 站点直连被 Socrata 边缘 403
+schedule: "9 5 * * *"       # 点亮（批次二 Wave C，经 fx01 出口）
 # schedule 留空：静默合入（批次二 Wave C），点亮留给人工门
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
