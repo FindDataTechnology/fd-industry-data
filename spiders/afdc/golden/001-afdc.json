@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-afdc",
+  "created": "2026-10-08",
+  "target": "run_afdc",
+  "params": {"limit": 50, "year": 2000},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "source", "equals": "afdc"},
+      {"field": "unit", "equals": "stations"},
+      {"field": "year", "equals": 2000},
+      {"field": "fuel", "equals": "CNG"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "upstream_updated"]
+}
