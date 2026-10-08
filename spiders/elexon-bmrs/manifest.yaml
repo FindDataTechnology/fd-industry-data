@@ -1,0 +1,54 @@
+version: "2"
+name: elexon-bmrs              # = spiders/elexon-bmrs/ 目录名，运行时标识符，合入后不可改名
+label: UK Elexon BMRS Daily Effective Temperature (TEMP)
+source_url: https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP
+egress_secret: fd-industry-egress-fx01       # 需代理出口：data.elexon.co.uk 从 tencent 站点直连被 Azure WAF 403
+# schedule 留空：静默合入（批次二 Wave C），点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_elexon_bmrs
+    description: Fetch UK Elexon BMRS daily effective temperature (TEMP dataset, 31-day rolling window) — the weather anchor for GB electricity demand
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of daily rows to return (most recent kept; default 100, max 5000)
+    columns:
+      - name: period
+        type: string
+        description: Measurement date (ISO yyyy-mm-dd)
+      - name: temperature
+        type: float
+        description: GB effective temperature (Celsius) — Elexon demand-forecast weather anchor
+      - name: temperatureReferenceAverage
+        type: float
+        description: Climatological reference average (optional, present when published)
+      - name: temperatureReferenceHigh
+        type: float
+        description: Climatological reference high (optional, present when published)
+      - name: temperatureReferenceLow
+        type: float
+        description: Climatological reference low (optional, present when published)
+      - name: url
+        type: string
+        description: Request URL for the run
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: temperature
+    concept: energy.temperature_outturn
+    entity_type: region
+    measure: value
+    unit: celsius
+    frequency: daily
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
