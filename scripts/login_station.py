@@ -50,6 +50,31 @@ CREATE TABLE IF NOT EXISTS crawl_login_stations (
 WS_PORT = 6080
 
 
+def _proxy_for_browser(url: str | None) -> dict | None:
+    """Playwright's proxy dict — Chromium ignores the credentials of an
+    ``http://user:pass@host:port`` URL read from the environment, so the
+    login unit must pass server/username/password explicitly (the same
+    split the broker's browser-profile.js does). Without it every navigation
+    through an authenticated egress fails with
+    net::ERR_INVALID_AUTH_CREDENTIALS (station #13-#15, 2026-10-07/08)."""
+    if not url:
+        return None
+    try:
+        from urllib.parse import urlsplit, unquote
+
+        parts = urlsplit(url)
+        if not parts.hostname:
+            return None
+        return {
+            "server": f"{parts.scheme or 'http'}://{parts.hostname}"
+                      + (f":{parts.port}" if parts.port else ""),
+            "username": unquote(parts.username) if parts.username else None,
+            "password": unquote(parts.password) if parts.password else None,
+        }
+    except Exception:  # noqa: BLE001 - a malformed URL means no proxy here
+        return None
+
+
 def _report(conn, station_id, status, note=""):
     with conn, conn.cursor() as cur:
         cur.execute("UPDATE crawl_login_stations SET status=%s, note=%s, "
@@ -81,6 +106,7 @@ def main() -> int:
         for k in ("HTTPS_PROXY", "HTTP_PROXY", "https_proxy", "http_proxy"):
             os.environ[k] = os.environ["PROXY_URL"]
         os.environ.setdefault("NO_PROXY", "100.64.0.0/10,10.0.0.0/8,localhost")
+    browser_proxy = _proxy_for_browser(os.environ.get("PROXY_URL"))
 
     conn = dispatch.connect()
     conn.autocommit = True
@@ -103,7 +129,13 @@ def main() -> int:
         automation = getattr(login, "automation", "assisted")
         print(f"login_station: running unit {source}/{account} "
               f"(automation={automation})", flush=True)
-        jar = login(account)
+        # Hand the egress to the unit when it accepts it: `login(account)` for
+        # units that still read the environment, `login(account, proxy=...)`
+        # for those that drive Playwright themselves.
+        try:
+            jar = login(account, proxy=browser_proxy)
+        except TypeError:
+            jar = login(account)
         session_ref = auth.upload_jar(source, account, jar)
         ident_rows = [r for r in auth.pool_status(conn, source)
                       if r["account_alias"] == account]

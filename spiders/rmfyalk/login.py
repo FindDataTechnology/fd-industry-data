@@ -36,7 +36,14 @@ def _entry_url() -> str:
     return str(payload["data"]).replace("http:", "https:")
 
 
-def login(account_alias: str) -> dict:
+def login(account_alias: str, proxy: dict | None = None) -> dict:
+    """Human-assisted OAuth capture.
+
+    ``proxy`` is Playwright's ``{server, username, password}`` dict the login
+    station passes in: Chromium ignores credentials embedded in an
+    environment proxy URL, so the egress must be handed to the browser
+    explicitly (net::ERR_INVALID_AUTH_CREDENTIALS otherwise).
+    """
     from playwright.sync_api import sync_playwright
 
     login_url = _entry_url()
@@ -45,7 +52,7 @@ def login(account_alias: str) -> dict:
     captured: dict = {}
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=False, proxy=proxy)
         ctx = browser.new_context(locale="zh-CN", timezone_id="Asia/Shanghai")
         page = ctx.newPage() if hasattr(ctx, "newPage") else ctx.new_page()
 
