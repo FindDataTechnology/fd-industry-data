@@ -1,0 +1,15 @@
+{
+  "sample_id": "001-ourairports",
+  "created": "2026-10-08",
+  "target": "run_ourairports",
+  "params": {"limit": 12},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "source", "equals": "ourairports"},
+      {"field": "period", "matches": "^\\d{4}-\\d{2}-\\d{2}$"},
+      {"field": "airport_type", "matches": "^[a-z_]+$"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "url"]
+}
