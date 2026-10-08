@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-jodi-gas",
+  "created": "2026-10-08",
+  "target": "run_jodi_gas",
+  "params": {"limit": 50, "year": 2009},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "source", "equals": "jodi-gas"},
+      {"field": "product", "equals": "NATGAS"},
+      {"field": "year", "equals": 2009},
+      {"field": "flow", "equals": "INDPROD"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "url"]
+}
