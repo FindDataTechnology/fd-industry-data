@@ -81,12 +81,18 @@ def _num(value):
 def run_un_comtrade(
     limit: int = 100,
     reporter_code: int = 156,
-    period: str = "2023",
+    period: str | None = None,
+    years_back: int = 5,
     cmd_code: str = "854142",
     flow_code: str = "X",
     partner_code: int = 0,
 ) -> list[dict]:
-    """取单一组合（reporter/period/cmd/flow/partner）的年度贸易流行，至多 ``limit`` 行。
+    """取单一组合（reporter/cmd/flow/partner）近 N 个完整年度的贸易流序列。
+
+    ``period`` 缺省时取**滚动窗口**：从去年往前共 ``years_back`` 个完整年度
+    （逗号列表一次请求，仍只发 1 个 API 调用）——单一组合+单年的查询结构性
+    只返回 1 行（2026-10-08 巡检发现首爬 rows=1 的根因，此前 period 硬编码
+    "2023" 每月重写同一行）；显式传 ``period`` 可复现单年行为（golden 重放）。
 
     key 缺失 / 非 200 / ``error`` 非空 / ``data`` 为空 → 抛 ``RuntimeError``（失败即红）。
     """
@@ -102,6 +108,14 @@ def run_un_comtrade(
         raise RuntimeError(
             "un-comtrade: env COMTRADE_API_KEY 未设置（secrets/fd-industry-source-keys.env 注入），拒绝裸跑"
         )
+
+    if period is None:
+        try:
+            years_back_n = max(1, min(int(years_back), 30))
+        except (TypeError, ValueError):
+            years_back_n = 5
+        last_complete = datetime.now(timezone.utc).year - 1
+        period = ",".join(str(y) for y in range(last_complete, last_complete - years_back_n, -1))
 
     url = (
         f"{BASE_URL}?reporterCode={int(reporter_code)}"
@@ -148,7 +162,8 @@ def run_un_comtrade(
         })
     if not rows:
         raise RuntimeError("un-comtrade: 记录全部无法解析（上游口径变更，转人工）")
-    return rows[:limit]
+    rows.sort(key=lambda r: (r.get("ref_year") or r.get("period") or 0))
+    return rows[-limit:]
 
 
 if __name__ == "__main__":  # 冒烟：source secrets 后 python3 spiders/un-comtrade/spider.py

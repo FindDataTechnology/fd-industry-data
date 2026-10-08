@@ -20,3 +20,4 @@
       （注意免费层 500 次/天配额）
 - [ ] 点亮：manifest 补 `schedule` 提交（AppSet ~3 分钟内渲染 CronJob）——**人工门，spider-heal 不点亮**
 - [ ] 指标语义治理（列→绑定→verified→标识符）另行推进，不阻塞爬取本身
+- [x] 2026-10-08 巡检修复：period 硬编码→滚动多年窗口（rows=1 根因），golden 锚重放 PASS

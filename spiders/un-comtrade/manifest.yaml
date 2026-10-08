@@ -9,7 +9,7 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
   - command: run_un_comtrade
-    description: Fetch one annual HS6 trade-flow record combo from the UN Comtrade production API (data/v1/get; default China 156 / 2023 / cmdCode 854142 lithium-ion batteries / flow X export / partner 0 world); auth via Ocp-Apim-Subscription-Key header (env COMTRADE_API_KEY), free tier 500 calls/day self-throttled (1 request per invocation)
+    description: Fetch the last N complete years (rolling window, default 5) of one annual HS6 trade-flow combo from the UN Comtrade production API (data/v1/get; default China 156 / cmdCode 854142 lithium-ion batteries / flow X export / partner 0 world); auth via Ocp-Apim-Subscription-Key header (env COMTRADE_API_KEY), free tier 500 calls/day self-throttled (1 request per invocation)
     frequency: monthly
     parameters:
       - name: limit
@@ -23,7 +23,11 @@ functions:
       - name: period
         type: string
         required: false
-        description: Reference year (default "2023"; annual frequency A)
+        description: Comma-separated reference years; default = rolling last `years_back` complete years (explicit single year reproduces legacy one-row behavior)
+      - name: years_back
+        type: int
+        required: false
+        description: Rolling window size in complete years when `period` omitted (default 5, max 30)
       - name: cmd_code
         type: string
         required: false
