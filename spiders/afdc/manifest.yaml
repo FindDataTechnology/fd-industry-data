@@ -3,7 +3,7 @@ name: afdc                       # = spiders/afdc/ 目录名，运行时标识�
 label: US DOE AFDC Alternative Fueling Station Counts
 source_url: https://afdc.energy.gov/data/10332
 # site: tencent 缺省——直连 afdc.energy.gov 实测可达（本机 + tencent 站点均 200，2026-10-08），无需代理出口
-# schedule: 不写——静默合入，点亮留给人工门
+schedule: "43 6 14 * *"       # 点亮（批次三，monthly）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
