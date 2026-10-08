@@ -84,3 +84,24 @@ OAuth；auth-smoke=自动测试单元模板）。
 经 panel 反代、零公网暴露）→ 人辅助滑块/全自动单元完成 → 会话入池、身份 active → 后续
 爬取自动租借该身份并走同一出口。MCP `auth_launch_login` 可代拉起。需要操作员家 IP 的源
 （如 wenshu）仍走本机 `scripts/login_session.py`（面板标注不提供站内登录）。
+
+### 法律线消费平台会话（fd-law-data 双模，2026-10-08 实弹验证）
+
+法律线 bins（`bin/rmfyalk-crawl.mjs` 等）双模消费平台会话：dispatcher 注入
+`FD_SESSION_JAR`/`FD_SESSION_JAR_PATH`（+标准代理 env + `FD_ACCOUNT`/`FD_EGRESS_REF`）
+即平台模式（jar 映射为既有 auth-header 结构，代理走标准 env 优先，`crawl_runs` 带
+`identity_alias`）；无注入则回退 legal-auth-broker 租约路径，行为不变。
+
+实弹验证配方（rmfyalk 人民法院案例库，assisted OAuth）：
+
+1. Console `/panel/auth` 对 `rmfyalk/acct001` 点「登录」→ 弹窗（站点名+账号+步骤）
+   等 20-40s 画面出现 → 输入手机号+密码（rmfyalk 无存凭据，登录必须真人）→
+   完成后弹窗自动报喜、身份 active、jar 入 RustFS。会话寿命约 2-4h。
+2. 触发验证：`insert into pending_runs(source,site,params,requested_by,status,max_attempts)
+   values ('rmfyalk-case-crawl','xinru-server1','{}','manual','pending',2)`；
+   dispatcher 5min tick 认领 → 租身份 → 建 Job → 注入会话 →
+   日志首行 `platform session mode: account=acct001 egress=proxy:55`（登录=爬取同一出口）。
+3. 坑册：登录站人类预算=站 deadline-60s（`FD_HUMAN_BUDGET_SECONDS` 可钉）；观察窗
+   就绪检测找 noVNC DOM 标记（勿用页面长度）；夜间 03:10 平台触发自评估入队，
+   过期身份→login_required→Console 重登闭环。
+
