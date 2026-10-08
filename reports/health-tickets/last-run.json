@@ -1,24 +1,15 @@
 {
-  "at": "2026-10-07T23:34:57.033046+00:00",
+  "at": "2026-10-08T23:44:55.791192+00:00",
   "source": "psql",
   "config_source": "db:health_config",
-  "sources_seen": 87,
-  "healthy": 58,
-  "written": [],
-  "deferred": [
-    {
-      "source": "flower-auction",
-      "reason": "daily cap reached"
-    },
-    {
-      "source": "inmetals",
-      "reason": "daily cap reached"
-    },
-    {
-      "source": "metal-com",
-      "reason": "daily cap reached"
-    }
+  "sources_seen": 94,
+  "healthy": 65,
+  "written": [
+    "20261008-flower-auction-2818685d.yaml",
+    "20261008-inmetals-dd0bd00b.yaml",
+    "20261008-metal-com-e25dfb10.yaml"
   ],
+  "deferred": [],
   "skipped_unknown_period": [
     "akshare",
     "auth-smoke",
@@ -53,30 +44,75 @@
       "ticket": "20261007-entsoe-e-d354141e.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 1,
-      "http_status": 404,
-      "response": "{\"code\": \"AGENT_NOT_FOUND\", \"message\": \"no such agent is deployed on this platform\"}"
+      "attempt": 2,
+      "http_status": 200,
+      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (401)\"}"
     },
     {
       "ticket": "20261007-kosis-openapi-a9ec1cf8.yaml",
       "submitted": false,
       "reason": "",
+      "attempt": 2,
+      "http_status": 200,
+      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (401)\"}"
+    },
+    {
+      "ticket": "20261008-flower-auction-2818685d.yaml",
+      "submitted": false,
+      "reason": "",
       "attempt": 1,
-      "http_status": 404,
-      "response": "{\"code\": \"AGENT_NOT_FOUND\", \"message\": \"no such agent is deployed on this platform\"}"
+      "http_status": 200,
+      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (401)\"}"
+    },
+    {
+      "ticket": "20261008-inmetals-dd0bd00b.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 200,
+      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (401)\"}"
+    },
+    {
+      "ticket": "20261008-metal-com-e25dfb10.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 200,
+      "response": "{\"code\": -32033, \"message\": \"agent route refused the turn (401)\"}"
     }
   ],
   "status": [
     {
       "ticket": "20261007-entsoe-e-d354141e.yaml",
-      "http_status": 404,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261007-kosis-openapi-a9ec1cf8.yaml",
-      "http_status": 404,
+      "http_status": 200,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261008-flower-auction-2818685d.yaml",
+      "http_status": 200,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261008-inmetals-dd0bd00b.yaml",
+      "http_status": 200,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261008-metal-com-e25dfb10.yaml",
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""

@@ -37,6 +37,17 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-10-08T23:45:00.558155+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  response: '{"code": -32033, "message": "agent route refused the turn (401)"}'
+- at: '2026-10-08T23:45:03.361621+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:

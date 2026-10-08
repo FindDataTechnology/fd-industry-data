@@ -1,0 +1,44 @@
+ticket_id: 20261008-metal-com-e25dfb10
+source: metal-com
+unit: spiders/metal-com/
+kind: repair
+created_at: '2026-10-08T23:44:55.791192+00:00'
+category: null
+needs_human: true
+suspected_anti_bot: false
+suggested_action: 补充遥测样本后复检（证据不足）
+evidence:
+  window:
+    from: '2026-09-29 09:50:05.680503+00'
+    to: '2026-10-02 07:05:09.830708+00'
+  failing_runs:
+  - started_at: '2026-09-29 09:50:05.680503+00'
+    status: failed
+    rows: 0
+    error_summary: 'TypeError: run_metal_com() got an unexpected keyword argument
+      ''limit'''
+    http_status: null
+  last_success:
+    started_at: '2026-10-02 07:05:09.830708+00'
+    rows: 1
+  notes: rule2:insufficient-evidence tail_failed=0<min_runs_for_verdict=3 last_success_age=160.66h
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261008-metal-com-e25dfb10.yaml
+golden:
+- spiders/metal-com/golden/001-metal-com.json
+lifecycle:
+- at: '2026-10-08T23:44:55.791192+00:00'
+  event: created
+- at: '2026-10-08T23:45:02.264813+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  response: '{"code": -32033, "message": "agent route refused the turn (401)"}'
+- at: '2026-10-08T23:45:05.056520+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+terminal: null

@@ -1,0 +1,37 @@
+ticket_id: 20261008-flower-auction-2818685d
+source: flower-auction
+unit: spiders/flower-auction/
+kind: repair
+created_at: '2026-10-08T23:44:55.791192+00:00'
+category: null
+needs_human: true
+suspected_anti_bot: false
+suggested_action: 补充遥测样本后复检（证据不足）
+evidence:
+  window:
+    from: '2026-09-29 11:25:04.796954+00'
+    to: '2026-10-02 07:05:10.901+00'
+  failing_runs: []
+  last_success:
+    started_at: '2026-10-02 07:05:10.901+00'
+    rows: 0
+  notes: rule2:insufficient-evidence tail_failed=0<min_runs_for_verdict=3 last_success_age=160.66h
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261008-flower-auction-2818685d.yaml
+golden: []
+lifecycle:
+- at: '2026-10-08T23:44:55.791192+00:00'
+  event: created
+- at: '2026-10-08T23:45:01.457083+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  response: '{"code": -32033, "message": "agent route refused the turn (401)"}'
+- at: '2026-10-08T23:45:04.227005+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+terminal: null
