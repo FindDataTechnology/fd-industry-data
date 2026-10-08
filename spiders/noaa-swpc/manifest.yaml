@@ -1,0 +1,57 @@
+version: "2"
+name: noaa-swpc                  # = spiders/noaa-swpc/ 目录名，运行时标识符，合入后不可改名
+label: NOAA SWPC Planetary K-Index Daily Stats
+source_url: https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json
+# 直连可达（2026-10-08 实测 HTTP 200，无需代理出口）：无 egress_secret、缺省 site（tencent）
+# schedule 留空：静默合入（批次三直建），点亮排期由人工门统一补
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_noaa_swpc
+    description: Fetch NOAA SWPC planetary K-index 3h observations and bucket them into daily stats (daily max/avg Kp, obs count) over the rolling window
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of daily rows to return (most recent days kept; default 100, max 1000)
+    columns:
+      - name: period
+        type: string
+        description: UTC calendar date of the daily bucket (ISO yyyy-mm-dd)
+      - name: daily_max_kp
+        type: float
+        description: Maximum planetary Kp within the UTC day (0-9 quasi-log scale, 1/3 steps)
+      - name: daily_avg_kp
+        type: float
+        description: Mean planetary Kp over the 3h observations of the UTC day
+      - name: obs_count
+        type: int
+        description: Number of valid 3h observations in the UTC day (last day may be partial)
+      - name: url
+        type: string
+        description: Request URL for the run
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: daily_max_kp
+    concept: space.planetary_k_index
+    entity_type: world
+    measure: max
+    unit: kp_index
+    frequency: daily
+  - column: daily_avg_kp
+    concept: space.planetary_k_index
+    entity_type: world
+    measure: value
+    unit: kp_index
+    frequency: daily
+entities:
+  - entity_type: world
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

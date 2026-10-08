@@ -1,0 +1,15 @@
+{
+  "sample_id": "001-noaa-swpc",
+  "created": "2026-10-08",
+  "target": "run_noaa_swpc",
+  "params": {"limit": 12},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "source", "equals": "noaa-swpc"},
+      {"field": "period", "matches": "^\\d{4}-\\d{2}-\\d{2}$"},
+      {"field": "obs_count", "matches": "^\\d+$"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "url"]
+}
