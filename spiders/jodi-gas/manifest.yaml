@@ -1,0 +1,67 @@
+version: "2"
+name: jodi-gas                   # = spiders/jodi-gas/ 目录名，运行时标识符，合入后不可改名
+label: JODI-Gas Monthly Natural Gas Supply-Demand
+source_url: https://www.jodidata.org/gas/database/data-downloads.aspx
+# site: tencent 缺省——api.publisher.jodidata.org 与 www.jodidata.org 直连实测可达（2026-10-08），无需代理出口
+# schedule: 不写——静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_jodi_gas
+    description: Fetch JODI-Gas world database monthly natural gas supply/demand observations (SDMX CSV zip via publisher discovery API, no key required)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum observation rows to return (deterministic order, most recent kept)
+      - name: year
+        type: int
+        required: false
+        description: Reporting year to backfill (files cover 2009 onward; default rolling last-12-month window)
+    columns:
+      - name: year
+        type: int
+        description: Reporting year
+      - name: month
+        type: string
+        description: Reporting month (01-12) from TIME_PERIOD
+      - name: country
+        type: string
+        description: Reporting economy code (REF_AREA, e.g. US, RU, CN)
+      - name: flow
+        type: string
+        description: Flow code (FLOW_BREAKDOWN, e.g. INDPROD production, TOTIMPSB/TOTEXPSB total imports/exports, TOTDEMC/TOTDEMO demand calculated/observed, STATDIFF)
+      - name: product
+        type: string
+        description: Product code (ENERGY_PRODUCT, constant NATGAS in the gas database)
+      - name: value
+        type: float
+        description: Observed value in the stated unit (missing placeholders never emitted)
+      - name: unit
+        type: string
+        description: Unit code (UNIT_MEASURE, TJ energy / M3 volume / KTONS mass; never mix when aggregating)
+      - name: assessment
+        type: string
+        description: Upstream quality assessment flag (ASSESSMENT_CODE)
+      - name: url
+        type: string
+        description: Source download URL for the rows
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: gas.supply_demand
+    entity_type: region
+    measure: value
+    unit: variable
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
