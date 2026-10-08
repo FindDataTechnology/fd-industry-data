@@ -225,3 +225,86 @@ def test_sync_sources_updates_platform_rows(tmp_path):
     assert n == 1
     synced = [p for s, p in conn.executed if "INSERT INTO crawl_sources" in s]
     assert synced == [("bls", "tencent", "*/5 * * * *", True, None, "")]
+
+
+# --- per-source schedule timezone (rmfyalk night scheduling, 2026-10-08) ---
+# The fleet's schedules are calibrated in UTC, so a source may not silently
+# shift them; schedule_tz is opt-in per source and unknown tz degrades to UTC.
+
+def test_schedule_now_utc_is_the_default():
+    from datetime import datetime, timezone
+    from fd_industry_data.dispatch import _schedule_now
+
+    now = datetime(2026, 10, 8, 3, 10, tzinfo=timezone.utc)
+    assert _schedule_now(None, now) == now          # NULL tz -> unchanged
+    assert _schedule_now("", now) == now
+
+
+def test_schedule_now_shifts_to_asia_shanghai():
+    from datetime import datetime, timezone
+    from fd_industry_data.dispatch import _schedule_now
+
+    # UTC 19:10 == 03:10 next day in Shanghai
+    now = datetime(2026, 10, 8, 19, 10, tzinfo=timezone.utc)
+    local = _schedule_now("Asia/Shanghai", now)
+    assert local.hour == 3 and local.minute == 10
+    assert local.day == 9
+
+
+def test_schedule_now_unknown_tz_degrades_to_utc_never_raises():
+    from datetime import datetime, timezone
+    from fd_industry_data.dispatch import _schedule_now
+
+    now = datetime(2026, 10, 8, 3, 10, tzinfo=timezone.utc)
+    assert _schedule_now("Mars/Olympus", now) == now
+
+
+def test_enqueue_due_matches_in_the_source_timezone():
+    """A source with schedule_tz='Asia/Shanghai' and schedule '10 3 * * *'
+    is due at 03:10 Shanghai (19:10 UTC) — and NOT at 03:10 UTC (which would
+    be 11:10 Shanghai, i.e. broad daylight)."""
+    from datetime import datetime, timezone
+    from fd_industry_data import dispatch
+
+    class _Cur:
+        def __init__(self, rows): self.rows, self.q = rows, []
+        def execute(self, sql, args=None): self.q.append((sql, args))
+        def fetchall(self): return self.rows.pop(0) if self.rows else []
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    class _Conn:
+        def __init__(self, rows): self.cur = _Cur(rows)
+        def cursor(self): return self.cur
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    captured = {}
+
+    def fake_now(tz=None):
+        return captured["now"]
+
+    orig = dispatch.datetime
+    try:
+        # 19:10 UTC = 03:10 Shanghai -> due
+        captured["now"] = datetime(2026, 10, 8, 19, 10, tzinfo=timezone.utc)
+        dispatch.datetime = type("D", (), {"now": staticmethod(fake_now),
+                                           "timedelta": __import__("datetime").timedelta,
+                                           "timezone": timezone})()
+        queued = []
+        dispatch.queue_run = lambda conn, src, **kw: queued.append(src)
+        conn = _Conn([[("rmfyalk-case-crawl", "10 3 * * *", "Asia/Shanghai")], [], []])
+        assert dispatch.enqueue_due(conn, "xinru-server1") == ["rmfyalk-case-crawl"]
+
+        # 03:10 UTC = 11:10 Shanghai -> NOT due (the old UTC-only behaviour)
+        captured["now"] = datetime(2026, 10, 8, 3, 10, tzinfo=timezone.utc)
+        queued.clear()
+        conn = _Conn([[("rmfyalk-case-crawl", "10 3 * * *", "Asia/Shanghai")], [], []])
+        assert dispatch.enqueue_due(conn, "xinru-server1") == []
+
+        # no tz -> unchanged UTC semantics (the whole fleet relies on it)
+        captured["now"] = datetime(2026, 10, 8, 3, 10, tzinfo=timezone.utc)
+        conn = _Conn([[("legacy-src", "10 3 * * *", None)], [], []])
+        assert dispatch.enqueue_due(conn, "xinru-server1") == ["legacy-src"]
+    finally:
+        dispatch.datetime = orig

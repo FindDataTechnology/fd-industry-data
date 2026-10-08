@@ -14,9 +14,12 @@ failures never break the crawl; queue failures raise to the caller.
 """
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
+
+logger = logging.getLogger(__name__)
 
 from .sites import DEFAULT_SITE, load_sites
 
@@ -56,6 +59,12 @@ CREATE INDEX IF NOT EXISTS pending_runs_site_idx
 ALTER TABLE crawl_runs ADD COLUMN IF NOT EXISTS cancel_requested timestamptz;
 ALTER TABLE crawl_runs ADD COLUMN IF NOT EXISTS pending_run_id bigint;
 ALTER TABLE crawl_runs ALTER COLUMN finished_at DROP NOT NULL;
+-- Per-source timezone for `schedule` (NULL = UTC, the historical default the
+-- whole fleet is calibrated to). A source that must run in the operator's
+-- night (e.g. a login-gated source whose session only survives a few hours
+-- after a human re-login) sets schedule_tz='Asia/Shanghai'; changing the
+-- global semantics instead would shift every existing schedule at once.
+ALTER TABLE crawl_sources ADD COLUMN IF NOT EXISTS schedule_tz text;
 
 CREATE TABLE IF NOT EXISTS crawl_sources (
     source     text PRIMARY KEY,
@@ -256,6 +265,27 @@ def cron_matches(expr: str, minute: int, hour: int, dom: int, month: int,
     return dom_ok and dow_ok
 
 
+def _schedule_now(schedule_tz: str | None, now: datetime) -> datetime:
+    """``now`` expressed in the source's own schedule timezone.
+
+    ``schedule`` is documented in UTC (the fleet's calibration), but a source
+    whose crawl must land in the operator's night — a login-gated source whose
+    session only survives a few hours after a human logs in again — declares
+    ``schedule_tz`` ('Asia/Shanghai'). An unknown/invalid tz degrades to UTC
+    and is logged, never raising: a bad value must not stop the tick.
+    """
+    if not schedule_tz:
+        return now
+    try:
+        from zoneinfo import ZoneInfo
+
+        return now.astimezone(ZoneInfo(schedule_tz))
+    except Exception:  # noqa: BLE001 - unknown tz -> UTC, same as before
+        logger.warning("unknown schedule_tz %r; treating schedule as UTC",
+                       schedule_tz)
+        return now
+
+
 def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
     """Queue one run per due scheduled source of a docker site.
 
@@ -264,12 +294,15 @@ def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
     row newer than the window start). Returns the enqueued source names.
     Queueing happens OUTSIDE the read transaction — queue_run opens its own,
     and psycopg2 forbids re-entering a connection's transaction block.
+
+    The schedule is matched in the source's own timezone (``schedule_tz``,
+    default UTC).
     """
     now = datetime.now(timezone.utc)
     due: list[str] = []
     with conn, conn.cursor() as cur:
         cur.execute(
-            "SELECT source, schedule FROM crawl_sources "
+            "SELECT source, schedule, schedule_tz FROM crawl_sources "
             "WHERE site = %s AND enabled AND schedule IS NOT NULL", (site,))
         candidates = cur.fetchall() or []
         open_rows: dict[str, int] = {}
@@ -283,10 +316,11 @@ def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
             "WHERE started_at > %s GROUP BY source",
             (now - timedelta(minutes=window_minutes),))
         recent = dict(cur.fetchall() or [])
-    for source, schedule in candidates:
+    for source, schedule, schedule_tz in candidates:
+        local = _schedule_now(schedule_tz, now)
         hit = False
         for back in range(0, window_minutes + 1, 5):
-            t = now - timedelta(minutes=back)
+            t = local - timedelta(minutes=back)
             if cron_matches(schedule, t.minute, t.hour, t.day, t.month,
                             t.weekday()):
                 hit = True
