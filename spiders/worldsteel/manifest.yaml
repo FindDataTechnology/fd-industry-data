@@ -1,4 +1,4 @@
-schedule: "37 4 6 * *"
+schedule: "3 4 6 * *"
 site: xinru-server2
 # fd-open-data-protocol compliant manifest
 
