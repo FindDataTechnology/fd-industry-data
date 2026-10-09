@@ -183,6 +183,7 @@ def probe_stale_identities(conn, now=None, max_age_seconds=None,
             """SELECT id, source, account_alias, session_ref, egress_ref
                FROM crawl_identities
                WHERE status = 'active' AND session_ref IS NOT NULL
+                 AND lease_token IS NULL
                  AND (last_probe_at IS NULL
                       OR last_probe_at < %s - make_interval(secs => %s))
                ORDER BY last_probe_at ASC NULLS FIRST

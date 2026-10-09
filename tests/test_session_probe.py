@@ -235,3 +235,15 @@ def test_probe_disabled_by_env(monkeypatch):
             raise AssertionError("disabled probe must not touch the conn")
 
     assert session_probe.probe_stale_identities(_Untouchable()) == []
+
+
+def test_probe_selection_skips_leased_identities():
+    """A leased identity is in use by a running crawl: probing it could flip
+    it mid-run and clear the lease under the runner (2026-10-09 hardening).
+    The guard lives in the selection SQL."""
+    conn = _FakeConn(fetchalls=[[]])
+    out = session_probe.probe_stale_identities(
+        conn, fetch=lambda *a: (200, '{"code":"0"}', {"code": "0"}))
+    assert out == []
+    sql = conn.executed[0][0]
+    assert "lease_token IS NULL" in sql
