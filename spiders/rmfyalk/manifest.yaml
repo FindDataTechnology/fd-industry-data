@@ -3,6 +3,12 @@ name: rmfyalk
 label: Rmfyalk case library (login-gated; crawl adapter is a follow-up port)
 source_url: https://rmfyalk.court.gov.cn
 auth_profile: rmfyalk
+# The crawl adapter never shipped here: the real line is the federated
+# rmfyalk-case-crawl member. enabled=false keeps this stub out of
+# enqueue_for_auth_profile (a login-complete trigger used to auto-enqueue a
+# functionless run on site tencent that raced the real crawl for the pool
+# lease, 2026-10-10).
+enabled: false
 # no schedule: crawl adapter not ported yet; the login unit establishes the
 # platform session pool side (session-pool task 3.2)
 scanner_mode: upstream-curated
