@@ -285,6 +285,7 @@ def test_enqueue_due_matches_in_the_source_timezone():
         return captured["now"]
 
     orig = dispatch.datetime
+    orig_queue_run = dispatch.queue_run
     try:
         # 19:10 UTC = 03:10 Shanghai -> due
         captured["now"] = datetime(2026, 10, 8, 19, 10, tzinfo=timezone.utc)
@@ -308,3 +309,4 @@ def test_enqueue_due_matches_in_the_source_timezone():
         assert dispatch.enqueue_due(conn, "xinru-server1") == ["legacy-src"]
     finally:
         dispatch.datetime = orig
+        dispatch.queue_run = orig_queue_run

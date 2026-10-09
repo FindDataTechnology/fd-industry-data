@@ -152,6 +152,17 @@ def main() -> int:
                     (source, account))
         ident_id = cur.fetchone()[0]
         auth.complete_login(conn, ident_id, session_ref, probe_ok=True)
+        # Login-complete trigger (2026-10-09): the identity just flipped
+        # active, but the next schedule tick may be hours away — far past the
+        # short-lived session. Queue the source's run now. Never fails the
+        # station: the login IS recorded; a queue failure is reported only.
+        try:
+            enqueued = dispatch.enqueue_for_auth_profile(conn, source)
+            print(f"login_station: login-complete enqueued {len(enqueued)} "
+                  f"run(s): {', '.join(enqueued) or '-'}", flush=True)
+        except Exception as e:  # noqa: BLE001 - the station report must survive
+            print(f"login_station: login-complete enqueue failed for {source}: {e}",
+                  file=sys.stderr)
         _report(conn, station_id, "completed",
                 f"session stored {session_ref}")
         rc = 0

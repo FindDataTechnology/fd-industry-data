@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
 
@@ -338,6 +339,64 @@ def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
                   requested_by="schedule-tick",
                   known_sources=None)
         enqueued.append(source)
+    return enqueued
+
+
+def enqueue_for_auth_profile(conn, auth_profile: str) -> list[str]:
+    """Queue one run for every runnable source of an auth_profile (login-complete).
+
+    A completed human login flips the identity to active, but the next schedule
+    tick may be hours away — long past the short-lived session's expiry
+    (rmfyalk: a few hours). The login station therefore triggers the run that
+    the login was made for: every enabled, non-frozen source bound to this
+    auth_profile gets one pending run, unless a run is already open
+    (pending/claimed row or a crawl_runs row still 'running').
+
+    Runnable mirrors the dispatcher's own routing: federated rows need a
+    runner_command, platform rows need a last_commit (a never-synced platform
+    source has no crawlable content). Sources without a site are skipped
+    (nothing could execute them).
+
+    Per-source failures never abort the rest: a bad row is reported to stderr
+    and the remaining sources are still queued. Returns the enqueued names.
+    """
+    with conn, conn.cursor() as cur:
+        cur.execute(
+            """SELECT source, site, kind, runner_command, last_commit
+               FROM crawl_sources
+               WHERE auth_profile = %s AND enabled AND site IS NOT NULL
+                 AND frozen_reason IS NULL
+                 AND ((kind = 'federated' AND runner_command IS NOT NULL)
+                      OR (kind = 'platform' AND last_commit IS NOT NULL))""",
+            (auth_profile,),
+        )
+        candidates = cur.fetchall() or []
+
+    enqueued: list[str] = []
+    for source, site, kind, runner_command, last_commit in candidates:
+        # The SQL predicate above is the cheap prefilter; the same runnability
+        # rule is re-asserted here (one readable gate for the enqueue path).
+        if not ((kind == "federated" and runner_command is not None)
+                or (kind == "platform" and last_commit is not None)):
+            continue
+        try:
+            with conn, conn.cursor() as cur:
+                cur.execute(
+                    "SELECT 1 FROM pending_runs WHERE source=%s "
+                    "AND status IN ('pending','claimed') LIMIT 1", (source,))
+                if cur.fetchone() is not None:
+                    continue
+                cur.execute(
+                    "SELECT 1 FROM crawl_runs WHERE source=%s "
+                    "AND status='running' LIMIT 1", (source,))
+                if cur.fetchone() is not None:
+                    continue
+            queue_run(conn, source, site=site, requested_by="login-complete",
+                      known_sources=None)
+            enqueued.append(source)
+        except Exception as e:  # noqa: BLE001 - one bad row must not stop the rest
+            print(f"fd-dispatch: login-trigger enqueue failed for {source!r} "
+                  f"(auth_profile {auth_profile!r}): {e}", file=sys.stderr)
     return enqueued
 
 

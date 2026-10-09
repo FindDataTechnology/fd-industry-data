@@ -487,6 +487,19 @@ def main() -> int:
     if expired:
         print(f"fd-dispatcher: expired {expired} stale lease(s)")
     _auth.expire_leases(conn)
+    # Stale-session probe (2026-10-09): a jar can die while the identity still
+    # says 'active'; probing active identities here flips a dead session to
+    # login_required instead of burning the next lease. Guarded end to end:
+    # FD_PROBE_ENABLED=0 skips, and any probe-side error only warns.
+    try:
+        from . import session_probe as _session_probe
+
+        probed = _session_probe.probe_stale_identities(conn)
+        for p in probed:
+            print(f"fd-dispatcher: probe {p['source']}/{p['account_alias']} "
+                  f"-> {p['kind']} ({p['reason']})")
+    except Exception as e:  # noqa: BLE001 - probing must never break the tick
+        print(f"fd-dispatcher: session probe skipped: {e}", file=sys.stderr)
     dispatch.heartbeat_site(conn, site)
     from .sites import load_sites
     if load_sites().get(site, {}).get("kind") == "docker":
