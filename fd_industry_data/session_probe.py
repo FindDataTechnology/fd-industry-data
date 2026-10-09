@@ -178,17 +178,23 @@ def probe_stale_identities(conn, now=None, max_age_seconds=None,
         max_per_tick = int(os.environ.get("FD_PROBE_MAX_PER_TICK", "2"))
     timeout = float(os.environ.get("FD_PROBE_TIMEOUT_SECONDS", "20"))
 
+    # Only sources with a probe definition are candidates: selecting first and
+    # filtering in Python let a few ancient non-probeable identities occupy the
+    # LIMIT forever and starve the sources that DO have probes (2026-10-09:
+    # identities 5/6/23 sat at the head of the queue ahead of rmfyalk's 27).
+    sources = sorted(PROBES)
     with conn, conn.cursor() as cur:
         cur.execute(
             """SELECT id, source, account_alias, session_ref, egress_ref
                FROM crawl_identities
                WHERE status = 'active' AND session_ref IS NOT NULL
                  AND lease_token IS NULL
+                 AND source = ANY(%s)
                  AND (last_probe_at IS NULL
                       OR last_probe_at < %s - make_interval(secs => %s))
                ORDER BY last_probe_at ASC NULLS FIRST
                LIMIT %s""",
-            (now, max_age_seconds, max_per_tick))
+            (sources, now, max_age_seconds, max_per_tick))
         rows = cur.fetchall() or []
 
     out: list[dict] = []

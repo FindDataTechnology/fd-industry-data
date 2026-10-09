@@ -247,3 +247,15 @@ def test_probe_selection_skips_leased_identities():
     assert out == []
     sql = conn.executed[0][0]
     assert "lease_token IS NULL" in sql
+
+
+def test_probe_selection_filters_probeable_sources_in_sql():
+    """Non-probeable identities must not occupy the per-tick LIMIT: the
+    source list is a SQL predicate, not a post-filter (2026-10-09 — identities
+    5/6/23 starved rmfyalk's 27 out of the queue)."""
+    conn = _FakeConn(fetchalls=[[]])
+    session_probe.probe_stale_identities(
+        conn, fetch=lambda *a: (200, '{"code":"0"}', {"code": "0"}))
+    sql, params = conn.executed[0]
+    assert "source = ANY(%s)" in sql
+    assert sorted(params[0]) == ["rmfyalk"]
