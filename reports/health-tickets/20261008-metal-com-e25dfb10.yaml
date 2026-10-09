@@ -41,4 +41,21 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-10-09T23:27:20.184477+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**已见过 FindDataTechnology/fd-industry-data#reports/health-tickets/20261008-metal-com-e25dfb10.yaml，状态：manual（转人工终态，维持不变）**
+
+
+    依据（2026-10-09T23:28Z 复提交复核，未动手）：
+
+    - 重复单：inbox 已有该单（state=manual，2026-10-08T23:58Z 分诊「证据不足/无待修 diff」）；远端工单自 47fb28e1(2026-10-08T23:45:05Z)
+    未再变更，HEAD f145d4a3、open PR=0、无 heal/* 分支'
+- at: '2026-10-09T23:27:22.331548+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null

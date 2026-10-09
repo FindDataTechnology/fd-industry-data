@@ -39,4 +39,24 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-10-09T23:25:14.562870+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**结论：已见过该单，状态维持 `manual`（终态，转人工）——未入队、未动手、未开 PR。**
+
+
+    **依据（本轮复提交复核，2026-10-09T23:24Z）**
+
+    - 单已存在：`inbox.json` 中 `…20261008-inmetals-dd0bd00b.yaml` → `state=manual`、`retry=0`，重复提交不重复动手（协议：绝不重复入队）。
+
+    - 工单未变：远端 sha `990df523`，自 `47fb28e1`(2026-10-08T23:45:05Z) 未再变更；HEAD `f145d4a3`。
+
+    - 单写者清空：open PR = 0，无 `hea'
+- at: '2026-10-09T23:27:22.137180+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null

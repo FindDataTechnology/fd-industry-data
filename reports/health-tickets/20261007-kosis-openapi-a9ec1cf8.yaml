@@ -48,6 +48,31 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-10-09T23:20:38.142279+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**结论：已见过（重复提交）→ 维持 `blocked-env`，不认领、不动手、不开 PR。**
+
+
+    依据（逐条已核实）：
+
+
+    | 项 | 结果 |
+
+    |---|---|
+
+    | 工单形态 | `kind=generate`、`unit=spiders/kosis-openapi/`、`category=null`、brief 非空
+    → 形态合规；仓内该目录不存在（greenfield 成立） |
+
+    | 阻塞点 | brief 指定 `apiKey=$KOSIS_API_KEY` 走 OpenAPI；执行位 **无 KOSIS_API_KEY**（env
+    与凭据文件仅 `git_pat`/`gh_act'
+- at: '2026-10-09T23:27:21.658210+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:

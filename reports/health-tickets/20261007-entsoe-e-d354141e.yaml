@@ -48,6 +48,21 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-10-09T23:16:54.929868+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**已见过 FindDataTechnology/fd-industry-data#reports/health-tickets/20261007-entsoe-e-d354141e.yaml，状态：blocked-env（环境阻断，不入队、不动手）**
+
+
+    依据（一行）：该单为 kind=generate 的 keyed 生成单，`ENTSOE_SECURITY_TOKEN` 在 env 与凭据文件中均不存在，而工单
+    brief 明示「唯一人工审批源（邮件 transparency@entsoe.eu，约 3 工作日）——token 未到位本单元不启动；缺 token 显式报错禁止裸跑」，验证'
+- at: '2026-10-09T23:27:21.428157+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:
