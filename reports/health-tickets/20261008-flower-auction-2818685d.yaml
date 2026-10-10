@@ -45,4 +45,15 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-10-10T22:34:50.955173+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-10-10T22:34:50.955434+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual

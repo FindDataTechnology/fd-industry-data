@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-09T23:15:30.085602+00:00",
+  "at": "2026-10-10T22:29:51.190392+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 94,
@@ -48,48 +48,7 @@
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [
-    {
-      "ticket": "20261007-entsoe-e-d354141e.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 3,
-      "http_status": 200,
-      "response": "**已见过 FindDataTechnology/fd-industry-data#reports/health-tickets/20261007-entsoe-e-d354141e.yaml，状态：blocked-env（环境阻断，不入队、不动手）**\n\n依据（一行）：该单为 kind=generate 的 keyed 生成单，`ENTSOE_SECURITY_TOKEN` 在 env 与凭据文件中均不存在，而工单 brief 明示「唯一人工审批源（邮件 transparency@entsoe.eu，约 3 工作日）——token 未到位本单元不启动；缺 token 显式报错禁止裸跑」，验证链（golden 重放 + 真取数 ≥1 行）无法转绿 → 按协议不认领。\n\n核查补充：\n- 远端 `spiders/entsoe-e/` = 404（确为 greenfield）、`terminal: null`、`gen/entsoe-e` 分支不存在、开放 PR = 0 → 无单写者冲突，无遗留产物。\n- 已落盘 `/app/spider-heal/inbox.json`（`$DSH_HOM"
-    },
-    {
-      "ticket": "20261007-kosis-openapi-a9ec1cf8.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 3,
-      "http_status": 200,
-      "response": "**结论：已见过（重复提交）→ 维持 `blocked-env`，不认领、不动手、不开 PR。**\n\n依据（逐条已核实）：\n\n| 项 | 结果 |\n|---|---|\n| 工单形态 | `kind=generate`、`unit=spiders/kosis-openapi/`、`category=null`、brief 非空 → 形态合规；仓内该目录不存在（greenfield 成立） |\n| 阻塞点 | brief 指定 `apiKey=$KOSIS_API_KEY` 走 OpenAPI；执行位 **无 KOSIS_API_KEY**（env 与凭据文件仅 `git_pat`/`gh_actor`/`LLM_*` 三项）；注册需韩国实名，工单 lifecycle 已记「韩国实名硬阻塞、已判排除」 |\n| 推论 | 无 key → golden 重放 + real_fetch 必红 → 硬约束 7「验证链全绿才见 PR」→ **不开 PR、不推分支** |\n| 单写者 | 仓内无 `spiders/kosis-openapi/`、open PR=0、工单 `terminal=null`"
-    },
-    {
-      "ticket": "20261008-flower-auction-2818685d.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 2,
-      "http_status": 200,
-      "response": ""
-    },
-    {
-      "ticket": "20261008-inmetals-dd0bd00b.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 2,
-      "http_status": 200,
-      "response": "**结论：已见过该单，状态维持 `manual`（终态，转人工）——未入队、未动手、未开 PR。**\n\n**依据（本轮复提交复核，2026-10-09T23:24Z）**\n- 单已存在：`inbox.json` 中 `…20261008-inmetals-dd0bd00b.yaml` → `state=manual`、`retry=0`，重复提交不重复动手（协议：绝不重复入队）。\n- 工单未变：远端 sha `990df523`，自 `47fb28e1`(2026-10-08T23:45:05Z) 未再变更；HEAD `f145d4a3`。\n- 单写者清空：open PR = 0，无 `heal/inmetals` 分支。\n- 无可修 diff（关键闭环）：失败 run（2026-09-29T09:50:05Z，`TypeError: run_inmetals() got an unexpected keyword argument 'limit'`）发生时 `spider.py` 末次改动为 `c3f11f34`，入口是 `run_inmetals(urls=None, save=T"
-    },
-    {
-      "ticket": "20261008-metal-com-e25dfb10.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 2,
-      "http_status": 200,
-      "response": "**已见过 FindDataTechnology/fd-industry-data#reports/health-tickets/20261008-metal-com-e25dfb10.yaml，状态：manual（转人工终态，维持不变）**\n\n依据（2026-10-09T23:28Z 复提交复核，未动手）：\n- 重复单：inbox 已有该单（state=manual，2026-10-08T23:58Z 分诊「证据不足/无待修 diff」）；远端工单自 47fb28e1(2026-10-08T23:45:05Z) 未再变更，HEAD f145d4a3、open PR=0、无 heal/* 分支 → 单写者无冲突，也无新证据。\n- 无可修 diff：失败 run 2026-09-29T09:50:05Z 的 `TypeError: run_metal_com() got an unexpected keyword argument 'limit'` 发生时（c3f11f34）入口为 `run_metal_com(urls=None, save=True)`；9 分钟后 3e7c3f99 "
-    }
-  ],
+  "submit": [],
   "status": [
     {
       "ticket": "20261007-entsoe-e-d354141e.yaml",
@@ -108,21 +67,21 @@
     {
       "ticket": "20261008-flower-auction-2818685d.yaml",
       "http_status": 200,
-      "state": null,
+      "state": "manual",
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261008-inmetals-dd0bd00b.yaml",
       "http_status": 200,
-      "state": null,
+      "state": "manual",
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261008-metal-com-e25dfb10.yaml",
       "http_status": 200,
-      "state": null,
+      "state": "manual",
       "note": "",
       "pr_url": ""
     }
