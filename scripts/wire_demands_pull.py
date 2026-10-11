@@ -12,7 +12,8 @@ reports/health-tickets/，由调用方（GHA 工作流）提交推送后回 ack�
   WIRE_DEMANDS_TOKEN  wire 内部令牌（FD_WIRE_INTERNAL_TOKEN 同值，必填）
 
 幂等语义：
-- 待投递列表为空 → 零改动退出 0；
+- 待投递列表为空 → 跳过投递段，仍执行状态回推段（在途工单的状态演化
+  恰恰多发生在投递完成之后）；
 - 工单文件已存在且内容一致 → 跳过写盘但仍回 ack（覆盖「推送成功、ack
   失败」的断点续传场景）；
 - ack 失败 → 下轮重拉同单（文件内容一致 → 无 diff → 直接补 ack）。
@@ -82,65 +83,67 @@ def main() -> int:
         print(f"unexpected pending payload: {payload!r}"[:200], file=sys.stderr)
         return 1
     if not pending:
+        # 空待投只跳过投递段——状态回推段仍须执行：在途工单的状态演化
+        # （萬星回合回执、PR 链接）发生在投递之后，空 pending 时恰恰是
+        # 回流的常态（10-11 生产实证：提前 return 让回流永远不跑）。
         print("nothing pending")
-        return 0
+    else:
+        written: list[dict] = []
+        changed = False
+        for item in pending:
+            path = item.get("ticket_path", "")
+            if not TICKET_PATH_RE.match(path):
+                print(f"REFUSED non-whitelisted ticket_path: {path!r}",
+                      file=sys.stderr)
+                continue
+            abs_path = os.path.join(args.repo_root, path)
+            os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+            content = item.get("ticket_yaml", "")
+            if os.path.exists(abs_path) and \
+                    open(abs_path, encoding="utf-8").read() == content:
+                written.append(item)  # 内容一致：无需改盘，但要补 ack
+                continue
+            with open(abs_path, "w", encoding="utf-8") as fh:
+                fh.write(content)
+            written.append(item)
+            changed = True
+            print(f"wrote {path}")
 
-    written: list[dict] = []
-    changed = False
-    for item in pending:
-        path = item.get("ticket_path", "")
-        if not TICKET_PATH_RE.match(path):
-            print(f"REFUSED non-whitelisted ticket_path: {path!r}",
-                  file=sys.stderr)
-            continue
-        abs_path = os.path.join(args.repo_root, path)
-        os.makedirs(os.path.dirname(abs_path), exist_ok=True)
-        content = item.get("ticket_yaml", "")
-        if os.path.exists(abs_path) and \
-                open(abs_path, encoding="utf-8").read() == content:
-            written.append(item)  # 内容一致：无需改盘，但要补 ack
-            continue
-        with open(abs_path, "w", encoding="utf-8") as fh:
-            fh.write(content)
-        written.append(item)
-        changed = True
-        print(f"wrote {path}")
+        if changed and args.commit_and_push:
+            _git(args.repo_root, "config", "user.name", "wire-demand-puller")
+            _git(args.repo_root, "config", "user.email",
+                 "wire-demand-puller@finddatatech.cloud")
+            _git(args.repo_root, "add", "reports/health-tickets")
+            if _git(args.repo_root, "diff", "--cached", "--quiet", check=False).returncode == 0:
+                print("no staged changes")
+            else:
+                _git(args.repo_root, "commit", "-m",
+                     "wire: demand workorders " +
+                     ", ".join(i.get("code", "?") for i in written))
+                ok = False
+                for attempt in range(1, 4):
+                    if _git(args.repo_root, "push", "origin", "HEAD:main",
+                            check=False).returncode == 0:
+                        ok = True
+                        break
+                    print(f"push attempt {attempt} failed; rebase+retry")
+                    _git(args.repo_root, "pull", "--rebase", "origin", "main",
+                         check=False)
+                if not ok:
+                    print("push failed after retries; not acking", file=sys.stderr)
+                    return 1
 
-    if changed and args.commit_and_push:
-        _git(args.repo_root, "config", "user.name", "wire-demand-puller")
-        _git(args.repo_root, "config", "user.email",
-             "wire-demand-puller@finddatatech.cloud")
-        _git(args.repo_root, "add", "reports/health-tickets")
-        if _git(args.repo_root, "diff", "--cached", "--quiet", check=False).returncode == 0:
-            print("no staged changes")
-        else:
-            _git(args.repo_root, "commit", "-m",
-                 "wire: demand workorders " +
-                 ", ".join(i.get("code", "?") for i in written))
-            ok = False
-            for attempt in range(1, 4):
-                if _git(args.repo_root, "push", "origin", "HEAD:main",
-                        check=False).returncode == 0:
-                    ok = True
-                    break
-                print(f"push attempt {attempt} failed; rebase+retry")
-                _git(args.repo_root, "pull", "--rebase", "origin", "main",
-                     check=False)
-            if not ok:
-                print("push failed after retries; not acking", file=sys.stderr)
-                return 1
-
-    acked = 0
-    for item in written:
-        st, _ = _request(base, token, "POST",
-                         "/internal/demands/workorders/ack",
-                         {"ticket_path": item.get("ticket_path")})
-        if st == 200:
-            acked += 1
-        else:
-            print(f"ack failed for {item.get('code')}: HTTP {st}",
-                  file=sys.stderr)
-    print(f"done: {len(written)} ticket(s), {acked} acked")
+        acked = 0
+        for item in written:
+            st, _ = _request(base, token, "POST",
+                             "/internal/demands/workorders/ack",
+                             {"ticket_path": item.get("ticket_path")})
+            if st == 200:
+                acked += 1
+            else:
+                print(f"ack failed for {item.get('code')}: HTTP {st}",
+                      file=sys.stderr)
+        print(f"done: {len(written)} ticket(s), {acked} acked")
 
     # 状态回推：wire（fd-prod）到 raw.githubusercontent.com 被海外出站挡死，
     # 状态回流因此为推送式——本 runner 有网，读本地工单文件全文推给 wire，
