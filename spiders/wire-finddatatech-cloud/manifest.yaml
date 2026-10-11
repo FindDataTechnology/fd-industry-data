@@ -3,7 +3,7 @@ name: wire-finddatatech-cloud      # = spiders/<slug>/ 目录名，合入后不�
 label: Wire platform health endpoint (fd-wire-api)
 source_url: https://wire.finddatatech.cloud/health
 # site: 不写 —— 走默认执行位（sites.yaml 是执行位登记，与源站无关）
-# schedule: 不写 —— 静默合入，点亮由人工补写（工单 brief.cadence: daily）
+schedule: "23 7 * * *"       # 点亮（demand-orchestration drill 单收口）：daily，兼作 wire 公网健康探针
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
