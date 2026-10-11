@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-11T16:13:08.205363+00:00",
+  "at": "2026-10-11T17:04:01.981007+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 94,
@@ -51,52 +51,52 @@
   "submit": [
     {
       "ticket": "20261011-wire-DE-20261011-99.yaml",
-      "submitted": true,
+      "submitted": false,
       "reason": "",
-      "attempt": 5,
-      "http_status": 200,
-      "response": "<thinking>No ticket file found locally. Let me look at the skills and pack script to understand the expected workflow, and search for the ticket.</thinking>"
+      "attempt": 6,
+      "http_status": 502,
+      "response": ""
     }
   ],
   "status": [
     {
       "ticket": "20261007-entsoe-e-d354141e.yaml",
-      "http_status": 200,
+      "http_status": 502,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261007-kosis-openapi-a9ec1cf8.yaml",
-      "http_status": 200,
+      "http_status": 502,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261011-flower-auction-599f8dc3.yaml",
-      "http_status": 200,
+      "http_status": 502,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261011-inmetals-b05ead45.yaml",
-      "http_status": 200,
+      "http_status": 502,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261011-metal-com-f1b055d9.yaml",
-      "http_status": 200,
+      "http_status": 502,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261011-wire-DE-20261011-99.yaml",
-      "http_status": 200,
+      "http_status": 502,
       "state": null,
       "note": "",
       "pr_url": ""
