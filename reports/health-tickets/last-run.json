@@ -1,15 +1,24 @@
 {
-  "at": "2026-10-11T08:22:09.229272+00:00",
+  "at": "2026-10-11T09:31:12.450029+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 94,
   "healthy": 65,
-  "written": [
-    "20261011-flower-auction-599f8dc3.yaml",
-    "20261011-inmetals-b05ead45.yaml",
-    "20261011-metal-com-f1b055d9.yaml"
+  "written": [],
+  "deferred": [
+    {
+      "source": "flower-auction",
+      "reason": "nonterminal ticket exists"
+    },
+    {
+      "source": "inmetals",
+      "reason": "nonterminal ticket exists"
+    },
+    {
+      "source": "metal-com",
+      "reason": "nonterminal ticket exists"
+    }
   ],
-  "deferred": [],
   "skipped_unknown_period": [
     "akshare",
     "auth-smoke",
@@ -44,33 +53,17 @@
       "ticket": "20261011-flower-auction-599f8dc3.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 1,
+      "attempt": 2,
       "http_status": 200,
-      "response": "{\"code\": -32032, \"message\": \"fetch failed\"}"
-    },
-    {
-      "ticket": "20261011-inmetals-b05ead45.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "**结论：拒绝入队 —— 工单不可读，终态「转人工」（manual）**；未动手、未开 PR、未动仓内任何文件。\n\n依据（REST 只读核实，2026-10-11T08:30Z，HEAD `d42221c`）：\n- `reports/health-tickets/20261011-inmetals-b05ead45.yaml` 在 main **不存在**：contents 404；递归 tree 1768 项（truncated=false）无此路径；该路径 commit 历史 **0 条**；org code search `b05ead45` **0 命中**。\n- 无待合并推送：open PR = 0，分支仅 main + `gen/*`（无 `heal/*`）；故单写者规则不涉及。\n- 同型先例：`20261006-inmetals-0030bfb3.yaml`（同源、同为\"文件从未落仓\"）当时即判 manual；`20261008-inmetals-dd0bd00b.yaml` 亦 terminal=manual。按纪律「读不懂工单=转人工，不可猜」，不套修复流程、不凭文件"
-    },
-    {
-      "ticket": "20261011-metal-com-f1b055d9.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "Both 20261011 tickets are absent while older ones exist — consistent with a known landing lag (the 20261006 ticket file was committed 3 min *after* its SUBMIT). Let me poll for the file landing while I prepare the state update."
+      "response": "{\"code\": \"EACCES\", \"message\": \"EACCES, Permission denied: /data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills '/data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills'\"}"
     },
     {
       "ticket": "20261011-wire-DE-20261011-99.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 1,
+      "attempt": 2,
       "http_status": 200,
-      "response": "{\"code\": -32032, \"message\": \"fetch failed\"}"
+      "response": "{\"code\": \"EACCES\", \"message\": \"EACCES, Permission denied: /data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills '/data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills'\"}"
     }
   ],
   "status": [
@@ -83,33 +76,35 @@
     },
     {
       "ticket": "20261007-kosis-openapi-a9ec1cf8.yaml",
+      "http_status": 200,
       "state": null,
-      "error": "The read operation timed out"
+      "note": "",
+      "pr_url": ""
     },
     {
       "ticket": "20261011-flower-auction-599f8dc3.yaml",
-      "http_status": 409,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261011-inmetals-b05ead45.yaml",
-      "http_status": 409,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261011-metal-com-f1b055d9.yaml",
-      "http_status": 409,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261011-wire-DE-20261011-99.yaml",
-      "http_status": 409,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
