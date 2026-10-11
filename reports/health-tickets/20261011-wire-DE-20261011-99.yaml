@@ -36,3 +36,14 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-10-11T13:21:38.346848+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-10-11T13:22:16.758726+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
