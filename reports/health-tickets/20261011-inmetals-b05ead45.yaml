@@ -162,4 +162,21 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-10-11T22:57:00.137429+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**已见过 `FindDataTechnology/fd-industry-data#reports/health-tickets/20261011-inmetals-b05ead45.yaml`，状态：终态
+    `manual`（转人工）** —— 重复投递，未重复入队、未动手、未开 PR。
+
+
+    依据（本轮远端只读复核，HEAD `626963a`，与 20:07 一致无新提交）：
+
+    - 工单自述即非修复面：`needs_human: true`、`category: null`、`rule2:insufficient-evidence`（`tail_failed=0<3`，`last_succes'
+- at: '2026-10-11T22:57:11.305548+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
