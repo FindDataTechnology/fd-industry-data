@@ -10,6 +10,18 @@
   WANXING_SPIDER_HEAL_URL    spider-heal a2a 端点（有默认）
   WANXING_SPIDER_HEAL_KEY    finddata 调用键（SUBMIT/STATUS 必填）
   FD_HEALTH_CONFIG           配置 JSON 路径（可选）
+
+两段式（fix-health-ticket-landing-race）：
+
+  # 段一：落单写盘（不投递）
+  python3 scripts/health_inspect.py --from-pg --emit --summary-file ...
+  git add -A reports/health-tickets && git commit && git push   # ← 落仓门
+  # 段二：投递与回读（工作流同一 job 内 push 之后）
+  python3 scripts/health_inspect.py --deliver --summary-file ...
+
+工单必须先落到远端可见，agent 才读得到；同轮既写盘又投递会让 agent 读到
+「文件不存在」而拒收（2026-10-06 / 10-11 实测烧单）。缺省（两段都不给）按
+旧行为落单+投递，仅供离线/手工使用。
 """
 from __future__ import annotations
 
@@ -40,6 +52,10 @@ def main() -> int:
     ap.add_argument("--repo", default=str(REPO))
     ap.add_argument("--outdir", default=str(REPO / "reports" / "health-tickets"))
     ap.add_argument("--config", default=None)
+    ap.add_argument("--emit", action="store_true",
+                    help="段一：只落单写盘（不投递）")
+    ap.add_argument("--deliver", action="store_true",
+                    help="段二：只投递与回读（不落单）")
     ap.add_argument("--submit-new", action="store_true")
     ap.add_argument("--sync-status", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
@@ -47,6 +63,13 @@ def main() -> int:
     args = ap.parse_args()
 
     import os
+
+    # 两段式判定：显式给了任一新开关就按新语义；否则沿用旧行为（落单+投递）
+    two_phase = args.emit or args.deliver
+    do_emit = args.emit or not two_phase
+    do_deliver = args.deliver or not two_phase
+    if args.emit and args.deliver:          # 互斥：同轮写盘+投递正是烧单根因
+        ap.error("--emit 与 --deliver 互斥（工单必须先落仓再投递）")
 
     repo = Path(args.repo)
     outdir = Path(args.outdir)
@@ -69,7 +92,13 @@ def main() -> int:
 
     runs_by_source = inspector.group_runs(records)
     plan = inspector.plan_tickets(runs_by_source, repo, config, now)
-    stats = inspector.write_plan(plan, repo, outdir, config, now)
+    if do_emit:
+        stats = inspector.write_plan(plan, repo, outdir, config, now)
+    else:
+        # 投递段不落单：统计沿用空账，避免同轮二次出单
+        stats = {"written": [], "deferred": plan.deferred,
+                 "healthy": plan.healthy,
+                 "skipped_unknown_period": plan.skipped_unknown_period}
 
     summary: dict = {
         "at": now.isoformat(),
@@ -83,7 +112,7 @@ def main() -> int:
         "master_switch": config.master_switch,
     }
 
-    if args.submit_new:
+    if do_deliver and args.submit_new:
         url = os.environ.get("WANXING_SPIDER_HEAL_URL", DEFAULT_URL)
         key = os.environ.get("WANXING_SPIDER_HEAL_KEY", "")
         if not key and not args.dry_run and config.master_switch:
@@ -93,7 +122,7 @@ def main() -> int:
             outdir, os.environ.get("FD_HEALTH_REPO_SLUG", DEFAULT_SLUG),
             url, key, config, dry_run=args.dry_run,
         )
-    if args.sync_status:
+    if do_deliver and args.sync_status:
         url = os.environ.get("WANXING_SPIDER_HEAL_URL", DEFAULT_URL)
         key = os.environ.get("WANXING_SPIDER_HEAL_KEY", "")
         summary["status"] = inspector.sync_status(outdir, url, key)

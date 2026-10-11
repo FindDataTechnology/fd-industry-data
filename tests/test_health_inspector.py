@@ -304,3 +304,110 @@ def test_extract_message_text_and_resubmit_after_error(tmp_path):
     assert res2[0]["attempt"] == 2                     # 幂等键按次递增（避门面重放错误首答）
     res3 = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS, poster=poster)
     assert res3 == [] and len(bodies) == 2             # 成功后退化为不重发
+
+
+# ── 拒收语义：落仓竞态烧单的根因（fix-health-ticket-landing-race） ────────
+
+def test_refusal_reply_is_failure_and_retried(tmp_path):
+    """agent 读不到工单时回「拒绝入队 —— 工单不可读」：必须判失败并允许重投。
+
+    2026-10-06 / 10-11 实测：这类回执被判成功记 ok:true，工单被永久跳过。
+    """
+    outdir = tmp_path / "tickets"
+    p = _mk_ticket(outdir, "inmetals")
+    calls = []
+
+    def poster(url, key, idem, body):
+        calls.append(idem)
+        return 200, ('{"jsonrpc":"2.0","id":1,"result":{"parts":[{"kind":"text","text":'
+                     '"**结论：拒绝入队 —— 工单不可读，终态「转人工」（manual）**；'
+                     '未动手、未开 PR。\\n\\n依据：contents 404、tree 1768 项无此路径"}]}}')
+
+    res = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS, poster=poster)
+    assert res[0]["submitted"] is False, "拒收回执必须判为投递失败"
+    doc = load_ticket(p)
+    assert [e for e in doc["lifecycle"] if e["event"] == "submitted"][-1]["ok"] is False
+    # 失败允许重投（否则这张单永远烧掉）
+    assert inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS,
+                                        poster=poster) != []
+
+
+def test_dedup_reply_still_success(tmp_path):
+    """去重回执（已见过/已入队）仍判成功——不误伤既有幂等语义。"""
+    for reply in ("**已见过该单，状态维持 manual，未重复动手**",
+                  "**结论：已入队（新单，队列第 1 位）→ 本回合终态 manual。**"):
+        outdir = tmp_path / f"t{abs(hash(reply)) % 9999}"
+        _mk_ticket(outdir, "alpha")
+        res = inspector.submit_new_tickets(
+            outdir, "Org/repo", "https://x", "k", DEFAULTS,
+            poster=lambda *a, r=reply: (200, '{"result":{"parts":[{"text":"%s"}]}}' % r))
+        assert res[0]["submitted"] is True, reply
+
+
+def test_quoted_historical_error_not_failure(tmp_path):
+    """结论句里引述历史错误不判失败（只看结论首段）。"""
+    outdir = tmp_path / "tickets"
+    _mk_ticket(outdir, "beta")
+    reply = "已入队并当轮处理完毕；说明：历史一次 submit 曾回 Invalid Request"
+    res = inspector.submit_new_tickets(
+        outdir, "Org/repo", "https://x", "k", DEFAULTS,
+        poster=lambda *a: (200, '{"result":{"parts":[{"text":"%s"}]}}' % reply))
+    assert res[0]["submitted"] is True
+
+
+def test_stale_ok_refusal_is_rejudged(tmp_path):
+    """存量 ok:true 的拒收记录按现行语义重判为失败 → 重新投递。
+
+    历史工单里有被误记为成功的拒收回执，若只信 ok 字段则永不重试。
+    """
+    outdir = tmp_path / "tickets"
+    p = _mk_ticket(outdir, "metal-com")
+    doc = load_ticket(p)
+    doc["lifecycle"].append({"at": "2026-10-11T08:30:37+00:00", "event": "submitted",
+                            "http_status": 200, "ok": True,
+                            "response": "**结论：拒绝入队 → 终态 manual（转人工）**"})
+    (outdir / p.name).write_text(dump_ticket(doc))
+    calls = []
+    res = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS,
+                                       poster=lambda *a: calls.append(a) or (200, "已入队"))
+    assert res and calls, "存量误记的 ok:true 拒收必须重投"
+
+# ── 两段式 CLI：落单与投递分离（fix-health-ticket-landing-race） ───────────
+
+def test_cli_emit_then_deliver_separates_phases(tmp_path, monkeypatch):
+    """--emit 不投递、--deliver 不落单；两者互斥。
+
+    根因：同轮既写盘又投递 → agent 读到「文件不存在」拒收（10-11 实测烧单）。
+    """
+    import subprocess, sys, json as _json
+    repo = _mk_repo(tmp_path)
+    (repo / "scripts").mkdir(exist_ok=True)
+    script = REPO / "scripts" / "health_inspect.py"
+    snap = _snapshot(tmp_path, _runs("alpha", fails=3, error="connection timed out"))
+
+    import os
+    env = dict(os.environ, WANXING_SPIDER_HEAL_KEY="test-key",
+               WANXING_SPIDER_HEAL_URL="http://127.0.0.1:1/none")
+
+    def run(*flags):
+        proc = subprocess.run(
+            [sys.executable, str(script), "--snapshot", str(snap), "--repo", str(repo),
+             "--outdir", str(tmp_path / "tk"), "--submit-new", *flags],
+            capture_output=True, text=True, cwd=str(REPO), env=env)
+        return proc, (_json.loads(proc.stdout) if proc.stdout.strip().startswith("{") else {})
+
+    # 段一：落单（--submit-new 也被 do_deliver 拦住，不产生网络调用）
+    p1, s1 = run("--emit")
+    assert p1.returncode == 0, p1.stderr
+    assert s1["written"], "段一必须落单"
+    assert "submit" not in s1, "段一不得投递"
+
+    # 段二：投递（不落单）
+    p2, s2 = run("--deliver")
+    assert p2.returncode == 0, p2.stderr
+    assert s2["written"] == [], "段二不得再出单"
+    assert "submit" in s2, "段二必须投递"
+
+    # 互斥
+    p3, _ = run("--emit", "--deliver")
+    assert p3.returncode != 0

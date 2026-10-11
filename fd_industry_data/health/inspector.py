@@ -23,6 +23,15 @@ from .config import HealthConfig, frequency_hours
 
 STATE_WORDS = ("queued", "working", "pr-open", "done", "manual")
 
+# SUBMIT 回执语义词表（fix-health-ticket-landing-race）
+# 去重回执 = 投递成功（agent 已受理，不重试）；拒收回执 = 投递失败（须重试）。
+# 判定按「结论首段」而非全文——回执正文常引述历史错误，全文匹配会误判。
+DEDUP_WORDS = ("已见过", "已入队", "重复提交", "已处理")
+REFUSAL_WORDS = (
+    "拒绝入队", "未入队", "不可读", "不认领", "拒绝并转人工",
+    "拒绝", "未通过", "无法读取", "不存在",
+)
+
 
 # ── 遥测载入 ──────────────────────────────────────────────────────────────
 
@@ -276,10 +285,23 @@ def extract_message_text(text: str) -> str:
     return text
 
 
-def _looks_failed(status: int, raw_text: str, message: str) -> bool:
-    """判定 SUBMIT 回执是否失败：HTTP 非 2xx / JSON-RPC error 信封 / 回执开头的明确拒绝。
+def _conclusion_segment(message: str) -> str:
+    """取回执的结论首段（第一个 。/；/;/\\n 之前），小写去空白。
 
-    仅看回执开头（前 60 字符）与错误信封——回执正文里引述历史错误不应判失败。
+    回执正文常引述历史错误（如「说明：某次 submit 曾回 Invalid Request」），
+    全文匹配会把这类引述误判为失败——只取结论句。
+    """
+    seg = re.split(r"[。；;\n]", message.strip(), maxsplit=1)[0]
+    return seg.lower().strip()
+
+
+def _looks_failed(status: int, raw_text: str, message: str) -> bool:
+    """判定 SUBMIT 回执是否失败：HTTP 非 2xx / JSON-RPC error 信封 / 结论首段的拒收语义。
+
+    拒收语义（2026-10-11 实测烧单后补）：agent 读不到工单时回复「拒绝入队」
+    「未入队」「不认领」等——**这类回执必须判失败**才会在下一轮重试。此前它们
+    被判成功并记 `ok: true`，工单被永久跳过（inmetals/metal-com/flower-auction
+    各有实例）。去重回执（已见过/已入队）仍判成功，不误伤既有幂等语义。
     """
     if status >= 400:
         return True
@@ -289,17 +311,27 @@ def _looks_failed(status: int, raw_text: str, message: str) -> bool:
             return True
     except (json.JSONDecodeError, TypeError):
         pass
-    head = message.strip()[:60].lower()
-    return head.startswith(("invalid request", "unauthorized", "not allowed", "拒绝", "未通过"))
+    head = _conclusion_segment(message)
+    if any(k in head for k in DEDUP_WORDS):
+        return False                      # 去重回执 = 已受理，非失败
+    if any(k in head for k in REFUSAL_WORDS):
+        return True
+    return head.startswith(("invalid request", "unauthorized", "not allowed", "未通过"))
 
 
 def _submit_recorded(doc: dict) -> bool:
-    """是否已有成功的 SUBMIT 记录（失败回执允许重试）。"""
+    """是否已有成功的 SUBMIT 记录（失败回执允许重试）。
+
+    存量的 `ok: true` 记录也会按现行拒收语义重判（fix-health-ticket-landing-race）：
+    历史上有拒收回执被误记为成功，若只信 `ok` 字段，这些单永远不会被重投。
+    """
     for e in doc.get("lifecycle") or []:
         if e.get("event") != "submitted":
             continue
-        resp = str(e.get("response", "")).lower()
-        if e.get("ok") is False or "invalid request" in resp or "error" in resp or "unauthorized" in resp:
+        resp = str(e.get("response", ""))
+        if e.get("ok") is False:
+            continue
+        if _looks_failed(200, resp, resp):
             continue
         return True
     return False
