@@ -1,0 +1,14 @@
+kind: generate
+unit: spiders/drill-wire-e2e/
+category: null
+brief:
+  source_urls:
+  - https://wire.finddatatech.cloud/health
+  expectations: 编排链演练：取平台 health 端点 JSON 字段（status/service/version），drill 单可随时关闭
+  cadence: daily
+  notes: wire 需求单 DE-20261011-99；客户代号 drill-wi
+golden:
+- spiders/drill-wire-e2e/golden/
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261011-wire-DE-20261011-99.yaml
