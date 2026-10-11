@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-11T15:26:09.202308+00:00",
+  "at": "2026-10-11T15:45:58.525428+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 94,
@@ -48,7 +48,16 @@
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [],
+  "submit": [
+    {
+      "ticket": "20261011-wire-DE-20261011-99.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 200,
+      "response": "{\"code\": -32032, \"message\": \"fetch failed\"}"
+    }
+  ],
   "status": [
     {
       "ticket": "20261007-entsoe-e-d354141e.yaml",
