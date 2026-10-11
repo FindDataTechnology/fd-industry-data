@@ -3,9 +3,23 @@ name: wire-demands-pull
 # wire 平台不持外部 git 凭据——本工作流主动拉取待投递工单、写入
 # reports/health-tickets/、自推 main（GITHUB_TOKEN 同仓写）、回 ack。
 # 工单随后由既有 health-inspect 每日巡检代交萬星生成 agent（人审红线不动）。
+#
+# 触发面（2026-10-11 生产实证：本工作流新增后 schedule 连续 5 槽未触发，
+# 同仓 health-inspect 的每日 schedule 正常——GitHub 对新工作流的 schedule
+# 注册不可依赖）。因此三通道并存：
+# 1. schedule：整点后错峰双拉（若 GitHub 注册生效则兜底时间驱动）；
+# 2. workflow_run（image 完成后）：仓内任一推送→image→本工作流接力——
+#    巡检器的生命周期回执推送天然驱动状态回流环自续；
+# 3. workflow_dispatch：操作员/脚本手动。
+# 环安全性：本工作流只在有待投递时才推送 main，workflow_run 二次触发
+# 无待投即空转退出，不构成自激励循环。
 on:
   schedule:
-    - cron: "13,43 * * * *" # 每小时两拉（错开整点巡检窗）
+    - cron: "14,44 * * * *" # 每小时两拉（错开整点巡检窗）
+  workflow_run:
+    workflows: ["image"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -13,6 +27,8 @@ permissions:
 
 jobs:
   pull:
+    # workflow_run 触发时 image 刚写完 ref——只在成功时接力，失败镜像不拉
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: [self-hosted, fd-health]
     steps:
       - uses: actions/checkout@v4
