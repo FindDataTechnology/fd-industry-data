@@ -74,8 +74,7 @@ lifecycle:
 
     ### 依据（逐环）
 
-    - **分诊**：`kind=generate`（非 repair）→ 走生成流。准入全过：`category` 为空、`brief.source_urls/expectations`
-    非空、unit 形如 `spiders/wire-finddatatech-cloud/` 且**仓'
+    - **分诊**：`kind=generate`（非 repair）→ 走生成流。准入全过：`category` 为空、`brief.source_urls/expectations` 非空、unit 形如 `spiders/wire-finddatatech-cloud/` 且**仓'
 - at: '2026-10-11T17:52:41.944955+00:00'
   event: status
   http_status: 200
@@ -88,3 +87,10 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-10-11T17:56:00+00:00'
+  event: status
+  http_status: 200
+  state: done
+  note: 'operator closure：PR #58 人工审核合流（conformance gate PASS 102 units），管道单元已交付（静默合入、点亮延后——drill 单口径）'
+  pr_url: https://github.com/FindDataTechnology/fd-industry-data/pull/58
+terminal: closed
