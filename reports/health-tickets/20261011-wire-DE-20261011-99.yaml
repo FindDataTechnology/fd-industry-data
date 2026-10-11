@@ -24,4 +24,39 @@ evidence:
   source_urls: *id001
   public_data_asserted: true
   notes: wire 需求单生成单（demand-orchestration）：客户需求经合规门后出单，按 brief 从零建立单元并交付 golden 样本
-lifecycle: []
+lifecycle:
+- at: 2026-10-11T17:50:01:00+00:00
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 1/7: 门面幂等缓存 try1-try7 已污染，跳 try8；出单侧 schema 合规修复已上产 sha-a5aca4b'
+- at: 2026-10-11T17:50:02:00+00:00
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 2/7: 门面幂等缓存 try1-try7 已污染，跳 try8；出单侧 schema 合规修复已上产 sha-a5aca4b'
+- at: 2026-10-11T17:50:03:00+00:00
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 3/7: 门面幂等缓存 try1-try7 已污染，跳 try8；出单侧 schema 合规修复已上产 sha-a5aca4b'
+- at: 2026-10-11T17:50:04:00+00:00
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 4/7: 门面幂等缓存 try1-try7 已污染，跳 try8；出单侧 schema 合规修复已上产 sha-a5aca4b'
+- at: 2026-10-11T17:50:05:00+00:00
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 5/7: 门面幂等缓存 try1-try7 已污染，跳 try8；出单侧 schema 合规修复已上产 sha-a5aca4b'
+- at: 2026-10-11T17:50:06:00+00:00
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 6/7: 门面幂等缓存 try1-try7 已污染，跳 try8；出单侧 schema 合规修复已上产 sha-a5aca4b'
+- at: 2026-10-11T17:50:07:00+00:00
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 7/7: 门面幂等缓存 try1-try7 已污染，跳 try8；出单侧 schema 合规修复已上产 sha-a5aca4b'
