@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-11T13:33:56.344893+00:00",
+  "at": "2026-10-11T14:36:16.048170+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 94,
@@ -48,27 +48,18 @@
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [
-    {
-      "ticket": "20261011-wire-DE-20261011-99.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 4,
-      "http_status": 200,
-      "response": "参照样板已到手。现在定位 wire 主机上真正返回 JSON 的 health 端点。"
-    }
-  ],
+  "submit": [],
   "status": [
     {
       "ticket": "20261007-entsoe-e-d354141e.yaml",
-      "http_status": 200,
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261007-kosis-openapi-a9ec1cf8.yaml",
-      "http_status": 200,
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
