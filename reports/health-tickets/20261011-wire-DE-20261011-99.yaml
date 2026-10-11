@@ -12,3 +12,15 @@ golden:
 verify:
   commands:
   - python3 scripts/health_verify.py --ticket reports/health-tickets/20261011-wire-DE-20261011-99.yaml
+lifecycle:
+- at: '2026-10-11T08:38:43.141883+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-10-11T08:41:17.047562+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
