@@ -141,6 +141,32 @@ def main() -> int:
             print(f"ack failed for {item.get('code')}: HTTP {st}",
                   file=sys.stderr)
     print(f"done: {len(written)} ticket(s), {acked} acked")
+
+    # 状态回推：wire（fd-prod）到 raw.githubusercontent.com 被海外出站挡死，
+    # 状态回流因此为推送式——本 runner 有网，读本地工单文件全文推给 wire，
+    # wire 侧解析映射 pipeline_events（幂等）。
+    st, tracked = _request(base, token, "GET",
+                           "/internal/demands/workorders/tracked")
+    paths = tracked.get("tracked", []) if isinstance(tracked, dict) else []
+    pushed = 0
+    for path in paths:
+        if not TICKET_PATH_RE.match(path):
+            print(f"REFUSED non-whitelisted tracked path: {path!r}",
+                  file=sys.stderr)
+            continue
+        local = os.path.join(args.repo_root, path)
+        if not os.path.exists(local):
+            print(f"tracked ticket not in checkout: {path}")
+            continue
+        st2, _ = _request(base, token, "POST",
+                          "/internal/demands/workorders/status",
+                          {"ticket_path": path,
+                           "content": open(local, encoding="utf-8").read()})
+        if st2 == 200:
+            pushed += 1
+        else:
+            print(f"status push failed {path}: HTTP {st2}", file=sys.stderr)
+    print(f"status pushed: {pushed}/{len(paths)}")
     return 0
 
 
