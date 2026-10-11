@@ -60,3 +60,25 @@ lifecycle:
   http_status: 0
   ok: false
   response: 'operator seed 7/7: 门面幂等缓存 try1-try7 已污染，跳 try8；出单侧 schema 合规修复已上产 sha-a5aca4b'
+- at: '2026-10-11T17:51:34.302509+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '## 结论：已开 PR #58，待人工审 merge
+
+
+    **工单 `20261011-wire-DE-20261011-99` → state=pr-open**
+
+    https://github.com/FindDataTechnology/fd-industry-data/pull/58
+
+
+    ### 依据（逐环）
+
+    - **分诊**：`kind=generate`（非 repair）→ 走生成流。准入全过：`category` 为空、`brief.source_urls/expectations`
+    非空、unit 形如 `spiders/wire-finddatatech-cloud/` 且**仓'
+- at: '2026-10-11T17:52:41.944955+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
