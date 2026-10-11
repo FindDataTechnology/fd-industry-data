@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-11T14:36:16.048170+00:00",
+  "at": "2026-10-11T15:26:09.202308+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 94,
@@ -52,14 +52,14 @@
   "status": [
     {
       "ticket": "20261007-entsoe-e-d354141e.yaml",
-      "http_status": 409,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261007-kosis-openapi-a9ec1cf8.yaml",
-      "http_status": 409,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
