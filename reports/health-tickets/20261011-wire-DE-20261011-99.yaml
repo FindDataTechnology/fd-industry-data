@@ -12,3 +12,29 @@ golden:
 verify:
   commands:
   - python3 scripts/health_verify.py --ticket reports/health-tickets/20261011-wire-DE-20261011-99.yaml
+lifecycle:
+- at: '2026-10-11T17:12:01:00+00:00'
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 1/5: 門面幂等缓存 try1-try5 已污染（try5=16:14Z 真实首答），跳到 try6；agent 已完全重建'
+- at: '2026-10-11T17:12:02:00+00:00'
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 2/5: 門面幂等缓存 try1-try5 已污染（try5=16:14Z 真实首答），跳到 try6；agent 已完全重建'
+- at: '2026-10-11T17:12:03:00+00:00'
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 3/5: 門面幂等缓存 try1-try5 已污染（try5=16:14Z 真实首答），跳到 try6；agent 已完全重建'
+- at: '2026-10-11T17:12:04:00+00:00'
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 4/5: 門面幂等缓存 try1-try5 已污染（try5=16:14Z 真实首答），跳到 try6；agent 已完全重建'
+- at: '2026-10-11T17:12:05:00+00:00'
+  event: submit-failed
+  http_status: 0
+  ok: false
+  response: 'operator seed 5/5: 門面幂等缓存 try1-try5 已污染（try5=16:14Z 真实首答），跳到 try6；agent 已完全重建'
