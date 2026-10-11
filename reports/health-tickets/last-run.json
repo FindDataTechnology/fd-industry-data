@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-11T13:21:33.018219+00:00",
+  "at": "2026-10-11T13:33:56.344893+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 94,
@@ -51,11 +51,11 @@
   "submit": [
     {
       "ticket": "20261011-wire-DE-20261011-99.yaml",
-      "submitted": false,
+      "submitted": true,
       "reason": "",
-      "attempt": 3,
+      "attempt": 4,
       "http_status": 200,
-      "response": "{\"code\": -32032, \"message\": \"fetch failed\"}"
+      "response": "参照样板已到手。现在定位 wire 主机上真正返回 JSON 的 health 端点。"
     }
   ],
   "status": [
