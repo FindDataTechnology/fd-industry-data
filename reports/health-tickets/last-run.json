@@ -1,24 +1,11 @@
 {
-  "at": "2026-10-11T17:57:34.655145+00:00",
+  "at": "2026-10-11T20:07:29.371965+00:00",
   "source": "psql",
   "config_source": "db:health_config",
-  "sources_seen": 94,
+  "sources_seen": 95,
   "healthy": 65,
   "written": [],
-  "deferred": [
-    {
-      "source": "flower-auction",
-      "reason": "nonterminal ticket exists"
-    },
-    {
-      "source": "inmetals",
-      "reason": "nonterminal ticket exists"
-    },
-    {
-      "source": "metal-com",
-      "reason": "nonterminal ticket exists"
-    }
-  ],
+  "deferred": [],
   "skipped_unknown_period": [
     "akshare",
     "auth-smoke",
@@ -45,10 +32,20 @@
     "rmfyalk-case-load",
     "tencent-smoke",
     "wbgapi",
+    "wire-finddatatech-cloud",
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [],
+  "submit": [
+    {
+      "ticket": "20261011-inmetals-b05ead45.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 2,
+      "http_status": 200,
+      "response": "{\"code\": -32003, \"message\": \"503: {\\\"message\\\":\\\"Service temporarily unavailable\\\",\\\"type\\\":\\\"api_error\\\"}\"}"
+    }
+  ],
   "status": [
     {
       "ticket": "20261007-entsoe-e-d354141e.yaml",
@@ -73,13 +70,6 @@
     },
     {
       "ticket": "20261011-metal-com-f1b055d9.yaml",
-      "http_status": 200,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261011-wire-DE-20261011-99.yaml",
       "http_status": 200,
       "state": null,
       "note": "",
