@@ -8,6 +8,9 @@ on:
     - cron: "13,43 * * * *" # 每小时两拉（错开整点巡检窗）
   workflow_dispatch:
 
+permissions:
+  contents: write # 工单落仓自推 main（GITHUB_TOKEN 同仓写，与 health-inspect 同款）
+
 jobs:
   pull:
     runs-on: [self-hosted, fd-health]
