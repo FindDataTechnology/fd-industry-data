@@ -1,5 +1,5 @@
 kind: generate
-unit: spiders/drill-wire-e2e/
+unit: spiders/wire-finddatatech-cloud/
 category: null
 brief:
   source_urls:
@@ -8,42 +8,7 @@ brief:
   cadence: daily
   notes: wire 需求单 DE-20261011-99；客户代号 drill-wi
 golden:
-- spiders/drill-wire-e2e/golden/
+- spiders/wire-finddatatech-cloud/golden/
 verify:
   commands:
   - python3 scripts/health_verify.py --ticket reports/health-tickets/20261011-wire-DE-20261011-99.yaml
-lifecycle:
-- at: '2026-10-11T08:38:43.141883+00:00'
-  event: submitted
-  http_status: 200
-  ok: false
-  response: '{"code": -32032, "message": "fetch failed"}'
-- at: '2026-10-11T08:41:17.047562+00:00'
-  event: status
-  http_status: 409
-  state: null
-  note: ''
-  pr_url: ''
-- at: '2026-10-11T09:31:19.491407+00:00'
-  event: submitted
-  http_status: 200
-  ok: false
-  response: '{"code": "EACCES", "message": "EACCES, Permission denied: /data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills
-    ''/data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills''"}'
-- at: '2026-10-11T09:31:25.617124+00:00'
-  event: status
-  http_status: 200
-  state: null
-  note: ''
-  pr_url: ''
-- at: '2026-10-11T09:52:01.959477+00:00'
-  event: submitted
-  http_status: 200
-  ok: false
-  response: '{"code": -32032, "message": "fetch failed"}'
-- at: '2026-10-11T09:54:24.708796+00:00'
-  event: status
-  http_status: 200
-  state: null
-  note: ''
-  pr_url: ''
