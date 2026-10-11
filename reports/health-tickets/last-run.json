@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-11T17:04:01.981007+00:00",
+  "at": "2026-10-11T17:10:17.124519+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 94,
@@ -53,50 +53,50 @@
       "ticket": "20261011-wire-DE-20261011-99.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 6,
-      "http_status": 502,
-      "response": ""
+      "attempt": 7,
+      "http_status": 200,
+      "response": "{\"code\": -32032, \"message\": \"fetch failed\"}"
     }
   ],
   "status": [
     {
       "ticket": "20261007-entsoe-e-d354141e.yaml",
-      "http_status": 502,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261007-kosis-openapi-a9ec1cf8.yaml",
-      "http_status": 502,
-      "state": null,
+      "http_status": 200,
+      "state": "manual",
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261011-flower-auction-599f8dc3.yaml",
-      "http_status": 502,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261011-inmetals-b05ead45.yaml",
-      "http_status": 502,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261011-metal-com-f1b055d9.yaml",
-      "http_status": 502,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261011-wire-DE-20261011-99.yaml",
-      "http_status": 502,
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
