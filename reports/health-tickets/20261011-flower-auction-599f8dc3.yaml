@@ -46,4 +46,22 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-10-11T09:47:00.482840+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**结论：已入队（新单，队列第 1 位）→ 本回合直接终态 `manual`（转人工）。未开 PR、未改任何文件、未点亮任何调度。**
+
+
+    **依据**
+
+    - **工单无诊断可修**：`kind=repair` 但 `category: null`、`failing_runs: []`、`evidence.notes:
+    rule2:insufficient-evidence tail_failed=0<min_runs_for_verdict=3`。仓内分诊契约 `fd_industry_data/health/triage.py`
+    对规则 2 的判定就是 `needs_human=True / '
+- at: '2026-10-11T09:54:24.063912+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null

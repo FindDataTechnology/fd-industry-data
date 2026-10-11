@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-11T09:31:12.450029+00:00",
+  "at": "2026-10-11T09:42:04.159436+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 94,
@@ -51,19 +51,19 @@
   "submit": [
     {
       "ticket": "20261011-flower-auction-599f8dc3.yaml",
-      "submitted": false,
+      "submitted": true,
       "reason": "",
-      "attempt": 2,
+      "attempt": 3,
       "http_status": 200,
-      "response": "{\"code\": \"EACCES\", \"message\": \"EACCES, Permission denied: /data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills '/data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills'\"}"
+      "response": "**结论：已入队（新单，队列第 1 位）→ 本回合直接终态 `manual`（转人工）。未开 PR、未改任何文件、未点亮任何调度。**\n\n**依据**\n- **工单无诊断可修**：`kind=repair` 但 `category: null`、`failing_runs: []`、`evidence.notes: rule2:insufficient-evidence tail_failed=0<min_runs_for_verdict=3`。仓内分诊契约 `fd_industry_data/health/triage.py` 对规则 2 的判定就是 `needs_human=True / category=None`，并明文**「不猜分类」**——五类分诊（network/structure/contract/source-dead/fallback）无一命中，故无可定向修复的目标；工单自身亦标 `needs_human: true`。\n- **单元是设计性 parked**：仓 README 记 `flower-auction | kifa.net | …（已按「需非云出口」pa"
     },
     {
       "ticket": "20261011-wire-DE-20261011-99.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 2,
+      "attempt": 3,
       "http_status": 200,
-      "response": "{\"code\": \"EACCES\", \"message\": \"EACCES, Permission denied: /data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills '/data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills'\"}"
+      "response": "{\"code\": -32032, \"message\": \"fetch failed\"}"
     }
   ],
   "status": [
