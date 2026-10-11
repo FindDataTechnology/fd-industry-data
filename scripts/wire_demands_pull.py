@@ -35,7 +35,7 @@ import urllib.request
 
 DEFAULT_URL = "https://wire.finddatatech.cloud"
 TICKET_PATH_RE = re.compile(
-    r"^reports/health-tickets/[0-9]{8}-wire-[A-Za-z0-9._-]+\.yaml$"
+    r"^reports/health-tickets/[0-9]{8}-wire-[A-Za-z0-9][A-Za-z0-9.-]*\.yaml$"
 )
 
 
@@ -43,7 +43,8 @@ def _request(base: str, token: str, method: str, path: str, body: dict | None):
     req = urllib.request.Request(
         base.rstrip("/") + path,
         method=method,
-        headers={"Authorization": f"Bearer {token}"},
+        # wire 内部端点口径：X-Internal-Token 头（与 FD_WIRE_INTERNAL_TOKEN 比对）
+        headers={"X-Internal-Token": token},
     )
     data = json.dumps(body).encode() if body is not None else None
     if data:
@@ -74,10 +75,11 @@ def main() -> int:
         print("ERROR: WIRE_DEMANDS_TOKEN required", file=sys.stderr)
         return 2
 
-    status, pending = _request(base, token, "GET",
+    status, payload = _request(base, token, "GET",
                                "/internal/demands/workorders/pending")
+    pending = payload.get("pending") if isinstance(payload, dict) else None
     if not isinstance(pending, list):
-        print(f"unexpected pending payload: {pending!r}"[:200], file=sys.stderr)
+        print(f"unexpected pending payload: {payload!r}"[:200], file=sys.stderr)
         return 1
     if not pending:
         print("nothing pending")
@@ -132,9 +134,7 @@ def main() -> int:
     for item in written:
         st, _ = _request(base, token, "POST",
                          "/internal/demands/workorders/ack",
-                         {"code": item.get("code"),
-                          "ticket_path": item.get("ticket_path"),
-                          "by": "fleet-puller"})
+                         {"ticket_path": item.get("ticket_path")})
         if st == 200:
             acked += 1
         else:
