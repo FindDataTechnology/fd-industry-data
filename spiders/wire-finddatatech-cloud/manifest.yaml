@@ -1,0 +1,37 @@
+version: "2"
+name: wire-finddatatech-cloud      # = spiders/<slug>/ 目录名，合入后不可改名
+label: Wire platform health endpoint (fd-wire-api)
+source_url: https://wire.finddatatech.cloud/health
+# site: 不写 —— 走默认执行位（sites.yaml 是执行位登记，与源站无关）
+# schedule: 不写 —— 静默合入，点亮由人工补写（工单 brief.cadence: daily）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_wire_finddatatech_cloud
+    description: Fetch the fd-wire-api health endpoint JSON (status/service/version)
+    frequency: on_demand
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (endpoint yields a single row)
+    columns:
+      - name: service
+        type: string
+        description: Service identifier as reported by the endpoint
+      - name: status
+        type: string
+        description: Health status as reported by the endpoint
+      - name: version
+        type: string
+        description: Service version as reported by the endpoint
+      - name: url
+        type: string
+        description: Endpoint URL the row was read from
+      - name: scraped_at
+        type: string
+        description: Scrape timestamp (UTC ISO8601)
+concepts: []
+entities: []
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
