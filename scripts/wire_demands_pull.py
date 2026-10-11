@@ -76,7 +76,7 @@ def main() -> int:
         return 2
 
     status, payload = _request(base, token, "GET",
-                               "/internal/demands/workorders/pending")
+                               "/internal/demands/workorders/pending", None)
     pending = payload.get("pending") if isinstance(payload, dict) else None
     if not isinstance(pending, list):
         print(f"unexpected pending payload: {payload!r}"[:200], file=sys.stderr)
@@ -146,7 +146,7 @@ def main() -> int:
     # 状态回流因此为推送式——本 runner 有网，读本地工单文件全文推给 wire，
     # wire 侧解析映射 pipeline_events（幂等）。
     st, tracked = _request(base, token, "GET",
-                           "/internal/demands/workorders/tracked")
+                           "/internal/demands/workorders/tracked", None)
     paths = tracked.get("tracked", []) if isinstance(tracked, dict) else []
     pushed = 0
     for path in paths:
