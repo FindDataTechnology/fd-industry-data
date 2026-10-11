@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-11T13:07:04.523463+00:00",
+  "at": "2026-10-11T13:16:11.386522+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 94,
@@ -53,9 +53,9 @@
       "ticket": "20261011-wire-DE-20261011-99.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 1,
+      "attempt": 2,
       "http_status": 200,
-      "response": "{\"code\": -32032, \"message\": \"fetch failed\"}"
+      "response": "{\"code\": \"EACCES\", \"message\": \"EACCES, Permission denied: /data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills '/data/packs-KkCie7NlrHluo4LiKPnn0w-spider-heal/skills'\"}"
     }
   ],
   "status": [
