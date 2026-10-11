@@ -1,0 +1,20 @@
+name: wire-demands-pull
+# 柏讯需求单→生成工单投递通道（wire-demand-generation-orchestration）：
+# wire 平台不持外部 git 凭据——本工作流主动拉取待投递工单、写入
+# reports/health-tickets/、自推 main（GITHUB_TOKEN 同仓写）、回 ack。
+# 工单随后由既有 health-inspect 每日巡检代交萬星生成 agent（人审红线不动）。
+on:
+  schedule:
+    - cron: "13,43 * * * *" # 每小时两拉（错开整点巡检窗）
+  workflow_dispatch:
+
+jobs:
+  pull:
+    runs-on: [self-hosted, fd-health]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pull wire demand workorders
+        env:
+          WIRE_DEMANDS_URL: https://wire.finddatatech.cloud
+          WIRE_DEMANDS_TOKEN: ${{ secrets.WIRE_DEMANDS_TOKEN }}
+        run: python3 scripts/wire_demands_pull.py --repo-root . --commit-and-push
