@@ -114,6 +114,15 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
   「引述历史错误」误判为失败；② **门面 Idempotency-Key 重放首答**——首投撞上 agent
   不可用而缓存 `-32032`，此后同键重投永远拿到旧错误 → 幂等键改按次递增（`<ticket>-tryN`），
   工单级去重由 agent inbox（按路径）兜底。
+- **STATUS 回读同款病与治法（2026-10-12）**：门面按 (caller, agent, key) 重放首答、窗口 **24h**。
+  STATUS 原用固定键 `status-<ticket>` → 一次坏答（空文本/思考答，解析不出 state）被重放满窗口：
+  实证三张 10-11 单（flower-auction/inmetals/metal-com）自 09:31 起每轮回读都是那份坏答，
+  直到次日 09:31 窗口过期才拿到真回合、当轮收敛 `manual`。治法=**键随工单生命周期递增**
+  （`status-<ticket>-r{N}`，N = 已有 status/status-failed 事件数 + 1；lifecycle 只追加，
+  序号严格递增永不碰撞）。STATUS 是读——每次都要当前状态，好答也不该重放（否则
+  pr-open/done 的可见性要等窗口过期）。同时回读超时 **120→300s**（`STATUS_READ_TIMEOUT`；
+  实测回合 20~150s+，曾见 180s 超时）。回归：`test_status_idem_key_unique_per_call`、
+  `test_status_idem_key_increments_with_lifecycle`、`test_status_read_timeout_relaxed`。
 
 ## 生成流（kind=generate，source-generation-flow）
 

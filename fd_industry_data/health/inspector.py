@@ -440,9 +440,32 @@ def parse_status(text: str) -> dict:
 TERMINAL_MAP = {"done": "fixed-pending-human", "manual": "manual", "merged": "closed"}
 
 
+# STATUS 回读超时（秒）：实测 agent 回合 20~150s+，曾见 180s 超时；120s 偏紧。
+STATUS_READ_TIMEOUT = 300
+
+
+def _status_idem_key(doc: dict, name: str) -> str:
+    """STATUS 幂等键：按工单回读次数递增（每轮唯一，强制真回合取当前状态）。
+
+    门面按 (caller, agent, key) 重放首答，窗口 24h。固定键有两层代价：
+    ①一次坏答（空文本/思考答，解析不出 state）会被重放满窗口——2026-10-12
+    实证三张 10-11 单被 09:31 的空答重放到次日窗口过期才收敛；
+    ②好答重放让状态跃迁滞后（pr-open/done 要等窗口过期才可见）。
+    STATUS 是读：每次都要当前状态，故键随生命周期递增（SUBMIT 侧同为递增）。
+    lifecycle 只追加，故序号严格递增、永不碰撞。
+    """
+    prior = sum(
+        1 for e in doc.get("lifecycle") or []
+        if e.get("event") in ("status", "status-failed")
+    )
+    return f"status-{name}-r{prior + 1}"
+
+
 def sync_status(outdir: Path, url: str, key: str, fetcher=None) -> list[dict]:
     """回读未终态工单的 STATUS，映射进生命周期与终态枚举。"""
-    fetcher = fetcher or (lambda u, k, idem, body: _default_poster(u, k, idem, body, timeout=120))
+    fetcher = fetcher or (
+        lambda u, k, idem, body: _default_poster(u, k, idem, body, timeout=STATUS_READ_TIMEOUT)
+    )
     results: list[dict] = []
     if not outdir.is_dir():
         return results
@@ -451,7 +474,8 @@ def sync_status(outdir: Path, url: str, key: str, fetcher=None) -> list[dict]:
         if doc.get("terminal") is not None:
             continue
         try:
-            status, text = fetcher(url, key, f"status-{p.name[:-5]}", f"STATUS reports/health-tickets/{p.name}")
+            status, text = fetcher(url, key, _status_idem_key(doc, p.name[:-5]),
+                                   f"STATUS reports/health-tickets/{p.name}")
         except Exception as e:  # noqa: BLE001 — 回读失败留痕不炸
             ticket_mod.append_event(doc, "status-failed", error=str(e)[:300])
             p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")

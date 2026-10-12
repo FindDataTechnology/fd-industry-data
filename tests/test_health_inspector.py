@@ -467,3 +467,33 @@ def test_status_maps_terminal_after_thinking(tmp_path):
     inspector.sync_status(outdir, "https://x", "k", fetcher=fetcher)
     doc = load_ticket(p)
     assert doc["terminal"] == "manual", "思考前置不得阻断终态落库"
+
+
+def test_status_idem_key_unique_per_call(tmp_path):
+    """STATUS 键每轮唯一：门面不会用旧答重放（固定键会把坏答/旧答重放满 24h）。"""
+    outdir = tmp_path / "tickets"
+    _mk_ticket(outdir, "alpha")
+    seen = []
+
+    def fetcher(url, key, idem, body):
+        seen.append(idem)
+        return 200, "状态：working"
+
+    inspector.sync_status(outdir, "https://x", "k", fetcher=fetcher)
+    inspector.sync_status(outdir, "https://x", "k", fetcher=fetcher)
+    assert len(seen) == 2
+    assert seen[0].startswith("status-") and seen[1].startswith("status-")
+    assert seen[0].endswith("-r1") and seen[1].endswith("-r2"), seen
+
+
+def test_status_idem_key_increments_with_lifecycle():
+    """键随生命周期递增：只追加的 lifecycle 保证序号严格递增、永不碰撞。"""
+    doc = {"lifecycle": [{"event": "created"}, {"event": "submitted"},
+                         {"event": "status", "state": None},
+                         {"event": "status-failed", "error": "timeout"}]}
+    assert inspector._status_idem_key(doc, "t1") == "status-t1-r3"
+
+
+def test_status_read_timeout_relaxed():
+    """回读超时放宽到 300s（实测回合 20~150s+，曾见 180s 超时）。"""
+    assert inspector.STATUS_READ_TIMEOUT == 300
