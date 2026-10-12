@@ -1,0 +1,15 @@
+{
+  "sample_id": "001-quotes-toscrape-com",
+  "created": "2026-10-12",
+  "target": "run_quotes_toscrape_com",
+  "params": {"limit": 5},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "source", "equals": "quotes-toscrape-com"},
+      {"field": "url", "equals": "https://quotes.toscrape.com/"},
+      {"field": "author", "equals": "Albert Einstein"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
