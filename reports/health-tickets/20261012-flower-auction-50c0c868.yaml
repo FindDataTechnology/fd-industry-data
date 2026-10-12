@@ -23,4 +23,27 @@ golden: []
 lifecycle:
 - at: '2026-10-12T12:41:17.978494+00:00'
   event: created
-terminal: null
+- at: '2026-10-12T13:11:34.250622+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**已见过 FindDataTechnology/fd-industry-data#reports/health-tickets/20261012-flower-auction-50c0c868.yaml，状态：终态
+    manual（队列中无此单）**——重复投递，按协议不重复入队、不重复动手。
+
+
+    依据（一行）：
+
+    - 该单 12:46 已入队并处理完毕：凭据就绪（git_pat 尾 …7zNX）→ 取件尝试 + 重试各 1 次均失败（镜像内**无 git 可执行文件**；`github.com`
+    / `api.github.com` / `raw.githubusercontent.com` T'
+- at: '2026-10-12T13:14:57.890862+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-10-12T13:14:57.891042+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual

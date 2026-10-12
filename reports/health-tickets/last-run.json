@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-12T10:16:18.349576+00:00",
+  "at": "2026-10-12T13:10:14.340071+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 95,
@@ -36,24 +36,49 @@
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [],
+  "submit": [
+    {
+      "ticket": "20261012-flower-auction-50c0c868.yaml",
+      "submitted": true,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 200,
+      "response": "**已见过 FindDataTechnology/fd-industry-data#reports/health-tickets/20261012-flower-auction-50c0c868.yaml，状态：终态 manual（队列中无此单）**——重复投递，按协议不重复入队、不重复动手。\n\n依据（一行）：\n- 该单 12:46 已入队并处理完毕：凭据就绪（git_pat 尾 …7zNX）→ 取件尝试 + 重试各 1 次均失败（镜像内**无 git 可执行文件**；`github.com` / `api.github.com` / `raw.githubusercontent.com` TCP 全部超时，出口仅白名单 `*.finddatatech.cloud` 可达）→ 未读到工单、**未开 PR、未改任何文件**，终态 manual「工单不可读」，retry=1 已尽。\n- 本次重复投递仅落盘去重记录（`dup_submit_at`），未消耗重试、未再发通知；状态文件 `/tmp/spider-heal/inbox.json`（`$DSH_HOME/spider-heal/` "
+    },
+    {
+      "ticket": "20261012-inmetals-22d7bbda.yaml",
+      "submitted": true,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 200,
+      "response": "**结论：已见过 `FindDataTechnology/fd-industry-data#reports/health-tickets/20261012-inmetals-22d7bbda.yaml`，状态：终态 `manual`（去重命中，未重复入队、未重复动手）。**\n\n- **依据**：该单 12:54:16 已入队并因取件通道阻断判终态 manual（retry=1 已尽）；本轮复核通道仍不可用——`git` 仍不存在、`api.github.com:443` TCP 仍超时（对照 mcp./token.finddatatech.cloud 200）。终态不变，未消耗新重试、未开 PR、未改任何文件。\n- **状态落盘**：`/tmp/spider-heal/inbox.json`（canonical）+ `/app/agent-runner/.spider-heal/inbox.json` 镜像；已在 meta 记本次去重命中。\n- **旁注**：同仓另有并发巡检会话写入的 `metal-com` 单（同样 manual），本次写入为读-改-写，未覆盖他单记录。\n- **解"
+    },
+    {
+      "ticket": "20261012-metal-com-a6131850.yaml",
+      "submitted": true,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 200,
+      "response": "**结论：已见过该单，状态：终态 `manual`（转人工）——未重复入队、未重复动手、未重复通知。**\n\n一行依据：去重命中（`retry=1` 已尽），且只读复核阻塞条件未解除。\n\n- **去重**：`FindDataTechnology/fd-industry-data#reports/health-tickets/20261012-metal-com-a6131850.yaml` 已在队列，state=`manual`、retry=1（终态），本次登记 `dup_submit_at=2026-10-12T13:13:24Z`，**不重复入队**。\n- **阻塞复核（只读探测，未消耗重试）**：`raw.githubusercontent.com` / `api.github.com` / `github.com` / `codeload.github.com` 四域仍 http=000（超时）；`git`、`gh` 仍 NOT FOUND。对照 `platform.` / `mcp.finddatatech.cloud` 仍 http=200 → 出口白名单未变，**取件通道未"
+    }
+  ],
   "status": [
     {
-      "ticket": "20261011-flower-auction-599f8dc3.yaml",
+      "ticket": "20261012-flower-auction-50c0c868.yaml",
       "http_status": 200,
       "state": "manual",
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261011-inmetals-b05ead45.yaml",
+      "ticket": "20261012-inmetals-22d7bbda.yaml",
       "http_status": 200,
       "state": "manual",
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261011-metal-com-f1b055d9.yaml",
+      "ticket": "20261012-metal-com-a6131850.yaml",
       "http_status": 200,
       "state": "manual",
       "note": "",

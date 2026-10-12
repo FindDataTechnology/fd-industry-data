@@ -28,4 +28,25 @@ golden: []
 lifecycle:
 - at: '2026-10-12T12:41:17.978494+00:00'
   event: created
-terminal: null
+- at: '2026-10-12T13:12:29.243920+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**结论：已见过 `FindDataTechnology/fd-industry-data#reports/health-tickets/20261012-inmetals-22d7bbda.yaml`，状态：终态
+    `manual`（去重命中，未重复入队、未重复动手）。**
+
+
+    - **依据**：该单 12:54:16 已入队并因取件通道阻断判终态 manual（retry=1 已尽）；本轮复核通道仍不可用——`git` 仍不存在、`api.github.com:443`
+    TCP 仍超时（对照 mcp./token.finddatatech.cloud 200）。终态不变，未消耗新重试、未开 P'
+- at: '2026-10-12T13:14:58.096973+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-10-12T13:14:58.097026+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual

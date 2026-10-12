@@ -30,4 +30,29 @@ golden:
 lifecycle:
 - at: '2026-10-12T12:41:17.978494+00:00'
   event: created
-terminal: null
+- at: '2026-10-12T13:14:56.154074+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**结论：已见过该单，状态：终态 `manual`（转人工）——未重复入队、未重复动手、未重复通知。**
+
+
+    一行依据：去重命中（`retry=1` 已尽），且只读复核阻塞条件未解除。
+
+
+    - **去重**：`FindDataTechnology/fd-industry-data#reports/health-tickets/20261012-metal-com-a6131850.yaml`
+    已在队列，state=`manual`、retry=1（终态），本次登记 `dup_submit_at=2026-10-12T13:13:24Z`，**不重复入队**。
+
+    - **阻塞复核（只读探测，未消耗重试'
+- at: '2026-10-12T13:14:58.268962+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-10-12T13:14:58.269007+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual
