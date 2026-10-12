@@ -31,6 +31,12 @@ Live data paths (measured 2026-10-13, UTC+8):
 只把正文文本、报告类别、发布日与关键元数据落列；具体数值由下游按需要解析。
 口径锚定靠 report_title（含「YYYY年M月份」）+ publish_date，不靠正文文字。
 
+**图文报告（实测 8/20 条）**：`div.text` 内只有 `<img>`、文本为 0 字——
+集中在【联合发布】一周新车快讯、【新能源周报】、【商用车】周报、【联合发布】OTA
+监测月报。数据以图片发布，属用户 2026-10-13 裁决的 OCR 类，本单元**不处理**
+（不产出半条记录，日志按 imgs>0/imgs==0 分别留痕）。因此实际产出行数少于
+列表条数是预期行为。
+
 No auth, no captcha, no cookies.
 """
 from __future__ import annotations
@@ -77,7 +83,7 @@ _LEAD_NBSP_RE = re.compile(r"^[\s\u00a0]+")
 _ATTACH_RE = re.compile(
     r'href="([^"]+\.(?:rar|zip|pdf|doc|docx|xls|xlsx))"', re.IGNORECASE
 )
-# 正文最短长度：实测最短的报告（快讯类）也 > 200 字；低于此视为空壳页
+# 正文最短长度：实测最短的图文报告（快讯类）也 > 200 字；低于此视为空壳
 _MIN_BODY_CHARS = 80
 
 # 已知类别（按标题前缀）。未命中的记「其它」并保留原文，不丢数据。
@@ -213,12 +219,22 @@ def _parse_detail(page_html: str) -> dict | None:
         if pm.group(4):
             pub_dt += f" {pm.group(4)}:{pm.group(5)}:{pm.group(6)}"
     text_nodes = node.xpath('.//div[contains(@class, "text")]')
-    body = _squash(text_nodes[0].text_content()) if text_nodes else ""
+    body = ""
+    img_count = 0
+    if text_nodes:
+        img_count = len(text_nodes[0].xpath(".//img"))
+        body = _squash(text_nodes[0].text_content())
     attach_url = None
     am = _ATTACH_RE.search(page_html)
     if am:
         attach_url = urljoin(BASE, am.group(1))
-    return {"title": title, "pub_dt": pub_dt, "body": body, "attach_url": attach_url}
+    return {
+        "title": title,
+        "pub_dt": pub_dt,
+        "body": body,
+        "img_count": img_count,
+        "attach_url": attach_url,
+    }
 
 
 async def _fetch(session: FetcherSession, url: str):
@@ -295,9 +311,15 @@ async def _collect(limit: int, max_pages: int, category: str | None) -> list[dic
                 reports_done += 1
                 title = parsed["title"] or item["title"]
                 if len(parsed["body"]) < _MIN_BODY_CHARS:
+                    # 实测两类：正文块内只有 <img>（图文报告，数据在图片里，
+                    # 属用户 2026-10-13 裁决的 OCR 类，不处理）与真正的空壳。
+                    # 两者都不产出半条记录；分别留痕以便区分（img>0 = OCR 类，
+                    # img==0 = 页面异常，值得后续复查）。
                     logger.warning(
-                        "body too short (%d chars) for %s — skip",
-                        len(parsed["body"]), item["url"],
+                        "no text body (%d chars, %d imgs) for %s — %s, skip",
+                        len(parsed["body"]), parsed["img_count"], item["url"],
+                        "image-only report, OCR class (not collected by ruling)"
+                        if parsed["img_count"] > 0 else "unexpected empty shell",
                     )
                     continue
                 cat = _category_of(title)
