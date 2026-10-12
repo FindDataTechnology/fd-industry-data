@@ -38,6 +38,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import time
 from datetime import datetime, timezone
 from urllib.parse import urljoin
 
@@ -45,6 +46,10 @@ from lxml import html as lxml_html
 from scrapling.fetchers import FetcherSession
 
 logger = logging.getLogger("cpcaauto-monthly")
+
+# 同源礼貌间隔：实测无间隔连发时站点返回 **200 空壳**（正文 0 字），
+# 单条被跳过；加 0.4s 间隔后同批 id 全部可解析（仓内同约定见 cninfo-operating）。
+SAME_HOST_GAP_S = 0.4
 
 BASE = "https://www.cpcaauto.com/"
 LIST_URL = urljoin(BASE, "news.php?types=csjd")
@@ -234,6 +239,14 @@ async def _fetch(session: FetcherSession, url: str):
     return resp
 
 
+def _throttle(last_at: float) -> float:
+    """同源节流：保证两次请求间隔 >= SAME_HOST_GAP_S，返回新时间戳。"""
+    elapsed = time.monotonic() - last_at
+    if 0 <= elapsed < SAME_HOST_GAP_S:
+        time.sleep(SAME_HOST_GAP_S - elapsed)
+    return time.monotonic()
+
+
 async def _collect(limit: int, max_pages: int, category: str | None) -> list[dict]:
     rows: list[dict] = []
     seen: set[str] = set()
@@ -249,6 +262,7 @@ async def _collect(limit: int, max_pages: int, category: str | None) -> list[dic
         verify=False,  # estate convention: 不假设容器信任库
         retries=1,     # exactly one attempt — no retry storms
     ) as session:
+        gate = time.monotonic()
         resp = await _fetch(session, LIST_URL)
         if resp is None:
             logger.error("list page unavailable — returning 0 rows")
@@ -269,6 +283,7 @@ async def _collect(limit: int, max_pages: int, category: str | None) -> list[dic
                 if item["article_id"] in seen:
                     continue
                 seen.add(item["article_id"])
+                gate = _throttle(gate)
                 rresp = await _fetch(session, item["url"])
                 if rresp is None:
                     reports_failed += 1
@@ -307,6 +322,7 @@ async def _collect(limit: int, max_pages: int, category: str | None) -> list[dic
             page_no += 1
             if page_no > min(total_pages, max_pages):
                 break
+            gate = _throttle(gate)
             nresp = await _fetch(session, f"{LIST_URL}&page={page_no}")
             if nresp is None:
                 break
