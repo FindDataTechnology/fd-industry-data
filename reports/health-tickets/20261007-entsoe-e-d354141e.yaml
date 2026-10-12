@@ -195,7 +195,18 @@ lifecycle:
   state: queued
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-10-12T09:55:23.535040+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-10-12T09:55:23.535077+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual
 brief:
   source_urls:
   - https://web-api.tp.entsoe.eu/api?securityToken=<ENTSOE_SECURITY_TOKEN>&documentType=A75&processType=A01&in_Domain=10YCZ-CEPS------N&out_Domain=10YCZ-CEPS------N&periodStart=202001010000&periodEnd=202001070000

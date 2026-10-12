@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-12T06:18:22.163101+00:00",
+  "at": "2026-10-12T09:54:15.782500+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 95,
@@ -41,7 +41,7 @@
     {
       "ticket": "20261007-entsoe-e-d354141e.yaml",
       "http_status": 200,
-      "state": "queued",
+      "state": "manual",
       "note": "",
       "pr_url": ""
     },
@@ -54,14 +54,12 @@
     },
     {
       "ticket": "20261011-inmetals-b05ead45.yaml",
-      "http_status": 200,
       "state": null,
-      "note": "",
-      "pr_url": ""
+      "error": "The read operation timed out"
     },
     {
       "ticket": "20261011-metal-com-f1b055d9.yaml",
-      "http_status": 200,
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
