@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-11T22:53:09.250857+00:00",
+  "at": "2026-10-12T06:18:22.163101+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 95,
@@ -36,21 +36,12 @@
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [
-    {
-      "ticket": "20261011-inmetals-b05ead45.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 3,
-      "http_status": 200,
-      "response": "**已见过 `FindDataTechnology/fd-industry-data#reports/health-tickets/20261011-inmetals-b05ead45.yaml`，状态：终态 `manual`（转人工）** —— 重复投递，未重复入队、未动手、未开 PR。\n\n依据（本轮远端只读复核，HEAD `626963a`，与 20:07 一致无新提交）：\n- 工单自述即非修复面：`needs_human: true`、`category: null`、`rule2:insufficient-evidence`（`tail_failed=0<3`，`last_success_age=217.28h`）、`suggested_action=补充遥测样本后复检`。\n- 唯一历史报错 `TypeError: run_inmetals() got an unexpected keyword argument 'limit'` 已不成立：当前 `spiders/inmetals/spider.py@1975d0c` 为 `def run_inmetals(limit: in"
-    }
-  ],
+  "submit": [],
   "status": [
     {
       "ticket": "20261007-entsoe-e-d354141e.yaml",
       "http_status": 200,
-      "state": null,
+      "state": "queued",
       "note": "",
       "pr_url": ""
     },
