@@ -1,6 +1,7 @@
 """巡检器：遥测→分诊→出单→（注入式）SUBMIT/STATUS 接线。全离线。"""
 from __future__ import annotations
 
+import json
 import sys
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
@@ -411,3 +412,58 @@ def test_cli_emit_then_deliver_separates_phases(tmp_path, monkeypatch):
     # 互斥
     p3, _ = run("--emit", "--deliver")
     assert p3.returncode != 0
+
+
+# ── STATUS 回读：思考片段不得冒充结论（萬星 runner 前置 <thinking>） ────────
+
+def test_extract_skips_thinking_part():
+    """回执 parts[0]=<thinking> 时，结论应取其后实质文本。
+
+    2026-10-11 实测：STATUS 回执首段是思考块，只取 parts[0] 会解析到思考
+    过程 → 141/151 次回读 state=None，工单永不终态、每轮重复投递。
+    """
+    env = {"jsonrpc": "2.0", "id": 1, "result": {"parts": [
+        {"kind": "text", "text": "<thinking>Let me look at /data and read the skills.</thinking>"},
+        {"kind": "text", "text": "**STATUS** 工单 X 状态：manual（终态，转人工）"},
+    ]}}
+    text = inspector.extract_message_text(json.dumps(env))
+    assert "thinking" not in text, "思考片段不得被当作结论"
+    assert inspector.parse_status(text)["state"] == "manual"
+
+
+def test_extract_multiple_thinking_then_conclusion():
+    env = {"result": {"parts": [
+        {"kind": "text", "text": "<thinking>a</thinking>"},
+        {"kind": "text", "text": "<thinking>b</thinking>"},
+        {"kind": "text", "text": "已入队并当轮处理完毕"},
+    ]}}
+    assert inspector.extract_message_text(json.dumps(env)) == "已入队并当轮处理完毕"
+
+
+def test_extract_single_part_unchanged():
+    """旧形态（无 thinking）行为不变。"""
+    env = {"result": {"parts": [{"kind": "text", "text": "已入队"}]}}
+    assert inspector.extract_message_text(json.dumps(env)) == "已入队"
+
+
+def test_extract_all_thinking_returns_text_not_envelope():
+    """全是思考片段时回一段原文，不把整个 JSON 信封当结论。"""
+    env = {"result": {"parts": [{"kind": "text", "text": "<thinking>only</thinking>"}]}}
+    assert inspector.extract_message_text(json.dumps(env)) == "<thinking>only</thinking>"
+
+
+def test_status_maps_terminal_after_thinking(tmp_path):
+    """端到端：thinking 前置的 STATUS 回执仍能落终态（此前会 null，永不终态）。"""
+    outdir = tmp_path / "tickets"
+    p = _mk_ticket(outdir, "alpha")
+    env = {"result": {"parts": [
+        {"kind": "text", "text": "<thinking>checking inbox</thinking>"},
+        {"kind": "text", "text": "状态：manual（终态，转人工），未开 PR"},
+    ]}}
+
+    def fetcher(url, key, idem, body):
+        return 200, json.dumps(env)
+
+    inspector.sync_status(outdir, "https://x", "k", fetcher=fetcher)
+    doc = load_ticket(p)
+    assert doc["terminal"] == "manual", "思考前置不得阻断终态落库"

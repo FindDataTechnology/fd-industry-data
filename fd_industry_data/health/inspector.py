@@ -268,8 +268,38 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
         return e.code, e.read(8000).decode("utf-8", "replace")
 
 
+def _part_texts(result: dict) -> list[str]:
+    """取 result.parts 里所有文本片段（按序）。"""
+    parts = result.get("parts") if isinstance(result, dict) else None
+    out: list[str] = []
+    for part in parts or []:
+        if isinstance(part, dict) and isinstance(part.get("text"), str):
+            out.append(part["text"])
+    return out
+
+
+def _is_thinking(text: str) -> bool:
+    """是否为思考片段（非结论）。
+
+    萬星 runner 会把模型的 `<thinking>` 块作为独立 part 前置（2026-10-11 实测：
+    STATUS 回执 parts[0] = `<thinking>Let me look at /data...</thinking>`，
+    结论在其后的 part）。只取 parts[0] 会拿到思考过程，状态词解析必然为空——
+    这是 141/151 次 STATUS 回读拿不到 state 的根因。
+    """
+    raw = text.strip()
+    if not raw:
+        return True
+    if raw.startswith("<thinking>") or raw.startswith("<think>"):
+        return True
+    # 整段被思考标签包裹（可能带前后空白或内层标签）
+    return bool(re.match(r"^<(thinking|think)>[\s\S]*</\1>\s*$", raw))
+
+
 def extract_message_text(text: str) -> str:
-    """从 a2a JSON-RPC 回执中提取文本（result.parts[].text）；非 JSON 原样返回。"""
+    """从 a2a JSON-RPC 回执中提取结论文本；非 JSON 原样返回。
+
+    取**最后一个非思考**文本片段（而非 parts[0]）：结论在后、思考在前。
+    """
     try:
         doc = json.loads(text)
     except (json.JSONDecodeError, TypeError):
@@ -279,9 +309,13 @@ def extract_message_text(text: str) -> str:
             return json.dumps(doc["error"], ensure_ascii=False)
         result = doc.get("result")
         if isinstance(result, dict):
-            for part in result.get("parts") or []:
-                if isinstance(part, dict) and "text" in part:
-                    return str(part["text"])
+            parts = [p for p in _part_texts(result) if not _is_thinking(p)]
+            if parts:
+                return parts[-1]
+            # 全是思考片段：至少回一段原文，别把整个 JSON 信封当结论
+            allparts = _part_texts(result)
+            if allparts:
+                return allparts[-1]
     return text
 
 
