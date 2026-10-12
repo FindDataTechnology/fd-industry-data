@@ -3,6 +3,7 @@ name: pboc-inclusive          # = spiders/pboc-inclusive/ 目录名，运行时�
 label: PBOC Inclusive Finance Statistics (Microloan / Household Credit / Regional AFRE)
 source_url: https://www.pbc.gov.cn/diaochatongjisi/116219/116225/index.html
 # site: tencent              # 缺省 tencent；本单元只访问 www.pbc.gov.cn 公开静态页与 xlsx，无需换执行位
+schedule: "58 5 19 * *"       # 点亮（批次四）：每月 19 日 05:58；央行金融统计月报月中下旬发布，小贷季报季后补录
 scanner_mode: upstream-curated
 functions:
   - command: run_pboc_inclusive

@@ -3,7 +3,7 @@ name: nbs-housing            # = spiders/nbs-housing/ 目录名，运行时标�
 label: 国家统计局房地产口径 (NBS Housing & Real-Estate, HTML tables)
 source_url: https://www.stats.gov.cn/sj/zxfb/
 # site: tencent              # 缺省 tencent；只访问 www.stats.gov.cn 公开静态 HTML 页，无需换执行位
-# schedule:                  # 不写 = 静默合入不调度（点亮时才补，见 CHECKLIST）
+schedule: "58 6 16 * *"       # 点亮（批次四）：每月 16 日 06:58；统计局 70 城房价与房地产月度均 15 日前后发布
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 description: |

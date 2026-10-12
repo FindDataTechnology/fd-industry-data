@@ -2,6 +2,7 @@ version: "2"
 name: moa-hog-price
 label: 农业农村部生猪和猪肉价格周报 (MOA Hog & Pork Weekly Price)
 source_url: https://www.moa.gov.cn/ztzl/szcpxx/scxxfb/
+schedule: "58 8 * * 2"       # 点亮（批次四）：每周二 08:58；农业农村部周报周一发布（覆盖至前一周日）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

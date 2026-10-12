@@ -3,7 +3,7 @@ name: cninfo-operating         # = spiders/cninfo-operating/ 目录名，运行�
 label: CNINFO Listed-company Monthly Operating Data (巨潮上市公司月度经营数据)
 source_url: http://www.cninfo.com.cn/new/hisAnnouncement/query
 # site: tencent                # 缺省 tencent；只访问 www.cninfo.com.cn 与 *.eastmoney.com 公开 JSON，无需换执行位
-# schedule: 不写 —— 静默合入，点亮留给人工门
+schedule: "58 7 8 * *"       # 点亮（批次四）：每月 8 日 07:58；上市公司月度经营数据多在次月 10 日前披露完毕
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
