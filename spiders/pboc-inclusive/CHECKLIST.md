@@ -1,0 +1,21 @@
+# pboc-inclusive 接入检查清单（unified-source-onboarding）
+
+- [x] 目录名 = manifest `name`（`pboc-inclusive`；入口 `run_pboc_inclusive`）
+- [x] `spider.py` 提供 `run_pboc_inclusive(limit=N) -> list[dict]`
+- [x] 依赖合规：标准库 + scrapling（`FetcherSession(impersonate="chrome")`），无新增第三方库；缺失时降级 urllib
+- [x] **条目发现**：从 `116225/index.html` + `11871-<n>.html` 解析链接，三件轮询交错；**未硬编码单篇 docid**
+- [x] 三件均实取出真实数值：小贷 `4863 家 / 7229 亿元 / 319 亿元`、月报 `282.35 / 286.15 / 6.99 / 464.8 万亿元`、地区社融 `北京 10581 亿元` 等
+- [x] 千分位逗号剥离；时期流量只取绝对值（方向 `增加/减少` 不入 value）
+- [x] 正文定位 `<div id="zoom">` 并 div 配平，避开导航噪音
+- [x] 地区社融二段取数（正文抽 xlsx 直链 → 标准库 `zipfile`+`xml.etree` 解析），单位由表头「单位：」实读
+- [x] manifest 字段齐全：name/label/source_url/functions/columns/concepts/entities/fetch
+- [x] **未写 `schedule`**——静默合入，点亮留给人工门
+- [x] 未修改 `spiders/pboc-monetary/` 任何文件（D2 独立单元）
+- [x] golden 样本 `golden/001-pboc-inclusive.json`（锚已发布即冻结的 2025Q3 小贷值，`replay_sample → ok=True, rows=60`）
+- [x] 本地自检：`py_compile` / `validate_manifests.py` / `conformance_gate.py --roots .` / `load_spider_module` 实跑全绿
+- [x] 容错实测：注入 404 与无年份标题两篇坏报告 → 跳过留痕，其余报告照常出数；网络失败单次尝试即放弃
+- [ ] push 后 CI gate 绿（Jenkins `fd-industry-runner`）——合入前由人工/CI 确认
+- [ ] 等一个 dispatcher tick（≤5 分钟），Console 源清单出现该源（crawl_sources）
+- [ ] 试跑：Console「立即触发」或 agent `platform_trigger`，看 crawl_runs 记录与产出
+- [ ] 点亮：manifest 补 `schedule` 提交（AppSet ~3 分钟内渲染 CronJob）——**人工门，spider-heal 不点亮**
+- [ ] 指标语义治理（列→绑定→verified→标识符）另行推进，不阻塞爬取本身

@@ -1,0 +1,24 @@
+{
+  "sample_id": "001-cninfo-operating",
+  "created": "2026-10-12",
+  "target": "run_cninfo_operating",
+  "params": {"limit": 12, "start_date": "2026-03-01", "end_date": "2026-04-30"},
+  "expect": {
+    "min_rows": 12,
+    "rows_contains": [
+      {"field": "source", "equals": "cninfo-operating"},
+      {"field": "sec_code", "equals": "600686"},
+      {"field": "sec_name", "equals": "金龙汽车"},
+      {"field": "period", "equals": "2026-03"},
+      {"field": "category", "equals": "产销快报"},
+      {"field": "category", "equals": "销售简报"},
+      {"field": "category", "equals": "发电量"},
+      {"field": "category", "equals": "主要运营数据"},
+      {"field": "category", "equals": "经营简报"},
+      {"field": "sec_code", "equals": "600340"},
+      {"field": "announcement_id", "equals": "1225082102"},
+      {"field": "art_code", "equals": "AN202604071821044393"}
+    ]
+  },
+  "whitelist_fields": ["content", "scraped_at", "adjunct_url", "announce_date"]
+}

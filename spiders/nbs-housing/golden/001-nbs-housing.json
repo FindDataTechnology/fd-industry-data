@@ -1,0 +1,19 @@
+{
+  "sample_id": "001-nbs-housing",
+  "created": "2026-10-12",
+  "target": "run_nbs_housing",
+  "params": {"limit": 60},
+  "expect": {
+    "min_rows": 40,
+    "rows_contains": [
+      {"field": "source", "equals": "nbs-housing"},
+      {"field": "housing_type", "equals": "新建商品住宅"},
+      {"field": "housing_type", "equals": "二手住宅"},
+      {"field": "city", "equals": "北京"},
+      {"field": "indicator", "equals": "房地产开发投资"},
+      {"field": "unit", "equals": "亿元"},
+      {"field": "unit", "equals": "万平方米"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "report_url", "report_title", "period", "mom", "yoy", "ytd_avg", "value"]
+}

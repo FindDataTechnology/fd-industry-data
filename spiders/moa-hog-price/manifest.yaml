@@ -1,0 +1,80 @@
+version: "2"
+name: moa-hog-price
+label: 农业农村部生猪和猪肉价格周报 (MOA Hog & Pork Weekly Price)
+source_url: https://www.moa.gov.cn/ztzl/szcpxx/scxxfb/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_moa_hog_price
+    description: Fetch weekly live-hog / pork retail-collection / pork wholesale prices from MOA (农业农村部) market-information notices
+    frequency: weekly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (rows, not reports; newest week first)
+      - name: max_pages
+        type: int
+        required: false
+        description: Maximum list pages to walk for report discovery (default 2)
+    columns:
+      - name: week_label
+        type: str
+        description: 周次标签, e.g. 2026年10月第2周 (week label resolved against the report publish year)
+      - name: date_range
+        type: str
+        description: 监测日期区间, e.g. 2026-10-05~2026-10-11 (ISO start~end)
+      - name: item
+        type: str
+        description: 价格品种 (活猪 / 猪肉集贸 / 猪肉批发)
+      - name: price
+        type: float
+        description: 价格 (元/公斤), None when the report omits it — never 0-filled
+      - name: unit
+        type: str
+        description: 计量单位 (固定 元/公斤)
+      - name: mom_pct
+        type: float
+        description: 环比涨跌幅 (%), signed; 跌=-, 涨=+, 持平=0.0, unparsable=None
+      - name: yoy_pct
+        type: float
+        description: 同比涨跌幅 (%), signed; 低=-, 高=+, absent in the 500-county scope=None
+      - name: monitor_scope
+        type: str
+        description: 监测口径 (500个县集贸市场和采集点 / 200个批发市场) — the two scopes are distinct and must not be merged
+      - name: report_title
+        type: str
+        description: 报告标题 (from the list page, e.g. 10月第2周生猪和猪肉价格有所下跌)
+      - name: report_url
+        type: str
+        description: 正文页 URL the row was parsed from
+      - name: source
+        type: str
+        description: 固定 moa-hog-price
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+concepts:
+  - column: price
+    concept: commodity.hog_price
+    entity_type: industry
+    measure: price
+    unit: currency_cny
+    frequency: weekly
+  - column: mom_pct
+    concept: commodity.hog_price_mom
+    entity_type: industry
+    measure: value
+    unit: percent
+    frequency: weekly
+  - column: yoy_pct
+    concept: commodity.hog_price_yoy
+    entity_type: industry
+    measure: value
+    unit: percent
+    frequency: weekly
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

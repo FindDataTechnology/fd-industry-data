@@ -1,0 +1,86 @@
+version: "2"
+name: cninfo-operating         # = spiders/cninfo-operating/ 目录名，运行时标识符，合入后不可改名
+label: CNINFO Listed-company Monthly Operating Data (巨潮上市公司月度经营数据)
+source_url: http://www.cninfo.com.cn/new/hisAnnouncement/query
+# site: tencent                # 缺省 tencent；只访问 www.cninfo.com.cn 与 *.eastmoney.com 公开 JSON，无需换执行位
+# schedule: 不写 —— 静默合入，点亮留给人工门
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_cninfo_operating
+    description: Fetch monthly operating disclosures of CN listed companies (产销快报/销售简报/发电量/主要运营数据/经营简报) — cninfo announces search + Eastmoney announcement full text (text channel, no PDF parsing)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (hard cap; keywords are interleaved round-robin so small limits still span all five categories)
+      - name: category
+        type: str
+        required: false
+        description: Keep only this disclosure category (产销快报/销售简报/发电量/主要运营数据/经营简报); empty = all
+      - name: keyword
+        type: str
+        required: false
+        description: Run only this cninfo searchkey instead of the 5-item default whitelist
+      - name: start_date
+        type: str
+        required: false
+        description: cninfo seDate window start (YYYY-MM-DD); defaults to 45 days before today
+      - name: end_date
+        type: str
+        required: false
+        description: cninfo seDate window end (YYYY-MM-DD); defaults to today
+      - name: page_size
+        type: int
+        required: false
+        description: Announcements requested per cninfo searchkey (default 30)
+    columns:
+      - name: sec_code
+        type: string
+        description: 股票代码 (cninfo secCode; A-share 6-digit, HK codes may appear in discovery but are skipped downstream)
+      - name: sec_name
+        type: string
+        description: 股票简称 (cninfo secName)
+      - name: announcement_title
+        type: string
+        description: 公告标题 after stripping cninfo <em> highlight tags
+      - name: announcement_id
+        type: string
+        description: 巨潮公告 announcementId (stable row identity at source)
+      - name: art_code
+        type: string
+        description: Eastmoney art_code used to fetch the full text (bridged by title match, never guessed)
+      - name: announce_date
+        type: string
+        description: Announcement publish date (ISO YYYY-MM-DD, from announcementTime ms timestamp)
+      - name: period
+        type: string
+        description: Data period as YYYY-MM inferred from the announcement title (falls back to the month before publish date)
+      - name: category
+        type: string
+        description: Disclosure category — 产销快报 / 销售简报 / 发电量 / 主要运营数据 / 经营简报
+      - name: content
+        type: string
+        description: Announcement body plain text (Eastmoney notice_content, whitespace-collapsed, truncated at 4000 chars)
+      - name: adjunct_url
+        type: string
+        description: "Source PDF direct link (http://static.cninfo.com.cn/ + adjunctUrl) — tracing only, NEVER used as a parsing input"
+      - name: source
+        type: string
+        description: Data source identifier (cninfo-operating)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch (UTC)
+concepts:
+  - column: content
+    concept: industry.monthly_operation_metric
+    entity_type: organization
+    measure: value
+    unit: string
+    frequency: monthly
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

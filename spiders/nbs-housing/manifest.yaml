@@ -1,0 +1,88 @@
+version: "2"
+name: nbs-housing            # = spiders/nbs-housing/ 目录名，运行时标识符，合入后不可改名
+label: 国家统计局房地产口径 (NBS Housing & Real-Estate, HTML tables)
+source_url: https://www.stats.gov.cn/sj/zxfb/
+# site: tencent              # 缺省 tencent；只访问 www.stats.gov.cn 公开静态 HTML 页，无需换执行位
+# schedule:                  # 不写 = 静默合入不调度（点亮时才补，见 CHECKLIST）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+description: |
+  国家统计局「最新发布」文章内联 HTML 表格的两个房地产口径：
+  (A) 70 个大中城市商品住宅销售价格指数（月度，新建商品住宅/二手住宅两类，
+      环比/同比/1-N月平均）；(B) 全国房地产市场基本情况（月度/年度累计，
+      房地产开发投资、施工/新开工/竣工面积、销售面积与额、待售、到位资金）。
+  与 spiders/nbs-stats 刻意分离：该单元走 data.stats.gov.cn easyquery JSON 接口，
+  本单元走 www.stats.gov.cn/sj/zxfb/ 文章 HTML 表格，两者形态与解析路径不同。
+functions:
+  - command: run_nbs_housing
+    description: Fetch the newest 70-city price-index article and national real-estate release from the NBS 「最新发布」listing (HTML tables; listing discovered by title regex, never a hardcoded article URL)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (hard cap; both datasets share it fairly — the market release gets up to half)
+      - name: dataset
+        type: str
+        required: false
+        description: "all (default) | 70city | market — fetch only one release kind"
+    columns:
+      - name: city
+        type: str
+        description: 城市名（70 城表；HTML 中的全角空格已剥离，如「北　　京」→「北京」）。房地产月度行为 null
+      - name: housing_type
+        type: str
+        description: 新建商品住宅 / 二手住宅（70 城表1、表2；分类指数表不产出，见 README）。房地产月度行为 null
+      - name: period
+        type: str
+        description: 70 城为发布月 YYYY-MM；房地产月度累计为 YYYY-01~YYYY-MM；年度为 YYYY
+      - name: mom
+        type: float
+        description: 环比（上月=100），70 城表专用；缺测记 null，绝不填 0
+      - name: yoy
+        type: float
+        description: 70 城为同比（上年同月=100）；房地产月度行为同比增长（%），可为负
+      - name: ytd_avg
+        type: float
+        description: 1-N月平均（上年同期=100）；1 月发布无累计列时为 null
+      - name: indicator
+        type: str
+        description: 房地产月度指标名（房地产开发投资 / 房屋施工面积 / …）；子项为「主项·子项」。70 城行为 null
+      - name: value
+        type: float
+        description: 房地产月度绝对量；缺测记 null，绝不填 0。70 城行为 null
+      - name: unit
+        type: str
+        description: 亿元 / 万平方米（取自表内指标行的单位括号）；70 城行为 null
+      - name: report_title
+        type: str
+        description: 文章标题（70 城表行级来源）
+      - name: report_url
+        type: str
+        description: 文章 URL（www.stats.gov.cn/sj/zxfb/…），行级可追溯
+      - name: source
+        type: str
+        description: 固定 nbs-housing
+      - name: scraped_at
+        type: str
+        description: 抓取时间（UTC ISO8601）
+concepts:
+  - column: value
+    concept: economic.indicator_value
+    entity_type: country
+    measure: value
+    unit: mixed
+    frequency: monthly
+  - column: mom
+    concept: economic.index_value
+    entity_type: city
+    measure: index
+    unit: index
+    frequency: monthly
+entities:
+  - entity_type: city
+    coverage: universe
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,25 @@
+{
+  "sample_id": "001-moa-hog-price",
+  "created": "2026-10-12",
+  "target": "run_moa_hog_price",
+  "params": {"limit": 60},
+  "expect": {
+    "min_rows": 3,
+    "rows_contains": [
+      {"field": "source", "equals": "moa-hog-price"},
+      {"field": "unit", "equals": "元/公斤"},
+      {"field": "item", "equals": "活猪"},
+      {"field": "item", "equals": "猪肉集贸"},
+      {"field": "item", "equals": "猪肉批发"},
+      {"field": "monitor_scope", "equals": "500个县集贸市场和采集点"},
+      {"field": "monitor_scope", "equals": "200个批发市场"},
+      {"field": "price", "equals": 11.07},
+      {"field": "price", "equals": 20.98},
+      {"field": "price", "equals": 15.92},
+      {"field": "mom_pct", "equals": -0.5},
+      {"field": "mom_pct", "equals": -1.8},
+      {"field": "yoy_pct", "equals": -15.5}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "report_url", "report_title", "week_label", "date_range"]
+}

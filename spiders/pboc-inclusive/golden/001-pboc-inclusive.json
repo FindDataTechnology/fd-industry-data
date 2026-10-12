@@ -1,0 +1,20 @@
+{
+  "sample_id": "001-pboc-inclusive",
+  "created": "2026-10-12",
+  "target": "run_pboc_inclusive",
+  "params": {"limit": 60},
+  "expect": {
+    "min_rows": 3,
+    "rows_contains": [
+      {"field": "source", "equals": "pboc-inclusive"},
+      {"field": "category", "equals": "小额贷款公司统计"},
+      {"field": "indicator", "equals": "小额贷款公司机构数"},
+      {"field": "value", "equals": 4863.0},
+      {"field": "indicator", "equals": "小额贷款公司贷款余额"},
+      {"field": "value", "equals": 7229.0},
+      {"field": "category", "equals": "金融统计月报"},
+      {"field": "unit", "equals": "万亿元"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}
