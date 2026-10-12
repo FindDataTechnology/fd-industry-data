@@ -497,3 +497,34 @@ def test_status_idem_key_increments_with_lifecycle():
 def test_status_read_timeout_relaxed():
     """回读超时放宽到 300s（实测回合 20~150s+，曾见 180s 超时）。"""
     assert inspector.STATUS_READ_TIMEOUT == 300
+
+
+def test_status_budget_cap_prefers_stalest(tmp_path):
+    """单轮回读上限：超限时只读最久未读的 N 张，且不饿死（下一轮读其余）。"""
+    outdir = tmp_path / "tickets"
+    names = ["a", "b", "c"]
+    paths = [_mk_ticket(outdir, n) for n in names]
+    # 手工给 b 塞一条较新的 status 事件 → 它应排最后
+    d = load_ticket(paths[1])
+    inspector.ticket_mod.append_event(d, "status", http_status=200, state="working")
+    paths[1].write_text(dump_ticket(d))
+
+    seen = []
+
+    def stem(body):
+        # body = "STATUS reports/health-tickets/<stem>.yaml" → 取 source 短名
+        name = body.rsplit("/", 1)[-1].removesuffix(".yaml")
+        return name.rsplit("-", 1)[0].rsplit("-", 1)[-1]
+
+    def fetcher(url, key, idem, body):
+        seen.append(stem(body))
+        return 200, "状态：working"
+
+    inspector.sync_status(outdir, "https://x", "k", fetcher=fetcher, max_reads=2)
+    assert len(seen) == 2, seen
+    assert "b" not in seen, f"较新读过的不该优先：{seen}"
+
+    # 第二轮：b 变成最久未读之一，不再饿死
+    seen.clear()
+    inspector.sync_status(outdir, "https://x", "k", fetcher=fetcher, max_reads=2)
+    assert "b" in seen, seen

@@ -33,7 +33,12 @@ permissions:
 jobs:
   inspect:
     runs-on: [self-hosted, fd-health]
-    timeout-minutes: 20
+    # 预算算式（2026-10-12 实测标定）：每个新单 SUBMIT ≈ 2-5 分钟（真回合），
+    # 每张未终态单的 STATUS 回读 ≈ 2-4 分钟（键每轮唯一 → 真回合，见 inspector
+    # _status_idem_key）。3 新单 + 3 存量单曾跑满 19m54s 撞穿旧的 20 分钟上限
+    # → 45 分钟给「数个新单 + 全部存量回读」留余量。超大单批（数十张）走人工
+    # 批量通道，不指望本工作流一次跑完。
+    timeout-minutes: 45
     steps:
       - name: Checkout (shell clone, retry)
         run: |
@@ -99,7 +104,10 @@ jobs:
           python3 scripts/health_inspect.py --from-pg --deliver --submit-new --sync-status $ARGS \
             --summary-file reports/health-tickets/last-run.json
 
+      # if: always() — 前一步被超时取消时也要保住已得回执（2026-10-12 实证：
+      # 取消会把整轮 STATUS 回读白丢，工单停在旧状态等下一轮）。
       - name: Commit delivery receipts
+        if: always()
         working-directory: src
         run: |
           git config user.name  "fd-health-bot"

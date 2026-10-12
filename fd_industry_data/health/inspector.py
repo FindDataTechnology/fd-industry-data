@@ -461,18 +461,40 @@ def _status_idem_key(doc: dict, name: str) -> str:
     return f"status-{name}-r{prior + 1}"
 
 
-def sync_status(outdir: Path, url: str, key: str, fetcher=None) -> list[dict]:
-    """回读未终态工单的 STATUS，映射进生命周期与终态枚举。"""
+# 单轮 STATUS 回读上限：唯一键让每次回读都走真回合（20~150s+），积压时必须
+# 限流，否则顶穿工作流预算（2026-10-12 实证：3 新单 + 3 存量单跑满 19m54s）。
+# 取最久未读的 N 张先读；其余下一轮继续（顺序由 _last_read_at 决定，不会饿死）。
+STATUS_MAX_PER_RUN = 8
+
+
+def _last_read_at(doc: dict) -> str:
+    """该单最后一次 STATUS 回读时间（ISO）；从未读过返回空串（排最前）。"""
+    for e in reversed(doc.get("lifecycle") or []):
+        if e.get("event") in ("status", "status-failed"):
+            return str(e.get("at") or "")
+    return ""
+
+
+def sync_status(outdir: Path, url: str, key: str, fetcher=None,
+                max_reads: int = STATUS_MAX_PER_RUN) -> list[dict]:
+    """回读未终态工单的 STATUS，映射进生命周期与终态枚举。
+
+    单轮最多读 max_reads 张，优先最久未读的（含从未读过的）。
+    """
     fetcher = fetcher or (
         lambda u, k, idem, body: _default_poster(u, k, idem, body, timeout=STATUS_READ_TIMEOUT)
     )
     results: list[dict] = []
     if not outdir.is_dir():
         return results
+    pending: list[tuple[str, Path, dict]] = []
     for p in sorted(outdir.glob("*.yaml")):
         doc = ticket_mod.load_ticket(p)
         if doc.get("terminal") is not None:
             continue
+        pending.append((_last_read_at(doc), p, doc))
+    pending.sort(key=lambda t: (t[0], str(t[1])))  # 最久未读优先（空串=从未读）
+    for _at, p, doc in pending[:max_reads]:
         try:
             status, text = fetcher(url, key, _status_idem_key(doc, p.name[:-5]),
                                    f"STATUS reports/health-tickets/{p.name}")

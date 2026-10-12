@@ -123,6 +123,12 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
   pr-open/done 的可见性要等窗口过期）。同时回读超时 **120→300s**（`STATUS_READ_TIMEOUT`；
   实测回合 20~150s+，曾见 180s 超时）。回归：`test_status_idem_key_unique_per_call`、
   `test_status_idem_key_increments_with_lifecycle`、`test_status_read_timeout_relaxed`。
+- **预算标定（2026-10-12 同日实证）**：唯一键的代价是每次回读都走真回合。当日一轮
+  3 新单（SUBMIT 各 ≈2-5 分钟）+ 3 存量单回读跑满 **19m54s**，撞穿旧的 20 分钟上限被取消
+  （回执全丢）。三处配套：①工作流 `timeout-minutes` 20→**45**；②回执提交步骤加
+  **`if: always()`**（取消时保住已得进度）；③`STATUS_MAX_PER_RUN=8` 单轮回读上限 +
+  **最久未读优先**（`_last_read_at` 排序，不会饿死）——积压超过 8 张时分多轮推进。
+  回归：`test_status_budget_cap_prefers_stalest`。
 
 ## 生成流（kind=generate，source-generation-flow）
 
