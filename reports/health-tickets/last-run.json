@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-12T09:54:15.782500+00:00",
+  "at": "2026-10-12T10:16:18.349576+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 95,
@@ -39,28 +39,23 @@
   "submit": [],
   "status": [
     {
-      "ticket": "20261007-entsoe-e-d354141e.yaml",
+      "ticket": "20261011-flower-auction-599f8dc3.yaml",
       "http_status": 200,
       "state": "manual",
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261011-flower-auction-599f8dc3.yaml",
+      "ticket": "20261011-inmetals-b05ead45.yaml",
       "http_status": 200,
-      "state": null,
+      "state": "manual",
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261011-inmetals-b05ead45.yaml",
-      "state": null,
-      "error": "The read operation timed out"
-    },
-    {
       "ticket": "20261011-metal-com-f1b055d9.yaml",
-      "http_status": 409,
-      "state": null,
+      "http_status": 200,
+      "state": "manual",
       "note": "",
       "pr_url": ""
     }
