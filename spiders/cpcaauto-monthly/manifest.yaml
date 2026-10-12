@@ -1,0 +1,65 @@
+version: "2"
+name: cpcaauto-monthly       # = spiders/cpcaauto-monthly/ 目录名，运行时标识符，合入后不可改名
+label: CPCA Passenger-Vehicle Market Monthly Reports (乘联会乘用车市场月度分析)
+source_url: https://www.cpcaauto.com/news.php?types=csjd
+# site: tencent                # 缺省 tencent；只访问 www.cpcaauto.com 公开页面，无需换执行位
+schedule: "20 6 * * *"       # 点亮（批次五）：每日 06:20 探测；实测车市解读 44 个发布日/68 天窗口（均间隔 1.6 天）→ 与 daily 频度相称；06:20 经 60 天时长窗模拟零重叠（原 06:31 与 elexon-bmrs 33 6 撞窗）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_cpcaauto_monthly
+    description: Fetch CPCA (乘联会) passenger-vehicle market analysis reports — 车市解读 channel listing (news.php) + report body plain text (newslist.php read_content); retail/wholesale/export/NEV-penetration figures appear in the narrative body
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (hard cap; newest report first)
+      - name: max_pages
+        type: int
+        required: false
+        description: Maximum listing pages walked for discovery (default 3 = up to 60 reports); only walked when limit is not yet met
+      - name: category
+        type: str
+        required: false
+        description: Keep only this report category (月度分析/周度分析/新能源/深度分析/联合发布/预测/信息发布); empty = all
+    columns:
+      - name: report_title
+        type: string
+        description: Report title as published (includes the 【category】 prefix, e.g. 【月度分析】2026年9月份全国乘用车市场分析)
+      - name: category
+        type: string
+        description: Report category parsed from the title bracket prefix (月度分析/周度分析/新能源/深度分析/联合发布/预测/信息发布); 其它 when no bracket prefix
+      - name: period
+        type: string
+        description: Data period as YYYY-MM parsed from the title (falls back to the month before publish date); None when neither is derivable
+      - name: publish_date
+        type: string
+        description: Publish datetime from the article view block (YYYY-MM-DD HH:MM:SS, Asia/Shanghai); falls back to the listing date (YYYY-MM-DD)
+      - name: article_id
+        type: string
+        description: CPCA article id from the listing href (newslist.php?types=csjd&id=<N>) — stable row identity at source
+      - name: content
+        type: string
+        description: Report body plain text (div.read_content > div.text, whitespace-collapsed) — narrative form, NOT parsed into numbers by this unit
+      - name: attach_url
+        type: string
+        description: "Attachment direct link when present (/upload/bookpic/*.rar|pdf|doc…) — tracing only, NEVER downloaded and NEVER used as a parsing input"
+      - name: source
+        type: string
+        description: Data source identifier (cpcaauto-monthly)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch (UTC)
+concepts:
+  - column: content
+    concept: industry.vehicle_market_analysis
+    entity_type: industry
+    measure: text
+    unit: string
+    frequency: daily
+entities:
+  - entity_type: industry
+    coverage: domain
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

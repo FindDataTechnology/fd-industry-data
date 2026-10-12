@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-fangchan-market",
+  "created": "2026-10-13",
+  "target": "run_fangchan_market",
+  "params": {"limit": 6},
+  "expect": {
+    "min_rows": 6,
+    "rows_contains": [
+      {"field": "source", "equals": "fangchan-market"},
+      {"field": "article_id", "equals": "7515241843282744309"},
+      {"field": "article_id", "equals": "7514495726509167279"},
+      {"field": "article_id", "equals": "7510925446289363622"}
+    ]
+  },
+  "whitelist_fields": ["content", "scraped_at", "pic_url", "publish_date", "report_title", "summary", "keyword"]
+}

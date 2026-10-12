@@ -1,0 +1,69 @@
+version: "2"
+name: fangchan-market       # = spiders/fangchan-market/ 目录名，运行时标识符，合入后不可改名
+label: China Real Estate Association Market Reports (中房网房地产市场监测)
+source_url: http://news.fangchan.com/api/newslist.json
+# site: tencent                # 缺省 tencent；只访问 news.fangchan.com 与 www.fangchan.com 公开接口，无需换执行位
+schedule: "46 6 * * *"       # 点亮（批次五）：每日 06:46 探测；实测原创栏目 38 个发布日/78 天窗口（均间隔 2.08 天，含连续日）→ 与 daily 频度相称；06:46 经 60 天时长窗模拟零重叠（原 06:43 与 afdc 43 6 14 撞窗）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_fangchan_market
+    description: Fetch China Real Estate Association (中房网) market monitoring reports — newslist.json API discovery + article body plain text (div.summary-text-p); 50-city supply/transaction area and tiered-city figures appear in the narrative body
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (hard cap; newest report first)
+      - name: max_pages
+        type: int
+        required: false
+        description: Maximum API pages walked for discovery (default 2 = up to 80 reports); only walked when limit is not yet met
+      - name: subcolumn
+        type: str
+        required: false
+        description: 中房网栏目 — 原创 / 政策 / 市场 (the only three with content; six other columns measured total=0); defaults to 原创
+      - name: page_size
+        type: int
+        required: false
+        description: Items requested per API page (default 40)
+    columns:
+      - name: report_title
+        type: string
+        description: Report title from the newslist API (also the article h1)
+      - name: publish_date
+        type: string
+        description: Publish date YYYY-MM-DD derived from the API createtime (unix seconds, Asia/Shanghai); None when createtime is unparseable
+      - name: article_id
+        type: string
+        description: Article id from the detail URL tail (…/<id>.html) — stable row identity at source
+      - name: content
+        type: string
+        description: Article body plain text (div.summary-text-p, share/QR noise stripped, whitespace-collapsed) — narrative form, NOT parsed into numbers by this unit
+      - name: summary
+        type: string
+        description: Editorial summary (API zhaiyao); None when absent
+      - name: keyword
+        type: string
+        description: Comma-joined editorial keywords (API keyword); None when absent
+      - name: pic_url
+        type: string
+        description: "Cover image URL (API pic, hosted on ess.leju.com) — tracing only, NEVER downloaded"
+      - name: source
+        type: string
+        description: Data source identifier (fangchan-market)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch (UTC)
+concepts:
+  - column: content
+    concept: industry.real_estate_market_analysis
+    entity_type: industry
+    measure: text
+    unit: string
+    frequency: daily
+entities:
+  - entity_type: industry
+    coverage: domain
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

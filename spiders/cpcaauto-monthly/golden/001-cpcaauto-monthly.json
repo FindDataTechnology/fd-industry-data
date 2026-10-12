@@ -1,0 +1,20 @@
+{
+  "sample_id": "001-cpcaauto-monthly",
+  "created": "2026-10-13",
+  "target": "run_cpcaauto_monthly",
+  "params": {"limit": 6},
+  "expect": {
+    "min_rows": 6,
+    "rows_contains": [
+      {"field": "source", "equals": "cpcaauto-monthly"},
+      {"field": "article_id", "equals": "4350"},
+      {"field": "article_id", "equals": "4349"},
+      {"field": "article_id", "equals": "4348"},
+      {"field": "category", "equals": "月度分析"},
+      {"field": "category", "equals": "周度分析"},
+      {"field": "category", "equals": "新能源"},
+      {"field": "period", "equals": "2026-09"}
+    ]
+  },
+  "whitelist_fields": ["content", "scraped_at", "attach_url", "publish_date", "report_title", "period"]
+}
