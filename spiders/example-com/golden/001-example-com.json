@@ -1,0 +1,15 @@
+{
+  "sample_id": "001-example-com",
+  "created": "2026-10-12",
+  "target": "run_example_com",
+  "params": {"limit": 5},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "url", "equals": "https://example.com/"},
+      {"field": "title", "equals": "Example Domain"},
+      {"field": "source", "equals": "example.com"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
