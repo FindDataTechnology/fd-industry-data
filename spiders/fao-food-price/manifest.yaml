@@ -9,23 +9,27 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
   - command: run_fao_food_price
-    description: Fetch FAO Food Price Index monthly values (headline plus meat/dairy/cereals/oils/sugar, nominal)
+    description: Fetch FAO Food Price Index values — monthly CSV (headline plus meat/dairy/cereals/oils/sugar, nominal) and/or the annual XLSX series (headline nominal + real/deflated, 1961 onward)
     frequency: monthly
     parameters:
       - name: limit
         type: int
         required: false
         description: Maximum (month, index_name) rows to return (deterministic order, earliest months first)
+      - name: scope
+        type: str
+        required: false
+        description: monthly (default, unchanged) = monthly CSV; annual = same-page XLSX annual series (1961+, nominal + real); all = both merged
     columns:
       - name: month
         type: string
-        description: Index month (YYYY-MM), 1990-01 onward
+        description: Index period — YYYY-MM for monthly rows (1990-01 onward), YYYY for annual rows (1961 onward)
       - name: index_name
         type: string
-        description: Index series name (Food Price Index, Meat, Dairy, Cereals, Oils, Sugar)
+        description: Index series name — monthly (Food Price Index, Meat, Dairy, Cereals, Oils, Sugar) or annual (Food Price Index (nominal) / Food Price Index (real))
       - name: value
         type: float
-        description: Nominal index value (2014-2016=100 base)
+        description: Index value (2014-2016=100 base); annual rows carry both nominal and real (deflated) series
       - name: url
         type: string
         description: Source CSV URL for the row

@@ -1,0 +1,16 @@
+{
+  "sample_id": "002-fao-food-price-annual",
+  "created": "2026-10-13",
+  "target": "run_fao_food_price",
+  "params": {"limit": 200, "scope": "annual"},
+  "expect": {
+    "min_rows": 100,
+    "rows_contains": [
+      {"field": "source", "equals": "fao-food-price"},
+      {"field": "month", "equals": "1961"},
+      {"field": "index_name", "equals": "Food Price Index (nominal)"},
+      {"field": "index_name", "equals": "Food Price Index (real)"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "value", "url"]
+}
