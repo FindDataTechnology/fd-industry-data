@@ -57,6 +57,15 @@ TABULAR_INLINE_PATTERNS = (
 # (most need scrapling/scrapy/psycopg2). Static AST analysis instead.
 DECLARED_PARAM_REACHABILITY = "declared-param-reachability"
 
+# Declared commands no platform surface can invoke. runner_cli always loads
+# ``run_<slug>`` and there is no second entry, so a command that is neither the
+# entry nor reachable from it nor dispatched by the provider is dead — even if
+# it carries a golden (which only proves the function runs, never that
+# production calls it). Measured: eurostat-api declared four Wave-C extension
+# commands with goldens 002-005, all green, while crawl_items held zero rows
+# from them.
+DECLARED_COMMAND_REACHABILITY = "declared-command-reachability"
+
 # violation type -> one-line fix
 FIXES = {
     "unit-outside-spiders": "move to spiders/<slug>/",
@@ -72,6 +81,10 @@ FIXES = {
     "either add the parameter to the entry signature (the runner passes only "
     "explicitly named parameters -- **kwargs does not count), or drop the "
     "declaration; `parameters` must be a list of {name, type, ...} entries",
+    "declared-command-reachability": "make the declared command reachable: have "
+    "the run_<slug> entry call it (directly or via a helper), or drop the "
+    "declaration; a golden alone is not enough — it proves the function runs, "
+    "not that production invokes it",
 }
 
 
@@ -167,6 +180,113 @@ def _command_name(entry) -> str:
     return ""
 
 
+def _main_block_nodes(tree: ast.Module) -> set[int]:
+    """ids of nodes inside ``if __name__ == "__main__":`` — not a platform surface.
+
+    A call reachable only from ``__main__`` is reachable by a developer running
+    the CLI by hand, not by the scheduler. Counting it would let "it runs
+    locally" stand in for "production runs it", which is exactly the illusion
+    that hid the eurostat-api extensions (declared, goldened, never invoked).
+    """
+    marks: set[int] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.If):
+            continue
+        test = node.test
+        if (isinstance(test, ast.Compare) and isinstance(test.left, ast.Name)
+                and test.left.id == "__name__"):
+            for sub in ast.walk(node):
+                marks.add(id(sub))
+    return marks
+
+
+def _reachable_from_entry(unit_dir: Path, entry: str) -> set[str]:
+    """Names reachable from ``entry`` inside the unit (call-closure, AST).
+
+    Union over the unit's Python files so a helper module counts. ``self.x()``
+    is normalized to ``x`` so methods resolve by name.
+    """
+    graph: dict[str, set[str]] = collections.defaultdict(set)
+    for path in sorted(unit_dir.glob("*.py")):
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8", errors="ignore"))
+        except (OSError, SyntaxError):
+            continue
+        main = _main_block_nodes(tree)
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if id(node) in main:
+                continue
+            for sub in ast.walk(node):
+                if not isinstance(sub, ast.Call) or id(sub) in main:
+                    continue
+                fn = sub.func
+                if isinstance(fn, ast.Name):
+                    graph[node.name].add(fn.id)
+                elif isinstance(fn, ast.Attribute):
+                    graph[node.name].add(fn.attr)
+    seen: set[str] = set()
+    stack = [entry]
+    while stack:
+        cur = stack.pop()
+        if cur in seen:
+            continue
+        seen.add(cur)
+        stack.extend(graph.get(cur, ()))
+    return seen
+
+
+def _provider_dispatched(root: Path) -> set[str]:
+    """Commands the DataProvider dispatches by name (the MCP command surface)."""
+    provider = root / "fd_industry_data" / "provider.py"
+    if not provider.is_file():
+        return set()
+    try:
+        return set(re.findall(r'command\s*==\s*"([^"]+)"', provider.read_text(
+            encoding="utf-8", errors="ignore")))
+    except OSError:
+        return set()
+
+
+def _declared_command_units(root: Path) -> list[str]:
+    """Units declaring a command no platform surface can invoke.
+
+    A declared command is reachable when it *is* the ``run_<slug>`` entry, or
+    sits in that entry's call closure, or is dispatched by name in
+    ``provider.py``. Otherwise it is a dead declaration: ``runner_cli`` always
+    loads ``run_<slug>`` and there is no second entry, so nothing ever calls it
+    — regardless of whether it has a golden.
+    """
+    import yaml
+
+    dispatched = _provider_dispatched(root)
+    hits: list[str] = []
+    for manifest in sorted((root / "spiders").glob("*/manifest.yaml")):
+        try:
+            doc = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            continue
+        if not isinstance(doc, dict):
+            continue
+        funcs = doc.get("functions") or []
+        if not funcs:
+            continue  # old schema (shell commands): outside this contract
+        slug = manifest.parent.name
+        entry = f"run_{slug.replace('-', '_')}"
+        reachable = _reachable_from_entry(manifest.parent, entry)
+        for e in funcs:
+            command = _command_name(e)
+            if not command or command == entry or command in dispatched:
+                continue
+            if command not in reachable:
+                hits.append(f"{root.name}/spiders/{slug}: declares command "
+                            f"{command!r} that no platform surface invokes "
+                            f"(entry {entry} never reaches it; provider "
+                            f"dispatches: {', '.join(sorted(dispatched)) or 'none'})")
+    return hits
+
+
 def _declared_param_units(root: Path) -> list[str]:
     """Units whose manifest declares parameters the entry point cannot receive."""
     import yaml
@@ -248,6 +368,9 @@ def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
 
         for path in _declared_param_units(root):
             violations.append((DECLARED_PARAM_REACHABILITY, path))
+
+        for path in _declared_command_units(root):
+            violations.append((DECLARED_COMMAND_REACHABILITY, path))
 
     for group in (g for g in adapters.values() if len(g) > 1
                   and len({u["slug"] for _, u in g}) > 1):

@@ -1,0 +1,18 @@
+{
+  "sample_id": "006-eurostat-api-coverage",
+  "created": "2026-10-13",
+  "target": "run_eurostat_api",
+  "params": {
+    "limit": 6
+  },
+  "expect": {
+    "min_rows": 6,
+    "rows_contains": [
+      {"field": "dataset", "equals": "sts_inpr_m"},
+      {"field": "dataset", "equals": "ei_bsco_m"},
+      {"field": "dataset", "equals": "apri_pi_outq"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "period", "value", "source_url"],
+  "note": "条数上限饥饿回归闸：入口曾为顺序拼接，sts_inpr_m 单条 840 行把 CronJob 的 --limit 100 全部吃光，ei_bsco_m / apri_pi_outq 每次定时运行都返回零行。改为轮转交织后，小上限下三个数据集 SHALL 同时有数据。本样本只锚「跨数据集覆盖」，不锚具体期间/数值（那些随发布滚动，锚了会变假故障）。"
+}

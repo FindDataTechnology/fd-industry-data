@@ -52,6 +52,29 @@ Archives the `dead`-classified legacy manifests from the triage report
 manifests are verified byte-identical and a re-run is a no-op. Dry-run by
 default; `--apply` executes.
 
+## 声明命令可达性 — `conformance_gate.py` 的 `declared-command-reachability` 规则
+
+准入门规则（同为 AST 静态分析）：manifest `functions[].command` 声明的每个命令，必须
+(a) 就是 `run_<slug>` 入口本身，(b) 在入口的**调用闭包**内（跨该单元所有 `.py`；
+`self.x()` 归一为 `x`），或 (c) 在 `fd_industry_data/provider.py` 的分派表中。三者皆非
+→ 违规。
+
+背景（2026-10-13，change `declared-command-reachability`）：`runner_cli._load_entry` 恒定
+只加载 `run_<src>`，**没有第二个入口**，所以一个声明命令若不在入口调用链上就是死声明。
+`eurostat-api` 声明 5 个命令，其中 4 个（Wave C 扩展 c20/bsci/apri/comext）各有 golden
+且健康检查全绿，但入口只遍历三条基础数据集——**`crawl_items` 里它们一行都没有**。
+golden 只证明「函数能跑」，不证明「生产会调用它」；本规则正是补上这个缺口。
+
+判定取**调用闭包**而非仅直接调用（辅助函数间接调用是真实现象）；
+**`__main__` 块内的调用不算平台调用面**——那是开发者手工 CLI 路径，算进去就等于用
+「本地能跑」冒充「生产在跑」。
+**动态调用目标（`for fn in (...)` / `getattr`）不可静态解析，会报违规**；修法是显式
+按名调用（见 `eurostat-api._wave_c_rows`）。
+
+```bash
+python3 scripts/conformance_gate.py --roots .   # 0 = 声明的命令都可被平台调用
+```
+
 ## 声明参数可达性 — `conformance_gate.py` 的 `declared-param-reachability` 规则
 
 准入门规则（AST 静态分析；gate 阶段只装 pyyaml，故不 import 单元）：manifest

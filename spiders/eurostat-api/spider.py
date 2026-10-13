@@ -279,25 +279,87 @@ def _jsonstat_rows(doc: dict, colmap: dict, dataset: str, source_url: str, scrap
     return rows
 
 
+def _wave_c_rows(limit: int) -> list[dict]:
+    """Rows from the three index-shaped Wave-C extensions, via their own entries.
+
+    Delegating to the declared commands (rather than only reusing their CFGs)
+    keeps the manifest honest: a declared command is now genuinely invoked by
+    the platform, and each one's non-empty assertion stays in force.
+
+    Each is called by explicit name in its own try block — not looped over a
+    tuple of functions — because the admission gate resolves the entry's call
+    graph statically and a dynamic call target is invisible to it.
+    """
+    out: list[dict] = []
+    n = max(limit, 1)
+    try:
+        out.extend(run_eurostat_c20(limit=n))
+    except Exception as e:  # noqa: BLE001 - one dataset must not kill the run
+        logger.warning("eurostat-api: c20 failed; skipping: %s", e)
+    try:
+        out.extend(run_eurostat_bsci(limit=n))
+    except Exception as e:  # noqa: BLE001
+        logger.warning("eurostat-api: bsci failed; skipping: %s", e)
+    try:
+        out.extend(run_eurostat_apri(limit=n))
+    except Exception as e:  # noqa: BLE001
+        logger.warning("eurostat-api: apri failed; skipping: %s", e)
+    return out
+
+
 async def _run(limit: int) -> list[dict]:
+    """Fetch every entry dataset and interleave them round-robin.
+
+    Sequential concatenation let the first dataset swallow the whole budget:
+    the CronJob renders ``--limit 100`` and ``sts_inpr_m`` alone holds 840
+    rows, so ``ei_bsco_m`` and ``apri_pi_outq`` came back empty on every
+    scheduled run. Interleaving gives each dataset a turn, so a small limit
+    still spans them all (same fix as mohurd-yearbook).
+    """
     scraped_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    rows: list[dict] = []
+    buckets: list[list[dict]] = []
     for cfg in DATASETS:
-        if len(rows) >= limit:
-            break
         url = _build_url(cfg)
         doc = await _fetch_doc(url, cfg["dataset"])
         if doc is None:
             continue
         got = _jsonstat_rows(doc, cfg["colmap"], cfg["dataset"], url, scraped_at)
         logger.info("[%s] parsed %d rows from %s", cfg["dataset"], len(got), url)
-        rows.extend(got)
+        buckets.append(got)
+    rows = _interleave(buckets)
     return rows[:limit]
 
 
+def _interleave(buckets: list[list[dict]]) -> list[dict]:
+    """Round-robin rows across datasets so no dataset starves another."""
+    out: list[dict] = []
+    for i in range(max((len(b) for b in buckets), default=0)):
+        for b in buckets:
+            if i < len(b):
+                out.append(b[i])
+    return out
+
+
 def run_eurostat_api(limit: int = 100) -> list[dict]:
-    """fd-runner entry point. Returns at most `limit` rows."""
-    return asyncio.run(_run(max(0, int(limit))))
+    """fd-runner entry point. Returns at most `limit` rows.
+
+    Covers the three base datasets plus the four Wave-C extensions (C20 /
+    BSCI / APRI / comext). The extensions used to live only behind their own
+    declared commands, which no platform surface invoked — they had goldens
+    and zero production rows. comext is appended last and keeps its own
+    ``trade_value`` column: it is a trade amount, not an index, so it must
+    not be folded into the index-shaped ``value`` rows.
+    """
+    limit = max(0, int(limit))
+    buckets = [asyncio.run(_run(limit)), _wave_c_rows(limit)]
+    if limit and sum(len(b) for b in buckets) < limit:
+        try:
+            buckets.append(run_eurostat_comext(
+                limit=limit - sum(len(b) for b in buckets)))
+        except Exception as e:  # noqa: BLE001 - one dataset must not kill the run
+            logger.warning("eurostat-api: comext path failed; skipping: %s", e)
+    rows = _interleave([b for b in buckets if b])
+    return rows[:limit] if limit else rows
 
 
 # --------------------------------------------------------------------------
