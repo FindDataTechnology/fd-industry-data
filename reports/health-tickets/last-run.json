@@ -1,9 +1,9 @@
 {
-  "at": "2026-10-13T11:46:12.371644+00:00",
+  "at": "2026-10-13T17:00:43.777856+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 102,
-  "healthy": 72,
+  "healthy": 74,
   "written": [],
   "deferred": [],
   "skipped_unknown_period": [
@@ -39,13 +39,6 @@
   "submit": [],
   "status": [
     {
-      "ticket": "20261013-flower-auction-67f0aee9.yaml",
-      "http_status": 200,
-      "state": "manual",
-      "note": "",
-      "pr_url": ""
-    },
-    {
       "ticket": "20261013-inmetals-ab6991bd.yaml",
       "http_status": 200,
       "state": null,
@@ -55,7 +48,7 @@
     {
       "ticket": "20261013-metal-com-754ed5c3.yaml",
       "http_status": 200,
-      "state": "queued",
+      "state": null,
       "note": "",
       "pr_url": ""
     }
