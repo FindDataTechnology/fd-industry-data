@@ -52,6 +52,29 @@ Archives the `dead`-classified legacy manifests from the triage report
 manifests are verified byte-identical and a re-run is a no-op. Dry-run by
 default; `--apply` executes.
 
+## 声明参数可达性 — `conformance_gate.py` 的 `declared-param-reachability` 规则
+
+准入门规则（AST 静态分析；gate 阶段只装 pyyaml，故不 import 单元）：manifest
+`functions[].parameters` 里声明的每个名字，必须在该 `command` 的 `def` 签名中**显式
+出现**。`parameters` 与 `columns` 都必须是列表形（字典形会被协议加载器
+`load_catalog` 直接拒绝）。
+
+口径与 `runner_cli._split_params` 逐字一致——**`*args`/`**kwargs` 不算声明通道**：
+若把 `**kwargs` 算作可达，manifest 拼错键将永远静默通过。规则**单向**：只查「声明了
+但入口收不到」，不查「入口可收但未声明」（回填类参数按 `legal-line-federation`
+裁决刻意不上触发面）。
+
+背景（2026-10-13，change `declared-param-reachability`）：`--params` 通道修通后做全量
+审计，查出 5 处声明不可达（`inmetals`/`kitco`/`metal-com` 的 `urls`；`nbs-stats` 的
+`categories`/`start_year`）与 `nbs-stats` 的字典形声明（导致该在产单元**无法被协议
+加载**）。生产证据：`pending_runs` 有 15 行带 `window: "12m"` 落在既未声明也未接受它
+的单元上，全部报 `done`——请求被无声忽略且不留痕迹。丢弃现在写入
+`crawl_runs.metrics.dropped_params`。
+
+```bash
+python3 scripts/conformance_gate.py --roots .   # 0 = 声明与入口一致
+```
+
 ## Manifest 命令漂移检查 — `check_manifest_commands.py`
 
 只读 lint：逐个导入 `spiders/<slug>/spider.py`，校验 `functions[].command` 指向真实

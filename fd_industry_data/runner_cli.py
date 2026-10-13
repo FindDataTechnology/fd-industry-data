@@ -48,25 +48,40 @@ def _extra_params(fn, raw: str | None) -> dict:
     ``TypeError`` that fails the whole run. Unknown keys and unparsable JSON
     are reported on stderr and dropped.
     """
+    return _split_params(fn, raw)[0]
+
+
+def _split_params(fn, raw: str | None) -> tuple[dict, list[str]]:
+    """``(accepted, dropped_keys)`` for a ``--params`` payload.
+
+    ``dropped_keys`` is what the caller asked for and did not get — surfaced in
+    the run record (``crawl_runs.metrics.dropped_params``) because the
+    dispatcher keeps no copy of the runner's stderr.
+
+    ``limit`` is excluded from both sides: it travels on the dedicated
+    ``--limit`` flag, so a ``limit`` inside the JSON payload is redundant
+    rather than dropped — reporting it would be a false alarm.
+    """
     if not raw:
-        return {}
+        return {}, []
     try:
         parsed = json.loads(raw)
     except json.JSONDecodeError as e:
         print(f"fd-runner: --params is not valid JSON ({e}); ignoring", file=sys.stderr)
-        return {}
+        return {}, []
     if not isinstance(parsed, dict):
         print("fd-runner: --params must be a JSON object; ignoring", file=sys.stderr)
-        return {}
+        return {}, []
+    parsed = {k: v for k, v in parsed.items() if k != "limit"}
     try:
         accepted = set(inspect.signature(fn).parameters)
     except (TypeError, ValueError):  # builtins / C callables: pass nothing extra
-        return {}
+        return {}, sorted(parsed)
     accepted.discard("limit")
     unknown = sorted(k for k in parsed if k not in accepted)
     if unknown:
         print(f"fd-runner: ignoring undeclared parameter(s) {unknown}", file=sys.stderr)
-    return {k: v for k, v in parsed.items() if k in accepted}
+    return {k: v for k, v in parsed.items() if k in accepted}, unknown
 
 
 def _content_dir() -> str:
@@ -164,10 +179,12 @@ def main(argv: list[str] | None = None) -> int:
             return _EXIT_SKIPPED
 
     status, rows, error_head, items = "success", 0, None, []
+    extra, dropped = _split_params(fn, args.params)
+    metrics = {"dropped_params": dropped} if dropped else None
     try:
         if run_id is not None:
             _watch_cancel(run_id)
-        items = fn(limit=args.limit, **_extra_params(fn, args.params)) or []
+        items = fn(limit=args.limit, **extra) or []
         rows = len(items)
         if cancel_event.is_set():
             status = "cancelled"
@@ -197,7 +214,7 @@ def main(argv: list[str] | None = None) -> int:
         if run_id is not None:
             ok = finish_run(
                 run_id, status=status, finished_at=finished, rows_written=rows,
-                error_head=error_head, items=items,
+                error_head=error_head, items=items, metrics=metrics,
             )
         else:
             ok = report_run(
@@ -206,12 +223,13 @@ def main(argv: list[str] | None = None) -> int:
                 error_head=error_head,
                 commit_sha=_commit_sha(),
                 image_tag=os.environ.get("FD_IMAGE_TAG", "unknown"),
-                items=items,
+                items=items, metrics=metrics,
             )
         if not ok:
             print("fd-runner: DB report failed; fallback written, crawl result unaffected", file=sys.stderr)
 
-    print(f"fd-runner: {src} -> {status} rows={rows} in {finished - started:.1f}s")
+    print(f"fd-runner: {src} -> {status} rows={rows} in {finished - started:.1f}s"
+          + (f" (dropped params: {', '.join(dropped)})" if dropped else ""))
     return EXIT_OK if status == "success" else EXIT_ADAPTER_ERROR
 
 

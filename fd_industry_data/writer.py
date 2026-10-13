@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS crawl_runs (
     created_at  timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS crawl_runs_source_idx ON crawl_runs (source, created_at DESC);
+ALTER TABLE crawl_runs ADD COLUMN IF NOT EXISTS metrics jsonb;
 CREATE TABLE IF NOT EXISTS crawl_items (
     run_id  bigint NOT NULL REFERENCES crawl_runs (id) ON DELETE CASCADE,
     idx     integer NOT NULL,
@@ -113,8 +114,15 @@ def start_run(*, source, kind="runtime", commit_sha, image_tag,
 
 
 def finish_run(run_id: int, *, status, finished_at, rows_written,
-               error_head=None, items=()) -> bool:
-    """Close a running row with the final status and capped raw items."""
+               error_head=None, items=(), metrics=None) -> bool:
+    """Close a running row with the final status and capped raw items.
+
+    ``metrics`` (optional dict) lands in ``crawl_runs.metrics``. It carries
+    run-quality facts that are neither failures nor row counts — today the
+    parameter names the entry point dropped, so a request that silently did
+    less than asked is visible in the central DB rather than only on a pod's
+    stderr (the dispatcher runs the runner as a subprocess and keeps no copy).
+    """
     payload = [items[i] for i in range(min(len(items), _MAX_ITEMS))]
     conn = None
     for delay in (0.0,) + _RETRY_DELAYS:
@@ -129,9 +137,11 @@ def finish_run(run_id: int, *, status, finished_at, rows_written,
                 cur.execute(
                     """UPDATE crawl_runs
                        SET status=%s, finished_at=to_timestamp(%s),
-                           rows_written=%s, error_head=%s
+                           rows_written=%s, error_head=%s, metrics=%s
                        WHERE id=%s""",
-                    (status, finished_at, rows_written, error_head, run_id),
+                    (status, finished_at, rows_written, error_head,
+                     json.dumps(metrics, ensure_ascii=False) if metrics else None,
+                     run_id),
                 )
                 if payload:
                     cur.executemany(
@@ -219,7 +229,7 @@ def open_run_for(source: str) -> int | None:
 
 
 def report_run(*, source, kind, status, started_at, finished_at, rows_written,
-               error_head, commit_sha, image_tag, items) -> bool:
+               error_head, commit_sha, image_tag, items, metrics=None) -> bool:
     """Insert the run record (and capped raw items); True on success."""
     payload = [items[i] for i in range(min(len(items), _MAX_ITEMS))]
     for delay in (0.0,) + _RETRY_DELAYS:
@@ -236,11 +246,12 @@ def report_run(*, source, kind, status, started_at, finished_at, rows_written,
                 cur.execute(
                     """INSERT INTO crawl_runs
                        (source, kind, status, started_at, finished_at,
-                        rows_written, error_head, commit_sha, image_tag)
-                       VALUES (%s,%s,%s,to_timestamp(%s),to_timestamp(%s),%s,%s,%s,%s)
+                        rows_written, error_head, commit_sha, image_tag, metrics)
+                       VALUES (%s,%s,%s,to_timestamp(%s),to_timestamp(%s),%s,%s,%s,%s,%s)
                        RETURNING id""",
                     (source, kind, status, started_at, finished_at,
-                     rows_written, error_head, commit_sha, image_tag),
+                     rows_written, error_head, commit_sha, image_tag,
+                     json.dumps(metrics, ensure_ascii=False) if metrics else None),
                 )
                 run_id = cur.fetchone()[0]
                 if payload:
