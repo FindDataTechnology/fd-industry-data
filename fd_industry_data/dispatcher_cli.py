@@ -553,6 +553,12 @@ def main() -> int:
         env = {**os.environ, "FD_PENDING_RUN_ID": str(row["id"])}
         cmd = [sys.executable, "-m", "fd_industry_data.runner_cli", src,
                "--limit", str(limit)]
+        # Forward the remaining declared params (everything but limit). Without
+        # this channel a unit's non-limit parameters were unreachable in
+        # production: the claim carried them, nothing passed them to the entry.
+        extra = {k: v for k, v in params.items() if k != "limit"}
+        if extra:
+            cmd += ["--params", json.dumps(extra, ensure_ascii=False)]
 
         ident = None
         jar_path = None

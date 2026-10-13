@@ -1,12 +1,17 @@
 """fd-runner: execute one content-repo source and report the run.
 
-Usage (container entrypoint): fd-runner <src> [--limit N] [--dry-run]
+Usage (container entrypoint): fd-runner <src> [--limit N] [--params JSON] [--dry-run]
 
 Contract:
 - <src> is a directory under the content spiders root (FD_CONTENT_DIR, default
   ./spiders). The git sparse-checkout overlay shadows the baked-in snapshot
   because the content root is prepended to sys.path.
 - The source module must expose ``run_<src>(limit=N) -> list[dict]``.
+- ``--params`` carries a JSON object of the source's **declared** parameters
+  (manifest ``functions[].parameters``) beyond ``limit``. Unknown keys are
+  dropped with a warning instead of raising ``TypeError`` — a manifest/entry
+  mismatch must not fail a run. Without this channel any parameter a unit
+  declares beyond ``limit`` is unreachable in production.
 - Exit codes: 0 ok, 2 source missing, 3 adapter failure, 4 no entry point.
 - A run record (and its raw items) is written to the central DB unless
   --dry-run; reporting is best-effort and never masks the crawl result.
@@ -15,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import inspect
 import json
 import os
 import sys
@@ -32,6 +38,35 @@ EXIT_NO_ENTRY = 4
 _EXIT_SKIPPED = 0  # single-flight skip is a successful no-op for the caller
 
 _CANCEL_POLL_SECONDS = 15
+
+
+def _extra_params(fn, raw: str | None) -> dict:
+    """Parse ``--params`` JSON and keep only keys the entry point accepts.
+
+    Filtering against the real signature is deliberate: a manifest that drifts
+    from the code must degrade to "parameter ignored" rather than a
+    ``TypeError`` that fails the whole run. Unknown keys and unparsable JSON
+    are reported on stderr and dropped.
+    """
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        print(f"fd-runner: --params is not valid JSON ({e}); ignoring", file=sys.stderr)
+        return {}
+    if not isinstance(parsed, dict):
+        print("fd-runner: --params must be a JSON object; ignoring", file=sys.stderr)
+        return {}
+    try:
+        accepted = set(inspect.signature(fn).parameters)
+    except (TypeError, ValueError):  # builtins / C callables: pass nothing extra
+        return {}
+    accepted.discard("limit")
+    unknown = sorted(k for k in parsed if k not in accepted)
+    if unknown:
+        print(f"fd-runner: ignoring undeclared parameter(s) {unknown}", file=sys.stderr)
+    return {k: v for k, v in parsed.items() if k in accepted}
 
 
 def _content_dir() -> str:
@@ -84,6 +119,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="fd-runner")
     ap.add_argument("source", help="source id, i.e. spiders/<src>/ directory name")
     ap.add_argument("--limit", type=int, default=100)
+    ap.add_argument("--params", default=None,
+                    help="JSON object of declared source parameters beyond limit")
     ap.add_argument("--dry-run", action="store_true", help="skip DB reporting")
     args = ap.parse_args(argv)
 
@@ -130,7 +167,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if run_id is not None:
             _watch_cancel(run_id)
-        items = fn(limit=args.limit) or []
+        items = fn(limit=args.limit, **_extra_params(fn, args.params)) or []
         rows = len(items)
         if cancel_event.is_set():
             status = "cancelled"
