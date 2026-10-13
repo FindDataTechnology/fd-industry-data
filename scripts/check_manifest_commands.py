@@ -13,6 +13,9 @@
 （gtarsc/hqcdc/intrinio/isee）的入口是 ``(urls=None, save=True)``——**不接受
 limit**，一旦点亮就会 TypeError 崩。它们当时都在休眠，所以没人发现。本检查把
 这类「manifest 说能跑、签名说不能」的漂移变成可复跑的 lint。
+该四单元经价值核查后已于同日**全部退役归档**（源不可用：域名停用/DNS NXDOMAIN/
+付费 API；且系同一原型复制四份、48/52 方法是纯桩），详见
+``archive/triage-cleanup-20261013/INDEX.md``。
 
 口径：只对**新 schema**（有 functions）单元校验；旧 schema（commands/
 function_definitions，如 eastmoney-data/worldsteel）走各自的 shell 命令，不在

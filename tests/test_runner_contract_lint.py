@@ -83,14 +83,23 @@ class TestContractCheck:
 
 class TestDormantRegistry:
     def test_registry_file_exists_and_parses(self):
+        """登记表存在且可解析；**允许为空**（2026-10-13 四单元退役后即为空）。"""
         assert check.DORMANT_LIST.is_file()
         names = check._dormant_known()
-        assert names, "登记表不应为空（当前有 4 个已知休眠违契单元）"
         assert all("-" in n or n.isidentifier() for n in names)
 
     def test_registry_excludes_comments(self):
         assert not any(n.startswith("#") for n in check._dormant_known())
 
-    def test_known_four_are_registered(self):
-        """四个 legacy scrapling 脚手架单元必须在册（否则会变成硬失败）。"""
-        assert {"gtarsc", "hqcdc", "intrinio", "isee"} <= check._dormant_known()
+    def test_retired_four_are_gone(self):
+        """2026-10-13 退役的四个单元不应仍在 spiders/，也不应在册。
+
+        它们已归档至 archive/triage-cleanup-20261013/spiders/（证据见该目录
+        INDEX.md）；若它们重新出现在 spiders/ 而不满足契约，lint 会按
+        dormant-unregistered 报 DRIFT——这正是期望行为。
+        """
+        repo = check.REPO
+        for slug in ("gtarsc", "hqcdc", "intrinio", "isee"):
+            assert not (repo / "spiders" / slug).exists(), f"{slug} 应已归档出 spiders/"
+            assert (repo / "archive" / "triage-cleanup-20261013" / "spiders" / slug).is_dir()
+        assert not ({"gtarsc", "hqcdc", "intrinio", "isee"} & check._dormant_known())
