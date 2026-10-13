@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-13T17:00:43.777856+00:00",
+  "at": "2026-10-13T23:16:34.875135+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 102,
@@ -41,14 +41,14 @@
     {
       "ticket": "20261013-inmetals-ab6991bd.yaml",
       "http_status": 200,
-      "state": null,
+      "state": "manual",
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261013-metal-com-754ed5c3.yaml",
       "http_status": 200,
-      "state": null,
+      "state": "manual",
       "note": "",
       "pr_url": ""
     }
