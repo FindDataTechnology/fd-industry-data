@@ -28,4 +28,21 @@ golden: []
 lifecycle:
 - at: '2026-10-13T01:19:28.518247+00:00'
   event: created
+- at: '2026-10-13T01:26:33.489811+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**已入队 `FindDataTechnology/fd-industry-data#reports/health-tickets/20261013-inmetals-ab6991bd.yaml`（队列第
+    2 位）**
+
+
+    依据与状态（一行结论）：本回合 `curl` 实测 GitHub 出口仍阻断（DNS 正常，api.github.com / github.com / codeload
+    / raw 全 TCP 超时，对照 token.finddatatech.cloud 200），工单正文取不到 → 未分诊、未改 `spiders/`、未推分支、未开
+    PR、未 merge、未点亮任何 sch'
+- at: '2026-10-13T01:31:27.418768+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null

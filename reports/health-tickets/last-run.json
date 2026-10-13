@@ -1,9 +1,9 @@
 {
-  "at": "2026-10-12T13:10:14.340071+00:00",
+  "at": "2026-10-13T01:19:37.309742+00:00",
   "source": "psql",
   "config_source": "db:health_config",
-  "sources_seen": 95,
-  "healthy": 65,
+  "sources_seen": 101,
+  "healthy": 71,
   "written": [],
   "deferred": [],
   "skipped_unknown_period": [
@@ -38,49 +38,49 @@
   "master_switch": true,
   "submit": [
     {
-      "ticket": "20261012-flower-auction-50c0c868.yaml",
+      "ticket": "20261013-flower-auction-67f0aee9.yaml",
       "submitted": true,
       "reason": "",
       "attempt": 1,
       "http_status": 200,
-      "response": "**已见过 FindDataTechnology/fd-industry-data#reports/health-tickets/20261012-flower-auction-50c0c868.yaml，状态：终态 manual（队列中无此单）**——重复投递，按协议不重复入队、不重复动手。\n\n依据（一行）：\n- 该单 12:46 已入队并处理完毕：凭据就绪（git_pat 尾 …7zNX）→ 取件尝试 + 重试各 1 次均失败（镜像内**无 git 可执行文件**；`github.com` / `api.github.com` / `raw.githubusercontent.com` TCP 全部超时，出口仅白名单 `*.finddatatech.cloud` 可达）→ 未读到工单、**未开 PR、未改任何文件**，终态 manual「工单不可读」，retry=1 已尽。\n- 本次重复投递仅落盘去重记录（`dup_submit_at`），未消耗重试、未再发通知；状态文件 `/tmp/spider-heal/inbox.json`（`$DSH_HOME/spider-heal/` "
+      "response": "**已入队** `FindDataTechnology/fd-industry-data#reports/health-tickets/20261013-flower-auction-67f0aee9.yaml`（队列第 1 位）\n依据：路径合法（`reports/health-tickets/` 下、仓可识别）、未见过该 ticket → 落 `state=queued, retry=0`。\n\n**本回合未动手，原因：GitHub 出口阻断（平台侧）**\n- 01:20/01:24Z 实测 `api.github.com` / `github.com` / `codeload` / `raw.githubusercontent` 全部 TCP 超时；对照 `token/mcp/platform.finddatatech.cloud` HTTP 200 → 出口白名单未放行 GitHub。自 2026-10-12T22:31Z 起持续（连续第 7 轮）。\n- 后果：工单正文取不到 → 无法分诊/修复/验证；也未复核远端队列与单写者面（沿用 18:32Z 权威快照：openPrs=0）。"
     },
     {
-      "ticket": "20261012-inmetals-22d7bbda.yaml",
+      "ticket": "20261013-inmetals-ab6991bd.yaml",
       "submitted": true,
       "reason": "",
       "attempt": 1,
       "http_status": 200,
-      "response": "**结论：已见过 `FindDataTechnology/fd-industry-data#reports/health-tickets/20261012-inmetals-22d7bbda.yaml`，状态：终态 `manual`（去重命中，未重复入队、未重复动手）。**\n\n- **依据**：该单 12:54:16 已入队并因取件通道阻断判终态 manual（retry=1 已尽）；本轮复核通道仍不可用——`git` 仍不存在、`api.github.com:443` TCP 仍超时（对照 mcp./token.finddatatech.cloud 200）。终态不变，未消耗新重试、未开 PR、未改任何文件。\n- **状态落盘**：`/tmp/spider-heal/inbox.json`（canonical）+ `/app/agent-runner/.spider-heal/inbox.json` 镜像；已在 meta 记本次去重命中。\n- **旁注**：同仓另有并发巡检会话写入的 `metal-com` 单（同样 manual），本次写入为读-改-写，未覆盖他单记录。\n- **解"
+      "response": "**已入队 `FindDataTechnology/fd-industry-data#reports/health-tickets/20261013-inmetals-ab6991bd.yaml`（队列第 2 位）**\n\n依据与状态（一行结论）：本回合 `curl` 实测 GitHub 出口仍阻断（DNS 正常，api.github.com / github.com / codeload / raw 全 TCP 超时，对照 token.finddatatech.cloud 200），工单正文取不到 → 未分诊、未改 `spiders/`、未推分支、未开 PR、未 merge、未点亮任何 schedule。\n\n细节：\n- **kind 分诊**：未能读单，无法分诊；不猜内容、不套修复流程（不做任何 `spiders/` 触碰）。\n- **单写者/远端面**：GitHub 不可达，openPrs 与仓内队列未复核（沿用 18:32Z 权威快照 openPrs=0，仅作参考，不据其动手）；同源 flower-auction 单仍在队首排队，本单不越位处理。\n- **凭据**：`git_pat"
     },
     {
-      "ticket": "20261012-metal-com-a6131850.yaml",
+      "ticket": "20261013-metal-com-754ed5c3.yaml",
       "submitted": true,
       "reason": "",
       "attempt": 1,
       "http_status": 200,
-      "response": "**结论：已见过该单，状态：终态 `manual`（转人工）——未重复入队、未重复动手、未重复通知。**\n\n一行依据：去重命中（`retry=1` 已尽），且只读复核阻塞条件未解除。\n\n- **去重**：`FindDataTechnology/fd-industry-data#reports/health-tickets/20261012-metal-com-a6131850.yaml` 已在队列，state=`manual`、retry=1（终态），本次登记 `dup_submit_at=2026-10-12T13:13:24Z`，**不重复入队**。\n- **阻塞复核（只读探测，未消耗重试）**：`raw.githubusercontent.com` / `api.github.com` / `github.com` / `codeload.github.com` 四域仍 http=000（超时）；`git`、`gh` 仍 NOT FOUND。对照 `platform.` / `mcp.finddatatech.cloud` 仍 http=200 → 出口白名单未变，**取件通道未"
+      "response": "已入队 `FindDataTechnology/fd-industry-data#reports/health-tickets/20261013-metal-com-754ed5c3.yaml`（队列第 3 位）\n\n- **依据**：本回合独立复测出口仍阻断 —— DNS 正常，但 api.github.com / github.com / codeload.github.com 的 443 裸 TCP 各 7s 全超时（对照 token.finddatatech.cloud 200）；工单正文取不到，故未分诊、未开分支、未推、未开 PR、未 merge、未点亮、未写 schedule。\n- **状态**：`state=queued, retry=0`（阻碍是平台出口，非单内失败，不消耗重试额度），保持排队待出口恢复后按流程处理；`$DSH_HOME/spider-heal/` 与 /app 顶层均不可写，状态文件降级双写 `/app/agent-runner/spider-heal/agent-a/inbox.json` 与 `/tmp/spider-heal/inbox.json`"
     }
   ],
   "status": [
     {
-      "ticket": "20261012-flower-auction-50c0c868.yaml",
+      "ticket": "20261013-flower-auction-67f0aee9.yaml",
       "http_status": 200,
-      "state": "manual",
+      "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261012-inmetals-22d7bbda.yaml",
+      "ticket": "20261013-inmetals-ab6991bd.yaml",
       "http_status": 200,
-      "state": "manual",
+      "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261012-metal-com-a6131850.yaml",
+      "ticket": "20261013-metal-com-754ed5c3.yaml",
       "http_status": 200,
-      "state": "manual",
+      "state": null,
       "note": "",
       "pr_url": ""
     }
