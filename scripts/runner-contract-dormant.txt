@@ -1,0 +1,23 @@
+# 休眠单元中不满足 runner 调用契约者（激活前必修，不拦构建）。
+#
+# 契约：runner 恒定以 fn(limit=N, **params) 调用入口。入口既不接受 limit
+# 也无 **kwargs 时，点亮即 TypeError。
+#
+# 本名单由 check_manifest_commands.py 以 HINT 形式报告（非 DRIFT，不影响
+# 构建）。**移出条件**：入口改造成满足契约（接受 limit 或加 **kwargs），
+# 或该单元被归档/退役。
+#
+# 背景（2026-10-13）：这些单元来自平台化之前的 scrapling Spider 脚手架，
+# 入口是 run_<x>(urls=None, save=True) —— 既无 limit，返回值也是 True/False
+# 而非 list[dict]（双重不合契约）。它们从未有排期、从未产生 crawl_runs，
+# 因此问题一直不可见；一旦有人点亮就会立刻失败。
+#
+# 处置选项（需产品裁决，非机械修复）：
+#   (a) 改造为内容单元：入口 run_<slug>(limit=N) -> list[dict]，过三闸 + golden；
+#   (b) 判定不再需要 → 归档出 spiders/（走 dormant-unit-hygiene 路径）；
+#   (c) 若仍需其原 CLI 形态 → 登记为 federated 成员（自带 runner_command），
+#       不再要求满足本契约。
+gtarsc
+hqcdc
+intrinio
+isee
