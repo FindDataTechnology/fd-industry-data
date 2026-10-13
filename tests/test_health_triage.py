@@ -81,9 +81,44 @@ def test_insufficient_evidence_needs_human():
 
 
 def test_insufficient_evidence_without_failures_after_stale_success():
-    verdict = _classify([_ok(100)])
+    # 65h：超出新鲜度短路（2.5*24=60h）但未达源静默阈（max(3*24,48)=72h）——
+    # 两者之间的空窗才是规则 2 无失败路径的领地（100h 以上已归 1b）。
+    verdict = _classify([_ok(65)])
     assert verdict.needs_human is True and verdict.category is None
     assert "rule2" in verdict.rule_trace
+
+
+# ---------------------------------------------------------------- 规则 1b：源静默
+
+def test_source_silent_no_failures_far_past_success():
+    """无失败样本但最近成功远超 max(3*period, 48h)：判 contract（调度面失联），
+    不再按证据不足每天重出转人工单（两周校准期 15 张重出单的实证形态）。"""
+    verdict = _classify([_ok(270)])
+    assert verdict.category == "contract"
+    assert verdict.needs_human is False
+    assert verdict.suspected_anti_bot is False
+    assert "重新侦察调度面" in verdict.suggested_action
+    assert "rule1b" in verdict.rule_trace and "source-silent" in verdict.rule_trace
+
+
+def test_source_silent_only_after_both_period_and_floor():
+    """48h 下限：周期极短的源静默 50h（<3*period 不可能，>48h 成立）触发；
+    但 30h（>2.5*24h 不成立且 <48h）不触发——落回规则 2 证据不足。"""
+    # hourly 源（period=1），静默 50h：>max(3,48)=48 触发
+    verdict = _classify([_ok(50)], period=1.0)
+    assert verdict.category == "contract" and "rule1b" in verdict.rule_trace
+    # daily 源静默 30h：超过新鲜度 2.5*24=60 不成立... 实际 30<60 直接健康短路
+    verdict = _classify([_ok(30)])
+    assert verdict.category is None and verdict.needs_human is False  # rule1
+    # yearly 源（period=8760），静默 3000h：3*period 巨大，不触发
+    verdict = _classify([_ok(3000)], period=8760.0)
+    assert verdict.category is None and verdict.needs_human is False  # rule1
+
+
+def test_source_silent_requires_zero_trailing_failures():
+    """有失败样本的陈旧源不归 1b——那是规则 2/3~9 的领地（证据不足或分类）。"""
+    verdict = _classify([_ok(270), _fail(25, "timeout"), _fail(24, "timeout")])
+    assert "rule1b" not in verdict.rule_trace
 
 
 # ---------------------------------------------------------------- 规则 3：反爬签名

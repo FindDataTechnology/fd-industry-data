@@ -4,11 +4,16 @@
 只考察“尾部连续 failed 段”（最近一次成功之后的连续失败）；更早的失败不参与
 分诊。``source`` / ``unit`` 仅随工单携带，规则本身不依赖它们。
 
-规则（优先级 3 > 4 > 5 > 6 > 7 > 9 > 8；规则 1/2 先于以上）：
+规则（优先级 3 > 4 > 5 > 6 > 7 > 9 > 8；规则 1/1b/2 先于以上）：
 
 1. 健康短路：最近一次 success 距今 <= expected_period_hours *
    freshness_multiplier，且尾部连续 failed < consecutive_failures -> 健康
    （Verdict(None, needs_human=False)，不出单）。
+1b. 源静默（health-threshold-calibration 2026-10-13 新增）：尾部连续 failed
+   = 0 且最近 success 距今 > max(3*period, 48h) -> "contract"，
+   action=重新侦察调度面。遥测无失败样本却长期沉默，说明**调度侧停止触发**
+   （排期丢失/站点停摆/注册漂移），不是爬虫代码问题——按证据不足出单只会
+   每天重出（两周校准期 15 张此类单的实证）。
 2. 证据不足：尾部 failed 样本 < min_runs_for_verdict 且不满足健康 ->
    needs_human=True（不猜分类）。
 3. 反爬签名（最高优先，任一尾部失败命中即定，不允许被多数票淹没）：最近失败含
@@ -49,6 +54,7 @@ NETWORK_ACTION = "出口切换/代理复测（不改代码）"
 STRUCTURE_ACTION = "定向修 parser"
 CONTRACT_ACTION = "重新侦察数据表面"
 FALLBACK_ACTION = "整段重生成（兜底）"
+SILENT_ACTION = "重新侦察调度面：核对 schedule/站点心跳/注册行（遥测静默，非代码问题）"
 HUMAN_ACTION = "人工分诊（失败模式分歧/无法归类）"
 INSUFFICIENT_ACTION = "补充遥测样本后复检（证据不足）"
 
@@ -212,6 +218,23 @@ def classify(
             f" tail_failed={tail_failed}<{thresholds.consecutive_failures}"
         )
         return Verdict(None, False, False, "", trace)
+
+    # 规则 1b：源静默（health-threshold-calibration 2026-10-13 新增）。
+    # 遥测里没有任何失败样本、但最近成功远超 3 个周期（且至少 48h）——这不是
+    # 「样本不足」，是**调度侧停止触发**（排期丢失/站点停摆/注册漂移）。两周
+    # 校准期的 15 张「证据不足」重出单全部是这一形态（inmetals/metal-com/
+    # flower-auction，根因=enqueue_due 的 5 分钟网格盲区）；按规则 2 每天重出
+    # 转人工，没有诊断价值。判 contract（契约层）：修复路径=重新侦察调度面
+    # （核对 schedule/站点心跳/注册行），不是改爬虫代码。
+    if tail_failed == 0 and last_success_age is not None:
+        silent_cutoff = max(3.0 * period, 48.0)
+        if last_success_age > silent_cutoff:
+            trace = (
+                f"rule1b:source-silent tail_failed=0"
+                f" last_success_age={_fmt_hours(last_success_age)}h"
+                f">{_fmt_hours(silent_cutoff)}h(=max(3*period,48h))"
+            )
+            return Verdict("contract", False, False, SILENT_ACTION, trace)
 
     # 规则 2：证据不足
     if tail_failed < thresholds.min_runs_for_verdict:
