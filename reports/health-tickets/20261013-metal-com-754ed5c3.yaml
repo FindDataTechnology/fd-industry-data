@@ -55,4 +55,10 @@ lifecycle:
   state: queued
   note: ''
   pr_url: ''
+- at: '2026-10-13T11:53:28.808110+00:00'
+  event: status
+  http_status: 200
+  state: queued
+  note: ''
+  pr_url: ''
 terminal: null

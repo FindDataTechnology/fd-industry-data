@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-13T10:40:49.701562+00:00",
+  "at": "2026-10-13T11:46:12.371644+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 102,
@@ -41,14 +41,14 @@
     {
       "ticket": "20261013-flower-auction-67f0aee9.yaml",
       "http_status": 200,
-      "state": "queued",
+      "state": "manual",
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261013-inmetals-ab6991bd.yaml",
       "http_status": 200,
-      "state": "queued",
+      "state": null,
       "note": "",
       "pr_url": ""
     },
