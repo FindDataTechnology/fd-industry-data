@@ -3,20 +3,29 @@
 # 契约：runner 恒定以 fn(limit=N, **params) 调用入口。入口既不接受 limit
 # 也无 **kwargs 时，点亮即 TypeError。
 #
-# 本名单由 check_manifest_commands.py 以 HINT 形式报告（非 DRIFT，不影响
-# 构建）。**移出条件**：入口改造成满足契约（接受 limit 或加 **kwargs），
-# 或该单元被归档/退役。
+# 本名单由 check_manifest_commands.py 以 HINT 形式报告（非 DRIFT，不影响构建）。
 #
-# 背景（2026-10-13）：这些单元来自平台化之前的 scrapling Spider 脚手架，
-# 入口是 run_<x>(urls=None, save=True) —— 既无 limit，返回值也是 True/False
-# 而非 list[dict]（双重不合契约）。它们从未有排期、从未产生 crawl_runs，
-# 因此问题一直不可见；一旦有人点亮就会立刻失败。
+# ── 2026-10-13 核查结论：**四个都不值得恢复，建议退役**（见下逐条证据）──
 #
-# 处置选项（需产品裁决，非机械修复）：
-#   (a) 改造为内容单元：入口 run_<slug>(limit=N) -> list[dict]，过三闸 + golden；
-#   (b) 判定不再需要 → 归档出 spiders/（走 dormant-unit-hygiene 路径）；
-#   (c) 若仍需其原 CLI 形态 → 登记为 federated 成员（自带 runner_command），
-#       不再要求满足本契约。
+# 共同形态（重要）：这四个不是四个独立源适配器，而是**同一个「大杂烩」通用
+# 爬虫原型复制四份**——37 个域的 dispatch 列表**完全相同**，只有 START_URLS
+# 不同；52 个 _extract_* 方法里 **48 个是纯桩**（只取页面 <title> 与 meta
+# description，不取任何数据）；仅 ~4 个做表格抽取，且目标是 GitHub / UCI /
+# FRED ——这些我们**已有专门在产单元**（fred-data 等）。37 域中 15 个已被在产
+# 单元覆盖（fred-data / nbs-stats / mof / metal-com / cssn / cqvip / cap /
+# bls / apipoer / cisia / caa / agri-info / zce …）。
+#
+# 逐条源可达性（2026-10-13 实测）：
+#   gtarsc    站点自述「该域名已不再使用，请访问 data.csmar.com」；后继 CSMAR
+#             是**付费订阅**学术库 → 源已死，后继不可免 key 接入。
+#   hqcdc     DNS **NXDOMAIN**（www.hqcdc.org.cn 与裸域皆不存在）→ 源已死。
+#   isee      DNS **NXDOMAIN**（www.isee.gov.cn 与裸域皆不存在）→ 源已死。
+#   intrinio  站点存活但为**付费商业 API**（Pricing / Start Free Trial / Sign In），
+#             按既有裁决「需注册 key 的源不接」→ 不合规。
+#
+# 故不恢复。若要清理，走 dormant-unit-hygiene 既有路径（归档至
+# archive/<name>/spiders/，先例：flowers-yunnan 归档至
+# archive/triage-cleanup-20261004/spiders/）。在此之前保留在册，仅提示不拦。
 gtarsc
 hqcdc
 intrinio
