@@ -49,7 +49,7 @@ COPY fd_industry_data/ ./fd_industry_data/
 COPY spiders/ ./spiders/
 RUN PIP_FLAGS=""; [ -n "$PIP_INDEX_URL" ] && PIP_FLAGS="-i $PIP_INDEX_URL"; \
     pip install --no-cache-dir $PIP_FLAGS \
-        . psycopg2-binary pyyaml cryptography minio playwright \
+        . psycopg2-binary pyyaml cryptography minio playwright xlrd \
     && PW_HOST=""; [ -n "$PLAYWRIGHT_DOWNLOAD_HOST" ] && PW_HOST="PLAYWRIGHT_DOWNLOAD_HOST=$PLAYWRIGHT_DOWNLOAD_HOST"; \
        env $PW_HOST python3 -m playwright install --with-deps chromium
 ENTRYPOINT ["fd-runner"]

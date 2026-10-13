@@ -14,6 +14,7 @@ Spec: openspec/changes/estate-hygiene/ (capability estate-hygiene).
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -24,6 +25,20 @@ import validate_manifests  # noqa: E402
 
 MANIFEST_PROTOCOL = "output/manifest-drafts/MANIFEST-PROTOCOL.md"
 
+# Inline tabular parsing: a unit re-implementing xlsx/xls reading instead of
+# consuming the shared layer. Two independent hand-rolled implementations
+# already existed (pboc-inclusive without inlineStr, edgar-emissions without
+# sharedStrings fallback); this rule stops a third from appearing.
+TABULAR_SHARED_IMPORT_RE = re.compile(
+    r"fd_industry_data(?:\.tabular| import tabular)"
+)
+TABULAR_INLINE_PATTERNS = (
+    re.compile(r"""["']xl/sharedStrings\.xml["']"""),
+    re.compile(r"""["']xl/worksheets/"""),
+    re.compile(r"""["']xl/workbook\.xml["']"""),
+    re.compile(r"\bsharedStrings\b"),
+)
+
 # violation type -> one-line fix
 FIXES = {
     "unit-outside-spiders": "move to spiders/<slug>/",
@@ -33,7 +48,35 @@ FIXES = {
     "adapter-dash-underscore-pair": "keep one form",
     "manifest-contract": "fix the manifest fields flagged by validate_manifests "
     "(schedule/memory_limit/cpu_limit/enabled/site vs fd_industry_data/sites.yaml)",
+    "inline-tabular-parser": "consume fd_industry_data.tabular "
+    "(read_grid/sheets/unzip/Table) instead of hand-rolling workbook parsing",
 }
+
+
+def _inline_tabular_units(root: Path, units: list[dict]) -> list[str]:
+    """Units that parse workbooks inline without importing the shared layer.
+
+    Only flags a unit when it shows workbook-parsing evidence *and* never
+    references ``fd_industry_data.tabular`` — a unit that imports the shared
+    layer is by definition not re-implementing it.
+    """
+    hits: list[str] = []
+    for u in units:
+        if u["kind"] not in ("spider_dir", "loose_file", "adapter"):
+            continue
+        unit_dir = root / u["path"]
+        try:
+            files = triage_audit.unit_py_files(unit_dir, u["kind"])
+        except OSError:
+            continue
+        text = "\n".join(triage_audit.read_text(f) for f in files)
+        if not text:
+            continue
+        if TABULAR_SHARED_IMPORT_RE.search(text):
+            continue  # consumes the shared layer — not a violation
+        if any(p.search(text) for p in TABULAR_INLINE_PATTERNS):
+            hits.append(f"{root.name}/{u['path']}")
+    return hits
 
 
 def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
@@ -62,6 +105,9 @@ def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
                 violations.append(("loose-spider-file", path))
             elif u["kind"] == "adapter":
                 adapters.setdefault(u["normalized_slug"], []).append((root, u))
+
+        for path in _inline_tabular_units(root, units):
+            violations.append(("inline-tabular-parser", path))
 
     for group in (g for g in adapters.values() if len(g) > 1
                   and len({u["slug"] for _, u in g}) > 1):

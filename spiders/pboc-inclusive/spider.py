@@ -33,12 +33,12 @@
   而不是全文正则（否则会被导航/附表标题/注脚污染）。
 - **“增加/减少”共用句式**：``住户存款增加6.99万亿元`` 与 ``住户贷款减少1.03万亿元``
   写法一致，仅动词不同；本单元**只取绝对值**（时期流量口径），方向不入 value，避免伪精确。
-- **xlsx 是 zip+xml**：只交标准库 ``zipfile`` + ``xml.etree``，不新增第三方依赖。
+- **xlsx 解析经平台共享层** ``fd_industry_data.tabular``（2026-10-13 回接，原为单元内手写）。
 
 容错（必须）：单篇报告失败跳过并留痕，不阻塞其他报告；指标抽不到则整篇跳过，
 绝不用 0/占位值填充；网络失败记录后跳过，不连环重试、不绕过反爬；``limit`` 真实生效。
 
-只依赖标准库：``urllib/json/re/datetime/html/zipfile/xml.etree``。
+只依赖标准库 + 共享层：``urllib/json/re/datetime/html`` + ``fd_industry_data.tabular``。
 """
 from __future__ import annotations
 
@@ -47,9 +47,9 @@ import io
 import json
 import re
 import urllib.request
-import zipfile
 from datetime import datetime, timezone
-from xml.etree import ElementTree as ET
+
+from fd_industry_data.tabular import read_grid
 
 try:  # 首选通道：Chrome 指纹（站点对 UA/TLS 指纹敏感，裸 UA 会 302 或被拦）
     from scrapling.fetchers import FetcherSession
@@ -81,7 +81,6 @@ CAT_MICRO = "小额贷款公司统计"
 CAT_MONTHLY = "金融统计月报"
 CAT_REGIONAL = "地区社融"
 
-_NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 
 _CN_NUM = {"一": 1, "二": 2, "三": 3, "四": 4}
 
@@ -321,44 +320,6 @@ _PROVINCES = (
 _PROVINCE_SET = set(_PROVINCES)
 
 
-def _col_index(cell_ref: str) -> int:
-    """``D6`` → 3（0 基列号；Excel 会省略空单元格，须按 ref 对齐列）。"""
-    letters = re.match(r"([A-Z]+)", cell_ref or "")
-    if not letters:
-        return -1
-    n = 0
-    for ch in letters.group(1):
-        n = n * 26 + (ord(ch) - 64)
-    return n - 1
-
-
-def read_sheet(data: bytes) -> list[list[str]]:
-    """xlsx 字节 → 二维字符串表（``t="s"`` 共享串还原；数字/文本原样）。"""
-    with zipfile.ZipFile(io.BytesIO(data)) as z:
-        names = z.namelist()
-        shared: list[str] = []
-        if "xl/sharedStrings.xml" in names:
-            root = ET.fromstring(z.read("xl/sharedStrings.xml"))
-            for si in root.iter(_NS + "si"):
-                shared.append("".join(t.text or "" for t in si.iter(_NS + "t")))
-        sheet = sorted(n for n in names
-                       if n.startswith("xl/worksheets/sheet") and n.endswith(".xml"))[0]
-        root = ET.fromstring(z.read(sheet))
-    grid: list[list[str]] = []
-    for row in root.iter(_NS + "row"):
-        cells: list[str] = []
-        for c in row.iter(_NS + "c"):
-            idx = _col_index(c.get("r") or "")
-            v = c.find(_NS + "v")
-            text = "" if v is None else (
-                shared[int(v.text)] if c.get("t") == "s" else (v.text or ""))
-            while len(cells) <= idx:
-                cells.append("")
-            cells[idx] = text
-        grid.append(cells)
-    return grid
-
-
 async def _regional_rows(http: Http, html: str, page_url: str, period: str,
                          title: str) -> list[dict]:
     """C 类：正文里只有“附件：…xlsx”，数值在附表 xlsx 的第 1 列。"""
@@ -367,7 +328,7 @@ async def _regional_rows(http: Http, html: str, page_url: str, period: str,
         raise ValueError("no xlsx attachment link in body")
     href = links[0]
     xlsx_url = href if href.startswith("http") else BASE + (href if href.startswith("/") else "/" + href)
-    grid = read_sheet(await http.bytes(xlsx_url))
+    grid = read_grid(await http.bytes(xlsx_url))
 
     # 单位从表头「单位：…」格实读（实测「单位：亿元人民币」）；读不到才回落亿元
     unit = "亿元"

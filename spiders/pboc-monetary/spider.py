@@ -10,7 +10,8 @@
   - 社会融资规模子栏： ``社会融资规模增量统计表``（月度流量，亿元）、
     ``社会融资规模存量统计表``（月度存量，万亿元，转置表）。
   - 货币统计概览子栏： ``货币供应量``（M0/M1/M2 月末余额，亿元）。
-- xlsx = zip + xml：仅标准库 ``zipfile`` + ``xml.etree`` 解析（brief.notes 指定口径）。
+- xlsx 解析经平台共享层 ``fd_industry_data.tabular``（原为单元内手写 zipfile+ElementTree，
+  2026-10-13 回接；见 change tabular-extraction-layer）。
 
 口坑（侦察实测，逐一落实）：
 
@@ -22,7 +23,7 @@
 - 取**最近两个年度**的年份栏目（当年 + 上年）：当年文件逐月增长，上年文件年终冻结，
   历史深度约 24 个月。
 - 容错：单年份/单表失败只跳过并留痕；**全部表失败抛 ``RuntimeError``**（失败即红）。
-- 只带常规浏览器 UA，不做指纹伪装与频次对抗；只用标准库（urllib/zipfile/xml/json）。
+- 只带常规浏览器 UA，不做指纹伪装与频次对抗；解析依赖=标准库 + 共享层 tabular。
 
 工单：``reports/health-tickets/20261006-pboc-monetary-ad2a8dc3.yaml``（``kind=generate``）
 """
@@ -31,10 +32,10 @@ from __future__ import annotations
 import json
 import re
 import urllib.request
-import zipfile
 from datetime import datetime, timezone
 from io import BytesIO
-from xml.etree import ElementTree as ET
+
+from fd_industry_data.tabular import read_grid
 
 SOURCE = "pboc-monetary"
 BASE = "https://www.pbc.gov.cn"
@@ -78,45 +79,6 @@ def _absolute(href: str, page_url: str) -> str:
 
 
 # ---------------------------------------------------------------- xlsx 解析
-
-
-def _col_index(cell_ref: str) -> int:
-    """``D6`` → 3（0 基列号；处理 Excel 省略空单元格时的列对齐）。"""
-    letters = re.match(r"([A-Z]+)", cell_ref or "")
-    if not letters:
-        return -1
-    n = 0
-    for ch in letters.group(1):
-        n = n * 26 + (ord(ch) - 64)
-    return n - 1
-
-
-def read_sheet(data: bytes) -> list[list[str]]:
-    """xlsx 字节 → 二维字符串表（``t="s"`` 共享串还原；数字/文本原样）。"""
-    with zipfile.ZipFile(BytesIO(data)) as z:
-        names = z.namelist()
-        shared: list[str] = []
-        if "xl/sharedStrings.xml" in names:
-            root = ET.fromstring(z.read("xl/sharedStrings.xml"))
-            for si in root.iter(_SHEET_NS + "si"):
-                shared.append("".join(t.text or "" for t in si.iter(_SHEET_NS + "t")))
-        sheet_name = sorted(n for n in names
-                            if n.startswith("xl/worksheets/sheet") and n.endswith(".xml"))[0]
-        root = ET.fromstring(z.read(sheet_name))
-    grid: list[list[str]] = []
-    for row in root.iter(_SHEET_NS + "row"):
-        cells: list[str] = []
-        for c in row.iter(_SHEET_NS + "c"):
-            idx = _col_index(c.get("r") or "")
-            v = c.find(_SHEET_NS + "v")
-            if v is None:
-                continue
-            text = shared[int(v.text)] if c.get("t") == "s" else (v.text or "")
-            while len(cells) <= idx:
-                cells.append("")
-            cells[idx] = text
-        grid.append(cells)
-    return grid
 
 
 def _assign_months(raws: list[str]) -> list[str]:
@@ -280,7 +242,7 @@ def _table_xlsx(section_html: str, title_prefix: str) -> str | None:
 
 
 def _parse_table(url: str, parser) -> list[dict]:
-    grid = read_sheet(_get(url))
+    grid = read_grid(_get(url))
     return parser(grid, url)
 
 

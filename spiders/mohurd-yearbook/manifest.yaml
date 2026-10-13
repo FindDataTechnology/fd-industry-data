@@ -1,0 +1,67 @@
+version: "2"
+name: mohurd-yearbook       # = spiders/mohurd-yearbook/ 目录名，运行时标识符，合入后不可改名
+label: MOHURD Urban/Rural Construction Yearbook (住建部城市建设与城乡建设统计年鉴)
+source_url: https://www.mohurd.gov.cn/gongkai/fdzdgknr/sjfb/index.html
+# site: tencent                # 缺省 tencent；只访问 www.mohurd.gov.cn 公开附件，无需换执行位
+schedule: "52 6 12 1 *"      # 点亮：每年 1 月 12 日 06:52；年鉴为**年刊**（实测 2025 版于当年发布），年频数据不每日抓
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_mohurd_yearbook
+    description: Fetch MOHURD urban/rural construction yearbook long series — merged 城市建设统计年鉴 (national 历年 tables, BIFF .xls) + 城乡建设统计年鉴 ZIP (村镇部分 3-1-* files, GBK-named); parsed via fd_industry_data.tabular
+    frequency: yearly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (hard cap; datasets are interleaved so small limits still span both)
+      - name: dataset
+        type: str
+        required: false
+        description: national (城市建设年鉴·全国历年) / rural (城乡建设年鉴·村镇部分 3-1-*) / all (both, interleaved); default all
+    columns:
+      - name: dataset
+        type: string
+        description: Which yearbook the row came from — national / rural
+      - name: table
+        type: string
+        description: Table identifier as published (national = sheet number like 1/2/11; rural = 3-1-N)
+      - name: table_title
+        type: string
+        description: Full table title line as printed in the yearbook (carries the covered year range)
+      - name: year
+        type: string
+        description: Data year from the leading year column (YYYY)
+      - name: indicator
+        type: string
+        description: Indicator name from the column header (Chinese; English translation and Latin unit notes stripped)
+      - name: unit
+        type: string
+        description: Unit read from the header's Chinese parenthetical (%, 平方米, 万个, 万公顷, 亿人, 亿元…); empty when the header carries none
+      - name: value
+        type: string
+        description: Cell value as printed (string; no numeric conversion, no zero-fill, no interpolation)
+      - name: yearbook_year
+        type: string
+        description: Edition year of the yearbook (from the attachment link text, e.g. 2025)
+      - name: source_file
+        type: string
+        description: Attachment file the row came from (merged .xls name or inner ZIP entry name)
+      - name: source
+        type: string
+        description: Data source identifier (mohurd-yearbook)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch (UTC)
+concepts:
+  - column: value
+    concept: infrastructure.urban_rural_construction
+    entity_type: region
+    measure: value
+    unit: string
+    frequency: yearly
+entities:
+  - entity_type: region
+    coverage: country
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

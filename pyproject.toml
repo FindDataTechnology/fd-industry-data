@@ -12,6 +12,10 @@ license = { text = "MIT" }
 authors = [{ name = "FindDataOfficial" }]
 dependencies = [
     "scrapling[fetchers]>=0.4",
+    # BIFF (.xls) workbook reading for fd_industry_data.tabular — the one
+    # tabular format with no stdlib path. xlrd 2.x is .xls-only (xlsx goes
+    # through stdlib zipfile+ElementTree), pure Python, ~96KB, zero deps.
+    "xlrd>=2.0",
 ]
 
 [project.optional-dependencies]

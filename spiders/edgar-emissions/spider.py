@@ -9,7 +9,7 @@
 口坑（brief.notes / 2026-10-06 实测，逐一落实）：
 
 - **册内不是 CSV 而是嵌套 XLSX**（v2026 起全改版；ZIP 里是 ``*.xlsx`` + readme）。
-  XLSX 本质是 zip+XML，本单元用标准库 ``zipfile + xml.etree`` 流式解析（iterparse，
+  XLSX 解析经平台共享层 ``fd_industry_data.tabular``（iter_rows 流式 + unzip 枚举，
   逐行 clear，内存不随行数膨胀），共享字符串表（``t=\"s\"``）与内联字符串
   （``t=\"inlineStr\"``）两种单元格都处理；**csv 模块用不上（v2026 无 CSV 册）**。
 - **文件较大按需取单册**：``book`` 参数二选一，默认轻的年度册；月度册 71 MB 仅显式指定时才取。
@@ -25,20 +25,17 @@
 """
 from __future__ import annotations
 
-import io
 import json
 import re
 import urllib.request
-import xml.etree.ElementTree as ET
-import zipfile
 from datetime import datetime, timezone
+
+from fd_industry_data.tabular import iter_rows, unzip
 
 SOURCE = "edgar-emissions"
 BASE = "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/EDGAR"
 RELEASE = "EDGAR_2026_GHG"  # v2026 目录（brief 指定）；升版在此换路径
 
-NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
-NS_R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 
 HEADERS = {"User-Agent": "Mozilla/5.0 Chrome/124.0"}
 TIMEOUT = 300  # 秒；月度册 71 MB，留足下载时间（不重试、不加频次）
@@ -72,56 +69,11 @@ BOOKS = {
 }
 
 
-def _download(url: str) -> zipfile.ZipFile:
-    """直链下载一册并打开为内存 ZIP（无鉴权；失败抛错，不静默）。"""
+def _download(url: str) -> bytes:
+    """直链下载一册（无鉴权；失败抛错，不静默）。"""
     req = urllib.request.Request(url, headers=HEADERS)
     with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
-        payload = resp.read()
-    try:
-        return zipfile.ZipFile(io.BytesIO(payload))
-    except zipfile.BadZipFile as exc:
-        raise RuntimeError(f"edgar-emissions: not a valid zip ({url}): {exc}") from exc
-
-
-def _sheet_path(zin: zipfile.ZipFile, sheet_name: str) -> str:
-    """按工作表名解析 xlsx 内的 sheet XML 路径（workbook.xml + rels，不猜文件名）。"""
-    wb = ET.fromstring(zin.read("xl/workbook.xml"))
-    rid = None
-    for sheet in wb.iter(NS + "sheet"):
-        if sheet.get("name") == sheet_name:
-            rid = sheet.get(NS_R + "id")
-            break
-    if not rid:
-        raise RuntimeError(f"edgar-emissions: workbook has no sheet {sheet_name!r}")
-    rels = ET.fromstring(zin.read("xl/_rels/workbook.xml.rels"))
-    for rel in rels:
-        if rel.get("Id") == rid:
-            target = rel.get("Target") or ""
-            return ("xl/" + target) if not target.startswith("/") else target.lstrip("/")
-    raise RuntimeError(f"edgar-emissions: no workbook rel for {rid!r}")
-
-
-def _shared_strings(zin: zipfile.ZipFile) -> list[str]:
-    """读共享字符串表（月度册用 ``t=\"s\"``；年度册无此表 → 空表）。"""
-    if "xl/sharedStrings.xml" not in zin.namelist():
-        return []
-    tree = ET.fromstring(zin.read("xl/sharedStrings.xml"))
-    return [
-        "".join(t.text or "" for t in si.iter(NS + "t"))
-        for si in tree.findall(NS + "si")
-    ]
-
-
-def _cell_text(cell, shared: list[str]):
-    """单元格取值：shared/inline/纯数字三态；空单元格返回 ``None``。"""
-    kind = cell.get("t")
-    if kind == "s":
-        v = cell.find(NS + "v")
-        return shared[int(v.text)] if v is not None and v.text is not None else None
-    if kind == "inlineStr":
-        return "".join(t.text or "" for t in cell.iter(NS + "t")) or None
-    v = cell.find(NS + "v")
-    return v.text if v is not None else None
+        return resp.read()
 
 
 def run_edgar_emissions(limit: int = 100, book: str = "co2_annual") -> list[dict]:
@@ -136,23 +88,19 @@ def run_edgar_emissions(limit: int = 100, book: str = "co2_annual") -> list[dict
     if spec is None:
         raise ValueError(f"unknown book {book!r}; valid: {sorted(BOOKS)}")
 
-    outer = _download(spec["url"])
-    try:
-        inner = zipfile.ZipFile(io.BytesIO(outer.read(spec["xlsx"])))
-    except KeyError as exc:
-        raise RuntimeError(f"edgar-emissions: {spec['xlsx']} not in zip: {exc}") from exc
-
-    shared = _shared_strings(inner)
-    path = _sheet_path(inner, "IPCC 2006")
+    payload = _download(spec["url"])
+    entries = unzip(payload)
+    match = [e for e in entries if e.name == spec["xlsx"]]
+    if not match:
+        raise RuntimeError(
+            f"edgar-emissions: {spec['xlsx']} not in zip "
+            f"(entries: {[e.name for e in entries][:5]})"
+        )
 
     rows: list[dict] = []
     header: dict[str, int] = {}
     scraped_at = datetime.now(timezone.utc).isoformat()
-    for _event, elem in ET.iterparse(inner.open(path), events=("end",)):
-        if elem.tag != NS + "row":
-            continue
-        cells = [(_cell_text(c, shared)) for c in elem.iter(NS + "c")]
-        elem.clear()
+    for cells in iter_rows(match[0].data, sheet="IPCC 2006"):
         if not header:
             # 表头行以 IPCC_annex 开头（前 9 行为元信息脚注）
             if cells and cells[0] == "IPCC_annex":
