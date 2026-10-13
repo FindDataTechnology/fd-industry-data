@@ -7,13 +7,18 @@ drift apart). Fails with one line per violation, each naming its fix, when:
 a spider unit exists outside spiders/<slug>/ (including misspelled directories),
 a standard-layout unit lacks manifest.yaml, a loose *_spider.py exists outside
 a unit directory, an empty non-standard top-level directory exists, or two
-adapters differ only by dash-versus-underscore naming. Writes nothing, ever.
+adapters differ only by dash-versus-underscore naming; additionally, a unit
+re-implements workbook parsing instead of consuming the shared tabular layer,
+or declares a function parameter its own entry point cannot receive. Writes
+nothing, ever.
 
 Spec: openspec/changes/estate-hygiene/ (capability estate-hygiene).
 """
 from __future__ import annotations
 
 import argparse
+import ast
+import collections
 import re
 import sys
 from pathlib import Path
@@ -39,6 +44,19 @@ TABULAR_INLINE_PATTERNS = (
     re.compile(r"\bsharedStrings\b"),
 )
 
+# Declared-parameter reachability. manifest functions[].parameters is an
+# outward contract (it reaches the central `functions.parameters` and the MCP
+# tool surface), but the runner passes only keys the entry point names
+# explicitly (`runner_cli._extra_params`; `**kwargs` deliberately does not
+# count). A declaration the entry cannot receive is therefore a promise shown
+# to callers that silently does nothing -- measured live: 15 pending_runs
+# carried `window: "12m"` on units that never declared or accepted it, every
+# one reported `done`.
+#
+# The gate stage installs only pyyaml, so this must not import unit modules
+# (most need scrapling/scrapy/psycopg2). Static AST analysis instead.
+DECLARED_PARAM_REACHABILITY = "declared-param-reachability"
+
 # violation type -> one-line fix
 FIXES = {
     "unit-outside-spiders": "move to spiders/<slug>/",
@@ -50,6 +68,10 @@ FIXES = {
     "(schedule/memory_limit/cpu_limit/enabled/site vs fd_industry_data/sites.yaml)",
     "inline-tabular-parser": "consume fd_industry_data.tabular "
     "(read_grid/sheets/unzip/Table) instead of hand-rolling workbook parsing",
+    "declared-param-reachability": "make the declaration match the entry point: "
+    "either add the parameter to the entry signature (the runner passes only "
+    "explicitly named parameters -- **kwargs does not count), or drop the "
+    "declaration; `parameters` must be a list of {name, type, ...} entries",
 }
 
 
@@ -76,6 +98,121 @@ def _inline_tabular_units(root: Path, units: list[dict]) -> list[str]:
             continue  # consumes the shared layer — not a violation
         if any(p.search(text) for p in TABULAR_INLINE_PATTERNS):
             hits.append(f"{root.name}/{u['path']}")
+    return hits
+
+
+def _declared_names(entry, field: str) -> tuple[list[str], str | None]:
+    """Declared names for one functions[] entry's ``field`` (parameters/columns).
+
+    Returns ``(names, error)``; a non-None error is a shape violation. The
+    protocol loader rejects dict-form outright (pydantic expects a list), so
+    the shape is part of the contract, not a style preference — a dict-form
+    manifest cannot be loaded, which silently removes the source from the
+    catalog surface.
+    """
+    if not isinstance(entry, dict):
+        return [], None
+    value = entry.get(field)
+    if value is None:
+        return [], None
+    if isinstance(value, dict):
+        return [], (f"{field} is a mapping; the protocol schema requires a "
+                    f"list of {{name, ...}} entries")
+    if not isinstance(value, list):
+        return [], f"{field} must be a list, got {type(value).__name__}"
+    names: list[str] = []
+    for item in value:
+        if isinstance(item, str):
+            names.append(item)
+        elif isinstance(item, dict):
+            name = item.get("name")
+            if not name:
+                return [], f"{field} entry lacks a name: {item!r}"
+            names.append(str(name))
+        else:
+            return [], f"{field} entry must be a mapping or string, got {item!r}"
+    return names, None
+
+
+def _explicit_params_by_def(py_files: list[Path]) -> dict[str, set[str]]:
+    """Explicitly named parameters per function name, unioned over same-name defs.
+
+    Mirrors ``runner_cli._extra_params``: only ``posonlyargs``/``args``/
+    ``kwonlyargs`` count. ``*args``/``**kwargs`` are excluded on purpose --
+    counting ``**kwargs`` would let a manifest typo pass silently, which is the
+    conservative reading the runner already implements. Same-name defs are
+    unioned because which one runs is decided at runtime; the static rule must
+    not guess (runtime drop-evidence covers the branch case instead).
+    """
+    out: dict[str, set[str]] = collections.defaultdict(set)
+    for path in py_files:
+        try:
+            tree = ast.parse(Path(path).read_text(encoding="utf-8", errors="ignore"))
+        except (OSError, SyntaxError):
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            args = node.args
+            named = {a.arg for a in (*args.posonlyargs, *args.args, *args.kwonlyargs)}
+            out[node.name] |= named
+    return out
+
+
+def _command_name(entry) -> str:
+    if isinstance(entry, dict):
+        return str(entry.get("command") or "")
+    if isinstance(entry, str):
+        return re.split(r"[(\s]", entry.strip(), maxsplit=1)[0]
+    return ""
+
+
+def _declared_param_units(root: Path) -> list[str]:
+    """Units whose manifest declares parameters the entry point cannot receive."""
+    import yaml
+
+    hits: list[str] = []
+    for manifest in sorted((root / "spiders").glob("*/manifest.yaml")):
+        try:
+            doc = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            continue
+        if not isinstance(doc, dict):
+            continue
+        funcs = doc.get("functions") or []
+        if not funcs:
+            continue  # old schema (shell commands): outside this contract
+        by_def = _explicit_params_by_def(sorted(manifest.parent.glob("*.py")))
+        for entry in funcs:
+            command = _command_name(entry)
+            if not command:
+                continue
+            names, shape_err = _declared_names(entry, "parameters")
+            if shape_err:
+                hits.append(f"{root.name}/spiders/{manifest.parent.name}: "
+                            f"{command} {shape_err}")
+                continue
+            # columns is also list-typed in the protocol schema; dict-form there
+            # breaks load_catalog the same way.
+            _, cols_err = _declared_names(entry, "columns")
+            if cols_err:
+                hits.append(f"{root.name}/spiders/{manifest.parent.name}: "
+                            f"{command} {cols_err}")
+            if not names:
+                continue
+            if command not in by_def:
+                hits.append(f"{root.name}/spiders/{manifest.parent.name}: "
+                            f"{command} declares parameters but no such def "
+                            f"exists in the unit")
+                continue
+            accepted = by_def[command]
+            for name in names:
+                if name not in accepted:
+                    hits.append(
+                        f"{root.name}/spiders/{manifest.parent.name}: {command} "
+                        f"declares parameter {name!r} that the entry point does "
+                        f"not accept (accepted: "
+                        f"{', '.join(sorted(accepted)) or 'none'})")
     return hits
 
 
@@ -108,6 +245,9 @@ def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
 
         for path in _inline_tabular_units(root, units):
             violations.append(("inline-tabular-parser", path))
+
+        for path in _declared_param_units(root):
+            violations.append((DECLARED_PARAM_REACHABILITY, path))
 
     for group in (g for g in adapters.values() if len(g) > 1
                   and len({u["slug"] for _, u in g}) > 1):

@@ -725,7 +725,11 @@ def get_circulation_prices(limit: int = 100) -> list[dict[str, Any]]:
     return asyncio.run(_circulation_prices_async(limit))
 
 
-def run_nbs_stats(limit: int = 100) -> list[dict]:
+def run_nbs_stats(
+    limit: int = 100,
+    categories: list[str] | None = None,
+    start_year: int | None = None,
+) -> list[dict]:
     """Entry point for fd-open-data-protocol dispatch (``fd-runner nbs-stats``).
 
     Merged entry, two independent paths:
@@ -744,15 +748,29 @@ def run_nbs_stats(limit: int = 100) -> list[dict]:
          row budget left over by path 1; its own failures are likewise
          logged-and-skipped.
 
+    ``categories`` (default None = every category, the original behaviour) and
+    ``start_year`` (default None = ``NbsStatsSpider.start_year``, i.e. 2010)
+    narrow path 1 only; path 2 is unfiltered. Both are declared in the
+    manifest, so the dispatcher forwards them via ``--params``.
+
     Rows from both paths are concatenated (legacy first) and truncated to
     ``limit``, so the contract "返回 ≤limit 行" always holds.
     """
     from fd_industry_data.cancel_event import is_set as cancel_set
 
+    if categories is None:
+        wanted = dict(INDICATOR_CATEGORIES)
+    else:
+        unknown = [c for c in categories if c not in INDICATOR_CATEGORIES]
+        if unknown:
+            logger.warning("run_nbs_stats: unknown categories ignored: %s", unknown)
+        wanted = {c: v for c, v in INDICATOR_CATEGORIES.items() if c in categories}
+    since = NbsStatsSpider.start_year if start_year is None else int(start_year)
+
     items: list[dict[str, Any]] = []
 
     async def fetch_all():
-        for category, cat_config in INDICATOR_CATEGORIES.items():
+        for category, cat_config in wanted.items():
             for indicator in cat_config:
                 if cancel_set():
                     logger.info(
@@ -763,7 +781,7 @@ def run_nbs_stats(limit: int = 100) -> list[dict]:
                 if len(items) >= limit:
                     return items
                 fetched = await _fetch_nbs_indicator(
-                    category, indicator, NbsStatsSpider.start_year
+                    category, indicator, since
                 )
                 if fetched:
                     items.extend(fetched)

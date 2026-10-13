@@ -18,10 +18,6 @@ functions:
     type: int
     required: false
     description: Maximum records to return
-  - name: urls
-    type: list
-    required: false
-    description: Custom URLs to scrape
   columns:
   - name: title
     type: str

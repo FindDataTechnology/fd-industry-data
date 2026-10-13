@@ -3,12 +3,15 @@
 49 个单元声明了 limit 之外的参数，但 dispatcher 只转发 limit —— 这些参数
 在生产里从未生效。本组测试锁定修复后的契约：
 声明参数透传、未声明参数丢弃不炸、坏 JSON 降级、无参保持原行为。
+
+另锁定「丢弃可见」：被丢弃的键名必须能被调用方取到（runner 用它写
+crawl_runs.metrics.dropped_params），否则操作者要了 X、拿到非 X 且无人告知。
 """
 from __future__ import annotations
 
 import pytest
 
-from fd_industry_data.runner_cli import _extra_params
+from fd_industry_data.runner_cli import _extra_params, _split_params
 
 
 def _fn(limit: int = 10, scope: str = "monthly", **kw):
@@ -74,3 +77,48 @@ class TestExtraParams:
     def test_signature_failure_is_safe(self):
         """不可内省的可调用对象不应抛错（C 实现/内建）。"""
         assert _extra_params(print, '{"scope": "annual"}') == {}
+
+
+class TestDroppedParamVisibility:
+    """丢弃必须可见：操作者要了 X、拿到非 X，运行记录里得有痕迹。
+
+    runner 把 dropped 写进 crawl_runs.metrics.dropped_params —— stderr 不够，
+    因为 dispatcher 以 subprocess.run 执行且不捕获 stderr，输出随 Pod 消失。
+    """
+
+    def test_split_reports_dropped_keys(self, capsys):
+        accepted, dropped = _split_params(_fn_no_kwargs, '{"nope": 1, "scope": "annual"}')
+        assert accepted == {"scope": "annual"}
+        assert dropped == ["nope"]
+        assert "nope" in capsys.readouterr().err
+
+    def test_split_no_drops_is_empty(self):
+        accepted, dropped = _split_params(_fn, '{"scope": "annual"}')
+        assert accepted == {"scope": "annual"}
+        assert dropped == []
+
+    def test_split_without_params(self):
+        assert _split_params(_fn, None) == ({}, [])
+        assert _split_params(_fn, "") == ({}, [])
+
+    def test_split_malformed_json_reports_nothing_dropped(self):
+        """坏 JSON 不是「丢弃了一个键」——没有键可丢，不写噪声。"""
+        assert _split_params(_fn, "{oops") == ({}, [])
+        assert _split_params(_fn, '["a"]') == ({}, [])
+
+    def test_split_uninspectable_drops_everything(self):
+        """签名不可内省时全部丢弃——这正是「要了但没拿到」，必须留痕。"""
+        accepted, dropped = _split_params(print, '{"scope": "annual", "b": 2}')
+        assert accepted == {}
+        assert dropped == ["b", "scope"]
+
+    def test_split_limit_not_reported_as_dropped(self):
+        """limit 走专用 flag，不算被丢弃的 extra。"""
+        accepted, dropped = _split_params(_fn_no_kwargs, '{"limit": 5}')
+        assert accepted == {} and dropped == []
+
+    def test_extra_params_unchanged_by_split(self, capsys):
+        """_extra_params 仍是 _split_params 的第一分量（既有调用点不受影响）。"""
+        assert _extra_params(_fn_no_kwargs, '{"scope": "annual", "junk": 1}') == {
+            "scope": "annual"}
+        assert "junk" in capsys.readouterr().err
