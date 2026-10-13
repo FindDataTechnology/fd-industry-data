@@ -310,3 +310,63 @@ def test_enqueue_due_matches_in_the_source_timezone():
     finally:
         dispatch.datetime = orig
         dispatch.queue_run = orig_queue_run
+
+
+# --- the lookback must walk every minute, not every 5th ---
+# (health-threshold-calibration, 2026-10-13). The tick runs only on 5-minute
+# boundaries, so a 5-stepping window sampled only minutes congruent to the
+# tick's own: schedules on :51 / :59 / :39 never matched and those sources
+# silently never ran. The regression was invisible in telemetry (no runs at
+# all) and showed up in the health loop as daily "insufficient evidence".
+
+def test_enqueue_due_matches_schedules_off_the_five_minute_grid():
+    from datetime import datetime, timezone
+    from fd_industry_data import dispatch
+
+    class _Cur:
+        def __init__(self, rows): self.rows, self.q = rows, []
+        def execute(self, sql, args=None): self.q.append((sql, args))
+        def fetchall(self): return self.rows.pop(0) if self.rows else []
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    class _Conn:
+        def __init__(self, rows): self.cur = _Cur(rows)
+        def cursor(self): return self.cur
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+
+    captured = {}
+
+    def fake_now(tz=None):
+        return captured["now"]
+
+    orig = dispatch.datetime
+    orig_queue_run = dispatch.queue_run
+    try:
+        dispatch.datetime = type("D", (), {
+            "now": staticmethod(fake_now),
+            "timedelta": __import__("datetime").timedelta,
+            "timezone": timezone})()
+        # A tick landing at 04:55 must pick up the 04:51 schedule (4 min late);
+        # with the old 5-stepping window the probed minutes were 55/50/45/40/35
+        # and 51 never appeared.
+        for minute, sched, src in ((55, "51 4 * * *", "inmetals"),
+                                   (0, "59 4 * * *", "metal-com"),
+                                   (40, "39 4 * * *", "eastmoney-futures")):
+            hour = 5 if minute == 0 else 4
+            captured["now"] = datetime(2026, 10, 8, hour, minute, tzinfo=timezone.utc)
+            queued = []
+            dispatch.queue_run = lambda conn, s, **kw: queued.append(s)
+            conn = _Conn([[("legacy-src", sched, None)], [], []])
+            assert dispatch.enqueue_due(conn, "zihan") == ["legacy-src"], src
+            assert queued == ["legacy-src"], src
+        # A schedule still outside the grace window stays quiet.
+        captured["now"] = datetime(2026, 10, 8, 6, 0, tzinfo=timezone.utc)
+        queued = []
+        dispatch.queue_run = lambda conn, s, **kw: queued.append(s)
+        conn = _Conn([[("legacy-src", "51 4 * * *", None)], [], []])
+        assert dispatch.enqueue_due(conn, "zihan") == []
+    finally:
+        dispatch.datetime = orig
+        dispatch.queue_run = orig_queue_run

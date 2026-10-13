@@ -290,11 +290,20 @@ def _schedule_now(schedule_tz: str | None, now: datetime) -> datetime:
 def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
     """Queue one run per due scheduled source of a docker site.
 
-    Due = the schedule matched any 5-minute boundary within the grace window
-    AND no open/recent run covers it (pending/claimed row, or a crawl_runs
-    row newer than the window start). Returns the enqueued source names.
+    Due = the schedule matched any minute within the grace window AND no
+    open/recent run covers it (pending/claimed row, or a crawl_runs row
+    newer than the window start). Returns the enqueued source names.
     Queueing happens OUTSIDE the read transaction — queue_run opens its own,
     and psycopg2 forbids re-entering a connection's transaction block.
+
+    The lookback walks EVERY minute, not every 5th (health-threshold-calibration
+    2026-10-13): the tick itself only runs on 5-minute boundaries, so stepping
+    the window by 5 sampled only minute values congruent to the tick's own —
+    a schedule on any other minute (``51 4 * * *``, ``59 4 * * *``,
+    ``39 4 * * *``) could never match and those sources silently never ran.
+    In production that left inmetals/metal-com/eastmoney-futures/worldsteel
+    without telemetry since 2026-10-02, which the health inspector then read
+    as "insufficient evidence" and re-ticketed daily.
 
     The schedule is matched in the source's own timezone (``schedule_tz``,
     default UTC).
@@ -320,7 +329,7 @@ def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
     for source, schedule, schedule_tz in candidates:
         local = _schedule_now(schedule_tz, now)
         hit = False
-        for back in range(0, window_minutes + 1, 5):
+        for back in range(0, window_minutes + 1):
             t = local - timedelta(minutes=back)
             if cron_matches(schedule, t.minute, t.hour, t.day, t.month,
                             t.weekday()):
