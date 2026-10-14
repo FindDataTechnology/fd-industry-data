@@ -40,3 +40,13 @@ roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: station-launche
 #        FD_STATION_DEADLINE_SECONDS=1500
 #   + a ClusterIP Service selecting the job pod, port 6080 (noVNC web),
 #     which the panel reverse-proxies at /panel/auth/station/<id>/
+#
+# ⚠ STATION_IMAGE lives on the fd-panel Deployment env (not in this file) and
+# MUST be a tag that exists on ccr AND is anchored in cheap3 relay — the panel
+# cannot launch any station otherwise (2026-10-14: it was pinned to
+# sha-8f734c7, present in neither registry; stations #33/#34 never started).
+# Current value (live-verified 2026-10-14, probe Job pulled + booted):
+#   STATION_IMAGE=ccr.ccs.tencentyun.com/finddata/fd-industry-runner:sha-ea21592
+# Note the panel pod runs under the `default` SA (fd-mcp ns), which is the SA
+# the live station-launcher RoleBinding binds — do not "fix" the binding to
+# fd-panel without also moving the Deployment's serviceAccountName.
