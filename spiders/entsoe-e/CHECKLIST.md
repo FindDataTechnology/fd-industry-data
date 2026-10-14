@@ -19,5 +19,6 @@
 - [x] README 记鉴权形态实测（query 参数唯一可用）+ 限速自限 + 历史与凭据链路
 - [x] 本地自检：`validate_manifests.py` / `check_manifest_commands.py` /
       `conformance_gate.py --roots .` 全绿
-- [ ] push 后 CI gate 绿——合入前由人工/CI 确认
-- [ ] 点亮（人工补 `schedule`）后试跑：看 crawl_runs 记录与产出
+- [x] push 后 CI gate 绿（PR #61，2026-10-15 合并 94f8853）——三闸+420 测试本地全绿
+- [x] 点亮（`2 4 * * *`，commit c00fd2b 双推）后首爬实证：run 2119 success rows=100（4.5s）；
+      crawl_items 抽样=捷克分燃料发电真值（B14 核电 3992MW 等）；token 泄漏 0 行
