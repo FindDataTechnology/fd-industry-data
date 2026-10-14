@@ -18,5 +18,5 @@
       {"field": "resolution", "equals": "PT60M"}
     ]
   },
-  "whitelist_fields": ["scraped_at", "url", "quantity_mw", "position", "psr_type", "resolution"]
+  "whitelist_fields": ["scraped_at", "url"]
 }
