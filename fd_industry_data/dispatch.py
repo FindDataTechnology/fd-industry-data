@@ -211,6 +211,57 @@ def finish_pending(conn, pending_id: int, *, run_id: int | None, status: str,
         )
 
 
+def orphaned_run_candidates(conn, *, grace_seconds: int,
+                            default_timeout_seconds: int) -> list[dict]:
+    """Running crawl_runs rows older than their source's declared budget.
+
+    A row is a *candidate* only on age: the caller must additionally confirm
+    the cluster has no active Job for the source before reaping. The budget
+    comes from the source's own declaration (``crawl_sources.timeout_seconds``,
+    federated members) because a 8-hour backfill is legitimately still running
+    at minute 30; ``default_timeout_seconds`` covers sources with no
+    declaration. ``grace_seconds`` absorbs Job startup latency and schedule
+    jitter on top.
+
+    Age alone never justifies reaping — the 2026-10-14 orphan (run #2033) was
+    a row whose Job had already Failed while its poller died, and the fix must
+    not kill a genuinely live run whose executor simply has a long budget.
+    """
+    with conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT r.id, r.source, r.started_at,
+                   coalesce(s.timeout_seconds, %s) AS budget
+            FROM crawl_runs r
+            LEFT JOIN crawl_sources s ON s.source = r.source
+            WHERE r.status = 'running'
+              AND r.started_at < now()
+                  - make_interval(secs => coalesce(s.timeout_seconds, %s)
+                                          + %s)
+            ORDER BY r.started_at
+            """,
+            (default_timeout_seconds, default_timeout_seconds, grace_seconds),
+        )
+        return [{"id": row[0], "source": row[1], "started_at": row[2],
+                 "budget": row[3]} for row in cur.fetchall()]
+
+
+def reap_orphaned_run(conn, run_id: int, *, reason: str) -> bool:
+    """Close one orphaned running row as failed; True when this call did it.
+
+    Conditional on ``status='running'`` so a run that closed itself (or was
+    cancelled) between the candidate query and this call is never overwritten.
+    """
+    with conn, conn.cursor() as cur:
+        cur.execute(
+            """UPDATE crawl_runs
+               SET status = 'failed', finished_at = now(), error_head = %s
+               WHERE id = %s AND status = 'running'""",
+            (reason, run_id),
+        )
+        return cur.rowcount > 0
+
+
 def heartbeat_site(conn, site: str) -> None:
     """Touch crawl_sites.last_seen_at so the console can show site staleness."""
     with conn, conn.cursor() as cur:

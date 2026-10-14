@@ -547,3 +547,114 @@ def test_settle_failure_keeps_terminal_pending_and_lease_tolerant(
     execute_k8s(conn, ROW, "flk-law-crawl", DECL, "scraw")  # must not raise
     assert finished == [(42, {"run_id": 12, "status": "done", "error_head": None})]
     assert authpool["outcomes"] == [(5, 5)]  # outcome still recorded best-effort
+
+
+# --- orphan sweep (reap-orphaned-runs): single-flight release --------------
+# 2026-10-14: a running crawl_runs row whose Job Failed and whose poller died
+# blocked every later dispatch for its source, with no reaper. The sweep must
+# close such rows AND never touch a run whose Job is still active.
+
+class _SweepCursor:
+    """Cursor answering the candidate query then recording reap UPDATEs.
+
+    Rows come back as tuples, like psycopg2 (the real ``orphaned_run_candidates``
+    indexes row[0..3]); ``rowcount`` is what ``reap_orphaned_run`` reads.
+    """
+
+    def __init__(self, conn):
+        self._conn = conn
+        self._last = None
+        self.rowcount = 0
+
+    def execute(self, sql, params=None):
+        flat = " ".join(sql.split())
+        self._conn.executed.append((flat, params))
+        self._last = ("candidates" if "FROM crawl_runs r" in flat else "reap")
+        if self._last == "reap":
+            self._conn.reaped.append(params[1])  # run_id
+            self.rowcount = 1
+
+    def fetchall(self):
+        return list(self._conn.candidates)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+class SweepConn:
+    """Stand-in for the orphan sweep: candidates list + reap recorder."""
+
+    def __init__(self, candidates):
+        self.candidates = candidates
+        self.executed = []
+        self.reaped = []
+
+    def cursor(self):
+        return _SweepCursor(self)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+# psycopg2-shaped row: (id, source, started_at, budget)
+CAND = (2033, "gov-rules-crawl", "2026-10-13 23:19:30+00", 14400)
+
+
+def test_orphan_sweep_reaps_when_no_active_job(monkeypatch):
+    """超龄 running 行 + 集群侧无活动 Job → 回收为 failed 并留痕。"""
+    conn = SweepConn([CAND])
+    monkeypatch.setattr(dcli, "list_jobs", lambda ns: [])  # nothing running
+    monkeypatch.setenv("FD_DISPATCH_NAMESPACE", "scraw")
+    assert dcli.reap_orphaned_runs(conn, "xinru-server1") == 1
+    assert conn.reaped == [2033]
+    reap_sql = [s for s, _ in conn.executed if "UPDATE crawl_runs" in s]
+    assert reap_sql and "status = 'running'" in reap_sql[0]  # conditional update
+    reason = [p[0] for s, p in conn.executed if "UPDATE crawl_runs" in s][0]
+    assert "orphan-reaped" in reason and "gov-rules-crawl" in reason
+
+
+def test_orphan_sweep_skips_run_with_active_job(monkeypatch):
+    """真在跑（集群侧有活动 Job）→ 一行不动，即便已超龄。"""
+    conn = SweepConn([CAND])
+    active = {"metadata": {"name": "gov-rules-crawl-182"}, "status": {}}
+    monkeypatch.setattr(dcli, "list_jobs", lambda ns: [active])
+    monkeypatch.setenv("FD_DISPATCH_NAMESPACE", "scraw")
+    assert dcli.reap_orphaned_runs(conn, "xinru-server1") == 0
+    assert conn.reaped == []
+
+
+def test_orphan_sweep_disabled_by_zero(monkeypatch):
+    """FD_ORPHAN_GRACE_SECONDS=0 → 不查不算不写（排障期冻结）。"""
+    conn = SweepConn([CAND])
+    monkeypatch.setattr(dcli, "list_jobs",
+                        lambda ns: pytest.fail("must not query k8s when disabled"))
+    monkeypatch.setenv("FD_ORPHAN_GRACE_SECONDS", "0")
+    assert dcli.reap_orphaned_runs(conn, "xinru-server1") == 0
+    assert conn.executed == []
+
+
+def test_orphan_sweep_no_candidates_is_quiet(monkeypatch):
+    """无候选 → 不发 k8s 请求、不写库（常态零成本）。"""
+    conn = SweepConn([])
+    monkeypatch.setattr(dcli, "list_jobs",
+                        lambda ns: pytest.fail("must not query k8s without candidates"))
+    monkeypatch.setenv("FD_DISPATCH_NAMESPACE", "scraw")
+    assert dcli.reap_orphaned_runs(conn, "xinru-server1") == 0
+    assert conn.reaped == []
+
+
+def test_orphan_sweep_k8s_error_never_breaks_tick(monkeypatch):
+    """k8s 不可达 → 只告警不抛出（回收绝不能拖垮 tick）。"""
+    conn = SweepConn([CAND])
+    def boom(ns):
+        raise RuntimeError("k8s down")
+    monkeypatch.setattr(dcli, "list_jobs", boom)
+    monkeypatch.setenv("FD_DISPATCH_NAMESPACE", "scraw")
+    assert dcli.reap_orphaned_runs(conn, "xinru-server1") == 0  # no raise
+    assert conn.reaped == []

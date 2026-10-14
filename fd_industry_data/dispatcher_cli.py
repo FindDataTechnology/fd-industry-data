@@ -471,6 +471,65 @@ def execute_k8s(conn, row: dict, src: str, decl: dict, ns: str, *,
         raise
 
 
+def reap_orphaned_runs(conn, site: str) -> int:
+    """Close running rows whose executor is gone (single-flight release).
+
+    2026-10-14: run #2033 stayed 'running' after its Job Failed and the
+    polling dispatcher died with it; the DB-level single-flight guard then
+    blocked *every* later dispatch for that source, silently and with no
+    reaper. This pass restores the invariant "a running row means someone is
+    actually running": a candidate is reaped only when the cluster has no
+    active Job for its source, so a genuinely live run (long budget, slow
+    Job startup) is never touched. FD_ORPHAN_GRACE_SECONDS=0 disables it.
+
+    Only runs where the k8s API is reachable (the same in-cluster path the
+    dispatch branch uses) — a site whose executor is subprocess-based has no
+    Job to check against, so it is skipped rather than guessed at.
+    """
+    try:
+        grace = int(os.environ.get("FD_ORPHAN_GRACE_SECONDS", "1800"))
+    except ValueError:
+        grace = 1800
+    if grace <= 0:
+        return 0
+    try:
+        default_timeout = int(os.environ.get("FD_ORPHAN_DEFAULT_TIMEOUT",
+                                            "28800"))
+    except ValueError:
+        default_timeout = 28800
+
+    reaped = 0
+    try:
+        ns = os.environ.get("FD_DISPATCH_NAMESPACE") or _in_cluster_ns()
+        candidates = dispatch.orphaned_run_candidates(
+            conn, grace_seconds=grace,
+            default_timeout_seconds=default_timeout)
+        if not candidates:
+            print("fd-dispatcher: orphan sweep: 0 candidate(s)")
+            return 0
+        jobs = list_jobs(ns)
+        for cand in candidates:
+            src = cand["source"]
+            if active_job_for(jobs, src) is not None:
+                continue  # genuinely running: leave it alone
+            reason = (f"orphan-reaped: no active Job for {src} in {ns} while "
+                      f"the row ran past its declared budget "
+                      f"(started {cand['started_at']})")
+            if dispatch.reap_orphaned_run(conn, cand["id"], reason=reason):
+                reaped += 1
+                print(f"fd-dispatcher: orphan-reaped crawl_runs #{cand['id']} "
+                      f"{src} (no active job)")
+    except Exception as e:  # noqa: BLE001 - a sweep bug must not break the tick
+        print(f"fd-dispatcher: orphan sweep skipped: {e}", file=sys.stderr)
+        return 0
+    if reaped:
+        print(f"fd-dispatcher: orphan sweep: reaped {reaped} run(s)")
+    else:
+        print(f"fd-dispatcher: orphan sweep: {len(candidates)} candidate(s), "
+              f"0 reaped (all still active)")
+    return reaped
+
+
 def main() -> int:
     site = os.environ.get("FD_DISPATCH_SITE", "tencent")
     max_runs = int(os.environ.get("FD_DISPATCH_MAX_RUNS", "5"))
@@ -487,6 +546,7 @@ def main() -> int:
     if expired:
         print(f"fd-dispatcher: expired {expired} stale lease(s)")
     _auth.expire_leases(conn)
+    reap_orphaned_runs(conn, site)
     # Stale-session probe (2026-10-09): a jar can die while the identity still
     # says 'active'; probing active identities here flips a dead session to
     # login_required instead of burning the next lease. Guarded end to end:
