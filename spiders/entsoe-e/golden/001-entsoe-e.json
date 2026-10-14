@@ -1,0 +1,22 @@
+{
+  "sample_id": "001-entsoe-e",
+  "created": "2026-10-14",
+  "target": "run_entsoe_e",
+  "params": {
+    "limit": 20,
+    "document_type": "A75",
+    "zone": "10YCZ-CEPS-----N",
+    "period_start": "202001010000",
+    "period_end": "202001020000"
+  },
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "source", "equals": "entsoe-e"},
+      {"field": "zone", "equals": "10YCZ-CEPS-----N"},
+      {"field": "business_type", "equals": "A01"},
+      {"field": "resolution", "equals": "PT60M"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "url", "quantity_mw", "position", "psr_type", "resolution"]
+}

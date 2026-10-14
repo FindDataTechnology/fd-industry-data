@@ -1,0 +1,80 @@
+version: "2"
+name: entsoe-e                # = spiders/entsoe-e/ 目录名，运行时标识符，合入后不可改名
+label: ENTSO-E Transparency Platform Electricity Series (actual generation / load)
+source_url: https://web-api.tp.entsoe.eu/api
+# site: tencent              # 缺省 tencent；集群内直连 web-api.tp.entsoe.eu 实测 HTTP 200（2026-10-14），无需出口代理
+# schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_entsoe_e
+    description: Fetch ENTSO-E Transparency Platform time series (default A75 actual generation per production type, Czech bidding zone, rolling 7-day UTC window); auth via securityToken query parameter (env ENTSOE_SECURITY_TOKEN, hand-approval source); one request per invocation, <=1 req/s self-throttled
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of point rows to return (most recent kept; default 100, max 20000)
+      - name: document_type
+        type: string
+        required: false
+        description: Document type - A75 (actual generation per production type) or A65 (actual total load); default A75
+      - name: zone
+        type: string
+        required: false
+        description: ENTSO-E EIC bidding-zone code (default 10YCZ-CEPS-----N, Czechia)
+      - name: days_back
+        type: int
+        required: false
+        description: Rolling window in complete UTC days when period_start/period_end omitted (default 7, max 365)
+      - name: period_start
+        type: string
+        required: false
+        description: Explicit UTC window start YYYYMMDDHHMM (golden anchoring); requires period_end
+      - name: period_end
+        type: string
+        required: false
+        description: Explicit UTC window end YYYYMMDDHHMM (golden anchoring); requires period_start
+    columns:
+      - name: period
+        type: string
+        description: UTC interval-bucket start of the point (ISO yyyy-mm-ddThh:mmZ), stepped by resolution
+      - name: position
+        type: int
+        description: Point position within the Period (1-based)
+      - name: quantity_mw
+        type: float
+        description: Value in MW (quantity_Measure_Unit.name = MAW for A75/A65)
+      - name: psr_type
+        type: string
+        description: Production type code for A75 (B01 biomass, B02 lignite, B03 gas, B04 hard coal, B05 oil, B06 hydro, B10 pumped storage, B11 wind, B12 solar, B14 nuclear, ...); null for A65
+      - name: business_type
+        type: string
+        description: Business type code (A01 = actual generation, A04 = actual load)
+      - name: zone
+        type: string
+        description: Bidding zone EIC code from the TimeSeries domain element
+      - name: resolution
+        type: string
+        description: ISO 8601 duration of the series (PT15M / PT30M / PT60M / P1D)
+      - name: url
+        type: string
+        description: Request URL for the run (securityToken redacted)
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: quantity_mw
+    concept: energy.electricity_actual
+    entity_type: region
+    measure: value
+    unit: MW
+    frequency: hourly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
