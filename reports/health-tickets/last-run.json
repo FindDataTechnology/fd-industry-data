@@ -1,9 +1,9 @@
 {
-  "at": "2026-10-13T23:16:34.875135+00:00",
+  "at": "2026-10-14T22:17:35.059803+00:00",
   "source": "psql",
   "config_source": "db:health_config",
-  "sources_seen": 102,
-  "healthy": 74,
+  "sources_seen": 103,
+  "healthy": 75,
   "written": [],
   "deferred": [],
   "skipped_unknown_period": [
@@ -37,20 +37,5 @@
   ],
   "master_switch": true,
   "submit": [],
-  "status": [
-    {
-      "ticket": "20261013-inmetals-ab6991bd.yaml",
-      "http_status": 200,
-      "state": "manual",
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261013-metal-com-754ed5c3.yaml",
-      "http_status": 200,
-      "state": "manual",
-      "note": "",
-      "pr_url": ""
-    }
-  ]
+  "status": []
 }
