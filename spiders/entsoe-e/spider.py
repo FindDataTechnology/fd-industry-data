@@ -213,7 +213,7 @@ def run_entsoe_e(
         + url/source/scraped_at。
 
     Raises:
-        RuntimeError: 缺 token、请求失败（401/400/网络）、XML 形态异常或零零可解析行。
+        RuntimeError: 缺 token、请求失败（401/400/网络）、XML 形态异常或零可解析行。
     """
     token = _token()                                  # 缺 token 立即红（不裸跑）
     try:
