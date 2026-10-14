@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import ast
 import collections
+import json
 import re
 import sys
 from pathlib import Path
@@ -66,6 +67,16 @@ DECLARED_PARAM_REACHABILITY = "declared-param-reachability"
 # from them.
 DECLARED_COMMAND_REACHABILITY = "declared-command-reachability"
 
+# Golden sample schema conformance. health_verify.py runs every sample through
+# health.samples.validate_sample before replaying it, and rows_contains rules
+# support exactly {field, equals}: an unsupported operator is reported as a
+# malformed rule and fails the replay, so the unit silently loses its health
+# gate until an incident triggers verify. Measured 2026-10-14: five units built
+# in Wave C / batch 3 carried {"field", "matches"} rules and all five failed
+# validate_sample. samples.py is stdlib-only and never imports unit modules, so
+# this check is safe at gate stage.
+GOLDEN_SCHEMA_INVALID = "golden-schema-invalid"
+
 # violation type -> one-line fix
 FIXES = {
     "unit-outside-spiders": "move to spiders/<slug>/",
@@ -85,6 +96,10 @@ FIXES = {
     "the run_<slug> entry call it (directly or via a helper), or drop the "
     "declaration; a golden alone is not enough — it proves the function runs, "
     "not that production invokes it",
+    "golden-schema-invalid": "fix the sample so health.samples.validate_sample "
+    "passes: rows_contains rules support exactly {field, equals} (compare with "
+    "str(actual) == str(expected)) — an unsupported operator such as 'matches' "
+    "fails the replay",
 }
 
 
@@ -336,6 +351,57 @@ def _declared_param_units(root: Path) -> list[str]:
     return hits
 
 
+_SAMPLES_MOD = None
+
+
+def _load_samples_mod(root: Path):
+    """Load health.samples from ``root`` (fallback: this script's repo).
+
+    Lazy import by file path: the health package must stay optional at gate
+    stage, and only samples.py (stdlib-only) is needed. Cached per process.
+    """
+    global _SAMPLES_MOD
+    if _SAMPLES_MOD is not None:
+        return _SAMPLES_MOD
+    import importlib.util
+
+    candidates = [root / "fd_industry_data" / "health" / "samples.py",
+                  SCRIPTS_DIR.parent / "fd_industry_data" / "health" / "samples.py"]
+    for path in candidates:
+        if not path.is_file():
+            continue
+        spec = importlib.util.spec_from_file_location("_gate_health_samples", path)
+        if spec is None or spec.loader is None:
+            continue
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _SAMPLES_MOD = mod
+        return mod
+    return None
+
+
+def _golden_schema_units(root: Path) -> list[str]:
+    """Units whose golden samples fail health.samples.validate_sample."""
+    samples_mod = _load_samples_mod(root)
+    if samples_mod is None:
+        return []
+
+    hits: list[str] = []
+    for unit_dir in sorted((root / "spiders").glob("*/")):
+        golden_dir = unit_dir / "golden"
+        if not golden_dir.is_dir():
+            continue
+        for golden in sorted(golden_dir.glob("*.json")):
+            try:
+                doc = json.loads(golden.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                hits.append(f"{root.name}/{unit_dir.name}: {golden.name} unreadable ({exc})")
+                continue
+            for err in samples_mod.validate_sample(doc):
+                hits.append(f"{root.name}/{unit_dir.name}: {golden.name}: {err}")
+    return hits
+
+
 def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
     """Return (violations as (type, path), scanned unit count). Zero writes."""
     violations: list[tuple[str, str]] = []
@@ -371,6 +437,9 @@ def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
 
         for path in _declared_command_units(root):
             violations.append((DECLARED_COMMAND_REACHABILITY, path))
+
+        for path in _golden_schema_units(root):
+            violations.append((GOLDEN_SCHEMA_INVALID, path))
 
     for group in (g for g in adapters.values() if len(g) > 1
                   and len({u["slug"] for _, u in g}) > 1):
