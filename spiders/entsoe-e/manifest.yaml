@@ -3,7 +3,8 @@ name: entsoe-e                # = spiders/entsoe-e/ 目录名，运行时标识�
 label: ENTSO-E Transparency Platform Electricity Series (actual generation / load)
 source_url: https://web-api.tp.entsoe.eu/api
 # site: tencent              # 缺省 tencent；集群内直连 web-api.tp.entsoe.eu 实测 HTTP 200（2026-10-14），无需出口代理
-# schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
+# schedule 留空：静默合入（批次二 Wave B 收尾直建），点亮排期由人工门统一补
+schedule: "2 4 * * *"       # 点亮（批次二 Wave B，daily；全仓 60 天窗口零重叠实证）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
