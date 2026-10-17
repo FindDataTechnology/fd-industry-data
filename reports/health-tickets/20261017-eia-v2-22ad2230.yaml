@@ -1,0 +1,87 @@
+ticket_id: 20261017-eia-v2-22ad2230
+source: eia-v2
+unit: spiders/eia-v2/
+kind: repair
+created_at: '2026-10-17T21:26:37.774123+00:00'
+category: network
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 出口切换/代理复测（不改代码）
+evidence:
+  window:
+    from: '2026-10-07 13:03:35.877666+00'
+    to: '2026-10-17 21:01:23.112991+00'
+  failing_runs:
+  - started_at: '2026-10-17 17:00:04.391208+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-10-14T16&end=2026-10-17T17&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-10-17 17:01:22.791941+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-10-14T16&end=2026-10-17T17&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— HTTPError: HTTP Error 504: Gate'
+    http_status: null
+  - started_at: '2026-10-17 18:00:04.875014+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-10-14T17&end=2026-10-17T18&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— HTTPError: HTTP Error 504: Gate'
+    http_status: null
+  - started_at: '2026-10-17 18:00:44.096377+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-10-14T17&end=2026-10-17T18&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— HTTPError: HTTP Error 504: Gate'
+    http_status: null
+  - started_at: '2026-10-17 19:00:04.479397+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-10-14T18&end=2026-10-17T19&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-10-17 19:01:22.03704+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-10-14T18&end=2026-10-17T19&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-10-17 20:00:04.951256+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-10-14T19&end=2026-10-17T20&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— HTTPError: HTTP Error 504: Gate'
+    http_status: null
+  - started_at: '2026-10-17 20:01:08.336088+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-10-14T19&end=2026-10-17T20&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— HTTPError: HTTP Error 504: Gate'
+    http_status: null
+  - started_at: '2026-10-17 21:00:05.543864+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-10-14T20&end=2026-10-17T21&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-10-17 21:01:23.112991+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-10-14T20&end=2026-10-17T21&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  last_success:
+    started_at: '2026-10-17 02:01:03.64159+00'
+    rows: 100
+  notes: 'rule5:network votes=38/38 labels={''network'': 38}'
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261017-eia-v2-22ad2230.yaml
+golden:
+- spiders/eia-v2/golden/001-eia-v2.json
+lifecycle:
+- at: '2026-10-17T21:26:37.774123+00:00'
+  event: created
+terminal: null
