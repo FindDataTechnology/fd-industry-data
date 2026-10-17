@@ -84,4 +84,12 @@ golden:
 lifecycle:
 - at: '2026-10-17T21:26:37.774123+00:00'
   event: created
+- at: '2026-10-17T21:31:49.507844+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-10-17T21:36:50.943261+00:00'
+  event: status-failed
+  error: The read operation timed out
 terminal: null
