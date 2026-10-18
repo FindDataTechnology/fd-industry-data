@@ -92,4 +92,31 @@ lifecycle:
 - at: '2026-10-17T21:36:50.943261+00:00'
   event: status-failed
   error: The read operation timed out
-terminal: null
+- at: '2026-10-18T21:32:00.859893+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '## 已见过 FindDataTechnology/fd-industry-data#reports/health-tickets/20261017-eia-v2-22ad2230.yaml，状态：终态
+    manual
+
+
+    **未重复入队、未重复动手**（协议去重：同 repo#ticket 已在终态）。本轮为复测 + 状态刷新，未开 PR、未推分支、未改动任何文件。
+
+
+    **依据（本轮实测）**
+
+    - 出口层已复通：匿名 GET `api.eia.gov` → 403、2.23s（非超时/504）→ 工单的 network 层阻塞疑似已解除。
+
+    - GitHub 实探：open PRs=0、`heal'
+- at: '2026-10-18T21:32:46.885630+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-10-18T21:32:46.885670+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual
