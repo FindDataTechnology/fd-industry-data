@@ -1,9 +1,9 @@
 {
-  "at": "2026-10-18T21:30:35.085129+00:00",
+  "at": "2026-10-19T22:54:21.641057+00:00",
   "source": "psql",
   "config_source": "db:health_config",
   "sources_seen": 103,
-  "healthy": 74,
+  "healthy": 75,
   "written": [],
   "deferred": [],
   "skipped_unknown_period": [
@@ -36,23 +36,6 @@
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [
-    {
-      "ticket": "20261017-eia-v2-22ad2230.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 2,
-      "http_status": 200,
-      "response": "## 已见过 FindDataTechnology/fd-industry-data#reports/health-tickets/20261017-eia-v2-22ad2230.yaml，状态：终态 manual\n\n**未重复入队、未重复动手**（协议去重：同 repo#ticket 已在终态）。本轮为复测 + 状态刷新，未开 PR、未推分支、未改动任何文件。\n\n**依据（本轮实测）**\n- 出口层已复通：匿名 GET `api.eia.gov` → 403、2.23s（非超时/504）→ 工单的 network 层阻塞疑似已解除。\n- GitHub 实探：open PRs=0、`heal/*` 分支=0、tickets 目录 66 项且 newest 仍为本单 → 无新到件、无未合并 PR（同源单写者无冲突）。\n- MCP `fd-health-config` 仍 disconnected（单次探测，未重试）→ 总闸未核对，未发 gate_change、未猜值。\n\n**剩余硬阻塞（均在权限面外，终态不变）**\n1. 凭据缺 `EIA_API_KEY`（仅有 git_pat/gh_"
-    }
-  ],
-  "status": [
-    {
-      "ticket": "20261017-eia-v2-22ad2230.yaml",
-      "http_status": 200,
-      "state": "manual",
-      "note": "",
-      "pr_url": ""
-    }
-  ]
+  "submit": [],
+  "status": []
 }
