@@ -1,0 +1,77 @@
+ticket_id: 20261025-steam-ccu-36a30c20
+source: steam-ccu
+unit: spiders/steam-ccu/
+kind: repair
+created_at: '2026-10-25T21:57:55.112963+00:00'
+category: fallback
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 整段重生成（兜底）
+evidence:
+  window:
+    from: '2026-10-07 17:41:39.224655+00'
+    to: '2026-10-24 23:56:54.363693+00'
+  failing_runs:
+  - started_at: '2026-10-22 23:56:04.654082+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app 取数失败 — 730: ValueError: response
+      is not JSON (JSONDecodeError); 570: ValueError: response is not JSON (JSONDecodeError);
+      578080: ValueError: response is not JSON (JSONDecodeError); 271590: ValueError:
+      response is not JSON (JSONDecodeError); 1172470: ValueError: resp'
+    http_status: null
+  - started_at: '2026-10-22 23:58:21.877263+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app 取数失败 — 730: ValueError: response
+      is not JSON (JSONDecodeError); 570: ValueError: response is not JSON (JSONDecodeError);
+      578080: ValueError: response is not JSON (JSONDecodeError); 271590: ValueError:
+      response is not JSON (JSONDecodeError); 1172470: ValueError: resp'
+    http_status: null
+  - started_at: '2026-10-23 23:56:04.243543+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app 取数失败 — 730: ValueError: response
+      is not JSON (JSONDecodeError); 570: ValueError: response is not JSON (JSONDecodeError);
+      578080: ValueError: response is not JSON (JSONDecodeError); 271590: ValueError:
+      response is not JSON (JSONDecodeError); 1172470: ValueError: resp'
+    http_status: null
+  - started_at: '2026-10-23 23:56:58.812204+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app 取数失败 — 730: ValueError: response
+      is not JSON (JSONDecodeError); 570: ValueError: response is not JSON (JSONDecodeError);
+      578080: ValueError: response is not JSON (JSONDecodeError); 271590: ValueError:
+      response is not JSON (JSONDecodeError); 1172470: ValueError: resp'
+    http_status: null
+  - started_at: '2026-10-24 23:56:04.861614+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app 取数失败 — 730: ValueError: response
+      is not JSON (JSONDecodeError); 570: ValueError: response is not JSON (JSONDecodeError);
+      578080: ValueError: response is not JSON (JSONDecodeError); 271590: ValueError:
+      response is not JSON (JSONDecodeError); 1172470: ValueError: resp'
+    http_status: null
+  - started_at: '2026-10-24 23:56:54.363693+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app 取数失败 — 730: ValueError: response
+      is not JSON (JSONDecodeError); 570: ValueError: response is not JSON (JSONDecodeError);
+      578080: ValueError: response is not JSON (JSONDecodeError); 271590: ValueError:
+      response is not JSON (JSONDecodeError); 1172470: ValueError: resp'
+    http_status: null
+  last_success:
+    started_at: '2026-10-21 23:56:05.735826+00'
+    rows: 12
+  notes: 'rule9:fallback identical-unknown-fingerprint x6 (>=consecutive_failures=3)
+    fingerprint=''runtimeerror: steam-ccu: 全部种子 app 取数失败 — #: valueerror: response
+    is not json (jsondecodeerror); #: valueerror: response…'''
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261025-steam-ccu-36a30c20.yaml
+golden:
+- spiders/steam-ccu/golden/001-steam-ccu.json
+lifecycle:
+- at: '2026-10-25T21:57:55.112963+00:00'
+  event: created
+terminal: null
