@@ -1,9 +1,9 @@
 {
-  "at": "2026-10-23T22:08:48.931167+00:00",
+  "at": "2026-10-25T21:58:02.680806+00:00",
   "source": "psql",
   "config_source": "db:health_config",
-  "sources_seen": 103,
-  "healthy": 75,
+  "sources_seen": 102,
+  "healthy": 74,
   "written": [],
   "deferred": [],
   "skipped_unknown_period": [
@@ -16,7 +16,6 @@
     "eastmoney-data",
     "eastmoney-futures",
     "federation-observer",
-    "flk-law-backfill",
     "flk-law-crawl",
     "flk-law-embed",
     "flk-law-load",
@@ -36,6 +35,23 @@
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [],
-  "status": []
+  "submit": [
+    {
+      "ticket": "20261025-steam-ccu-36a30c20.yaml",
+      "submitted": true,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 200,
+      "response": "已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261025-steam-ccu-36a30c20.yaml（队列第 1 位）\n\n状态文件降级至 /tmp/.spider-heal/inbox.json"
+    }
+  ],
+  "status": [
+    {
+      "ticket": "20261025-steam-ccu-36a30c20.yaml",
+      "http_status": 200,
+      "state": "queued",
+      "note": "",
+      "pr_url": ""
+    }
+  ]
 }

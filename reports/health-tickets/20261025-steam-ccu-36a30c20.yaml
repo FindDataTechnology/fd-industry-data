@@ -74,4 +74,19 @@ golden:
 lifecycle:
 - at: '2026-10-25T21:57:55.112963+00:00'
   event: created
+- at: '2026-10-25T22:00:15.399356+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261025-steam-ccu-36a30c20.yaml（队列第
+    1 位）
+
+
+    状态文件降级至 /tmp/.spider-heal/inbox.json'
+- at: '2026-10-25T22:01:11.412646+00:00'
+  event: status
+  http_status: 200
+  state: queued
+  note: ''
+  pr_url: ''
 terminal: null
