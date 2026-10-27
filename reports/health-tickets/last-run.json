@@ -1,18 +1,16 @@
 {
-  "at": "2026-10-25T21:58:02.680806+00:00",
+  "at": "2026-10-27T22:57:13.190699+00:00",
   "source": "psql",
   "config_source": "db:health_config",
-  "sources_seen": 102,
+  "sources_seen": 98,
   "healthy": 74,
   "written": [],
   "deferred": [],
   "skipped_unknown_period": [
     "akshare",
-    "auth-smoke",
     "bls",
     "ccdi-supervisory-crawl",
     "ccdi-supervisory-load",
-    "dispatch-smoke",
     "eastmoney-data",
     "eastmoney-futures",
     "federation-observer",
@@ -26,32 +24,21 @@
     "mfa-treaty-load",
     "party-regulation-crawl",
     "party-regulation-load",
-    "polygon",
     "rmfyalk-case-crawl",
     "rmfyalk-case-load",
-    "tencent-smoke",
     "wbgapi",
     "wire-finddatatech-cloud",
     "worldsteel"
   ],
   "master_switch": true,
-  "submit": [
-    {
-      "ticket": "20261025-steam-ccu-36a30c20.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 1,
-      "http_status": 200,
-      "response": "已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261025-steam-ccu-36a30c20.yaml（队列第 1 位）\n\n状态文件降级至 /tmp/.spider-heal/inbox.json"
-    }
-  ],
+  "submit": [],
   "status": [
     {
       "ticket": "20261025-steam-ccu-36a30c20.yaml",
       "http_status": 200,
-      "state": "queued",
+      "state": "pr-open",
       "note": "",
-      "pr_url": ""
+      "pr_url": "https://github.com/FindDataTechnology/fd-industry-data/pull/62)"
     }
   ]
 }

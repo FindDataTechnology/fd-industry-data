@@ -89,4 +89,10 @@ lifecycle:
   state: queued
   note: ''
   pr_url: ''
+- at: '2026-10-27T22:58:54.612886+00:00'
+  event: status
+  http_status: 200
+  state: pr-open
+  note: ''
+  pr_url: https://github.com/FindDataTechnology/fd-industry-data/pull/62)
 terminal: null
