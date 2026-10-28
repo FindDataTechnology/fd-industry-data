@@ -2,8 +2,10 @@
 
 > **⚠️ 需代理出口**：`api.steampowered.com` 与 `store.steampowered.com` **均被墙**。
 > 测试/本地必须 `export HTTPS_PROXY=http://<proxy>:<port>`（urllib 缺省尊重该
-> 环境变量，本单元不硬编码代理地址）；**集群 runner 代理注入就绪前不点亮**
-> ——manifest 刻意不写 `site` 与 `schedule`，静默合入。
+> 环境变量，本单元不硬编码代理地址）。
+> （历史说明：曾以「manifest 不写 `site`/`schedule`，静默合入」方式等待代理注入；
+> 当前 manifest 已带 `schedule: "56 7 * * *"`，`site` 仍未写——**schedule/cron 与
+> 点亮属人工门，spider-heal 一律不动**。）
 
 批次二 Wave C 直建（机器重启恢复，无工单，入口在 PR body 手工留证）。
 侦察簿：`data-source-scouting/INDUSTRY-DATA-SOURCES.md`「★接」行
@@ -14,7 +16,7 @@
 | 用途 | 端点 | 说明 |
 |---|---|---|
 | CCU 在线人数 | `GET https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid=<id>` | 免 key；`{"response":{"player_count":<int>,"result":1}}`；坏/无统计 appid → HTTP 404 |
-| 评论聚合 | `GET https://store.steampowered.com/appreviews/<id>?json=1&num_per_page=0&language=all&purchase_type=all` | 免 key；`query_summary`（review_score/desc、total_positive/negative/reviews）；`num_per_page=0` 只取聚合、不拉正文不翻页 |
+| 评论聚合 | `GET https://store.steampowered.com/appreviews/<id>?json=1&num_per_page=0&language=all&purchase_type=all` | 免 key；`query_summary`（review_score/desc、total_positive/negative/reviews）；`num_per_page=0` 只取聚合、不拉正文不翻页。**2026-10 实测该 JSON 子表面已退役**（302 → `store.steampowered.com/` HTML 落地页）→ 评论列降级 `null` |
 
 入口：`run_steam_ccu(limit=100) -> list[dict]`（`spider.py`）。
 仅用标准库 `urllib` + `json` + `time`，无新依赖。
@@ -43,22 +45,35 @@ Destiny 2(1085660)、CoD(1938090)、黑神话·悟空(2358720)、永劫无间(12
 | `source` | 常量 | `steam-ccu` |
 | `scraped_at` | 本地 | UTC ISO8601，抓取时刻 |
 
+> **评论列 null 口径（2026-10 起）**：评论子表面退役时，`review_score` /
+> `review_score_desc` / `total_positive` / `total_negative` / `total_reviews` /
+> `positive_ratio` 记为 `null`（**留痕，不静默填 0**），`ccu` 主数据面照常产出。
+
 ## 坑位与容错（全部实测）
 
 - **双域均被墙**：api 域与 store 域都要代理；无代理出口时连接直接失败。
   单元用 urllib 缺省代理行为（环境变量），不硬编码代理地址。
-- **坏 appid 两端表现不一致**：CCU 端 HTTP 404（urlopen 抛 HTTPError）；
-  评论端 HTTP 200 + `success=1` 但 `total_reviews=0`、
-  `review_score_desc="No user reviews"`（不报错）——所以行是否成立以
-  「两路都成功」为准，单路失败即整 app 跳过并留痕。
+- **两路分级失败（2026-10 修复）**：CCU 是**主数据面**，失败（HTTP 404 /
+  形态异常）即整 app 跳过并留痕；评论是**子表面**，失败只把该行评论列置
+  `null` 并留痕、行仍成立。旧实现两路同处一个 `try`，评论挂掉会连带整行
+  被丢——CCU 数据被误杀，是工单 `20261025-steam-ccu`（rows=0）的根因。
+- **评论 JSON 子表面已退役（2026-10 实测）**：`appreviews` 请求 302 重定向至
+  `https://store.steampowered.com/` 并返回 HTML（**六组 UA/头部组合均同**，
+  结论与 UA 无关）。故评论列持续为 `null`，`ccu` 正常。**未证实候选**：响应头
+  `access-control-allow-origin: *.steambase` 暗示该面已迁至 `*.steambase`
+  主机——**未验证**，需另开 `generate` 工单寻替代表面。
 - **CCU 是实时数**：值分钟级波动（实测两次相隔数分钟的调用 971138 →
   1058440），**golden 只锚结构断言 + min_rows，绝不锚任何数值**
   （含 ccu、total_*、positive_ratio、review_score）。
-- 评论端 `success != 1` 视为失败（实测正常恒为 1）；响应非 JSON 视为失败。
+- 评论端 `success != 1` 视为失败（实测正常恒为 1）；响应非 JSON 视为失败——
+  现已带 HTTP 状态 / Content-Type / 最终 URL 落进错误信息（如
+  `reviews: 非 JSON 子表面（HTTP 200, content-type=text/html, final=...）`）。
 - 站点对 UA 不敏感（缺省 Python UA 实测可通）；本单元仍带常规浏览器 UA
   统一姿态，不做指纹伪装与频次对抗，遇风控升级按协议转人工，不逆向。
-- **全部 app 失败抛 `RuntimeError`**（失败即红，不静默返回空列表）。
-- **无 schedule 无 site**：代理注入就绪前不点亮（静默合入）。
+- **全部 app 取数失败抛 `RuntimeError`**（失败即红，不静默返回空列表）；
+  仅评论列降级**不**触发抛错（行仍成立，降级留痕走 stderr）。
+- **schedule 已点亮**（manifest `56 7 * * *`），`site` 仍未写；schedule/cron
+  与总闸**由人工门负责，spider-heal 不改**。
 - manifest `entity_type: product` 为新自由值（既有枚举 region/country/
   industry/world/company/movie 无「游戏作品」位）；语义治理轨道另行定名，
   不阻塞爬取。

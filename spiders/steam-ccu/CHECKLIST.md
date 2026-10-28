@@ -3,10 +3,11 @@
 - [x] 目录名 = manifest `name`（`steam-ccu`；入口 `run_steam_ccu`）
 - [x] `spider.py` 提供 `run_steam_ccu(limit=N) -> list[dict]`，只依赖标准库 `urllib`/`json`/`time`（无新依赖）
 - [x] **需代理出口**：api/store.steampowered.com 双域被墙；单元用 urllib 缺省代理行为（尊重 `HTTPS_PROXY`/`HTTP_PROXY` 环境变量），**不硬编码代理地址**；README 首屏标注
-- [x] **manifest 无 `schedule` 无 `site`**——代理注入就绪前不点亮，静默合入，点亮留给人工门
+- [x] manifest `site` 仍未写；`schedule` 已点亮（`56 7 * * *`）——**schedule/cron 与点亮属人工门，spider-heal 不动**
 - [x] 端点免 key 无鉴权；单 app 两请求 + 0.2s 间隔，无重试放大
 - [x] CCU 实时数：golden **只锚结构断言 + min_rows，绝不锚任何数值**（README 口径说明）
-- [x] 坏 appid 双端不一致（CCU 404 / 评论 200+空）已处理：两路任一失败整 app 跳过留痕；全部失败抛 `RuntimeError`
+- [x] 坏 appid 双端不一致（CCU 404 / 评论 200+空）已处理：**两路分级失败**——CCU 失败整 app 跳过，评论失败仅置 `null` 留痕；CCU 全失败抛 `RuntimeError`
+- [ ] 评论替代表面：`appreviews` JSON 子表面已退役（302→HTML），需另开 `generate` 工单寻 `*.steambase` 替代表面；在此之前评论列持续 `null`
 - [x] 种子名称为代码常量元数据（端点不回名称），README 注记
 - [x] manifest 字段齐全：name/label/source_url/functions/columns/concepts/entities/fetch；`columns` 与 spider 行字段逐一对齐
 - [x] golden 样本 `golden/001-steam-ccu.json`（`min_rows: 5` + `appid`/`name`/`source` 常量锚；实时/漂移字段全部进 whitelist）
