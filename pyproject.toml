@@ -20,18 +20,22 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# infra-telemetry 独立镜像线（add-infra-factory-fleet 组1）：fastmcp+uvicorn 只进
+# 此 extra，不动 runner 依赖面（gitops-crawl-runtime D3：加依赖=运行时装版决策）。
+telemetry = ["fastmcp>=3", "uvicorn>=0.30"]
 
 [tool.setuptools.dynamic]
 version = { attr = "fd_industry_data.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["fd_industry_data*", "spiders*"]
+include = ["fd_industry_data*", "spiders*", "infra_telemetry*"]
 
 [tool.setuptools.package-data]
 fd_industry_data = ["sites.yaml"]
 
 [project.scripts]
 fd-runner = "fd_industry_data.runner_cli:main"
+infra-telemetry = "infra_telemetry.server:main"
 
 [project.entry-points."fd_open_data_mcp.datasources"]
 fd-industry-data = "fd_industry_data.catalog:CATALOG"
