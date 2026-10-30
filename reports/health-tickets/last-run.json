@@ -1,22 +1,19 @@
 {
-  "at": "2026-10-13T23:16:34.875135+00:00",
+  "at": "2026-10-30T22:57:37.340472+00:00",
   "source": "psql",
   "config_source": "db:health_config",
-  "sources_seen": 102,
+  "sources_seen": 98,
   "healthy": 74,
   "written": [],
   "deferred": [],
   "skipped_unknown_period": [
     "akshare",
-    "auth-smoke",
     "bls",
     "ccdi-supervisory-crawl",
     "ccdi-supervisory-load",
-    "dispatch-smoke",
     "eastmoney-data",
     "eastmoney-futures",
     "federation-observer",
-    "flk-law-backfill",
     "flk-law-crawl",
     "flk-law-embed",
     "flk-law-load",
@@ -27,10 +24,8 @@
     "mfa-treaty-load",
     "party-regulation-crawl",
     "party-regulation-load",
-    "polygon",
     "rmfyalk-case-crawl",
     "rmfyalk-case-load",
-    "tencent-smoke",
     "wbgapi",
     "wire-finddatatech-cloud",
     "worldsteel"
@@ -39,16 +34,9 @@
   "submit": [],
   "status": [
     {
-      "ticket": "20261013-inmetals-ab6991bd.yaml",
+      "ticket": "20261025-steam-ccu-36a30c20.yaml",
       "http_status": 200,
-      "state": "manual",
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261013-metal-com-754ed5c3.yaml",
-      "http_status": 200,
-      "state": "manual",
+      "state": null,
       "note": "",
       "pr_url": ""
     }
