@@ -80,9 +80,13 @@ _READONLY_VERBS = frozenset({"get"})
 
 
 def _build_argv(binary: str, ctx: str, args: list[str]) -> list[str]:
-    """构造 kubectl argv。context 来自 env，防注入：不得以 '-' 开头冒充 flag。"""
+    """构造 kubectl argv。context 来自 env，防注入：不得以 '-' 开头冒充 flag。
+
+    特殊值 ``in-cluster``：省略 --context——kubectl 自动采用 pod 挂载的
+    ServiceAccount token（KUBERNETES_SERVICE_HOST 在场即生效），部署侧免造 kubeconfig。
+    """
     assert not ctx.startswith("-"), f"invalid kube context name: {ctx!r}"
-    argv = [binary, "--context", ctx, *args]
+    argv = ([binary] if ctx == "in-cluster" else [binary, "--context", ctx]) + args
     # 首个非 flag 位置参数即子命令动词——白名单外直接拒绝构造
     verb = next((tok for tok in args if not tok.startswith("-")), "")
     assert verb in _READONLY_VERBS, (
