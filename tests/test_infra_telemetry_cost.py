@@ -168,3 +168,54 @@ def test_register_tool_name():
 
     cost.register(FakeMCP())
     assert list(registered) == ["fleet_cost"]
+
+
+# ── sqlite 后端（fleet usage 真源=platform hostPath fleets.db）────────────────
+
+def test_sqlite_backend_reads_and_aggregates(tmp_path, monkeypatch):
+    import sqlite3
+    from infra_telemetry import cost
+
+    db = tmp_path / "fleets.db"
+    con = sqlite3.connect(db)
+    con.executescript(
+        """
+        CREATE TABLE fleets (id TEXT, name TEXT);
+        CREATE TABLE fleet_members (id TEXT, title TEXT);
+        CREATE TABLE member_turn_events (fleet_id TEXT, member_id TEXT, usage_input INT, usage_output INT, started_at INT);
+        INSERT INTO fleets VALUES ('f1','工厂集群'),('f2','别的舰');
+        INSERT INTO fleet_members VALUES ('m1','巡检岗'),('m2',NULL);
+        INSERT INTO member_turn_events VALUES ('f1','m1',100,50,1793400000000),('f1','m2',10,0,1793400000000),('f2','m1',7,7,1793400000000);
+        """
+    )
+    con.commit(); con.close()
+    monkeypatch.setenv("FD_TELEMETRY_COST_BACKEND", "sqlite")
+    monkeypatch.setenv("FD_TELEMETRY_COST_DB", str(db))
+    monkeypatch.setenv("FD_TELEMETRY_COST_SQL",
+                       "SELECT f.name, m.title, COALESCE(t.usage_input,0)+COALESCE(t.usage_output,0), 0 "
+                       "FROM member_turn_events t JOIN fleets f ON f.id=t.fleet_id "
+                       "LEFT JOIN fleet_members m ON m.id=t.member_id")
+    out = cost.collect()
+    assert out["ok"] is True and out["summary"]["backend"] == "sqlite"
+    by = {(i["fleet"], i["post"]): i["tokens"] for i in out["items"]}
+    assert by[("工厂集群", "巡检岗")] == 150
+    assert by[("工厂集群", "other")] == 10  # NULL 岗位归 other
+    assert by[("别的舰", "巡检岗")] == 14
+
+
+def test_sqlite_backend_missing_db_is_honest(tmp_path, monkeypatch):
+    from infra_telemetry import cost
+    monkeypatch.setenv("FD_TELEMETRY_COST_BACKEND", "sqlite")
+    monkeypatch.setenv("FD_TELEMETRY_COST_DB", str(tmp_path / "nope.db"))
+    monkeypatch.setenv("FD_TELEMETRY_COST_SQL", "SELECT 1,1,1,1")
+    out = cost.collect()
+    assert out["ok"] is False and out["channels"][0]["reason"] == "upstream_unreachable"
+
+
+def test_sqlite_backend_not_configured_without_db_env(monkeypatch):
+    from infra_telemetry import cost
+    monkeypatch.setenv("FD_TELEMETRY_COST_BACKEND", "sqlite")
+    monkeypatch.delenv("FD_TELEMETRY_COST_DB", raising=False)
+    monkeypatch.setenv("FD_TELEMETRY_COST_SQL", "SELECT 1,1,1,1")
+    out = cost.collect()
+    assert out["ok"] is False and out["channels"][0]["reason"] == "not_configured"

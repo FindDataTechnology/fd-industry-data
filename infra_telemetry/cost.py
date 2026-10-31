@@ -37,6 +37,8 @@ OTHER_POST = "other"
 SQL_ENV = "FD_TELEMETRY_COST_SQL"
 DSN_ENV = "FD_TELEMETRY_COST_DSN"
 FALLBACK_DSN_ENV = "FD_CENTRAL_PG_DSN"
+BACKEND_ENV = "FD_TELEMETRY_COST_BACKEND"  # psql(default) | sqlite
+DB_ENV = "FD_TELEMETRY_COST_DB"          # sqlite 模式：fleets.db 路径（hostPath 只读）
 
 
 def _to_int(value: str) -> int:
@@ -97,25 +99,59 @@ def _aggregate(rows: list[list[str]]) -> tuple[list[dict], dict]:
     return items, summary
 
 
+def _rows_sqlite(sql: str, *, channel: str, db_env: str = DB_ENV) -> list[list[str]]:
+    """sqlite 后端（stdlib in-process 只读）——fleet usage 真源=platform 节点
+    hostPath 上的 fleets.db（member_turn_events.usage_input/output），不在中央 PG。
+    uri=True 只读打开（mode=ro），不持写锁。"""
+    import sqlite3
+
+    db_path = os.environ.get(db_env, "").strip()
+    if not db_path:
+        raise ChannelError(channel, "not_configured", f"set {db_env}")
+    if not os.path.exists(db_path):
+        raise ChannelError(channel, "upstream_unreachable", f"db file missing: {db_path}")
+    try:
+        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
+        try:
+            cur = con.execute(sql)
+            return [[("" if v is None else str(v)) for v in row] for row in cur.fetchall()]
+        finally:
+            con.close()
+    except sqlite3.OperationalError as e:
+        msg = str(e).lower()
+        reason = "unauthorized" if ("readonly" in msg or "readonly" in msg.replace("-", "")) else "upstream_unreachable"
+        if "locked" in msg:
+            reason = "timeout"
+        raise ChannelError(channel, reason, str(e)[:200])
+    except sqlite3.Error as e:
+        raise ChannelError(channel, "upstream_unreachable", str(e)[:200])
+
+
 def collect(
     *,
     window_hours: int = 168,
     psql: Callable[..., list[list[str]]] | None = None,
+    sqlite_reader: Callable[..., list[list[str]]] | None = None,
 ) -> dict:
-    """纯函数核心：fetcher 可注入（测试 fake），生产走 io_.run_psql。"""
+    """纯函数核心：fetcher 可注入（测试 fake），生产按 BACKEND env 走 run_psql/_rows_sqlite。"""
     as_of = utc_now_iso()
     errors: dict[str, ChannelError] = {}
     rows: list[list[str]] = []
-    runner = psql or run_psql
     sql = os.environ.get(SQL_ENV, "")
+    backend = os.environ.get(BACKEND_ENV, "psql").strip().lower() or "psql"
     if not sql.strip():
         # 诚实失败：不猜表名。
         err = ChannelError(CHANNEL, "not_configured", f"set {SQL_ENV}")
         errors[CHANNEL] = err
+    elif backend == "sqlite":
+        try:
+            rows = (sqlite_reader or _rows_sqlite)(sql, channel=CHANNEL)
+        except ChannelError as e:
+            errors[e.channel] = e
     else:
         dsn_env = DSN_ENV if os.environ.get(DSN_ENV) else FALLBACK_DSN_ENV
         try:
-            rows = runner(dsn_env, sql, channel=CHANNEL)
+            rows = (psql or run_psql)(dsn_env, sql, channel=CHANNEL)
         except ChannelError as e:
             errors[e.channel] = e
     if errors:
@@ -125,13 +161,13 @@ def collect(
     return envelope(
         "fleet_cost",
         items,
-        {**counters, "window_hours": window_hours},
+        {**counters, "window_hours": window_hours, "backend": backend},
         channels=[{"channel": CHANNEL, "status": "ok"}] if not errors else [{"channel": e.channel, "status": "failed", "reason": e.reason, "detail": scrub(e.detail)} for e in errors.values()],
         as_of=as_of,
     )
 
 
 def register(mcp) -> None:
-    @mcp.tool(name="fleet_cost", description="逐集群逐岗位 token 用量与配额消耗汇总（只读，SQL 全文=env FD_TELEMETRY_COST_SQL，无岗位归因落 other）")
+    @mcp.tool(name="fleet_cost", description="逐集群逐岗位 token 用量与配额消耗汇总（只读；backend=psql|sqlite 由 env 定，SQL 全文=env FD_TELEMETRY_COST_SQL，无岗位归因落 other）")
     def _tool(window_hours: int = 168) -> dict:
         return collect(window_hours=window_hours)
