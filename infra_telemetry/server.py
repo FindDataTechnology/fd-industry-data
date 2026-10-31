@@ -51,6 +51,11 @@ def main() -> None:
     token = os.environ.get("MCP_BEARER_TOKEN", "")
 
     async def app(scope, receive, send):  # noqa: ANN001 - ASGI shim
+        # lifespan 必须直通：FastMCP 的会话管理器在 lifespan 里启动，
+        # 拦掉即 initialize 500（2026-10-31 实探）。
+        if scope.get("type") == "lifespan":
+            await asgi(scope, receive, send)
+            return
         if token:
             headers = dict(scope.get("headers") or [])
             auth = headers.get(b"authorization", b"").decode()
