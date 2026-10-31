@@ -30,12 +30,14 @@ import os
 from typing import Any, Callable
 
 from .envelope import ChannelError, envelope, scrub, utc_now_iso
-from .io_ import http_json
+from .io_ import http_json, run_cmd_json
 
 CHANNEL = "argocd"
 ENDPOINT = "/api/v2/applications"
 BASE_URL_ENV = "FD_TELEMETRY_ARGOCD_URL"
 TOKEN_ENV = "FD_TELEMETRY_ARGOCD_TOKEN"
+MODE_ENV = "FD_TELEMETRY_ARGOCD_MODE"  # rest(default) | kubectl
+KUBECTL_ENV = "FD_TELEMETRY_KUBECTL"
 
 UNKNOWN = "unknown"
 # ArgoCD 具名状态面（原样透传，不翻译不猜）；unknown 仅指字段缺失的结构未知。
@@ -114,35 +116,60 @@ def _extract_apps(payload: Any) -> list:
     raise ChannelError(CHANNEL, "upstream_unreachable", "unrecognized applications response shape")
 
 
+def _collect_kubectl(*, timeout: int, executor: Callable[..., Any] | None) -> Any:
+    """kubectl 模式：读 Application CR（与 REST 同构 status，_parse_app 直接复用）。
+
+    集群内 SA + argocd ns Role(get/list/watch argoproj.io applications)；
+    ArgoCD 2.13.2 无离线 API-token 子命令、会话 JWT 24h 过期——常驻遥测
+    免造凭据走此路（design D5 修订 2026-10-31）。只读动词由 run_cmd_json 调用点
+    与 workloads 白名单同一纪律：仅 get。
+    """
+    binary = os.environ.get(KUBECTL_ENV, "kubectl")
+    argv = [binary, "get", "applications.argoproj.io", "-n", "argocd", "-o", "json"]
+    runner = executor or run_cmd_json
+    return runner(argv, channel=CHANNEL, timeout=timeout)
+
+
 def collect(
     *,
     timeout: int = 20,
     base_env: str = BASE_URL_ENV,
     token_env: str = TOKEN_ENV,
     fetcher: Callable[..., Any] | None = None,
+    executor: Callable[..., Any] | None = None,
 ) -> dict:
-    """纯函数核心：fetcher 可注入（测试 fake），生产走 io_.http_json。"""
+    """纯函数核心：fetcher/executor 可注入（测试 fake），生产走 io_.http_json/run_cmd_json。"""
     as_of = utc_now_iso()
     errors: dict[str, ChannelError] = {}
     items: list[dict] = []
-    base = os.environ.get(base_env, "").strip()
-    if not base:
-        # 诚实失败：不猜端点、不发请求。
-        errors[CHANNEL] = ChannelError(CHANNEL, "not_configured", f"env {base_env} is unset")
-    else:
-        url = base.rstrip("/") + ENDPOINT
-        headers: dict[str, str] = {}
-        token = os.environ.get(token_env, "").strip()
-        if token:
-            headers["Authorization"] = f"Bearer {token}"  # 只入请求侧，绝不入返回体
-        runner = fetcher or http_json
+    mode = os.environ.get(MODE_ENV, "rest").strip().lower() or "rest"
+    if mode == "kubectl":
         try:
-            payload = runner(url, channel=CHANNEL, headers=headers, timeout=timeout)
+            payload = _collect_kubectl(timeout=timeout, executor=executor)
             raw_apps = _extract_apps(payload)
         except ChannelError as e:
             errors[e.channel] = e
         else:
             items = [_parse_app(a, i) for i, a in enumerate(raw_apps)]
+    else:
+        base = os.environ.get(base_env, "").strip()
+        if not base:
+            # 诚实失败：不猜端点、不发请求。
+            errors[CHANNEL] = ChannelError(CHANNEL, "not_configured", f"env {base_env} is unset")
+        else:
+            url = base.rstrip("/") + ENDPOINT
+            headers: dict[str, str] = {}
+            token = os.environ.get(token_env, "").strip()
+            if token:
+                headers["Authorization"] = f"Bearer {token}"  # 只入请求侧，绝不入返回体
+            runner = fetcher or http_json
+            try:
+                payload = runner(url, channel=CHANNEL, headers=headers, timeout=timeout)
+                raw_apps = _extract_apps(payload)
+            except ChannelError as e:
+                errors[e.channel] = e
+            else:
+                items = [_parse_app(a, i) for i, a in enumerate(raw_apps)]
 
     if errors:
         counters = {"apps": 0, "out_of_sync": 0, "degraded": 0, "unknown": 0, "note": "channel failed — no data claimed"}

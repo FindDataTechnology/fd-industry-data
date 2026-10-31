@@ -26,6 +26,7 @@ def _clean_env(monkeypatch):
     """通道 env 一律先拔干净，测试自管——本机真实 env 不得影响判定。"""
     monkeypatch.delenv(gitops.BASE_URL_ENV, raising=False)
     monkeypatch.delenv(gitops.TOKEN_ENV, raising=False)
+    monkeypatch.delenv(gitops.MODE_ENV, raising=False)
 
 
 def fake_fetcher(payload, calls=None):
@@ -216,3 +217,43 @@ def test_register_tool_name():
 
     gitops.register(FakeMCP())
     assert list(registered) == ["gitops_sync"]
+
+
+# ── 5. kubectl 模式（design D5 修订：免凭据读 Application CR，与 REST 同构）────
+
+def test_kubectl_mode_parses_cr(monkeypatch):
+    monkeypatch.setenv(gitops.MODE_ENV, "kubectl")
+    cr_doc = {"items": [
+        {"metadata": {"name": "all-services-prod"},
+         "status": {"sync": {"status": "Synced"}, "health": {"status": "Healthy"}}},
+        {"metadata": {"name": "wire-prod"},
+         "status": {"sync": {"status": "OutOfSync"}, "health": {"status": "Degraded"},
+                    "conditions": [{"type": "ComparisonError",
+                                    "message": "failed token=zzzAAA123456"}]}},
+    ]}
+
+    def fake_executor(argv, *, channel, timeout):
+        assert argv[1] == "get" and "applications.argoproj.io" in argv and channel == "argocd"
+        return cr_doc
+
+    out = gitops.collect(executor=fake_executor)
+    assert out["ok"] is True
+    by = {i["app"]: i for i in out["items"]}
+    assert by["all-services-prod"]["anomalous"] is False
+    assert by["wire-prod"]["sync_status"] == "OutOfSync"
+    assert "[REDACTED]" in by["wire-prod"]["detail"]
+    assert "zzzAAA123456" not in json.dumps(out, ensure_ascii=False)
+    s = out["summary"]
+    assert s["apps"] == 2 and s["out_of_sync"] == 1 and s["degraded"] == 1
+
+
+def test_kubectl_mode_channel_failure_honest(monkeypatch):
+    from infra_telemetry.envelope import ChannelError
+
+    monkeypatch.setenv(gitops.MODE_ENV, "kubectl")
+
+    def fake_executor(argv, *, channel, timeout):
+        raise ChannelError(channel, "unauthorized", "Error from server (Forbidden)")
+
+    out = gitops.collect(executor=fake_executor)
+    _assert_failed_envelope(out, "unauthorized")
