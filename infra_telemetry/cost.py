@@ -108,6 +108,13 @@ def _rows_sqlite(sql: str, *, channel: str, db_env: str = DB_ENV) -> list[list[s
     db_path = os.environ.get(db_env, "").strip()
     if not db_path:
         raise ChannelError(channel, "not_configured", f"set {db_env}")
+    if any(ch in db_path for ch in "*?["):
+        # glob 形态（cell 目录 hash 会变）：取 mtime 最新的匹配——活 cell 的库。
+        import glob as _glob
+        matches = [m for m in _glob.glob(db_path) if os.path.exists(m)]
+        if not matches:
+            raise ChannelError(channel, "upstream_unreachable", f"db glob no match: {db_path}")
+        db_path = max(matches, key=os.path.getmtime)
     if not os.path.exists(db_path):
         raise ChannelError(channel, "upstream_unreachable", f"db file missing: {db_path}")
     try:

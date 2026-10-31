@@ -219,3 +219,22 @@ def test_sqlite_backend_not_configured_without_db_env(monkeypatch):
     monkeypatch.setenv("FD_TELEMETRY_COST_SQL", "SELECT 1,1,1,1")
     out = cost.collect()
     assert out["ok"] is False and out["channels"][0]["reason"] == "not_configured"
+
+
+def test_sqlite_backend_glob_picks_newest(tmp_path, monkeypatch):
+    import sqlite3, os, time
+    from infra_telemetry import cost
+    cellA = tmp_path / "cellAAA" / "data" / "data"; cellA.mkdir(parents=True)
+    cellB = tmp_path / "cellBBB" / "data" / "data"; cellB.mkdir(parents=True)
+    for d, rows in ((cellA, [(1, 1)]), (cellB, [(1000, 2000)])):
+        con = sqlite3.connect(d / "fleets.db")
+        con.execute("CREATE TABLE member_turn_events (usage_input INT, usage_output INT)")
+        con.executemany("INSERT INTO member_turn_events VALUES (?,?)", rows)
+        con.commit(); con.close()
+    os.utime(cellB / "fleets.db", (time.time() + 10, time.time() + 10))  # B 更新
+    monkeypatch.setenv("FD_TELEMETRY_COST_BACKEND", "sqlite")
+    monkeypatch.setenv("FD_TELEMETRY_COST_DB", str(tmp_path / "cell*" / "data" / "data" / "fleets.db"))
+    monkeypatch.setenv("FD_TELEMETRY_COST_SQL", "SELECT 'f','p',COALESCE(usage_input,0)+COALESCE(usage_output,0),0 FROM member_turn_events")
+    out = cost.collect()
+    assert out["ok"] is True
+    assert out["items"] == [{"fleet": "f", "post": "p", "tokens": 3000, "cost_usd": 0.0}]
