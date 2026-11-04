@@ -147,6 +147,7 @@ def run_podcast_seed(keywords: list[str] | None = None,
                     "episodes": episodes,
                     "latest_pub_date": latest,
                     "license": "public-enclosure",
+                    "license_layer": "public-enclosure",  # 归一枚举（spec add-education-public-read-tier 4.1）
                     "redistribution": "needs_authorization",
                     "body_state": "stored_extraction" if episodes else "link_only",
                     "education_source": "apple_seed",

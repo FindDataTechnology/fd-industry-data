@@ -77,11 +77,16 @@ def _card_boundary(row: dict) -> dict | None:
 
 
 def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable[[], ChannelError | None] | None = None,
-             live_search: Callable[[str, int], list[dict]] | None = None):
-    """装配五工具。catalog=目录存储访问器；subs=订阅存储；error_hook=测试注入通道故障。
+             live_search: Callable[[str, int], list[dict]] | None = None, read_only: bool = False):
+    """装配工具面。catalog=目录存储访问器；subs=订阅存储；error_hook=测试注入通道故障。
 
     live_search=论文实时通道注入点（生产=``openalex_live.search_openalex`` 的 (query, limit)
     柯里化；测试可注入假通道）。注入 None=通道未装配（本地目录单机形态，不触网）。
+
+    read_only=True → 只装配三只读工具（edu_search/edu_item_detail/edu_overview），
+    两写工具 MUST NOT 注册（spec add-education-public-read-tier D1：公开只读面用独立
+    app，写面根本不在该 app 上，而非靠运行时 header 判定——结构性红线）。
+    read_only 面 MUST 由调用方把 live_search 置 None（公开层不触实时论文通道）。
     """
 
     def _err():
@@ -247,10 +252,13 @@ def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable
                     "as_of": utc_now_iso()}
         return {"status": "ok", "removed": subscription_id, "as_of": utc_now_iso()}
 
-    for fn in (edu_search, edu_item_detail, edu_overview, edu_subscribe, edu_unsubscribe):
+    read_fns = (edu_search, edu_item_detail, edu_overview)
+    write_fns = (edu_subscribe, edu_unsubscribe)
+    fns = read_fns if read_only else read_fns + write_fns
+    for fn in fns:
         mcp.tool(fn)
 
-    return {"edu_search", "edu_item_detail", "edu_overview", "edu_subscribe", "edu_unsubscribe"}
+    return {fn.__name__ for fn in fns}
 
 
 def _infer_type(row: dict) -> str:
