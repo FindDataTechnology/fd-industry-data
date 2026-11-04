@@ -69,24 +69,32 @@ def collect_rows() -> list[dict]:
 
 
 def norm(row: dict) -> dict:
-    """落库行归一：resource_id 回落、status 分离、doc 全量保留。"""
+    """落库行归一：resource_id 回落、status 分离、doc 全量保留。
+
+    license_layer 归一口径与 pod 读路径一致（tools._visible_rows 同回落）：
+    spide 行自带优先；缺则从 license 推（cc0→cc0_pd / *by-nc*→cc-by-nc / cc by*→oa_cc_by）。
+    推导结果必须同时写进 doc——pod rows() 只读 doc，漏写会在 overview 造出原始许可串桶。
+    """
     r = dict(row)
     rid = r.get("resource_id") or r.get("work_id") or r.get("episode_guid") \
         or r.get("show_id") or r.get("source_url")
     if not rid:
         return {}
     status = r.get("status")
+    layer = r.get("license_layer") or (
+        "cc0_pd" if r.get("license") in ("cc0", "CC0", "public domain") else
+        "cc-by-nc" if isinstance(r.get("license"), str) and "by-nc" in r["license"].lower() else
+        "oa_cc_by" if isinstance(r.get("license"), str) and r["license"].lower().startswith("cc by") else
+        None)
+    if layer:
+        r.setdefault("license_layer", layer)
     return {
         "resource_id": str(rid),
         "work_id": r.get("work_id"),
         "title": r.get("title") or r.get("display_name") or r.get("name"),
         "platform": r.get("platform"),
         "license": r.get("license"),
-        "license_layer": r.get("license_layer") or (
-            "cc0_pd" if r.get("license") in ("cc0", "CC0") else
-            "cc-by-nc" if isinstance(r.get("license"), str) and "by-nc" in r["license"].lower() else
-            "oa_cc_by" if isinstance(r.get("license"), str) and r["license"].lower().startswith("cc by") else
-            None),
+        "license_layer": layer,
         "commercial_ok": r.get("commercial_ok"),
         "body_state": r.get("body_state") or r.get("episode_status"),
         "education_source": r.get("education_source") or r.get("source"),

@@ -9,7 +9,10 @@ Entry: ``python -m edu_catalog.server``（stdio）
 """
 from __future__ import annotations
 
+import json
 import os
+import time
+from collections import deque
 from pathlib import Path
 
 from fastmcp import FastMCP
@@ -85,6 +88,30 @@ def _make_asgi(catalog_store=None, subs_store=None):
 
     token = os.environ.get("MCP_BEARER_TOKEN", "")
     cors_origin = os.environ.get("EDU_PUBLIC_CORS_ORIGIN", "*")
+    # 匿名面按 IP 粗限速（#2 5.1，挂账触发条件=官网 /api/mcp 公网接入已成立）：
+    # 内存固定窗，超限 429 显式报因 + Retry-After，不静默。表上限 1 万键防内存放大。
+    rate_per_min = int(os.environ.get("EDU_PUBLIC_RATE_PER_MIN", "120"))
+    rate_table: dict[str, deque] = {}
+
+    def _client_ip(scope) -> str:  # noqa: ANN001
+        headers = dict(scope.get("headers") or [])
+        xff = headers.get(b"x-forwarded-for", b"").decode()
+        return xff.split(",")[0].strip() if xff else (scope.get("client") or ["unknown"])[0]
+
+    def _rate_ok(ip: str, now: float) -> tuple[bool, int]:
+        win = rate_table.setdefault(ip, deque())
+        while win and now - win[0] >= 60.0:
+            win.popleft()
+        if len(win) >= rate_per_min:
+            return False, max(1, int(60.0 - (now - win[0])) + 1)
+        win.append(now)
+        if len(rate_table) > 10_000:  # 键数护栏：整体清扫过期项
+            for k in [k for k, v in rate_table.items() if not v]:
+                rate_table.pop(k, None)
+            if len(rate_table) > 10_000:
+                rate_table.clear()
+        return True, 0
+
     _CORS = [
         (b"access-control-allow-origin", cors_origin.encode()),
         (b"access-control-allow-methods", b"GET, POST, DELETE, OPTIONS"),
@@ -102,10 +129,14 @@ def _make_asgi(catalog_store=None, subs_store=None):
             return
         path = scope.get("path", "")
         if path.startswith("/public"):
-            # 匿名只读面：放行（不校验 bearer），加 CORS。写工具根本不在此 app 上（D1 结构性红线）。
+            # 匿名只读面：按 IP 限速后放行（不校验 bearer），加 CORS。写工具根本不在此 app 上（D1 结构性红线）。
             if scope.get("method") == "OPTIONS":
                 await send({"type": "http.response.start", "status": 204, "headers": list(_CORS)})
                 await send({"type": "http.response.body", "body": b""})
+                return
+            ok, retry_after = _rate_ok(_client_ip(scope), time.monotonic())
+            if not ok:
+                await _send_429(receive, send, retry_after, rate_per_min)
                 return
 
             async def send_cors(message):  # noqa: ANN001
@@ -136,6 +167,24 @@ async def _send_401(receive, send):  # noqa: ANN001
         }
     )
     await send({"type": "http.response.body", "body": b"unauthorized"})
+
+
+async def _send_429(receive, send, retry_after: int, limit: int) -> None:  # noqa: ANN001
+    """限速显式报因（#2 5.1：超限不静默），CORS 由 send_cors 包装层照加。"""
+    body = json.dumps({
+        "status": "rate_limited",
+        "reason": f"per-IP limit {limit}/min exceeded; slow down",
+        "retry_after_s": retry_after,
+    }).encode()
+    await send({
+        "type": "http.response.start",
+        "status": 429,
+        "headers": [
+            (b"content-type", b"application/json"),
+            (b"retry-after", str(retry_after).encode()),
+        ],
+    })
+    await send({"type": "http.response.body", "body": body})
 
 
 def main() -> None:

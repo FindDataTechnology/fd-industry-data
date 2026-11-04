@@ -189,3 +189,51 @@ def test_auth_path_with_token_five_tools(client):
         {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}))
     names = {t["name"] for t in _data_json(r2.text)["result"]["tools"]}
     assert names == {"edu_search", "edu_item_detail", "edu_overview", "edu_subscribe", "edu_unsubscribe"}
+
+
+def test_public_rate_limit_429_explicit_reason(monkeypatch):
+    """#2 5.1：匿名面按 IP 粗限速——超限 429 显式报因 + Retry-After，不静默。"""
+    monkeypatch.setenv("EDU_PUBLIC_RATE_PER_MIN", "3")
+    app = _make_asgi(catalog_store=MemStore(CATALOG_ROWS), subs_store=SubsStore())
+    with TestClient(app) as c:
+        h = {"accept": "application/json, text/event-stream", "content-type": "application/json"}
+        codes = []
+        for _ in range(5):
+            r = c.post("/public/mcp", headers=h, content=json.dumps(
+                {"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                 "params": {"protocolVersion": "2025-03-26", "capabilities": {},
+                            "clientInfo": {"name": "t", "version": "1"}}}))
+            codes.append(r.status_code)
+        assert codes[:3] == [200, 200, 200]
+        assert codes[3:] == [429, 429]
+        body = r.json()
+        assert body["status"] == "rate_limited"
+        assert "per-IP limit 3/min" in body["reason"]
+        assert int(r.headers["retry-after"]) >= 1
+
+
+def test_public_rate_limit_per_ip_isolated(monkeypatch):
+    """限速按 IP 隔离：另一 IP 不被前者的窗口连坐。"""
+    monkeypatch.setenv("EDU_PUBLIC_RATE_PER_MIN", "2")
+    app = _make_asgi(catalog_store=MemStore(CATALOG_ROWS), subs_store=SubsStore())
+    with TestClient(app) as c:
+        h = {"accept": "application/json, text/event-stream", "content-type": "application/json",
+             "x-forwarded-for": "203.0.113.9"}
+        for _ in range(2):
+            c.post("/public/mcp", headers=h, content=json.dumps(
+                {"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                 "params": {"protocolVersion": "2025-03-26", "capabilities": {},
+                            "clientInfo": {"name": "t", "version": "1"}}}))
+        r = c.post("/public/mcp", headers=h, content=json.dumps(
+            {"jsonrpc": "2.0", "id": 1, "method": "initialize",
+             "params": {"protocolVersion": "2025-03-26", "capabilities": {},
+                        "clientInfo": {"name": "t", "version": "1"}}}))
+        assert r.status_code == 429
+        r2 = c.post("/public/mcp", headers={"accept": "application/json, text/event-stream",
+                                            "content-type": "application/json",
+                                            "x-forwarded-for": "198.51.100.7"},
+                    content=json.dumps(
+            {"jsonrpc": "2.0", "id": 1, "method": "initialize",
+             "params": {"protocolVersion": "2025-03-26", "capabilities": {},
+                        "clientInfo": {"name": "t", "version": "1"}}}))
+        assert r2.status_code == 200
