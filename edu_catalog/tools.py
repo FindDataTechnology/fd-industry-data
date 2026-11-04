@@ -107,8 +107,13 @@ def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable
 
         论文通道实时优先（spec cap2 facade R）：装配 live_search 且带 query 时先查
         OpenAlex 实时通道，故障显式报因并回落本地目录（回落事实可见）。
+        中文查询经学科词表 zh→en 确定性翻译后检索（add-multilingual-zh-search）：
+        本地原文先查再译后补齐（播客中文标题可直中），对照 query_translated 随
+        envelope 可见（命中与否均带）；词表未覆盖不编造、如实 no_match。
         """
-        def _local_search(rows: list[dict], gate_stats: dict) -> list[dict]:
+        def _local_search(rows: list[dict], gate_stats: dict, q_override: str | None = None) -> list[dict]:
+            qq = (q_override if q_override is not None else q)
+            qq_norm = qq.replace("-", " ")
             hits = []
             for r in rows:
                 if resource_type and (r.get("resource_type") or _infer_type(r)) != resource_type:
@@ -119,9 +124,10 @@ def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable
                     continue
                 if creator and creator.lower() not in json.dumps(r.get("creators") or r.get("authors") or "", ensure_ascii=False).lower():
                     continue
-                if q:
-                    hay = " ".join(str(r.get(k) or "") for k in ("title", "display_name", "org", "notes")).lower()
-                    if q not in hay:
+                if qq:
+                    # 连字符归一：slug 标题（18-06-linear-algebra…）与空格词同视野
+                    hay = " ".join(str(r.get(k) or "") for k in ("title", "display_name", "org", "notes")).lower().replace("-", " ")
+                    if qq_norm not in hay:
                         continue
                 item = {
                     "resource_id": r.get("resource_id"),
@@ -148,19 +154,41 @@ def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable
         except ChannelError as e:
             return _fail_envelope(e)
         q = (query or "").lower()
+        # ── 中文查询确定性翻译（add-multilingual-zh-search D1/D4）──
+        # 词表未覆盖不编造；对照随 envelope 可见（命中与否均带）。
+        from . import zh_lexicon
+        translation: dict | None = None
+        translated_q: str | None = None
+        if q and zh_lexicon.has_cjk(q):
+            t = zh_lexicon.translate_query(q)
+            if t and t != q:
+                translated_q = t
+                translation = {"from": query, "to": t}
         # ── 论文实时通道（spec cap2「实时优先/本地回落」，2026-11-04 晚纠偏）──
         # 触发：装配了 live_search 且是论文检索（query 非空、resource_type 未排除 paper）。
         # 故障 → 显式报因 + 回落本地（回落事实 MUST 可见，MUST NOT 伪装无匹配）。
+        # CJK 查询用译后英文打 OpenAlex（上游为英文域；未翻译则原样）。
         live_error: dict | None = None
         live_hits: list[dict] = []
         if live_search is not None and q and resource_type in ("", "paper"):
             try:
-                live_hits = live_search(query, limit)
+                live_hits = live_search(translated_q or query, limit)
             except ChannelError as e:
                 live_error = _fail_envelope(e)
 
         hits: list[dict] = [{**it, "channel": CHANNEL_LIVE} for it in live_hits]  # 通道标记查询面保证
         hits += _local_search(rows, gate_stats)
+        if translated_q:
+            # 译后英文补齐本地结果（原文查询先出——中文播客标题可直中），去重保序
+            seen: set = set()
+            dedup: list[dict] = []
+            for it in hits + _local_search(rows, gate_stats, q_override=translated_q):
+                key = it.get("resource_id") or it.get("title")
+                if key in seen:
+                    continue
+                seen.add(key)
+                dedup.append(it)
+            hits = dedup
         hits = hits[:limit] if live_hits else hits  # 实时在场时本地只补缺
 
         if not hits:
@@ -169,10 +197,14 @@ def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable
                                      "subject": subject, "platform": platform, "creator": creator},
                         "catalog_size": gate_stats["total_ingested"],
                         "as_of": utc_now_iso()}
+            if translation is not None:
+                envelope["query_translated"] = translation  # 对照可见：翻译过仍未命中=真没有
             if live_error is not None:
                 envelope["live_channel"] = live_error  # 回落事实可见（reason/channel/as_of）
             return envelope
         result = {"status": "ok", "items": hits, "catalog": gate_stats, "as_of": utc_now_iso()}
+        if translation is not None:
+            result["query_translated"] = translation
         if live_hits:
             result["channels"] = {"live": len(live_hits), "local": max(len(hits) - len(live_hits), 0)}
         elif live_error is not None:
