@@ -11,7 +11,12 @@ requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "FindDataOfficial" }]
 dependencies = [
-    "scrapling[fetchers]>=0.4",
+    # <0.5 pin (fix-flower-auction-scrapling-drift, 2026-11-04): scrapling 0.5
+    # removed the Dynamic session family (AsyncDynamicSession et al.) from
+    # scrapling.fetchers — an engine swap (Camoufox→Chrome CDP), not a rename.
+    # fd_industry_data.browser and the spiders are written against the 0.4 API
+    # (verified intact through 0.4.15). Bump only with a behavioral migration.
+    "scrapling[fetchers]>=0.4,<0.5",
     # BIFF (.xls) workbook reading for fd_industry_data.tabular — the one
     # tabular format with no stdlib path. xlrd 2.x is .xls-only (xlsx goes
     # through stdlib zipfile+ElementTree), pure Python, ~96KB, zero deps.
