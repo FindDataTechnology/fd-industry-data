@@ -117,12 +117,12 @@ def main():
         with conn.cursor() as cur:
             cur.execute("SELECT education_source, count(*) FROM education_catalog.catalog_items GROUP BY 1 ORDER BY 2 DESC")
         print("\n== catalog_items by education_source ==")
-            for src, cnt in cur.fetchall():
-                print(f"  {src}: {cnt}")
-            cur.execute("SELECT license_layer, count(*) FROM education_catalog.published_items GROUP BY 1 ORDER BY 2 DESC")
+        for src, cnt in cur.fetchall():
+            print(f"  {src}: {cnt}")
+        cur.execute("SELECT license_layer, count(*) FROM education_catalog.published_items GROUP BY 1 ORDER BY 2 DESC")
         print("\n== published by license_layer ==")
-            for lay, cnt in cur.fetchall():
-                print(f"  {lay}: {cnt}")
+        for lay, cnt in cur.fetchall():
+            print(f"  {lay}: {cnt}")
             cur.execute("SELECT count(*) FROM education_catalog.catalog_items")
             total = cur.fetchone()[0]
             cur.execute("SELECT count(*) FROM education_catalog.published_items")

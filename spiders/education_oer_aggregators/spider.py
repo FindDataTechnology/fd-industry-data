@@ -26,6 +26,7 @@ import json
 import os
 import re
 import urllib.parse
+import time
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -38,7 +39,7 @@ TIMEOUT = 60
 
 GUTENDEX_API = "https://gutendex.com/books/"
 WIKIBOOKS_API = "https://en.wikibooks.org/w/api.php"
-DOAB_OAI = "https://directory.doabooks.org/oai"
+DOAB_OAI = "https://directory.doabooks.org/oai/request"  # /oai 是 HTML 壳；OAI-PMH 端点在 /oai/request（2026-11-04 实证）
 
 
 def _fetch(url: str) -> bytes:
@@ -49,8 +50,15 @@ def _fetch(url: str) -> bytes:
         handlers.append(urllib.request.ProxyHandler({"http": proxy, "https": proxy}))
     opener = urllib.request.build_opener(*handlers)
     req = urllib.request.Request(url, headers={"User-Agent": "fd-industry-data/1.0 (education-oer-aggregators)"})
-    with opener.open(req, timeout=TIMEOUT) as resp:
-        return resp.read()
+    last_err: Exception | None = None
+    for attempt in range(2):  # 代理链路偶发 IncompleteRead/超时——重试一次
+        try:
+            with opener.open(req, timeout=TIMEOUT) as resp:
+                return resp.read()
+        except Exception as e:  # noqa: BLE001 - 归一后上抛
+            last_err = e
+            time.sleep(2)
+    raise last_err
 
 
 def _row(resource_id: str, title: str, *, platform: str, education_source: str,
