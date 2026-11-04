@@ -64,6 +64,15 @@ class IndustryDataProvider(BaseDataProvider):
         elif command == "run_education_oa_fulltext":
             from spiders.education_oa_fulltext.spider import run_education_oa_fulltext
             return run_education_oa_fulltext(**params)
+        elif command == "run_gutendex_catalog":
+            from spiders.education_oer_aggregators.spider import run_gutendex_catalog
+            return run_gutendex_catalog(**params)
+        elif command == "run_wikibooks_catalog":
+            from spiders.education_oer_aggregators.spider import run_wikibooks_catalog
+            return run_wikibooks_catalog(**params)
+        elif command == "run_doab_oai_harvest":
+            from spiders.education_oer_aggregators.spider import run_doab_oai_harvest
+            return run_doab_oai_harvest(**params)
         else:
             raise NotImplementedError(f"Unknown command: {command}")
 

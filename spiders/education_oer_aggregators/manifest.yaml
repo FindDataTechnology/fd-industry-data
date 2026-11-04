@@ -1,0 +1,164 @@
+version: "2"
+name: education_oer_aggregators
+label: OER aggregator catalogs (Gutenberg/Gutendex, Wikibooks, DOAB OAI-PMH) — partner channel, metadata+link only
+source_url: https://gutendex.com/ / https://en.wikibooks.org/ / https://directory.doabooks.org/
+# 出海依赖 EDU_OER_PROXY（CN 出口被墙：gutendex/wikibooks/doab 实测）；无代理=海外部署直连
+schedule: "0 4 * * 1"  # 每周一 04:00（聚合器目录级变更慢，周粒度足够）
+scanner_mode: upstream-curated
+functions:
+  - command: run_gutendex_catalog
+    description: Search Gutendex (Project Gutenberg catalog, 70k+ public-domain books); copyright=false rows -> cc0_pd, copyright=true skipped, unknown -> metadata_only (restrict by default). Metadata+link only (link_only), partner acquisition.
+    frequency: weekly
+    parameters:
+      - name: query
+        type: string
+        required: false
+        description: Search term (default education)
+      - name: limit
+        type: int
+        required: false
+        description: Max rows (default 20)
+    columns:
+      - name: resource_id
+        type: string
+        description: edu.book.gutenberg.<id>
+      - name: title
+        type: string
+        description: Book title
+      - name: creators
+        type: string
+        description: Author names from catalog
+      - name: license
+        type: string
+        description: public domain (copyright=false) | metadata-only (unknown)
+      - name: license_layer
+        type: string
+        description: cc0_pd | metadata_only (classify_license mapping)
+      - name: commercial_ok
+        type: boolean
+        description: True for public domain; False for unknown (restrict by default)
+      - name: body_state
+        type: string
+        description: link_only — metadata+external link, no body fetched
+      - name: acquisition
+        type: string
+        description: partner (aggregator API channel)
+      - name: education_source
+        type: string
+        description: gutenberg_catalog
+      - name: source
+        type: string
+        description: education-oer-aggregators
+      - name: source_url
+        type: string
+        description: gutenberg.org ebook landing page
+      - name: scraped_at
+        type: string
+        description: ISO timestamp
+  - command: run_wikibooks_catalog
+    description: Search Wikibooks via MediaWiki API; site license CC BY-SA -> oa_cc_by. Metadata+link only, partner acquisition.
+    frequency: weekly
+    parameters:
+      - name: query
+        type: string
+        required: false
+        description: Search term (default open textbook)
+      - name: limit
+        type: int
+        required: false
+        description: Max rows (default 20, API cap 50)
+      - name: lang
+        type: string
+        required: false
+        description: Wikibooks language subdomain (default en)
+    columns:
+      - name: resource_id
+        type: string
+        description: edu.book.wikibooks.<lang>.<pageid>
+      - name: title
+        type: string
+        description: Page title
+      - name: license
+        type: string
+        description: CC BY-SA (site-level)
+      - name: license_layer
+        type: string
+        description: oa_cc_by
+      - name: commercial_ok
+        type: boolean
+        description: True (BY-SA allows commercial with attribution/share-alike)
+      - name: body_state
+        type: string
+        description: link_only
+      - name: acquisition
+        type: string
+        description: partner
+      - name: education_source
+        type: string
+        description: wikibooks_search
+      - name: source
+        type: string
+        description: education-oer-aggregators
+      - name: source_url
+        type: string
+        description: wikibooks wiki page URL
+      - name: scraped_at
+        type: string
+        description: ISO timestamp
+  - command: run_doab_oai_harvest
+    description: Harvest DOAB (Directory of Open Access Books) via OAI-PMH ListRecords with resumptionToken paging; per-book dc:rights -> classify_license (unknown -> metadata_only). REST /rest path is IP-blocked; OAI endpoint reachable. Metadata+link only, partner acquisition.
+    frequency: weekly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Max rows per run (default 20)
+      - name: metadata_prefix
+        type: string
+        required: false
+        description: OAI metadataPrefix (default oai_dc)
+    columns:
+      - name: resource_id
+        type: string
+        description: edu.book.doab.<handle>
+      - name: title
+        type: string
+        description: Book title (dc:title)
+      - name: creators
+        type: string
+        description: Authors (dc:creator)
+      - name: license
+        type: string
+        description: Extracted from dc:rights CC URL; metadata-only when absent
+      - name: license_layer
+        type: string
+        description: classify_license mapping (cc-by/cc-by-nc/metadata_only)
+      - name: commercial_ok
+        type: boolean
+        description: False for NC/unknown (restrict by default)
+      - name: body_state
+        type: string
+        description: link_only
+      - name: acquisition
+        type: string
+        description: partner
+      - name: education_source
+        type: string
+        description: doab_oai
+      - name: source
+        type: string
+        description: education-oer-aggregators
+      - name: source_url
+        type: string
+        description: directory.doabooks.org/handle/<handle>
+      - name: scraped_at
+        type: string
+        description: ISO timestamp
+entities:
+  - entity_type: resource
+    coverage: explicit
+    codes: []
+  - entity_type: platform
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

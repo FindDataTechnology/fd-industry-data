@@ -37,7 +37,15 @@ def build_server(catalog_store=None, subs_store=None, error_hook=None) -> FastMC
     if catalog_store is None or subs_store is None:
         from .pg_store import stores_from_env  # DSN 在场=PG 权威库，否则文件回落
         catalog_store, subs_store = stores_from_env()
-    register(mcp, catalog=lambda: catalog_store, subs=subs_store, error_hook=error_hook)
+    # 论文实时通道（2026-11-04 晚架构纠偏）：EDU_LIVE_SEARCH=off 显式关（单机/离线形态），
+    # 其余装配 OpenAlex facade——key 走 OPENALEX_API_KEY env，故障回落本地目录。
+    live = None
+    if os.getenv("EDU_LIVE_SEARCH", "on") != "off":
+        from .openalex_live import search_openalex
+
+        def live(query: str, limit: int) -> list[dict]:
+            return search_openalex(query, limit)
+    register(mcp, catalog=lambda: catalog_store, subs=subs_store, error_hook=error_hook, live_search=live)
     return mcp
 
 

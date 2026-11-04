@@ -17,6 +17,8 @@ from spiders.education_catalog_core import publish_gate
 
 REASONS = ("upstream_unreachable", "timeout", "unauthorized", "stale")
 
+CHANNEL_LIVE = "openalex-live"  # 实时论文通道标记（spec cap2 facade R；openalex_live.CHANNEL 同值）
+
 
 def utc_now_iso() -> str:
     return _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds")
@@ -74,8 +76,13 @@ def _card_boundary(row: dict) -> dict | None:
     return None
 
 
-def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable[[], ChannelError | None] | None = None):
-    """装配五工具。catalog=目录存储访问器；subs=订阅存储；error_hook=测试注入通道故障。"""
+def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable[[], ChannelError | None] | None = None,
+             live_search: Callable[[str, int], list[dict]] | None = None):
+    """装配五工具。catalog=目录存储访问器；subs=订阅存储；error_hook=测试注入通道故障。
+
+    live_search=论文实时通道注入点（生产=``openalex_live.search_openalex`` 的 (query, limit)
+    柯里化；测试可注入假通道）。注入 None=通道未装配（本地目录单机形态，不触网）。
+    """
 
     def _err():
         return error_hook() if error_hook else None
@@ -91,50 +98,81 @@ def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable
 
     def edu_search(query: str = "", resource_type: str = "", subject: str = "",
                    platform: str = "", creator: str = "", limit: int = 20) -> dict:
-        """目录检索：跨论文/播客/课程/卡片；过滤后带许可层与新鲜度。"""
+        """目录检索：跨论文/播客/课程/卡片；过滤后带许可层与新鲜度。
+
+        论文通道实时优先（spec cap2 facade R）：装配 live_search 且带 query 时先查
+        OpenAlex 实时通道，故障显式报因并回落本地目录（回落事实可见）。
+        """
+        def _local_search(rows: list[dict], gate_stats: dict) -> list[dict]:
+            hits = []
+            for r in rows:
+                if resource_type and (r.get("resource_type") or _infer_type(r)) != resource_type:
+                    continue
+                if subject and subject.lower() not in json.dumps(r.get("primary_topic_display_name") or r.get("title") or "", ensure_ascii=False).lower():
+                    continue
+                if platform and platform.lower() not in str(r.get("platform") or "").lower():
+                    continue
+                if creator and creator.lower() not in json.dumps(r.get("creators") or r.get("authors") or "", ensure_ascii=False).lower():
+                    continue
+                if q:
+                    hay = " ".join(str(r.get(k) or "") for k in ("title", "display_name", "org", "notes")).lower()
+                    if q not in hay:
+                        continue
+                item = {
+                    "resource_id": r.get("resource_id"),
+                    "title": r.get("title") or r.get("display_name"),
+                    "resource_type": _infer_type(r),
+                    "platform": r.get("platform") or _row_channel(r),
+                    "license": r.get("license"),
+                    "license_layer": r.get("license_layer") or r.get("license"),
+                    "commercial_ok": r.get("commercial_ok", True),
+                    "body_state": r.get("body_state"),
+                    "as_of": r.get("scraped_at"),
+                    "source_url": r.get("source_url"),
+                }
+                cb = _card_boundary(r)
+                if cb:
+                    item["card_boundary"] = cb
+                hits.append(item)
+                if len(hits) >= limit:
+                    break
+            return hits
+
         try:
             rows, gate_stats, _tombs = _visible_rows(catalog(), _err())
         except ChannelError as e:
             return _fail_envelope(e)
         q = (query or "").lower()
-        hits = []
-        for r in rows:
-            if resource_type and (r.get("resource_type") or _infer_type(r)) != resource_type:
-                continue
-            if subject and subject.lower() not in json.dumps(r.get("primary_topic_display_name") or r.get("title") or "", ensure_ascii=False).lower():
-                continue
-            if platform and platform.lower() not in str(r.get("platform") or "").lower():
-                continue
-            if creator and creator.lower() not in json.dumps(r.get("creators") or r.get("authors") or "", ensure_ascii=False).lower():
-                continue
-            if q:
-                hay = " ".join(str(r.get(k) or "") for k in ("title", "display_name", "org", "notes")).lower()
-                if q not in hay:
-                    continue
-            item = {
-                "resource_id": r.get("resource_id"),
-                "title": r.get("title") or r.get("display_name"),
-                "resource_type": _infer_type(r),
-                "platform": r.get("platform") or _row_channel(r),
-                "license": r.get("license"),
-                "license_layer": r.get("license_layer") or r.get("license"),
-                "commercial_ok": r.get("commercial_ok", True),
-                "body_state": r.get("body_state"),
-                "as_of": r.get("scraped_at"),
-                "source_url": r.get("source_url"),
-            }
-            cb = _card_boundary(r)
-            if cb:
-                item["card_boundary"] = cb
-            hits.append(item)
-            if len(hits) >= limit:
-                break
+        # ── 论文实时通道（spec cap2「实时优先/本地回落」，2026-11-04 晚纠偏）──
+        # 触发：装配了 live_search 且是论文检索（query 非空、resource_type 未排除 paper）。
+        # 故障 → 显式报因 + 回落本地（回落事实 MUST 可见，MUST NOT 伪装无匹配）。
+        live_error: dict | None = None
+        live_hits: list[dict] = []
+        if live_search is not None and q and resource_type in ("", "paper"):
+            try:
+                live_hits = live_search(query, limit)
+            except ChannelError as e:
+                live_error = _fail_envelope(e)
+
+        hits: list[dict] = [{**it, "channel": CHANNEL_LIVE} for it in live_hits]  # 通道标记查询面保证
+        hits += _local_search(rows, gate_stats)
+        hits = hits[:limit] if live_hits else hits  # 实时在场时本地只补缺
+
         if not hits:
-            return {"status": "no_match",
-                    "searched": {"query": query, "resource_type": resource_type,
-                                  "subject": subject, "platform": platform, "creator": creator},
-                    "catalog_size": gate_stats["total_ingested"], "as_of": utc_now_iso()}
-        return {"status": "ok", "items": hits, "catalog": gate_stats, "as_of": utc_now_iso()}
+            envelope = {"status": "no_match",
+                        "searched": {"query": query, "resource_type": resource_type,
+                                     "subject": subject, "platform": platform, "creator": creator},
+                        "catalog_size": gate_stats["total_ingested"],
+                        "as_of": utc_now_iso()}
+            if live_error is not None:
+                envelope["live_channel"] = live_error  # 回落事实可见（reason/channel/as_of）
+            return envelope
+        result = {"status": "ok", "items": hits, "catalog": gate_stats, "as_of": utc_now_iso()}
+        if live_hits:
+            result["channels"] = {"live": len(live_hits), "local": max(len(hits) - len(live_hits), 0)}
+        elif live_error is not None:
+            result["live_channel"] = live_error  # 本地命中但实时故障——降级事实可见
+        return result
 
     def edu_item_detail(resource_id: str) -> dict:
         """条目详情：正文可达层返回提取文本；卡层返回外链+授权状态。
@@ -226,6 +264,8 @@ def _infer_type(row: dict) -> str:
         return "podcast_show"
     if es in ("ocw_sitemap", "openedx_catalog"):
         return "course"
+    if es in ("gutenberg_catalog", "wikibooks_search", "doab_oai"):
+        return "book"
     if es == "card_curated":
         return "card"
     if es in ("subfield_3304", "topic_T13106", "topic_T11875", "topic_T12171", "openalex"):
