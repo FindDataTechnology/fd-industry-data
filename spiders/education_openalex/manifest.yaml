@@ -1,0 +1,173 @@
+version: "2"
+name: education_openalex
+label: OpenAlex Education Subset (works, authors, topics in Education subfield)
+source_url: https://openalex.org/
+# site: tencent
+schedule: "30 3 24 * *"  # 每月 24 日 03:30；OpenAlex 快照更新后跑增量
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_education_openalex_skeleton
+    description: Ingest OpenAlex Education subfield works metadata skeleton (filtered snapshot → catalog items; license=cc0, body_state=link_only)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of works to ingest (for testing)
+      - name: phase
+        type: string
+        required: false
+        description: "Phase: 'skeleton' (metadata via API), 'oa_fulltext' (OA subset via API), 'incremental' (S3 day-partition, REQUIRES date_prefix, ~14.6GB/day flood — repair only), 'deleted_check' (stream deleted_ids.csv.gz for tombstones)"
+      - name: date_prefix
+        type: string
+        required: false
+        description: "YYYY-MM-DD — required by phase=incremental; explicit day partition to stream (repair-style, not routine)"
+    columns:
+      - name: work_id
+        type: string
+        description: OpenAlex work ID (e.g., https://openalex.org/W123456789)
+      - name: doi
+        type: string
+        description: DOI if available
+      - name: title
+        type: string
+        description: Work title
+      - name: display_name
+        type: string
+        description: Work display name
+      - name: publication_year
+        type: integer
+        description: Publication year
+      - name: publication_date
+        type: string
+        description: Publication date (YYYY-MM-DD)
+      - name: language
+        type: string
+        description: Language code (e.g., en, zh)
+      - name: primary_location_oa
+        type: boolean
+        description: Whether primary location is open access
+      - name: primary_location_pdf_url
+        type: string
+        description: PDF URL if available
+      - name: primary_location_license
+        type: string
+        description: License of primary location (e.g., cc-by, cc0, cc-by-nc)
+      - name: primary_topic_id
+        type: string
+        description: Primary topic ID
+      - name: primary_topic_display_name
+        type: string
+        description: Primary topic display name
+      - name: primary_subfield_id
+        type: string
+        description: Primary subfield ID
+      - name: primary_subfield_display_name
+        type: string
+        description: Primary subfield display name
+      - name: primary_field_id
+        type: string
+        description: Primary field ID
+      - name: primary_field_display_name
+        type: string
+        description: Primary field display name
+      - name: primary_domain_id
+        type: string
+        description: Primary domain ID
+      - name: primary_domain_display_name
+        type: string
+        description: Primary domain display name
+      - name: open_access_is_oa
+        type: boolean
+        description: Whether work is open access
+      - name: open_access_oa_status
+        type: string
+        description: OA status (hybrid, gold, bronze, green, closed)
+      - name: open_access_oa_url
+        type: string
+        description: OA URL if available
+      - name: cited_by_count
+        type: integer
+        description: Citation count
+      - name: authors
+        type: string
+        description: JSON array of author objects (id, display_name, orcid, institutions)
+      - name: institutions
+        type: string
+        description: JSON array of institution objects (id, display_name, ror, country_code)
+      - name: concepts
+        type: string
+        description: JSON array of concept objects (id, display_name, level, score)
+      - name: keywords
+        type: string
+        description: JSON array of keyword objects (id, display_name, score)
+      - name: source_id
+        type: string
+        description: Source (venue) ID
+      - name: source_display_name
+        type: string
+        description: Source display name
+      - name: source_issn_l
+        type: string
+        description: Source ISSN-L
+      - name: source_is_oa
+        type: boolean
+        description: Whether source is open access
+      - name: source_is_in_doaj
+        type: boolean
+        description: Whether source is in DOAJ
+      - name: updated_date
+        type: string
+        description: Last updated timestamp in OpenAlex
+      - name: created_date
+        type: string
+        description: Created timestamp in OpenAlex
+      - name: license
+        type: string
+        description: License of the work (from primary_location or open_access)
+      - name: body_state
+        type: string
+        description: 'stored_extraction (full text available) / link_only (metadata only)'
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+      - name: source_url
+        type: string
+        description: Landing page URL (primary_location → DOI → OpenAlex page fallback; spec cap1 R4 mandatory)
+      - name: openalex_id
+        type: string
+        description: OpenAlex work ID (deleted_check/merged reconciliation key)
+      - name: status
+        type: string
+        description: Row status; 'withdrawn' for deleted_check tombstone rows
+      - name: education_source
+        type: string
+        description: Which education filter matched (subfield_3304, topic_T13106, topic_T11875, topic_T12171)
+concepts:
+  - column: cited_by_count
+    concept: research.citations
+    entity_type: work
+    measure: count
+    unit: count
+    frequency: yearly
+  - column: publication_year
+    concept: research.publications
+    entity_type: work
+    measure: count
+    unit: count
+    frequency: yearly
+entities:
+  - entity_type: work
+    coverage: universe
+  - entity_type: author
+    coverage: universe
+  - entity_type: institution
+    coverage: universe
+  - entity_type: topic
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

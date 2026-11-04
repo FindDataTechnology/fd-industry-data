@@ -1,0 +1,137 @@
+version: "2"
+name: education_cc_courses
+label: CC course layer (MIT OCW sitemap catalog + Open edX public instance catalogs)
+source_url: https://ocw.mit.edu/ + https://openlearninglibrary.mit.edu/
+schedule: "53 5 25 * *"  # 每月 25 日 05:53；sitemap/目录月度重跑
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_ocw_catalog
+    description: MIT OCW course catalog via sitemapindex (one course per <loc> entry, 2026-11-04 live-probed); license=CC BY-NC-SA per site terms (1.2 verified) -> commercial_ok=False on every row; body_state=link_only (fulltext via ocw-data-parser is cluster job, not faked here); empty result raises (upstream frozen visible)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Max course rows
+    columns:
+      - name: resource_id
+        type: string
+        description: Catalog id (edu.course.ocw.<slug>)
+      - name: course_slug
+        type: string
+        description: OCW course slug (number-title-term-year)
+      - name: course_number
+        type: string
+        description: Course number parsed from slug
+      - name: title
+        type: string
+        description: Title parsed from slug
+      - name: term
+        type: string
+        description: Term/year if slug carries it
+      - name: org
+        type: string
+        description: MIT OpenCourseWare
+      - name: platform
+        type: string
+        description: MIT OCW
+      - name: license
+        type: string
+        description: CC BY-NC-SA (site-wide)
+      - name: license_layer
+        type: string
+        description: Design D3 enum (cc-by-nc here)
+      - name: commercial_ok
+        type: boolean
+        description: False for NC materials — spec cap1 R2 commercial-use marker, gate consumed by M3 assembly
+      - name: body_state
+        type: string
+        description: link_only (catalog+external link only)
+      - name: education_source
+        type: string
+        description: ocw_sitemap
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: source_url
+        type: string
+        description: Course page URL (traceability)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+  - command: run_openedx_catalog
+    description: Open edX public instance course catalog (title field=name verified 2026-11-04; videos external/inline streams => link_only; per-instance license unknown -> metadata_only fallback never fulltext)
+    frequency: monthly
+    parameters:
+      - name: instance
+        type: string
+        required: false
+        description: Instance base URL (default openlearninglibrary.mit.edu)
+      - name: limit
+        type: int
+        required: false
+        description: Max rows across pages
+    columns:
+      - name: resource_id
+        type: string
+        description: Catalog id (edu.course.openedx.<course_id>)
+      - name: course_id
+        type: string
+        description: Open edX course run id
+      - name: title
+        type: string
+        description: Course name (API field "name")
+      - name: org
+        type: string
+        description: Owning org
+      - name: platform
+        type: string
+        description: Instance netloc
+      - name: short_description
+        type: string
+        description: Blurb
+      - name: pacing
+        type: string
+        description: instructor_paced | self_paced
+      - name: effort
+        type: string
+        description: Effort string
+      - name: start
+        type: string
+        description: Start date
+      - name: end
+        type: string
+        description: End date
+      - name: license
+        type: string
+        description: Instance-specific (unknown = null)
+      - name: license_layer
+        type: string
+        description: metadata_only fallback for unknown (spec cap1 R2 宁限不放)
+      - name: commercial_ok
+        type: boolean
+        description: Gate flag (fallback True for metadata_only; NC detection per-instance curated list)
+      - name: body_state
+        type: string
+        description: link_only
+      - name: education_source
+        type: string
+        description: openedx_catalog
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: source_url
+        type: string
+        description: Course page URL
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+entities:
+  - entity_type: resource
+    coverage: universe
+  - entity_type: platform
+    coverage: explicit
+    codes: [edu.platform.ocw-mit, edu.platform.openedx-ol-library]
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

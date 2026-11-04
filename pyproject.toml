@@ -39,3 +39,8 @@ infra-telemetry = "infra_telemetry.server:main"
 
 [project.entry-points."fd_open_data_mcp.datasources"]
 fd-industry-data = "fd_industry_data.catalog:CATALOG"
+
+[tool.pytest.ini_options]
+markers = [
+  "online: hits real external APIs (rate-limited, polite pool) — run explicitly",
+]

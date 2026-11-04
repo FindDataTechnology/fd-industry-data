@@ -1,0 +1,75 @@
+version: "2"
+name: education_card_catalog
+label: Card layer curated/partner registration + negative-list gate (no crawler, no body)
+source_url: per-card external links (original site pages)
+schedule: null  # 录入型通道：人工/合作触发，无自动跑批（design D8 禁爬虫规模化）
+scanner_mode: curated
+functions:
+  - command: run_card_curated_import
+    description: Validate+normalize curated/partner card rows (title/platform/source_url required; acquisition must be curated|partner; body-carrying cards rejected; shadow-library hosts refused). Zero network. Emits fulltext_acquired=False + license_status=platform-content + commercial_ok=False on every row.
+    frequency: ad-hoc
+    parameters:
+      - name: cards
+        type: array
+        required: true
+        description: List of curated card dicts
+    columns:
+      - name: resource_id
+        type: string
+        description: Catalog id (edu.card.<platform>.<n>)
+      - name: title
+        type: string
+        description: Course/book title as curated
+      - name: platform
+        type: string
+        description: Hosting platform (Coursera/edX/B站/学堂在线/豆瓣...)
+      - name: org
+        type: string
+        description: Offering institution if known
+      - name: creators
+        type: string
+        description: Instructors/authors if known
+      - name: license_status
+        type: string
+        description: platform-content (authorization per platform terms, not catalog-granted)
+      - name: license
+        type: string
+        description: metadata-only (fixed for card layer)
+      - name: license_layer
+        type: string
+        description: metadata_only (design D3 enum)
+      - name: commercial_ok
+        type: boolean
+        description: False by default (commercial platform content licensing unknown -> refuse commercial use at gate)
+      - name: body_state
+        type: string
+        description: link_only — fixed; card layer has no body channel
+      - name: fulltext_acquired
+        type: boolean
+        description: False, field-level assertion「本目录未取正文」
+      - name: acquisition
+        type: string
+        description: curated | partner (no crawler value exists — D8)
+      - name: education_source
+        type: string
+        description: card_curated
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: source_url
+        type: string
+        description: Original-site external link (traceability)
+      - name: notes
+        type: string
+        description: Curation notes
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of registration
+entities:
+  - entity_type: resource
+    coverage: explicit
+    codes: []
+  - entity_type: platform
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,1 @@
+"""Education OpenAlex spider package."""

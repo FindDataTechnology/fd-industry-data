@@ -1,0 +1,82 @@
+version: "2"
+name: education_oa_fulltext
+label: Education OA Fulltext (arXiv new listings + Europe PMC OA → markdown extraction)
+source_url: https://arxiv.org/ + https://europepmc.org/
+schedule: "42 4 * * *"  # 每日 04:42；arXiv 新列表天然增量
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_education_oa_fulltext
+    description: Education OA fulltext layer — arXiv education categories (cs.CY, physics.ed-ph) new listings + Europe PMC education OA search; PDF(pypdf)/JATS XML → markdown (D6 format); license per-item; extraction failure stays link_only (no fake success)
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Max rows to return per source
+      - name: source
+        type: string
+        required: false
+        description: "'epmc' (default) | 'arxiv'"
+      - name: fetch_bodies
+        type: boolean
+        required: false
+        description: Whether to download and extract fulltext bodies (false = metadata only)
+    columns:
+      - name: resource_id
+        type: string
+        description: Catalog resource ID (edu.paper.arxiv.<id> / edu.paper.pmc.<pmcid>)
+      - name: work_id
+        type: string
+        description: Stable work identifier (arxiv:<id> / pmc:<pmcid> / pmid:<pmid>)
+      - name: doi
+        type: string
+        description: DOI if present
+      - name: title
+        type: string
+        description: Work title
+      - name: abstract
+        type: string
+        description: Abstract text
+      - name: publication_date
+        type: string
+        description: Publication/submission date (YYYY-MM-DD)
+      - name: authors
+        type: string
+        description: JSON array of author names
+      - name: journal
+        type: string
+        description: Journal title (EPMC only)
+      - name: license
+        type: string
+        description: Per-item license (arxiv metadata=cc0; EPMC per-article license field)
+      - name: body_state
+        type: string
+        description: stored_extraction if body_markdown present, else link_only
+      - name: body_source
+        type: string
+        description: arxiv_pdf | epmc_jats | null
+      - name: body_markdown
+        type: string
+        description: Extracted fulltext markdown (D6 format — OpenMAIC materials compatible)
+      - name: pdf_url
+        type: string
+        description: PDF URL (arXiv only)
+      - name: education_source
+        type: string
+        description: arxiv_new | epmc_oa
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: source_url
+        type: string
+        description: Landing page URL (traceability)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+entities:
+  - entity_type: work
+    coverage: explicit
+    codes: []
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
