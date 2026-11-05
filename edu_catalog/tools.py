@@ -154,16 +154,16 @@ def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable
         except ChannelError as e:
             return _fail_envelope(e)
         q = (query or "").lower()
-        # ── 中文查询确定性翻译（add-multilingual-zh-search D1/D4）──
-        # 词表未覆盖不编造；对照随 envelope 可见（命中与否均带）。
-        from . import zh_lexicon
+        # ── 多语言确定性解析（add-multilang-mainstream）──
+        # zh 词表快路径 + 主流语言 Wikipedia langlink；解析失败不编造，对照随 envelope 可见。
+        from . import multilang
         translation: dict | None = None
         translated_q: str | None = None
-        if q and zh_lexicon.has_cjk(q):
-            t = zh_lexicon.translate_query(q)
-            if t and t != q:
-                translated_q = t
-                translation = {"from": query, "to": t}
+        if q:
+            resolved = multilang.resolve_query(q)
+            if resolved and resolved[0] != q:
+                translated_q, via = resolved
+                translation = {"from": query, "to": translated_q, "via": via}
         # ── 论文实时通道（spec cap2「实时优先/本地回落」，2026-11-04 晚纠偏）──
         # 触发：装配了 live_search 且是论文检索（query 非空、resource_type 未排除 paper）。
         # 故障 → 显式报因 + 回落本地（回落事实 MUST 可见，MUST NOT 伪装无匹配）。

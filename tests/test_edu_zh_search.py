@@ -92,7 +92,9 @@ def test_zh_query_hits_english_material_with_translation_visible():
     out = search(query="微积分")
     assert out["status"] == "ok"
     assert any("calculus" in (it["title"] or "") for it in out["items"])
-    assert out["query_translated"] == {"from": "微积分", "to": "calculus"}
+    qt = out["query_translated"]
+    assert qt["from"] == "微积分" and qt["to"] == "calculus"
+    assert qt["via"] == "zh-lexicon"  # add-multilang-mainstream 起对照带 via
 
 
 def test_zh_query_no_coverage_is_honest_no_match():
@@ -107,7 +109,8 @@ def test_zh_query_uncovered_word_translated_sibling_still_hits():
     search = _svc()
     # 「线性代数 导论」：导论丢弃，线性代数照译——对照必须在场
     out = search(query="线性代数 导论")
-    assert out["query_translated"] == {"from": "线性代数 导论", "to": "linear algebra"}
+    qt = out["query_translated"]
+    assert qt["from"] == "线性代数 导论" and qt["to"] == "linear algebra"
     assert out["status"] == "ok" and any("linear-algebra" in it["title"] for it in out["items"])
 
 
