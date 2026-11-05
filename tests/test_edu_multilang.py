@@ -39,6 +39,14 @@ def test_resolve_ja_via_wikipedia(monkeypatch):
     assert resolve_query("データサイエンス") == ("data science", "wiki-ja")
 
 
+def test_cache_hit_returns_lowered_value(monkeypatch):
+    # 回归：首查小写、缓存命中分支曾返回原大小写（Data science）致二次查询 no_match
+    _fake_wiki(monkeypatch, {("ja", "データサイエンス"): "Data Science"})
+    multilang._CACHE.clear()
+    assert resolve_query("データサイエンス") == ("data science", "wiki-ja")
+    assert resolve_query("データサイエンス") == ("data science", "wiki-ja")  # 缓存命中仍小写
+
+
 def test_resolve_pure_kanji_falls_to_zh_wiki(monkeypatch):
     # 「微積分」纯汉字（无假名）→ zh 词表未中 → zh.wikipedia langlink
     _fake_wiki(monkeypatch, {("zh", "微積分"): "Calculus"})

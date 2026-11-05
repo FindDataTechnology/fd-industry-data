@@ -139,10 +139,12 @@ def resolve_query(query: str) -> tuple[str, str] | None:
                 break
     else:
         en = _safe_en_title(lang, q)
+    # 小写只在单点做（入缓存前）——缓存命中分支与首次分支口径一致，
+    # 否则首查小写命中、二查大写不命中（hay 归一是小写域）。
+    en = en.lower() if en else None
     if len(_CACHE) >= _CACHE_CAP:
         _CACHE.clear()
     _CACHE[key] = en
     if not en:
         return None
-    # 英文标题词组小写化，与 hay 归一后子串匹配
-    return (en.lower(), f"wiki-{lang}")
+    return (en, f"wiki-{lang}")
