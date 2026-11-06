@@ -33,7 +33,7 @@ spec:
             # Same image as the dispatcher: it ships git, and the node only
             # needs to pull one image (public mirrors are unreachable from chengsi).
             - name: checkout
-              image: &image __RELEASE_IMAGE:runner__
+              image: &image ccr.ccs.tencentyun.com/finddata/fd-industry-runner:sha-d84cc82
               env:
                 - name: GITEE_TOKEN
                   valueFrom:

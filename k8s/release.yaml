@@ -28,18 +28,20 @@
 
 components:
   runner:
-    # canonical runner image pushed by Jenkins (IMAGE_BASE); consumed by the
-    # tencent site dispatcher
-    repo: 100.64.0.8:30880/finddata/fd-industry-runner
-    tag: sha-f0a89b3
+    # tencent site dispatcher (k8s CronJob fd-industry-dispatcher).
+    # 2026-11-06 实况对账修正：线上是 ccr:sha-d84cc82（out-of-band 漂移），
+    # 不是建档时从仓内旧文件取的 Harbor:sha-f0a89b3。
+    repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
+    tag: sha-d84cc82
   runner-xinru:
     # ccr relay mirror consumed by the xinru (scraw ns) site dispatcher
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
     tag: sha-8f734c7
   observer:
-    # federation observer CronJob (scraw ns, xinru-master)
-    repo: 100.64.0.8:30880/finddata/fd-industry-runner
-    tag: sha-b9e009d
+    # federation observer CronJob (scraw ns, xinru-master).
+    # 2026-11-06 实况对账修正：线上是 ccr:sha-ea21592。
+    repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
+    tag: sha-ea21592
   runner-tencent-cron:
     # tencent(chengsi) ArgoCD ApplicationSet `fd-industry-crawl` renders every
     # per-source CronJob with this image (helm.parameters.image in the AppSet
