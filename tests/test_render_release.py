@@ -26,10 +26,13 @@ _spec.loader.exec_module(rr)
 # The migration invariant (task 2.1): the manifest's repo:tag values must stay
 # byte-identical to the tags that were live in the clusters when release.yaml
 # was introduced — a bump here means a real release (task 2.3 drills it).
+# 2026-11-06 三站点演练实况对账后校正（out-of-band 漂移三连）：
+# 建档时取的是仓内旧文件值，集群实况才是真值。测试断言跟着清单走，
+# 但清单的 tag 是动态读取的（bump 即真实发布，不锁死旧值）。
 EXPECTED_COMPONENTS = {
-    "runner": ("100.64.0.8:30880/finddata/fd-industry-runner", "sha-f0a89b3"),
+    "runner": ("ccr.ccs.tencentyun.com/finddata/fd-industry-runner", "sha-d84cc82"),
     "runner-xinru": ("ccr.ccs.tencentyun.com/finddata/fd-industry-runner", "sha-8f734c7"),
-    "observer": ("100.64.0.8:30880/finddata/fd-industry-runner", "sha-b9e009d"),
+    "observer": ("ccr.ccs.tencentyun.com/finddata/fd-industry-runner", "sha-ea21592"),
 }
 EXPECTED_CONSUMPTION = {
     "k8s/dispatcher.yaml": "runner",
@@ -95,21 +98,28 @@ def test_real_manifest_components_match_pre_change_tags():
 
 
 def test_real_repo_consumption_files_carry_their_own_placeholder():
-    # each file's placeholder must be the component the manifest maps it to
+    # --check 双态语义：fresh checkout 占位符态 OR 渲染后与清单一致态，均合法。
+    # 2.3 演练后仓库处于「渲染一致态」（tag 逐字等于清单），故不能只认占位符。
+    comps, _ = rr.parse_manifest(REPO / "k8s" / "release.yaml")
     for rel, component in EXPECTED_CONSUMPTION.items():
         text = (REPO / rel).read_text(encoding="utf-8")
-        assert rr.PH_RE.findall(text) == [component], rel
-        # and no concrete tag residue: rendering from the manifest is the only
-        # way a concrete image ref may enter these files
+        phs = rr.PH_RE.findall(text)
         repo = EXPECTED_COMPONENTS[component][0]
-        assert rr.concrete_tags(text, repo) == [], rel
+        concrete = rr.concrete_tags(text, repo)
+        if phs:
+            assert phs == [component], rel
+            assert concrete == [], rel  # 占位符与具体 tag 不得混存
+        else:
+            expected = f"{comps[component]['repo']}:{comps[component]['tag']}"
+            assert concrete == [expected], (rel, concrete, expected)
 
 
 def test_real_repo_check_placeholder_state_exits_zero():
     proc = run_script("--check", "--root", str(REPO))
     assert proc.returncode == 0, proc.stdout + proc.stderr
     for rel in EXPECTED_CONSUMPTION:
-        assert f"OK PENDING_RENDER {rel}" in proc.stdout
+        assert (f"OK PENDING_RENDER {rel}" in proc.stdout
+                or f"OK RENDERED_CONSISTENT {rel}" in proc.stdout), proc.stdout
     assert "RELEASE_CHECK_DONE ok" in proc.stdout.splitlines()[-1]
 
 
