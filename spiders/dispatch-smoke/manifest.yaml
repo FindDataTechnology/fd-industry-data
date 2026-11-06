@@ -2,7 +2,7 @@ version: '2'
 name: dispatch-smoke
 label: Dispatch smoke probe (site health check, trigger-only)
 source_url: https://internal.example/none
-site: tencent
+site: xinru-server1
 scanner_mode: upstream-curated
 ranking_seed:
 - 0.5
