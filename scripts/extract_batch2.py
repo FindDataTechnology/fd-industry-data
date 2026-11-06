@@ -890,6 +890,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--only", default=None, help="comma-separated unit list (default all)")
     args = ap.parse_args()
     if not args.dsn:
         raise SystemExit("DSN missing — source ~/.config/finddata/dashboards.env first")
@@ -911,8 +912,11 @@ def main() -> int:
             failed: list[tuple[str, str]] = []
             registry_result: tuple[int, int] | None = None
 
+            wanted = set(args.only.split(",")) if args.only else None
             if args.dry_run:
                 for src, fn in EXTRACTORS.items():
+                    if wanted and src not in wanted:
+                        continue
                     rows = fn(cur, notes)
                     EXTRACTORS_ENABLED[src] = rows
                     per_unit.append((src, len(rows), "dry-run"))
@@ -927,6 +931,8 @@ def main() -> int:
 
             # real run — one transaction, per-unit SAVEPOINT isolation
             for src, fn in EXTRACTORS.items():
+                if wanted and src not in wanted:
+                    continue
                 sp = f"unit_{src.replace('-', '_')}"
                 cur.execute(f"SAVEPOINT {sp}")
                 try:

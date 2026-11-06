@@ -16,7 +16,12 @@ import os
 import sys
 import time
 
-_MAX_ITEMS = 1000
+def _max_items() -> int:
+    """Landing cap read per call, not import time: the runner lifts this cap
+    via FD_WRITER_MAX_ITEMS for backfill-window runs AFTER this module is
+    imported (fix-writer-item-cap) — a module-level constant would freeze the
+    pre-lift value. 1000 stays the default (existing fleet behavior)."""
+    return int(os.environ.get("FD_WRITER_MAX_ITEMS", "1000"))
 _RETRY_DELAYS = (0.5, 1.0, 2.0)
 
 _SCHEMA = """
@@ -123,7 +128,7 @@ def finish_run(run_id: int, *, status, finished_at, rows_written,
     less than asked is visible in the central DB rather than only on a pod's
     stderr (the dispatcher runs the runner as a subprocess and keeps no copy).
     """
-    payload = [items[i] for i in range(min(len(items), _MAX_ITEMS))]
+    payload = [items[i] for i in range(min(len(items), _max_items()))]
     conn = None
     for delay in (0.0,) + _RETRY_DELAYS:
         if delay:
@@ -231,7 +236,7 @@ def open_run_for(source: str) -> int | None:
 def report_run(*, source, kind, status, started_at, finished_at, rows_written,
                error_head, commit_sha, image_tag, items, metrics=None) -> bool:
     """Insert the run record (and capped raw items); True on success."""
-    payload = [items[i] for i in range(min(len(items), _MAX_ITEMS))]
+    payload = [items[i] for i in range(min(len(items), _max_items()))]
     for delay in (0.0,) + _RETRY_DELAYS:
         if delay:
             time.sleep(delay)

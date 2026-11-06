@@ -259,6 +259,10 @@ def main(argv: list[str] | None = None) -> int:
             # window_end additionally receive it as kwargs (below).
             os.environ["FD_WINDOW_START"] = window["window_start"]
             os.environ["FD_WINDOW_END"] = window["window_end"]
+            # Backfill runs must land full history, not a capped slice: lift
+            # the writer landing cap for windowed runs only (fix-writer-item-
+            # cap). An operator-set FD_WRITER_MAX_ITEMS always wins.
+            os.environ.setdefault("FD_WRITER_MAX_ITEMS", "100000")
         if run_id is not None:
             _watch_cancel(run_id)
         # Merged (not **) so a window key that also arrived via --params
