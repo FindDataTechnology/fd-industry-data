@@ -97,8 +97,13 @@ def run_wfp_food_price(limit: int = 100) -> list[dict]:
         reader = csv.reader(stream)
         header = next(reader, None)
         if not header or "adm0_name" not in header:
+            # 2026-11-06 基线实探：HDX 现行资源返回 HTTP 202 + 空 body
+            # （异步生成态/资源冻结），表现就是 header=None，而非列名改名。
+            # 该源已裁决 park（上游 2021-08 冻结、零语义入库）；保留报错语义，
+            # 让误点亮时失败原因可归因，不伪装成空成功。
             raise RuntimeError(
-                f"wfp-food-price: 资源表头异常（无 adm0_name 列）：{str(header)[:120]}")
+                f"wfp-food-price: 资源不可读（HDX 202 空体或表头无 adm0_name 列）："
+                f"{str(header)[:120]}；该源已 park（裁决见 output/adjudication/cases/wfp-food-price.md）")
         col = {name: i for i, name in enumerate(header)}
         for rec in reader:
             if len(rec) < len(header):
