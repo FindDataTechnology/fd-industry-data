@@ -29,19 +29,19 @@
 components:
   runner:
     # tencent site dispatcher (k8s CronJob fd-industry-dispatcher).
-    # 2026-11-06 实况对账修正：线上是 ccr:sha-d84cc82（out-of-band 漂移），
-    # 不是建档时从仓内旧文件取的 Harbor:sha-f0a89b3。
+    # 2026-11-06：三站点发布滚动统一到 sha-750da3f（GHA 构建，tencent 节点
+    # 探针 Succeeded/Completed + imageID sha256 实拉验证通过）。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-d84cc82
+    tag: sha-750da3f
   runner-xinru:
     # ccr relay mirror consumed by the xinru (scraw ns) site dispatcher
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-8f734c7
+    tag: sha-750da3f
   observer:
     # federation observer CronJob (scraw ns, xinru-master).
-    # 2026-11-06 实况对账修正：线上是 ccr:sha-ea21592。
+    # 2026-11-06：随三站点发布滚动到 sha-750da3f。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-ea21592
+    tag: sha-750da3f
   runner-tencent-cron:
     # tencent(chengsi) ArgoCD ApplicationSet `fd-industry-crawl` renders every
     # per-source CronJob with this image (helm.parameters.image in the AppSet
@@ -52,7 +52,7 @@ components:
     # AppSet declaration in fd-infra-deploy + reconcile-industry-appset.sh
     # apply (or kubectl replace) on chengsi.
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-ea21592
+    tag: sha-750da3f
 
 # consumption file (repo-root-relative) -> component whose image it renders
 consumption:
