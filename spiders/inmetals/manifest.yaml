@@ -1,8 +1,6 @@
 version: '1'
-schedule: "51 4 * * *"
 data_period: day
 site: zihan
-
 name: inmetals
 label: Inmetals Metal Prices
 source_url: https://www.inmetals.com
@@ -47,3 +45,4 @@ entities:
   coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+parked: true

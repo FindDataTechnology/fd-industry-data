@@ -1,105 +1,86 @@
-# fd-open-data-protocol compliant manifest
-# MCP integration metadata
-
 name: mysteel
-label: "我的钢铁网"
-description: "中国领先的钢铁行业信息平台，提供钢材价格行情、市场分析、数据统计等服务。"
-source_url: "https://www.mysteel.com"
+label: 我的钢铁网
+description: 中国领先的钢铁行业信息平台，提供钢材价格行情、市场分析、数据统计等服务。
+source_url: https://www.mysteel.com
 priority_score: 95
-created_at: 2026-08-01T12:00:00
-
+created_at: 2026-08-01 12:00:00
 function_definitions:
-  - name: fetch_mysteel
-    description: "Fetch steel pricing data from MySteel"
-    parameters:
-      - name: urls
-        type: array<string>
-        description: "List of URLs to scrape"
-        optional: true
-        default: ["https://www.mysteel.com/"]
-      - name: limit
-        type: integer
-        description: "Maximum number of records to fetch"
-        optional: true
-        default: 1000
-    returns: array<object>
-    
-  - name: query_mysteel
-    description: "Query stored steel market data"
-    parameters:
-      - name: filters
-        type: object
-        description: "Filter criteria"
-        optional: true
-      - name: limit
-        type: integer
-        description: "Max records to return"
-        optional: true
-        default: 100
-    returns: array<object>
-
+- name: fetch_mysteel
+  description: Fetch steel pricing data from MySteel
+  parameters:
+  - name: urls
+    type: array<string>
+    description: List of URLs to scrape
+    optional: true
+    default:
+    - https://www.mysteel.com/
+  - name: limit
+    type: integer
+    description: Maximum number of records to fetch
+    optional: true
+    default: 1000
+  returns: array<object>
+- name: query_mysteel
+  description: Query stored steel market data
+  parameters:
+  - name: filters
+    type: object
+    description: Filter criteria
+    optional: true
+  - name: limit
+    type: integer
+    description: Max records to return
+    optional: true
+    default: 100
+  returns: array<object>
 column_schemas:
-  - name: source_url
-    type: string
-    description: "Original URL of the scraped page"
-
-  - name: article_title
-    type: string
-    description: "Article page title (page title for discovery records)"
-
-  - name: product_name
-    type: string
-    description: "Steel product name (品名)"
-
-  - name: spec
-    type: string
-    description: "Specification (规格)"
-
-  - name: material
-    type: string
-    description: "Material grade (材质)"
-
-  - name: mill
-    type: string
-    description: "Steel mill / origin (钢厂/产地)"
-
-  - name: price
-    type: string
-    description: "Current price (e.g. 3670元/吨)"
-
-  - name: change
-    type: string
-    description: "Price change (环比涨跌)"
-
-  - name: date
-    type: string
-    description: "Data date"
-
-  - name: record_kind
-    type: string
-    description: "Record type: price_row or listing_link"
-
-  - name: article_url
-    type: string
-    description: "Article URL (discovery records only)"
-
-  - name: scraped_at
-    type: timestamp
-    description: "Timestamp when the data was collected"
-
+- name: source_url
+  type: string
+  description: Original URL of the scraped page
+- name: article_title
+  type: string
+  description: Article page title (page title for discovery records)
+- name: product_name
+  type: string
+  description: Steel product name (品名)
+- name: spec
+  type: string
+  description: Specification (规格)
+- name: material
+  type: string
+  description: Material grade (材质)
+- name: mill
+  type: string
+  description: Steel mill / origin (钢厂/产地)
+- name: price
+  type: string
+  description: Current price (e.g. 3670元/吨)
+- name: change
+  type: string
+  description: Price change (环比涨跌)
+- name: date
+  type: string
+  description: Data date
+- name: record_kind
+  type: string
+  description: 'Record type: price_row or listing_link'
+- name: article_url
+  type: string
+  description: Article URL (discovery records only)
+- name: scraped_at
+  type: timestamp
+  description: Timestamp when the data was collected
 commands:
-  - name: fetch
-    description: "Run the scraper to collect new data"
-    command: "python spider.py --urls <url1> <url2>"
-    
-  - name: dry-run
-    description: "Test scraping without saving results"
-    command: "python spider.py --dry-run"
-    
-  - name: export-json
-    description: "Export data to JSON Lines format"
-    command: "python spider.py --format json"
-    
-  - name: export-db
-    description: "Export data to SQLite database"
-    command: "python spider.py --format sqlite"
+- name: fetch
+  description: Run the scraper to collect new data
+  command: python spider.py --urls <url1> <url2>
+- name: dry-run
+  description: Test scraping without saving results
+  command: python spider.py --dry-run
+- name: export-json
+  description: Export data to JSON Lines format
+  command: python spider.py --format json
+- name: export-db
+  description: Export data to SQLite database
+  command: python spider.py --format sqlite
+parked: true

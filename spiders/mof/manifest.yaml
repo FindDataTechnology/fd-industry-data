@@ -1,47 +1,50 @@
-version: "1"
+version: '1'
 name: mof
 label: 中华人民共和国财政部 (Ministry of Finance)
 source_url: https://www.mof.gov.cn/
 scanner_mode: upstream-curated
-ranking_seed: [0.5, 0.5]
+ranking_seed:
+- 0.5
+- 0.5
 functions:
-  - command: run_mof
-    description: 抓取财政部公开数据、政策文件、财政收支统计等信息
-    frequency: on_demand
-    parameters:
-      - name: limit
-        type: int
-        required: false
-        description: Maximum records to return
-      - name: urls
-        type: list
-        required: false
-        description: Custom URLs to crawl
-    columns:
-      - name: title
-        type: str
-        description: 页面标题或文章标题
-      - name: description
-        type: str
-        description: 页面描述或摘要
-      - name: url
-        type: str
-        description: 数据来源URL
-      - name: source
-        type: str
-        description: 数据来源标识 (MOF)
-      - name: scraped_at
-        type: str
-        description: 抓取时间戳
+- command: run_mof
+  description: 抓取财政部公开数据、政策文件、财政收支统计等信息
+  frequency: on_demand
+  parameters:
+  - name: limit
+    type: int
+    required: false
+    description: Maximum records to return
+  - name: urls
+    type: list
+    required: false
+    description: Custom URLs to crawl
+  columns:
+  - name: title
+    type: str
+    description: 页面标题或文章标题
+  - name: description
+    type: str
+    description: 页面描述或摘要
+  - name: url
+    type: str
+    description: 数据来源URL
+  - name: source
+    type: str
+    description: 数据来源标识 (MOF)
+  - name: scraped_at
+    type: str
+    description: 抓取时间戳
 concepts:
-  - column: title
-    concept: government.policy_document
-    entity_type: organization
-    measure: value
-    unit: string
-    frequency: on_demand
+- column: title
+  concept: government.policy_document
+  entity_type: organization
+  measure: value
+  unit: string
+  frequency: on_demand
 entities:
-  - entity_type: organization
-    coverage: universe
+- entity_type: organization
+  coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+parked: true

@@ -1,46 +1,49 @@
-version: "1"
+version: '1'
 name: coinmarketcap
 label: CoinMarketCap Cryptocurrency Data
 source_url: https://coinmarketcap.com/api/
 scanner_mode: upstream-curated
-ranking_seed: [0.5, 0.5]
+ranking_seed:
+- 0.5
+- 0.5
 functions:
-  - command: run_coinmarketcap
-    description: Fetch data from CoinMarketCap Cryptocurrency Data
-    frequency: on_demand
-    parameters:
-      - name: limit
-        type: int
-        required: false
-        description: Maximum records to return
-    columns:
-      - name: id
-        type: integer
-        description: Primary key
-      - name: title
-        type: string
-        description: Page title
-      - name: description
-        type: string
-        description: Page description
-      - name: url
-        type: string
-        description: Source URL
-      - name: source
-        type: string
-        description: Data source identifier
-      - name: scraped_at
-        type: string
-        description: ISO timestamp
+- command: run_coinmarketcap
+  description: Fetch data from CoinMarketCap Cryptocurrency Data
+  frequency: on_demand
+  parameters:
+  - name: limit
+    type: int
+    required: false
+    description: Maximum records to return
+  columns:
+  - name: id
+    type: integer
+    description: Primary key
+  - name: title
+    type: string
+    description: Page title
+  - name: description
+    type: string
+    description: Page description
+  - name: url
+    type: string
+    description: Source URL
+  - name: source
+    type: string
+    description: Data source identifier
+  - name: scraped_at
+    type: string
+    description: ISO timestamp
 concepts:
-  - column: title
-    concept: organization.name
-    entity_type: organization
-    measure: value
-    unit: string
-    frequency: on_demand
+- column: title
+  concept: organization.name
+  entity_type: organization
+  measure: value
+  unit: string
+  frequency: on_demand
 entities:
-  - entity_type: organization
-    coverage: universe
+- entity_type: organization
+  coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+parked: true

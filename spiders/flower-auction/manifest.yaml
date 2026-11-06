@@ -1,101 +1,104 @@
-version: "1"
-
+version: '1'
 name: flower-auction
 label: 昆明国际花卉拍卖中心
 source_url: https://www.kifa.net
 scanner_mode: upstream-curated
-ranking_seed: [0.5, 0.5]
+ranking_seed:
+- 0.5
+- 0.5
 functions:
-  - command: run_flower_auction
-    description: Fetch flower auction results, price data, and market analysis from KIFC
-    frequency: daily
-    parameters:
-      - name: limit
-        type: int
-        required: false
-        description: Maximum records to return
-    columns:
-      - name: auction_date
-        type: str
-        description: Auction date
-      - name: date
-        type: str
-        description: Price data date
-      - name: flower_name
-        type: str
-        description: Flower name
-      - name: variety
-        type: str
-        description: Flower variety
-      - name: spec
-        type: str
-        description: Flower specification/grade
-      - name: quantity
-        type: str
-        description: Auction quantity
-      - name: unit
-        type: str
-        description: Unit of measurement (e.g. 枝)
-      - name: price
-        type: float
-        description: Unit price
-      - name: avg_price
-        type: float
-        description: Average price
-      - name: price_high
-        type: float
-        description: Highest price
-      - name: price_low
-        type: float
-        description: Lowest price
-      - name: volume
-        type: str
-        description: Trading volume
-      - name: total_volume
-        type: str
-        description: Total volume
-      - name: transaction_rate
-        type: str
-        description: Transaction rate
-      - name: title
-        type: str
-        description: Market analysis title
-      - name: summary
-        type: str
-        description: Market analysis summary
-      - name: date_range
-        type: str
-        description: Date range for market data
-      - name: data_type
-        type: str
-        description: Data type (auction, price, market, detail)
-      - name: url
-        type: str
-        description: Source URL
-      - name: scraped_at
-        type: str
-        description: ISO timestamp of extraction
+- command: run_flower_auction
+  description: Fetch flower auction results, price data, and market analysis from
+    KIFC
+  frequency: daily
+  parameters:
+  - name: limit
+    type: int
+    required: false
+    description: Maximum records to return
+  columns:
+  - name: auction_date
+    type: str
+    description: Auction date
+  - name: date
+    type: str
+    description: Price data date
+  - name: flower_name
+    type: str
+    description: Flower name
+  - name: variety
+    type: str
+    description: Flower variety
+  - name: spec
+    type: str
+    description: Flower specification/grade
+  - name: quantity
+    type: str
+    description: Auction quantity
+  - name: unit
+    type: str
+    description: Unit of measurement (e.g. 枝)
+  - name: price
+    type: float
+    description: Unit price
+  - name: avg_price
+    type: float
+    description: Average price
+  - name: price_high
+    type: float
+    description: Highest price
+  - name: price_low
+    type: float
+    description: Lowest price
+  - name: volume
+    type: str
+    description: Trading volume
+  - name: total_volume
+    type: str
+    description: Total volume
+  - name: transaction_rate
+    type: str
+    description: Transaction rate
+  - name: title
+    type: str
+    description: Market analysis title
+  - name: summary
+    type: str
+    description: Market analysis summary
+  - name: date_range
+    type: str
+    description: Date range for market data
+  - name: data_type
+    type: str
+    description: Data type (auction, price, market, detail)
+  - name: url
+    type: str
+    description: Source URL
+  - name: scraped_at
+    type: str
+    description: ISO timestamp of extraction
 concepts:
-  - column: price
-    concept: commodity.price
-    entity_type: industry
-    measure: price
-    unit: currency_cny
-    frequency: daily
-  - column: avg_price
-    concept: commodity.avg_price
-    entity_type: industry
-    measure: price
-    unit: currency_cny
-    frequency: daily
-  - column: volume
-    concept: commodity.volume
-    entity_type: industry
-    measure: volume
-    unit: string
-    frequency: daily
+- column: price
+  concept: commodity.price
+  entity_type: industry
+  measure: price
+  unit: currency_cny
+  frequency: daily
+- column: avg_price
+  concept: commodity.avg_price
+  entity_type: industry
+  measure: price
+  unit: currency_cny
+  frequency: daily
+- column: volume
+  concept: commodity.volume
+  entity_type: industry
+  measure: volume
+  unit: string
+  frequency: daily
 entities:
-  - entity_type: industry
-    coverage: universe
+- entity_type: industry
+  coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+parked: true

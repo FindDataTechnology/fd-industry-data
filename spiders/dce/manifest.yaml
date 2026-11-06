@@ -1,76 +1,79 @@
-version: "1"
+version: '1'
 name: dce
 label: 大连商品交易所
 source_url: https://www.dce.com.cn
 scanner_mode: upstream-curated
-ranking_seed: [0.5, 0.5]
+ranking_seed:
+- 0.5
+- 0.5
 functions:
-  - command: run_dce
-    description: Fetch futures prices and market data from DCE (大连商品交易所)
-    frequency: daily
-    parameters:
-      - name: limit
-        type: int
-        required: false
-        description: Maximum records to return
-    columns:
-      - name: contract_name
-        type: str
-        description: Futures contract name
-      - name: opening
-        type: float
-        description: Opening price
-      - name: high
-        type: float
-        description: Highest price
-      - name: low
-        type: float
-        description: Lowest price
-      - name: close
-        type: float
-        description: Closing price
-      - name: settlement
-        type: float
-        description: Settlement price
-      - name: change
-        type: str
-        description: Price change
-      - name: volume
-        type: float
-        description: Trading volume
-      - name: open_interest
-        type: float
-        description: Open interest
-      - name: category
-        type: str
-        description: Commodity category (agriculture, chemicals, livestock)
-      - name: source_url
-        type: str
-        description: Source URL
-      - name: scraped_at
-        type: str
-        description: ISO timestamp of extraction
+- command: run_dce
+  description: Fetch futures prices and market data from DCE (大连商品交易所)
+  frequency: daily
+  parameters:
+  - name: limit
+    type: int
+    required: false
+    description: Maximum records to return
+  columns:
+  - name: contract_name
+    type: str
+    description: Futures contract name
+  - name: opening
+    type: float
+    description: Opening price
+  - name: high
+    type: float
+    description: Highest price
+  - name: low
+    type: float
+    description: Lowest price
+  - name: close
+    type: float
+    description: Closing price
+  - name: settlement
+    type: float
+    description: Settlement price
+  - name: change
+    type: str
+    description: Price change
+  - name: volume
+    type: float
+    description: Trading volume
+  - name: open_interest
+    type: float
+    description: Open interest
+  - name: category
+    type: str
+    description: Commodity category (agriculture, chemicals, livestock)
+  - name: source_url
+    type: str
+    description: Source URL
+  - name: scraped_at
+    type: str
+    description: ISO timestamp of extraction
 concepts:
-  - column: settlement
-    concept: future.settlement_price
-    entity_type: future
-    measure: price
-    unit: currency_cny
-    frequency: daily
-  - column: volume
-    concept: future.volume
-    entity_type: future
-    measure: volume
-    unit: string
-    frequency: daily
-  - column: open_interest
-    concept: future.open_interest
-    entity_type: future
-    measure: volume
-    unit: string
-    frequency: daily
+- column: settlement
+  concept: future.settlement_price
+  entity_type: future
+  measure: price
+  unit: currency_cny
+  frequency: daily
+- column: volume
+  concept: future.volume
+  entity_type: future
+  measure: volume
+  unit: string
+  frequency: daily
+- column: open_interest
+  concept: future.open_interest
+  entity_type: future
+  measure: volume
+  unit: string
+  frequency: daily
 entities:
-  - entity_type: future
-    coverage: universe
+- entity_type: future
+  coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+parked: true

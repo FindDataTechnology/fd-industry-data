@@ -1,63 +1,66 @@
-version: "1"
+version: '1'
 name: cnia
 label: 中国铝业协会 (China Nonferrous Metals Industry Association)
 source_url: https://www.chinametal.org.cn/
 scanner_mode: upstream-curated
-ranking_seed: [0.5, 0.5]
+ranking_seed:
+- 0.5
+- 0.5
 functions:
-  - command: run_cnia
-    description: 平台运行入口：取中国有色金属工业协会（CNIA）生产/贸易/价格/报告/新闻五类记录，≤limit 条
-    frequency: on_demand
-    parameters:
-      - name: limit
-        type: int
-        required: false
-        description: Maximum records to return
-    columns:
-      - name: id
-        type: integer
-        description: Primary key
-      - name: title
-        type: string
-        description: Page title
-      - name: description
-        type: string
-        description: Page description
-      - name: url
-        type: string
-        description: Source URL
-      - name: source
-        type: string
-        description: Data source identifier
-      - name: scraped_at
-        type: string
-        description: ISO timestamp
-
-  - command: get_cnia_data
-    description: 取数实现（provider 面）：按金属品类抓取，返回 production/trade/prices/reports/news 分组的 dict
-    frequency: on_demand
-    parameters:
-      - name: metals
-        type: list
-        required: false
-        description: "金属品类键列表（copper/aluminum/zinc/lead/nickel/tin）；缺省 = 全部"
-      - name: include_reports
-        type: bool
-        required: false
-        description: 是否抓取行业报告（默认 true）
-      - name: include_news
-        type: bool
-        required: false
-        description: 是否抓取行业新闻（默认 true）
+- command: run_cnia
+  description: 平台运行入口：取中国有色金属工业协会（CNIA）生产/贸易/价格/报告/新闻五类记录，≤limit 条
+  frequency: on_demand
+  parameters:
+  - name: limit
+    type: int
+    required: false
+    description: Maximum records to return
+  columns:
+  - name: id
+    type: integer
+    description: Primary key
+  - name: title
+    type: string
+    description: Page title
+  - name: description
+    type: string
+    description: Page description
+  - name: url
+    type: string
+    description: Source URL
+  - name: source
+    type: string
+    description: Data source identifier
+  - name: scraped_at
+    type: string
+    description: ISO timestamp
+- command: get_cnia_data
+  description: 取数实现（provider 面）：按金属品类抓取，返回 production/trade/prices/reports/news 分组的
+    dict
+  frequency: on_demand
+  parameters:
+  - name: metals
+    type: list
+    required: false
+    description: 金属品类键列表（copper/aluminum/zinc/lead/nickel/tin）；缺省 = 全部
+  - name: include_reports
+    type: bool
+    required: false
+    description: 是否抓取行业报告（默认 true）
+  - name: include_news
+    type: bool
+    required: false
+    description: 是否抓取行业新闻（默认 true）
 concepts:
-  - column: title
-    concept: organization.name
-    entity_type: organization
-    measure: value
-    unit: string
-    frequency: on_demand
+- column: title
+  concept: organization.name
+  entity_type: organization
+  measure: value
+  unit: string
+  frequency: on_demand
 entities:
-  - entity_type: organization
-    coverage: universe
+- entity_type: organization
+  coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+parked: true
