@@ -1,0 +1,59 @@
+# Release manifest — single source of truth for fd-industry-runner image tags
+# (change harden-crawl-gitops-foundation 2.1/2.2, design D2).
+#
+# The consumption manifests (k8s/dispatcher.yaml, k8s/xinru-dispatcher.yaml,
+# k8s/federation-observer.yaml) do NOT carry concrete image tags: each image
+# line holds a __RELEASE_IMAGE:<component>__ placeholder that
+# scripts/render_release.py renders from this file. Never hand-edit the tag in
+# a consumption file — bump the tag here, run
+#   python3 scripts/render_release.py
+# from the repo root, then re-apply the rendered manifests per the deploy
+# notes in each file. Tags are immutable sha-<short-hash> images pushed by the
+# Jenkins job `fd-industry-runner` (Jenkinsfile 'Push runner image' stage).
+#
+# `scripts/render_release.py --check` (wired into the Jenkins gate stage)
+# enforces: a consumption file either still carries its placeholder (fresh
+# checkout, pending render — legal) or its concrete tag equals this manifest
+# exactly; any drift fails the gate before an image is built or pushed.
+#
+# Component notes:
+# - runner / observer consume the same Harbor repo but pin different tags
+#   today (observer lags by design until bumped together in a release drill —
+#   task 2.3 of the change runs the first real three-site drill).
+# - runner-xinru is the same image relayed to the ccr mirror: the xinru
+#   cluster cannot reach Harbor directly (see scripts/fd-image-pin-audit.sh
+#   for the relay / pinned-image story).
+# - Tags below are byte-identical to the tags that were live in the clusters
+#   when this manifest was introduced; a bump means a real release.
+
+components:
+  runner:
+    # canonical runner image pushed by Jenkins (IMAGE_BASE); consumed by the
+    # tencent site dispatcher
+    repo: 100.64.0.8:30880/finddata/fd-industry-runner
+    tag: sha-f0a89b3
+  runner-xinru:
+    # ccr relay mirror consumed by the xinru (scraw ns) site dispatcher
+    repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
+    tag: sha-8f734c7
+  observer:
+    # federation observer CronJob (scraw ns, xinru-master)
+    repo: 100.64.0.8:30880/finddata/fd-industry-runner
+    tag: sha-b9e009d
+  runner-tencent-cron:
+    # tencent(chengsi) ArgoCD ApplicationSet `fd-industry-crawl` renders every
+    # per-source CronJob with this image (helm.parameters.image in the AppSet
+    # declared at fd-infra-deploy argocd/industry-appset/applicationset.yaml).
+    # That file is OUTSIDE this repo — render_release.py --check cannot reach
+    # it; its tag is recorded here as the live value at adoption (2026-11-06)
+    # and for fd-image-pin-audit visibility. Bumping it means editing the
+    # AppSet declaration in fd-infra-deploy + reconcile-industry-appset.sh
+    # apply (or kubectl replace) on chengsi.
+    repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
+    tag: sha-ea21592
+
+# consumption file (repo-root-relative) -> component whose image it renders
+consumption:
+  k8s/dispatcher.yaml: runner
+  k8s/xinru-dispatcher.yaml: runner-xinru
+  k8s/federation-observer.yaml: observer

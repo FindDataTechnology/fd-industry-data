@@ -3,9 +3,10 @@
 # scheduled CronJobs use. Deployed once per site with:
 #   scp k8s/dispatcher.yaml fd-deploy:/tmp/ && ssh fd-deploy \
 #     "sudo k3s kubectl apply -f /tmp/dispatcher.yaml"
-# The image tag below must be bumped together with the runner image (the
-# shared dispatch lib ships inside the image — design D3); tag updates are a
-# one-line edit + re-apply.
+# The image line below is RENDERED — do not hand-edit it: render_release.py
+# (scripts/) fills it from the release manifest k8s/release.yaml. Bump the
+# tag in release.yaml, re-render, re-apply (the shared dispatch lib ships
+# inside the image — design D3).
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -32,7 +33,7 @@ spec:
             # Same image as the dispatcher: it ships git, and the node only
             # needs to pull one image (public mirrors are unreachable from chengsi).
             - name: checkout
-              image: &image 100.64.0.8:30880/finddata/fd-industry-runner:sha-f0a89b3
+              image: &image __RELEASE_IMAGE:runner__
               env:
                 - name: GITEE_TOKEN
                   valueFrom:

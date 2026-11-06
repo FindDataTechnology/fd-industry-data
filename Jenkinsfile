@@ -42,6 +42,17 @@ pipeline {
         }
         stage('Gate: manifest v2 + conformance') {
             steps {
+                // Release-manifest consistency (harden-crawl-gitops-foundation
+                // 2.2): the checkout carries __RELEASE_IMAGE:<component>__
+                // placeholders in k8s/*.yaml — pending render is legal; a
+                // committed concrete tag that drifts from k8s/release.yaml
+                // fails here, before any image is built or pushed. Stdlib-only
+                // script — runs on the bare agent.
+                sh 'python3 scripts/render_release.py --check'
+                // This pipeline has no deploy stage: the k8s manifests are
+                // applied manually per the notes in each k8s/*.yaml. Deploy
+                // prep after bumping k8s/release.yaml = the render command:
+                sh 'echo "deploy prep: python3 scripts/render_release.py  (repo root; renders k8s/*.yaml tags from k8s/release.yaml)"'
                 // Jenkins agents are pods: no workspace bind mounts into docker.
                 // Checks ride the build context via the Dockerfile `gate` target.
                 sh 'docker build --target gate -t fd-industry-gate:"${IMAGE_TAG}" .'

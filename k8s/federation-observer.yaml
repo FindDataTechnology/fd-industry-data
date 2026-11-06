@@ -6,7 +6,8 @@
 #   1) one-time secret (value = central PG url, same as tencent fd-industry-db):
 #      sudo k3s kubectl -n scraw create secret generic federation-db \
 #        --from-literal=url='postgresql://fd:...@10.0.0.9:30432/fd_open_data'
-#   2) set the image tag below to the current fd-industry-runner sha, then:
+#   2) render the image line from k8s/release.yaml (scripts/render_release.py;
+#      do not hand-edit the tag), then:
 #      sudo k3s kubectl apply -f federation-observer.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -60,7 +61,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: observer
-              image: 100.64.0.8:30880/finddata/fd-industry-runner:sha-b9e009d
+              image: __RELEASE_IMAGE:observer__
               command: ["python3", "-m", "fd_industry_data.federation_observer"]
               env:
                 - name: PYTHONUNBUFFERED
