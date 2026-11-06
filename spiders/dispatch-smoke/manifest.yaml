@@ -2,7 +2,7 @@ version: '2'
 name: dispatch-smoke
 label: Dispatch smoke probe (site health check, trigger-only)
 source_url: https://internal.example/none
-site: xinru-server1
+site: nbs-workers
 scanner_mode: upstream-curated
 ranking_seed:
 - 0.5
@@ -27,5 +27,4 @@ concepts: []
 entities: []
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
-schedule: "*/10 * * * *"
-data_period: irregular
+parked: true
