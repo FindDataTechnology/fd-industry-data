@@ -243,6 +243,17 @@ def run_doab_oai_harvest(limit: int = 20, metadata_prefix: str = "oai_dc") -> li
     return rows
 
 
+def run_education_oer_aggregators(limit: int = 20) -> list[dict]:
+    """runner_cli 约定入口（slug 连字符→下划线）：本源主入口 = Gutendex/Gutenberg 编目。
+
+    本单元三具名命令（run_gutendex_catalog / run_wikibooks_catalog /
+    run_doab_oai_harvest）均由 provider.py 按名分派，但巡检/调度只解析
+    ``run_<slug>`` 一个入口；缺此包装时多 run_* → exit 4 且报到前失败（盲区）。
+    主入口取 Gutendex（零凭据、声明面首个命令），透传 ``limit``。
+    """
+    return run_gutendex_catalog(limit=limit)
+
+
 if __name__ == "__main__":
     for r in run_gutendex_catalog(limit=3):
         print("Gutenberg", r["license_layer"], "|", r["title"][:50])

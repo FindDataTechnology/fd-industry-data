@@ -163,6 +163,18 @@ def run_openedx_catalog(instance: str = DEFAULT_OPENEDX_INSTANCE, limit: int = 2
     return rows
 
 
+def run_education_cc_courses(limit: int = 500) -> list[dict]:
+    """runner_cli 约定入口（slug 连字符→下划线）：本源主入口 = MIT OCW sitemap 编目。
+
+    runner_cli._load_entry 恒定只解析 ``run_<slug>``；本单元有多个具名命令
+    （run_ocw_catalog / run_openedx_catalog）且都由 provider.py 按名分派，但
+    巡检/调度只认这一个入口，故在此固定主入口并透传 ``limit``——缺此包装时
+    多 run_* 被判歧义 → exit 4，且失败发生在 open_run_for 报到前，30 天巡检
+    看不见（education 三源基线盲区）。Open edX 目录仍经 provider 单独调用。
+    """
+    return run_ocw_catalog(limit=limit)
+
+
 if __name__ == "__main__":
     rows = run_ocw_catalog(limit=3)
     for r in rows:

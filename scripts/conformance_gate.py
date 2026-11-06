@@ -9,7 +9,8 @@ a standard-layout unit lacks manifest.yaml, a loose *_spider.py exists outside
 a unit directory, an empty non-standard top-level directory exists, or two
 adapters differ only by dash-versus-underscore naming; additionally, a unit
 re-implements workbook parsing instead of consuming the shared tabular layer,
-or declares a function parameter its own entry point cannot receive. Writes
+declares a function parameter its own entry point cannot receive, or a
+scheduled spiders/<slug>/ unit defines no run_<slug> runner entry. Writes
 nothing, ever.
 
 Spec: openspec/changes/estate-hygiene/ (capability estate-hygiene).
@@ -77,6 +78,17 @@ DECLARED_COMMAND_REACHABILITY = "declared-command-reachability"
 # this check is safe at gate stage.
 GOLDEN_SCHEMA_INVALID = "golden-schema-invalid"
 
+# Scheduled spider units must define the runner's single entry point. runner_cli
+# resolves ``run_<src>`` (slug dashes -> underscores) and has no second entry;
+# when a unit exposes only other named ``run_*`` defs the loader sees ambiguity
+# and exits 4 BEFORE open_run_for/start_run ever opens a run record, so the
+# 30-day patrol is blind to the source. Measured 2026-11-06: three education
+# units (education_cc_courses / education_oer_aggregators / education_podcast)
+# were declared + scheduled + goldened yet invisible to the fleet baseline.
+# Static AST over spider.py only (no unit import at gate stage); adapters,
+# loose files and parked (no schedule) units are outside this contract.
+MISSING_RUN_ENTRY = "missing-run-entry"
+
 # 裁决台账与仓库实况一致性（add-fleet-lifecycle-adjudication）。台账
 # output/adjudication/ledger.json 属 .gitignore 的工作区派生物，CI 里不存在：
 # 无条件部分只有仓库内不变量（parked 源 schedule 必须为空）；台账存在时
@@ -109,6 +121,10 @@ FIXES = {
     "passes: rows_contains rules support exactly {field, equals} (compare with "
     "str(actual) == str(expected)) — an unsupported operator such as 'matches' "
     "fails the replay",
+    "missing-run-entry": "define run_<slug>(limit) in spiders/<slug>/spider.py "
+    "(slug dashes -> underscores) and have it call the source's primary named "
+    "command, passing limit through; runner_cli only ever loads run_<slug>, so "
+    "a scheduled unit with no such def exits 4 before any run record is opened",
     "parked-schedule-conflict": "parked source must have an empty/absent "
     "schedule: clear the schedule or drop parked: true",
     "adjudication-ledger-mismatch": "bring repo state back in line with "
@@ -365,6 +381,66 @@ def _declared_param_units(root: Path) -> list[str]:
     return hits
 
 
+def _missing_run_entry_units(root: Path, units: list[dict] | None = None) -> list[str]:
+    """Scheduled ``spiders/<slug>/`` units must define ``run_<slug>`` (AST).
+
+    Scope is deliberately narrow, matching the runner contract:
+    - only ``spider_dir`` units under ``spiders/`` (adapters / loose
+      ``*_spider.py`` / ``scraw-*`` husks are different contracts — the
+      ``run_<slug>`` entry rule does NOT apply to adapter-type units);
+    - only units with a non-empty ``schedule`` (parked/dormant sources are
+      never dispatched, so no runner entry is required);
+    - ``run_<slug>`` must be a **module-level** ``def``/``async def`` in
+      ``spider.py`` — that is what ``runner_cli._load_entry``'s
+      ``getattr(mod, ...)`` resolves. A helper, a class method or a def buried
+      inside ``__main__`` is not an entry point.
+
+    Static AST only: gate stage installs just pyyaml, so no unit is imported.
+    ``collect`` passes the already-discovered ``units`` to avoid a second scan;
+    direct callers (tests) let it discover on its own.
+    """
+    import yaml
+
+    if units is None:
+        units, _litter, _empty, _codeless = triage_audit.discover_units(root)
+    hits: list[str] = []
+    for u in units:
+        if u["kind"] != "spider_dir" or not u["path"].startswith("spiders/"):
+            continue  # adapter / loose file / husk / out-of-tree: not applicable
+        unit_dir = root / u["path"]
+        manifest = unit_dir / "manifest.yaml"
+        if not manifest.is_file():
+            continue  # owned by the missing-manifest rule, not here
+        try:
+            doc = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            continue
+        if not isinstance(doc, dict) or not doc.get("schedule"):
+            continue  # unscheduled / parked: never dispatched
+        slug = unit_dir.name
+        entry = f"run_{slug.replace('-', '_')}"
+        spider = unit_dir / "spider.py"
+        if not spider.is_file():
+            hits.append(f"{root.name}/{u['path']}: scheduled but spider.py is "
+                        f"absent — cannot define {entry}()")
+            continue
+        try:
+            tree = ast.parse(spider.read_text(encoding="utf-8", errors="ignore"))
+        except SyntaxError:
+            hits.append(f"{root.name}/{u['path']}: spider.py has a syntax error "
+                        f"— cannot confirm {entry}() is defined (AST)")
+            continue
+        defined = {n.name for n in tree.body
+                   if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        if entry not in defined:
+            other = ", ".join(sorted(n for n in defined if n.startswith("run_"))) or "none"
+            hits.append(f"{root.name}/{u['path']}: has a schedule but spider.py "
+                        f"defines no {entry}() (runner_cli._load_entry would "
+                        f"exit 4 before any run record is opened — 30-day patrol "
+                        f"blind spot; run_* defs present: {other})")
+    return hits
+
+
 _SAMPLES_MOD = None
 
 
@@ -392,6 +468,7 @@ def _load_samples_mod(root: Path):
         _SAMPLES_MOD = mod
         return mod
     return None
+
 
 
 def _golden_schema_units(root: Path) -> list[str]:
@@ -515,8 +592,12 @@ def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
         for path in _declared_command_units(root):
             violations.append((DECLARED_COMMAND_REACHABILITY, path))
 
+        for path in _missing_run_entry_units(root, units):
+            violations.append((MISSING_RUN_ENTRY, path))
+
         for path in _golden_schema_units(root):
             violations.append((GOLDEN_SCHEMA_INVALID, path))
+
 
     for group in (g for g in adapters.values() if len(g) > 1
                   and len({u["slug"] for _, u in g}) > 1):

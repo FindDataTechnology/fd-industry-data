@@ -293,6 +293,23 @@ def run_podcast_poller(feeds: list[str] | None = None,
     return out
 
 
+def run_education_podcast(limit: int = 5) -> list[dict]:
+    """runner_cli 约定入口（slug 连字符→下划线）：本源主入口 = Apple 目录 seed。
+
+    主入口选择依据（README/声明面）：
+    - ``run_podcast_seed`` 是唯一声明并接受 ``limit`` 的命令（manifest
+      functions[].parameters 里 seed 有 limit；poller 没有），可仅凭 runner
+      传入的 ``limit`` 独立跑通（Apple 目录 → feed 实测 → 入册）。
+    - ``run_podcast_poller`` 需要调用方注入 ``feeds``（RSS 注册表，来自
+      ingest 层），空列表即显式 ``RuntimeError`` 拒跑（spec cap1 R6）——
+      runner 只传 ``limit``，无法作为无人值守入口；poller 是 seed 产出的
+      注册表之上的增量下游，仍由 provider 按名分派。
+    故固定 seed 为主入口并透传 ``limit``；缺此包装时 seed/poller 双 run_*
+    被判歧义 → exit 4 且报到前失败（盲区）。
+    """
+    return run_podcast_seed(limit=limit)
+
+
 if __name__ == "__main__":
     rows = run_podcast_seed(limit=3)
     for r in rows:
