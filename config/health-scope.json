@@ -1,0 +1,41 @@
+{
+  "_comment": "health 巡检范围收敛（add-fleet-lifecycle-adjudication 1.3，2026-11-06 拍板）：巡检判定的对象=本仓 manifest 驱动的舰队单元；下列跨仓特殊 Job 不属本巡检范围，其遥测走 report_special_run/federation-observer 兜底面。带 per-source 理由。",
+  "excluded_sources": [
+    "akshare",
+    "ccdi-supervisory-crawl",
+    "ccdi-supervisory-load",
+    "federation-observer",
+    "flk-law-crawl",
+    "flk-law-embed",
+    "flk-law-load",
+    "gov-rules-crawl",
+    "gov-rules-load",
+    "legal-sources-report",
+    "mfa-treaty-crawl",
+    "mfa-treaty-load",
+    "party-regulation-crawl",
+    "party-regulation-load",
+    "rmfyalk-case-crawl",
+    "rmfyalk-case-load",
+    "wbgapi"
+  ],
+  "excluded_reasons": {
+    "akshare": "scraw 线库适配器（fd-open-data-mcp），非 manifest 舰队成员",
+    "ccdi-supervisory-crawl": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "ccdi-supervisory-load": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "federation-observer": "遗留 law 线镜像观测器（特殊 Job，federation_observer 兜底面）",
+    "flk-law-crawl": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "flk-law-embed": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "flk-law-load": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "gov-rules-crawl": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "gov-rules-load": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "legal-sources-report": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "mfa-treaty-crawl": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "mfa-treaty-load": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "party-regulation-crawl": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "party-regulation-load": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "rmfyalk-case-crawl": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "rmfyalk-case-load": "law 线 k8s CronJob 单元（fd-law-data 仓管理，特殊源报到契约面）",
+    "wbgapi": "scraw 线库适配器（fd-open-data-mcp）"
+  }
+}
