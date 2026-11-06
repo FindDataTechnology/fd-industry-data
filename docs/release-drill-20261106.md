@@ -22,3 +22,16 @@
 
 ## 附带处置（演练中发现的自洽缺口）
 chart 的 `--window-auto` 曾被推到 111 个 Application，但现役镜像 sha-ea21592 不认该参数 → 已回滚 chart args、全舰队硬刷新、**删掉 park 后残留的 wfp CronJob**，核验 76/76 CronJob 零 `--window-auto`。window-auto 代码/测试保留在仓，待镜像 relay 完成后重新点亮。
+
+## 追加：真实镜像滚动（2026-11-06 晚，用户拍板「滚」）
+
+前述零版本演练后复核发现：新 tag `ccr:sha-750da3f` 的探针其实 `Succeeded/Completed`（imageID `sha256:99a64eba…`，节点已缓存），此前只看 hkccr 域名拉取慢就误判为「未验证」。据此执行真实滚动：
+
+1. `release.yaml` 四组件统一 bump `sha-750da3f` → 三消费面还原占位符后 `render_release.py` 渲染 → `--check` 绿 → `kubectl apply`（tencent dispatcher / xinru observer 实况已更新）
+2. fd-infra-deploy AppSet 声明 image 参数同步 → `reconcile-industry-appset.sh tencent apply`（replace 带 resourceVersion）→ check OK
+3. chart 重新挂 `--window-auto`（新镜像支持）→ 双仓提交推送 → AppSet 生成器 + 111 个 Application 两轮硬刷新收敛
+4. 清理 park 残留的 `fd-industry-dispatch-smoke` CronJob
+
+**终态（实弹核验）**：74/74 CronJob 全部 `ccr:sha-750da3f`；73 个带 `--window-auto`（第 74 个是手工 apply 的 dispatcher，不带该参数属设计）；镜像内代码探针 `window-auto=True / dynamic cap=True`；三源真实调度运行全 success（abs-sdmx 100 行 / eurostat-api 100 行 / openalex-works 82 行），crawl_runs 报到 `image_tag` 为新 tag；dispatcher 与 observer 下一轮 tick 均 Complete 1/1。
+
+**结论**：本轮代码面（data_period、--window-auto、动态落库帽、education 入口修复、gate 规则、供给漏斗）全部兑现到生产运行时，零残留。
