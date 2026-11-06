@@ -55,6 +55,18 @@ jobs:
           done
           test -d src/.git
 
+      # 裁决通道（fleet-lifecycle-adjudication）：同源 manual 终态工单 >= 2 即升级
+      # 人工裁决——建卷宗 output/adjudication/cases/<src>.md + 队列 queue.json，
+      # 升级源冻结新工单派发（apply_freeze，在工单生成入口接线）。
+      # output/ 不入 git：工单语料在仓里，扫描每次从全量工单确定性重derive（幂等）。
+      - name: Adjudication scan — manual 重复工单升级（N=2）
+        working-directory: src
+        run: |
+          python3 scripts/adjudicate.py scan
+          # 队列摘要：job summary + 日志（条目数与新升级源名见上方 scan 输出）
+          python3 scripts/adjudicate.py summary >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          python3 scripts/adjudicate.py list
+
       - name: Inspector (emit) — 只落单不投递
         working-directory: src
         env:

@@ -40,10 +40,14 @@ cd spiders/flower-auction
 python spider.py
 ```
 
-### Run All Spiders
+### Fleet Baseline (All Scheduled Spiders)
+
+Run every production source (manifest with a `schedule`) sequentially and
+produce a success-rate baseline report:
 
 ```bash
-python run_all.py
+python3 scripts/fleet_baseline.py --dry-run    # list scheduled sources only
+python3 scripts/fleet_baseline.py --limit 20   # sequential run -> reports/fleet-baseline/
 ```
 
 ### Programmatic Usage
