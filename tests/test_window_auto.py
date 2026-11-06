@@ -39,3 +39,11 @@ def test_auto_window_degrades_on_db_failure(capsys):
         s, e = runner_cli._auto_first_crawl_window("any-source")
     assert (s, e) == ("", "")
     assert "window-auto probe failed" in capsys.readouterr().err
+
+
+def test_auto_noop_empty_strings_do_not_fail_parse():
+    # window-auto 的 ("", "") no-op 不得被当成「单边坏窗口」误报
+    import pytest
+    assert runner_cli._parse_window("", "") is None
+    with pytest.raises(ValueError, match="need both"):
+        runner_cli._parse_window("2025-11-01", "")

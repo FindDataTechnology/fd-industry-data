@@ -110,7 +110,9 @@ def _parse_window(start: str | None, end: str | None) -> dict[str, str] | None:
     date range by construction, and loose parsing here would silently widen
     or shift what the spider fetches.
     """
-    if start is None and end is None:
+    if not start and not end:
+        # window-auto 对已有成功记录的源返回 ("", "") 表示 no-op；与
+        # 显式窗口「只给一边」的失败语义区分开（后者必须报警）
         return None
     if not start or not end:
         raise ValueError(
