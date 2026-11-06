@@ -128,6 +128,34 @@ def _parse_window(start: str | None, end: str | None) -> dict[str, str] | None:
     return {"window_start": s.isoformat(), "window_end": e.isoformat()}
 
 
+def _auto_first_crawl_window(src: str) -> tuple[str, str]:
+    """AppSet CronJob path: adopt the dispatcher's 12-month first-crawl window
+    when the central DB has no successful run for this source.
+
+    k8s-site sources are run directly by per-source CronJobs and never pass
+    through ``dispatch.enqueue_due``, so the dispatcher cannot hand them a
+    window. The runner itself asks the same question the dispatcher would
+    (any successful crawl_runs row?), then computes the identical window via
+    ``dispatch.first_crawl_window``. Any DB failure degrades to "no window"
+    (established behavior) with a warning on stderr — never a crash.
+    """
+    try:
+        from . import dispatch
+        conn = dispatch.connect()
+        try:
+            succeeded = dispatch.successful_run_sources(conn, [src])
+        finally:
+            conn.close()
+        if src in succeeded:
+            return "", ""
+        w = dispatch.first_crawl_window(__import__("datetime").date.today())
+        return w["window_start"], w["window_end"]
+    except Exception as exc:  # noqa: BLE001 — DB probe must never break a run
+        print(f"fd-runner: window-auto probe failed ({exc}); continuing without window",
+              file=sys.stderr)
+        return "", ""
+
+
 def _window_kwargs(fn, window: dict[str, str] | None) -> dict[str, str]:
     """The window subset the entry point explicitly names.
 
@@ -203,6 +231,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--window-end", default=None,
                     help="first-crawl backfill window end (YYYY-MM-DD, "
                          "platform-owned; pairs with --window-start)")
+    ap.add_argument("--window-auto", action="store_true",
+                    help="k8s AppSet CronJob path: when this source has no "
+                         "successful run in the central DB, adopt the same "
+                         "12-whole-month first-crawl window the dispatcher "
+                         "would pass explicitly; no-op for established sources. "
+                         "Explicit --window-start/--window-end always win.")
     ap.add_argument("--dry-run", action="store_true", help="skip DB reporting")
     args = ap.parse_args(argv)
 
@@ -252,7 +286,10 @@ def main(argv: list[str] | None = None) -> int:
         # Malformed window raises inside the try so the failed run is
         # recorded (error_head carries the reason) instead of silently
         # crawling an unscoped window.
-        window = _parse_window(args.window_start, args.window_end)
+        win_start, win_end = args.window_start, args.window_end
+        if args.window_auto and not (win_start or win_end):
+            win_start, win_end = _auto_first_crawl_window(src)
+        window = _parse_window(win_start, win_end)
         if window:
             # Spider-readable context, platform-side: every spider sees the
             # window via env; only entries that explicitly name window_start/
