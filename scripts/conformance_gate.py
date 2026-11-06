@@ -77,6 +77,15 @@ DECLARED_COMMAND_REACHABILITY = "declared-command-reachability"
 # this check is safe at gate stage.
 GOLDEN_SCHEMA_INVALID = "golden-schema-invalid"
 
+# 裁决台账与仓库实况一致性（add-fleet-lifecycle-adjudication）。台账
+# output/adjudication/ledger.json 属 .gitignore 的工作区派生物，CI 里不存在：
+# 无条件部分只有仓库内不变量（parked 源 schedule 必须为空）；台账存在时
+# （本地/主代理运行）追加三态对账——retire 源不在 spiders/、park 源有
+# parked:true、repair 源不在冻结队列。执行侧的一致性由 scripts/adjudicate.py
+# decide 落账时保证，本门防的是绕过裁决脚本的手改漂移。
+ADJUDICATION_LEDGER_MISMATCH = "adjudication-ledger-mismatch"
+PARKED_SCHEDULE_CONFLICT = "parked-schedule-conflict"
+
 # violation type -> one-line fix
 FIXES = {
     "unit-outside-spiders": "move to spiders/<slug>/",
@@ -100,6 +109,11 @@ FIXES = {
     "passes: rows_contains rules support exactly {field, equals} (compare with "
     "str(actual) == str(expected)) — an unsupported operator such as 'matches' "
     "fails the replay",
+    "parked-schedule-conflict": "parked source must have an empty/absent "
+    "schedule: clear the schedule or drop parked: true",
+    "adjudication-ledger-mismatch": "bring repo state back in line with "
+    "output/adjudication/ledger.json (re-run scripts/adjudicate.py decide, or "
+    "fix the drift the violation names)",
 }
 
 
@@ -402,6 +416,58 @@ def _golden_schema_units(root: Path) -> list[str]:
     return hits
 
 
+def _adjudication_ledger_violations(root: Path) -> list[tuple[str, str]]:
+    """裁决台账与仓库实况对账（台账存在时；CI 无 output/ 则自然跳过）。"""
+    import yaml
+    ledger_path = root / "output" / "adjudication" / "ledger.json"
+    queue_path = root / "output" / "adjudication" / "queue.json"
+    if not ledger_path.is_file():
+        return []
+    try:
+        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [(ADJUDICATION_LEDGER_MISMATCH, f"{root.name}: ledger.json unreadable ({exc})")]
+
+    # 每源取最新结论（append-only entries，按时间序后者生效）
+    latest: dict[str, str] = {}
+    entries = ledger.get("entries") if isinstance(ledger, dict) else None
+    if isinstance(entries, list):
+        for e in entries:
+            if isinstance(e, dict) and e.get("source") and e.get("decision") in ("repair", "park", "retire"):
+                latest[str(e["source"])] = str(e["decision"])
+
+    frozen: set[str] = set()
+    try:
+        queue = json.loads(queue_path.read_text(encoding="utf-8"))
+        items = queue.get("items") if isinstance(queue, dict) else queue
+        if isinstance(items, list):
+            for q in items:
+                if isinstance(q, dict) and q.get("status") == "escalated":
+                    frozen.add(str(q.get("source", "")))
+    except (OSError, json.JSONDecodeError):
+        pass  # 队列缺失时 repair 源不判冻结冲突
+
+    hits: list[tuple[str, str]] = []
+    for src, decision in sorted(latest.items()):
+        spider_dir = root / "spiders" / src
+        manifest = spider_dir / "manifest.yaml"
+        if decision == "retire" and spider_dir.is_dir():
+            hits.append((ADJUDICATION_LEDGER_MISMATCH,
+                         f"{root.name}/{src}: ledger says retire but spiders/{src}/ still present"))
+        elif decision == "park" and manifest.is_file():
+            try:
+                mdata = yaml.safe_load(manifest.read_text())
+            except yaml.YAMLError:
+                mdata = None
+            if not (isinstance(mdata, dict) and mdata.get("parked")):
+                hits.append((ADJUDICATION_LEDGER_MISMATCH,
+                             f"{root.name}/{src}: ledger says park but manifest lacks parked: true"))
+        elif decision == "repair" and src in frozen:
+            hits.append((ADJUDICATION_LEDGER_MISMATCH,
+                         f"{root.name}/{src}: ledger says repair but queue still freezes it"))
+    return hits
+
+
 def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
     """Return (violations as (type, path), scanned unit count). Zero writes."""
     violations: list[tuple[str, str]] = []
@@ -409,9 +475,20 @@ def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
     adapters: dict[str, list[tuple[Path, dict]]] = {}
 
     for root in roots:
+        import yaml
         for m in sorted((root / "spiders").glob("*/manifest.yaml")):
             for e in validate_manifests.validate(m):
                 violations.append(("manifest-contract", e))
+            # 仓库内不变量（无条件）：parked 源 schedule 必须为空
+            try:
+                mdata = yaml.safe_load(m.read_text())
+            except yaml.YAMLError:
+                mdata = None
+            if isinstance(mdata, dict) and mdata.get("parked") and mdata.get("schedule"):
+                violations.append(
+                    (PARKED_SCHEDULE_CONFLICT, f"{root.name}/{m.parent.name}: "
+                     "parked: true but schedule is non-empty"))
+        violations.extend(_adjudication_ledger_violations(root))
         units, _litter, empty_dirs, _codeless = triage_audit.discover_units(root)
         triage_audit.manifest_coverage(units, root)
         unit_count += len(units)
