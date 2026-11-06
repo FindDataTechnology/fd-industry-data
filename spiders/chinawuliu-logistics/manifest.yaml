@@ -5,6 +5,7 @@ source_url: http://www.chinawuliu.com.cn/xsyj/tjsj/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "23 5 * * 5"
+data_period: month
 functions:
   - command: run_chinawuliu_logistics
     description: >-

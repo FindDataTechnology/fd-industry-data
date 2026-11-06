@@ -5,6 +5,7 @@ source_url: https://bio.nidc.org.cn/pqf/search.do?formAction=pqfXxpt
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "33 1 10 * *"
+data_period: month
 functions:
   - command: run_nifdc_batchcert
     description: Fetch weekly biological product batch-release (批签发) public-notice rows from NIFDC/NIDC (中国药品检定研究院)

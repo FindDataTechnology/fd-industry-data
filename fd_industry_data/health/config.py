@@ -34,6 +34,26 @@ def frequency_hours(frequency: str | None) -> float | None:
     return FREQUENCY_HOURS.get(str(frequency).strip().lower())
 
 
+# manifest data_period（数据自然周期，add-fleet-lifecycle-adjudication）合法值
+VALID_DATA_PERIODS = ("day", "month", "year", "irregular")
+
+# data_period → 「超期未产出」容忍窗（小时）：超过容忍窗仍无成功记录即异常。
+# day→3 天（覆盖每日及更密 cron）、month→35 天（覆盖周/月频）、
+# year→370 天（覆盖年度）；irregular 不设窗（只判连续失败，见 inspector）。
+DATA_PERIOD_TOLERANCE_HOURS = {
+    "day": 72.0,
+    "month": 840.0,
+    "year": 8880.0,
+}
+
+
+def data_period_tolerance_hours(data_period: str | None) -> float | None:
+    """data_period → 容忍窗小时；irregular/未声明/非法值返回 None（无窗）。"""
+    if not data_period:
+        return None
+    return DATA_PERIOD_TOLERANCE_HOURS.get(str(data_period).strip().lower())
+
+
 @dataclass(frozen=True)
 class HealthConfig:
     thresholds: Thresholds = field(default_factory=Thresholds)

@@ -5,6 +5,7 @@ source_url: https://datas.carbonmonitor.org/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "37 4 * * *"
+data_period: day
 memory_limit: "512Mi"
 functions:
   - command: run_carbon_monitor

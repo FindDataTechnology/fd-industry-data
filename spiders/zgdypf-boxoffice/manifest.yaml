@@ -5,6 +5,7 @@ source_url: https://zgdypf.zgdypw.cn/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "6 2 * * *"
+data_period: day
 functions:
   - command: run_zgdypf_boxoffice
     description: Fetch daily/weekly China box office rankings (含服务费口径, 万元) from 国家电影专资办数据中心 zgdypw.cn

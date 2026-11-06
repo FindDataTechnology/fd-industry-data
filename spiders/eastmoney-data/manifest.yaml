@@ -1,4 +1,5 @@
 schedule: "35 4 * * *"
+data_period: day
 site: xinru-server2
 # fd-open-data-protocol compliant manifest
 

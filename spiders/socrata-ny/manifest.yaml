@@ -4,6 +4,7 @@ label: New York State Transportation Fuels Spot Prices (Socrata)
 source_url: https://data.ny.gov/d/k7gz-mn77
 egress_secret: fd-industry-egress-fx01       # 需代理出口：data.ny.gov 从 tencent 站点直连被 Socrata 边缘 403
 schedule: "3 5 * * 2"       # 周频（数据周一更新，README 记 2026-10-06）；socrata-cadence-alignment 修正：原 "3 5 * * *" 每日触发，对周频数据每周浪费 ~6 次代理请求
+data_period: month
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

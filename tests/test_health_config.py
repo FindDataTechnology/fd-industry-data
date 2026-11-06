@@ -59,3 +59,20 @@ def test_unknown_keys_ignored(monkeypatch):
     monkeypatch.setattr(cfg.subprocess, "run", lambda *a, **k: _P(0, out))
     c = cfg.load_config_from_db("postgres://x")
     assert c is not None and c.master_switch is False and c.max_daily_tickets == 5
+
+
+# ── data_period 容忍窗映射（add-fleet-lifecycle-adjudication 1.3） ──────────
+
+def test_data_period_tolerance_mapping():
+    assert cfg.data_period_tolerance_hours("day") == 72.0          # 3 天
+    assert cfg.data_period_tolerance_hours("month") == 840.0       # 35 天
+    assert cfg.data_period_tolerance_hours("year") == 8880.0       # 370 天
+    assert cfg.data_period_tolerance_hours("irregular") is None    # 不判超期
+    assert cfg.data_period_tolerance_hours("Month") == 840.0       # 大小写不敏感
+    assert cfg.data_period_tolerance_hours("weekly") is None       # 非法值无窗
+    assert cfg.data_period_tolerance_hours(None) is None
+    assert cfg.data_period_tolerance_hours("") is None
+
+
+def test_valid_data_periods_enum():
+    assert cfg.VALID_DATA_PERIODS == ("day", "month", "year", "irregular")

@@ -1,5 +1,6 @@
 version: '1'
 schedule: "55 4 * * *"
+data_period: day
 site: xinru-server1
 
 name: kitco

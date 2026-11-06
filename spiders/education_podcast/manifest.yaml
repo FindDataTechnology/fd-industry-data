@@ -3,6 +3,7 @@ name: education_podcast
 label: Podcast layer (Apple catalog seed -> RSS living-water -> optional whisper transcription)
 source_url: https://itunes.apple.com/search + RSS feeds
 schedule: "17 */6 * * *"  # 每 6h 一次 poller 回合；与在册集群错峰（7.4 终校）
+data_period: day
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

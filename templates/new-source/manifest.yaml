@@ -4,6 +4,10 @@ label: My Source Human Label
 source_url: https://example.com/data/
 # site: tencent              # 可选，缺省 tencent；仅允许 fd_industry_data/sites.yaml 登记过的站点 id
 # schedule: "23 3 * * *"     # 可选，5 段 cron；不填 = 静默不调度（点亮时才补）
+# data_period: day           # 数据自然周期：day/month/year/irregular；健康巡检按它判
+#                            # 「超期未产出」（容忍窗 day→3天、month→35天、year→370天，
+#                            # irregular 不判超期只判连续失败）。有 schedule 的源必填
+#                            # （通布门强制；parked:true 源豁免）
 # memory_limit: "384Mi"      # 可选，缺省用全局默认
 # cpu_limit: "300m"
 scanner_mode: upstream-curated

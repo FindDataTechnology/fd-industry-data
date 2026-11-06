@@ -4,6 +4,7 @@ label: JODI-Gas Monthly Natural Gas Supply-Demand
 source_url: https://www.jodidata.org/gas/database/data-downloads.aspx
 # site: tencent 缺省——api.publisher.jodidata.org 与 www.jodidata.org 直连实测可达（2026-10-08），无需代理出口
 schedule: "13 7 9 * *"       # 点亮（批次三，monthly）
+data_period: month
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

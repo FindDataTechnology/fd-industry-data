@@ -4,6 +4,7 @@ label: US DOE AFDC Alternative Fueling Station Counts
 source_url: https://afdc.energy.gov/data/10332
 # site: tencent 缺省——直连 afdc.energy.gov 实测可达（本机 + tencent 站点均 200，2026-10-08），无需代理出口
 schedule: "43 6 14 * *"       # 点亮（批次三，monthly）
+data_period: month
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

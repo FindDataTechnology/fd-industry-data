@@ -1,5 +1,6 @@
 version: '1'
 schedule: "59 4 * * *"
+data_period: day
 site: zihan
 
 name: metal-com

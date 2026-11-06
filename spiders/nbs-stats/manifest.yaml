@@ -1,5 +1,6 @@
 name: nbs-stats
 schedule: "11 4 4,14,24 * *"
+data_period: month
 label: 国家统计局综合数据
 source_url: https://www.stats.gov.cn/
 data_url: https://data.stats.gov.cn/

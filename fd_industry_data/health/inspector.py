@@ -19,7 +19,12 @@ import yaml
 
 from . import ticket as ticket_mod
 from . import triage
-from .config import HealthConfig, frequency_hours
+from .config import (
+    VALID_DATA_PERIODS,
+    HealthConfig,
+    data_period_tolerance_hours,
+    frequency_hours,
+)
 
 STATE_WORDS = ("queued", "working", "pr-open", "done", "manual")
 
@@ -87,7 +92,31 @@ def group_runs(records: list[dict]) -> dict[str, list[triage.Run]]:
     return grouped
 
 
-# ── 周期推断（manifest.frequency） ─────────────────────────────────────────
+# ── 周期推断（manifest.data_period 优先，functions.frequency 兜底） ─────────
+
+def manifest_data_period(repo: Path, source: str) -> tuple[str | None, bool]:
+    """读 manifest 的 data_period 声明与 parked 注记，返回 (data_period, parked)。
+
+    - manifest 缺失/不可解析 → (None, False)。
+    - data_period 须为 day/month/year/irregular（validate_manifests.py 把关枚举）；
+      非法值按未声明处理（回退 legacy 推断，不让脏值炸巡检）。
+    - parked:true = 裁决 park 注记（add-fleet-lifecycle-adjudication D3），源被
+      有意挂起，豁免超期判定。
+    """
+    manifest = repo / "spiders" / source / "manifest.yaml"
+    if not manifest.exists():
+        return None, False
+    try:
+        doc = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        return None, False
+    period = doc.get("data_period")
+    if isinstance(period, str) and period.strip().lower() in VALID_DATA_PERIODS:
+        period = period.strip().lower()
+    else:
+        period = None
+    return period, doc.get("parked") is True
+
 
 def manifest_period_hours(repo: Path, source: str, config: HealthConfig) -> float | None:
     if source in config.expected_period_overrides:
@@ -104,6 +133,38 @@ def manifest_period_hours(repo: Path, source: str, config: HealthConfig) -> floa
         if h is not None
     ]
     return min(hours) if hours else None
+
+
+# 豁免超期的期望周期（parked / data_period=irregular）：freshness/静默规则恒不
+# 触发（age <= inf 恒真、age > max(3*inf,48h) 恒假），只剩连续失败判定——阈值
+# 沿用 thresholds.consecutive_failures（add-fleet-lifecycle-adjudication 1.3）。
+NO_OVERDUE_HOURS = float("inf")
+
+
+def expected_period_hours(repo: Path, source: str, config: HealthConfig) -> float | None:
+    """判「超期未产出」的期望周期（小时）；None = 周期未知（跳过判定）。
+
+    优先级（add-fleet-lifecycle-adjudication 1.3）：
+
+    1. manifest ``parked: true`` 或 ``data_period: irregular`` → inf：豁免超期，
+       只判连续失败（连续失败阈值沿用现有逻辑）。
+    2. config.expected_period_overrides（运维显式覆盖，小时）——先于 data_period，
+       保持既有运维通道语义不变（向后兼容）。
+    3. manifest ``data_period: day/month/year`` → 容忍窗 / freshness_multiplier。
+       triage 的健康边界 = period * freshness_multiplier，把 period 取成
+       容忍窗/multiplier 恰使边界等于容忍窗（day→3d、month→35d、year→370d）：
+       超窗即非健康必出单（静默走规则 1b/2，带失败走规则 3~9）。
+    4. legacy：manifest functions.frequency 推断（manifest_period_hours）。
+    """
+    period, parked = manifest_data_period(repo, source)
+    if parked or period == "irregular":
+        return NO_OVERDUE_HOURS
+    if source in config.expected_period_overrides:
+        return float(config.expected_period_overrides[source])
+    tolerance = data_period_tolerance_hours(period)  # period 非 None 时必命中
+    if tolerance is not None:
+        return tolerance / config.thresholds.freshness_multiplier
+    return manifest_period_hours(repo, source, config)
 
 
 # ── 出单规划 ──────────────────────────────────────────────────────────────
@@ -152,7 +213,7 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
         if source in config.excluded_sources:
             continue
         runs = runs_by_source[source]
-        period = manifest_period_hours(repo, source, config)
+        period = expected_period_hours(repo, source, config)
         if period is None:
             unknown.append(source)
             continue
@@ -195,6 +256,8 @@ def nonterminal_sources(outdir: Path, within_days: int = 7) -> set[str]:
 def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: datetime) -> dict:
     """落单：去重（非终态存量）+ 日限额。返回统计。"""
     outdir.mkdir(parents=True, exist_ok=True)
+    from . import adjudication
+    adjudication.apply_freeze(plan, repo)  # 升级源冻结新单派发（在途不受影响）
     day = now.strftime("%Y%m%d")
     already_today = todays_emitted(outdir, day)
     remaining = max(0, config.max_daily_tickets - already_today)

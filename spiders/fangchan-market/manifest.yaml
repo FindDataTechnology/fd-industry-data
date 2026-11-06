@@ -4,6 +4,7 @@ label: China Real Estate Association Market Reports (中房网房地产市场监
 source_url: http://news.fangchan.com/api/newslist.json
 # site: tencent                # 缺省 tencent；只访问 news.fangchan.com 与 www.fangchan.com 公开接口，无需换执行位
 schedule: "46 6 * * *"       # 点亮（批次五）：每日 06:46 探测；实测原创栏目 38 个发布日/78 天窗口（均间隔 2.08 天，含连续日）→ 与 daily 频度相称；06:46 经 60 天时长窗模拟零重叠（原 06:43 与 afdc 43 6 14 撞窗）
+data_period: day
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

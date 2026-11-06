@@ -3,6 +3,7 @@ name: education_oa_fulltext
 label: Education OA Fulltext (arXiv new listings + Europe PMC OA → markdown extraction)
 source_url: https://arxiv.org/ + https://europepmc.org/
 schedule: "42 4 * * *"  # 每日 04:42；arXiv 新列表天然增量
+data_period: day
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

@@ -97,6 +97,132 @@ def test_manifest_period_hours(tmp_path):
     assert inspector.manifest_period_hours(repo, "alpha", cfg) == 12.0
 
 
+# ── data_period 判超期（add-fleet-lifecycle-adjudication 1.3） ──────────────
+
+def _mk_dp_repo(tmp_path, **specs):
+    """specs: slug -> manifest 增量字段（data_period/parked/functions.frequency）。"""
+    repo = tmp_path / "repo"
+    (repo / "spiders").mkdir(parents=True)
+    for slug, extra in specs.items():
+        d = repo / "spiders" / slug
+        d.mkdir()
+        doc = {"version": "1", "name": slug}
+        freq = extra.pop("frequency", "daily")
+        doc["functions"] = [{"command": f"run_{slug}", "frequency": freq}]
+        doc.update(extra)
+        (d / "manifest.yaml").write_text(yaml.safe_dump(doc, allow_unicode=True))
+    return repo
+
+
+def test_manifest_data_period_reads_declaration_and_parked(tmp_path):
+    repo = _mk_dp_repo(tmp_path,
+                       plain={"data_period": "month"},
+                       parked_src={"data_period": "day", "parked": True},
+                       legacy={},
+                       dirty={"data_period": "weekly"})   # 非法值按未声明处理
+    assert inspector.manifest_data_period(repo, "plain") == ("month", False)
+    assert inspector.manifest_data_period(repo, "parked_src") == ("day", True)
+    assert inspector.manifest_data_period(repo, "legacy") == (None, False)
+    assert inspector.manifest_data_period(repo, "dirty") == (None, False)
+    assert inspector.manifest_data_period(repo, "absent") == (None, False)
+
+
+def test_expected_period_tolerance_mapping(tmp_path):
+    """容忍窗映射：day→3d、month→35d、year→370d（除以 freshness_multiplier
+    使 triage 的健康边界恰为容忍窗）；irregular 与 parked → inf。"""
+    repo = _mk_dp_repo(tmp_path,
+                       day_src={"data_period": "day"},
+                       month_src={"data_period": "month"},
+                       year_src={"data_period": "year"},
+                       irr={"data_period": "irregular"},
+                       parked_src={"data_period": "month", "parked": True},
+                       legacy={})
+    m = DEFAULTS.thresholds.freshness_multiplier
+    assert inspector.expected_period_hours(repo, "day_src", DEFAULTS) == 72.0 / m
+    assert inspector.expected_period_hours(repo, "month_src", DEFAULTS) == 840.0 / m
+    assert inspector.expected_period_hours(repo, "year_src", DEFAULTS) == 8880.0 / m
+    assert inspector.expected_period_hours(repo, "irr", DEFAULTS) == float("inf")
+    assert inspector.expected_period_hours(repo, "parked_src", DEFAULTS) == float("inf")
+    # 缺 data_period 回退 legacy：functions.frequency=daily → 24h
+    assert inspector.expected_period_hours(repo, "legacy", DEFAULTS) == 24.0
+
+
+def test_expected_period_legacy_and_override_precedence(tmp_path):
+    """运维覆盖先于 data_period（既有通道语义不变）；无覆盖走容忍窗。"""
+    repo = _mk_dp_repo(tmp_path, alpha={"data_period": "month"})
+    cfg = replace(DEFAULTS, expected_period_overrides={"alpha": 12.0})
+    assert inspector.expected_period_hours(repo, "alpha", cfg) == 12.0
+    m = DEFAULTS.thresholds.freshness_multiplier
+    assert inspector.expected_period_hours(repo, "alpha", DEFAULTS) == 840.0 / m
+
+
+def test_plan_day_source_overdue_flagged(tmp_path):
+    """day 源超容忍窗（>3d 无成功）必出单，不再健康短路。"""
+    repo = _mk_dp_repo(tmp_path, late={"data_period": "day"})
+    records = _runs("late", last_success_hours=24 * 4)   # 4 天前成功，超 3 天窗
+    plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
+    assert plan.emit and plan.emit[0].source == "late"
+
+
+def test_plan_month_source_within_tolerance_healthy(tmp_path):
+    """month 源 30 天前有成功 → 窗内健康（旧口径按 frequency=720h*2.5 也健康，
+    但缺 frequency 的源此前会被 skip——现在必须能判定）。"""
+    repo = _mk_dp_repo(tmp_path, stat={"data_period": "month", "frequency": "on_demand"})
+    records = _runs("stat", last_success_hours=24 * 30)  # 30 天 < 35 天窗
+    plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
+    assert plan.healthy == 1 and plan.emit == []
+    assert plan.skipped_unknown_period == []
+
+
+def test_plan_irregular_never_overdue_only_consecutive_failures(tmp_path):
+    """irregular：不判超期（久无成功但无失败=健康）；连续失败达阈值才出单。"""
+    repo = _mk_dp_repo(tmp_path, feed={"data_period": "irregular", "frequency": "on_demand"})
+    old = _runs("feed", last_success_hours=24 * 400)      # 400 天无失败 → 健康
+    plan = inspector.plan_tickets(inspector.group_runs(old), repo, DEFAULTS, NOW)
+    assert plan.healthy == 1 and plan.emit == []
+
+    failing = _runs("feed", fails=3, error="connection timed out",
+                    last_success_hours=24 * 400)          # 连续失败 3 次 → 出单
+    plan2 = inspector.plan_tickets(inspector.group_runs(failing), repo, DEFAULTS, NOW)
+    assert plan2.emit and plan2.emit[0].source == "feed"
+
+    few = _runs("feed", fails=2, error="connection timed out",
+                last_success_hours=24 * 400)              # 未达阈值 → 健康（只判连续失败）
+    plan3 = inspector.plan_tickets(inspector.group_runs(few), repo, DEFAULTS, NOW)
+    assert plan3.healthy == 1 and plan3.emit == []
+
+
+def test_plan_parked_exempt_from_overdue(tmp_path):
+    """parked:true 豁免超期：超窗但无失败 → 健康（不再次骚扰已挂起源）。"""
+    repo = _mk_dp_repo(tmp_path, resting={"data_period": "day", "parked": True})
+    records = _runs("resting", last_success_hours=24 * 30)  # 远超 day 容忍窗
+    plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
+    assert plan.healthy == 1 and plan.emit == []
+
+
+def test_plan_missing_data_period_falls_back_to_legacy(tmp_path):
+    """缺 data_period 回退 legacy：functions.frequency 可推断则照旧判定，
+    不可推断仍进 skipped_unknown_period（向后兼容）。"""
+    repo = _mk_dp_repo(tmp_path, hasfreq={}, nofreq={"frequency": "on_demand"})
+    records = (
+        _runs("hasfreq", fails=3, error="connection timed out")
+        + _runs("nofreq", fails=1, error="x")
+    )
+    plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
+    assert plan.emit and plan.emit[0].source == "hasfreq"
+    assert plan.skipped_unknown_period == ["nofreq"]
+
+
+def test_plan_data_period_clears_skipped_unknown_period(tmp_path):
+    """此前因周期未知被跳过的源（bls：on_demand + schedule）声明 data_period
+    后必须被判定——22 个 skipped_unknown_period 清零的机制保证。"""
+    repo = _mk_dp_repo(tmp_path, bls={"data_period": "day", "frequency": "on_demand"})
+    records = _runs("bls", last_success_hours=24 * 10)   # 10 天 > 3 天窗 → 超期出单
+    plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
+    assert plan.skipped_unknown_period == []
+    assert plan.emit and plan.emit[0].source == "bls"
+
+
 # ── 规划：3 个故障源各归其类，健康源与无周期源跳过 ────────────────────────
 
 def test_plan_emits_three_categories(tmp_path):

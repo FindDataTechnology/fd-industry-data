@@ -4,6 +4,7 @@ label: OER aggregator catalogs (Gutenberg/Gutendex, Wikibooks, DOAB OAI-PMH) —
 source_url: https://gutendex.com/ / https://en.wikibooks.org/ / https://directory.doabooks.org/
 # 出海依赖 EDU_OER_PROXY（CN 出口被墙：gutendex/wikibooks/doab 实测）；无代理=海外部署直连
 schedule: "0 4 * * 1"  # 每周一 04:00（聚合器目录级变更慢，周粒度足够）
+data_period: month
 scanner_mode: upstream-curated
 functions:
   - command: run_gutendex_catalog
