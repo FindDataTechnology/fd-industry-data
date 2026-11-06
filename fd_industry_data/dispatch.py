@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable
 
 logger = logging.getLogger(__name__)
@@ -338,6 +338,68 @@ def _schedule_now(schedule_tz: str | None, now: datetime) -> datetime:
         return now
 
 
+# ---------------------------------------------------------------------------
+# First-crawl backfill window (industry-crawl-gitops: a newly lit source's
+# first run SHALL cover the rolling 12 whole months before its lit day).
+#
+# The lit day (the commit where a manifest's schedule first became non-empty)
+# is not queryable on the dispatch side, so the mechanical proxy is "the
+# source has no successful crawl_runs row yet": the next due scheduled run IS
+# its first crawl and carries the window as run params. The proxy also gives
+# the spec's retry semantics for free — a failed first crawl leaves no success
+# row, so the next tick re-attaches the window instead of moving on. Sources
+# with a success record keep the legacy zero-param path (zero behavior change
+# for the existing fleet).
+#
+# The window travels as pending_runs.params {window_start, window_end}
+# (YYYY-MM-DD); dispatcher_cli forwards it on dedicated runner flags and the
+# runner surfaces it in crawl_runs.metrics — auditable end to end.
+# ---------------------------------------------------------------------------
+
+FIRST_CRAWL_MONTHS = 12
+
+
+def first_crawl_window(today: date, *,
+                       months: int = FIRST_CRAWL_MONTHS) -> dict[str, str]:
+    """Backfill window for a first crawl lit on ``today``.
+
+    ``window_end`` = the lit day itself; ``window_start`` = the same date
+    ``months`` whole months earlier, truncated to that month's first day
+    (whole-month truncation, same month convention as
+    observation-time-granularity: a month is identified by its YYYY-MM-01).
+    Example: lit 2026-11-06 -> start 2025-11-01 (the 12 whole months
+    Nov-2025..Oct-2026 plus the partial current month via end=today).
+    """
+    total = today.year * 12 + (today.month - 1) - months
+    start = date(total // 12, total % 12 + 1, 1)
+    return {"window_start": start.isoformat(),
+            "window_end": today.isoformat()}
+
+
+def successful_run_sources(conn, sources: Iterable[str]) -> set[str]:
+    """Sources among ``sources`` with at least one successful crawl_runs row.
+
+    Batch read on the same central schema the writer reports to (dispatch
+    owns no separate DB). An error here must not break the tick: callers
+    treat it as "everything succeeded" so a telemetry outage degrades to
+    the legacy no-window path instead of mislabeling established sources
+    as first crawls.
+    """
+    names = sorted({s for s in sources if s})
+    if not names:
+        return set()
+    try:
+        with conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT DISTINCT source FROM crawl_runs "
+                "WHERE status = 'success' AND source = ANY(%s)", (names,))
+            return {r[0] for r in (cur.fetchall() or [])}
+    except Exception as e:  # noqa: BLE001 - degrade to legacy path, keep the tick alive
+        logger.warning("first-crawl success lookup failed (%s); "
+                       "treating all candidates as already-crawled", e)
+        return set(names)
+
+
 def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
     """Queue one run per due scheduled source of a docker site.
 
@@ -358,6 +420,13 @@ def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
 
     The schedule is matched in the source's own timezone (``schedule_tz``,
     default UTC).
+
+    A due source with no successful crawl_runs row is on its FIRST crawl
+    (the lit-day criterion — see successful_run_sources): its run params
+    carry the 12-whole-month backfill window so the executor fetches the
+    window instead of an unscoped slice. Sources with a success record are
+    queued exactly as before (no params — the existing fleet's path is
+    untouched).
     """
     now = datetime.now(timezone.utc)
     due: list[str] = []
@@ -394,8 +463,19 @@ def enqueue_due(conn, site: str, window_minutes: int = 15) -> list[str]:
             continue
         due.append(source)
     enqueued: list[str] = []
+    # First-crawl detection runs OUTSIDE the read transaction above (same
+    # reason the queueing does) and only when something is due, so a quiet
+    # tick costs no extra query.
+    first: set[str] = set()
+    if due:
+        # Bind once: inside the comprehension the call would re-run per
+        # element (N queries per tick, and a re-read can disagree).
+        succeeded = successful_run_sources(conn, due)
+        first = {s for s in due if s not in succeeded}
+    window = first_crawl_window(now.date())
     for source in due:
         queue_run(conn, source, site=site,
+                  params=window if source in first else None,
                   requested_by="schedule-tick",
                   known_sources=None)
         enqueued.append(source)

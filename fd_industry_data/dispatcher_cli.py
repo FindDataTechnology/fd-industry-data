@@ -51,6 +51,35 @@ from .runner_cli import _looks_like_auth_failure
 
 _SA_DIR = "/var/run/secrets/kubernetes.io/serviceaccount"
 
+# Platform-owned run parameters (first-crawl backfill window, industry-crawl-
+# gitops): dispatcher-computed, so they travel on dedicated runner flags —
+# same class as --limit, NOT through the --params declaration channel. The
+# window values stay visible in pending_runs.params here and reappear in
+# crawl_runs.metrics on the runner side (auditable end to end).
+WINDOW_FLAGS = {"window_start": "--window-start", "window_end": "--window-end"}
+
+
+def runner_command(src: str, limit: int, params: dict) -> list[str]:
+    """argv for the platform-native subprocess runner form.
+
+    ``limit`` rides the dedicated flag; window params (when the pending run
+    carries them, i.e. a first crawl) ride ``--window-start/--window-end``;
+    everything else is the source's declared-parameter channel. Window keys
+    are stripped from the --params payload so an undeclared spider sees them
+    only via the platform flags/runner context, never as dropped noise.
+    """
+    cmd = [sys.executable, "-m", "fd_industry_data.runner_cli", src,
+           "--limit", str(limit)]
+    for key, flag in WINDOW_FLAGS.items():
+        value = params.get(key)
+        if value:
+            cmd += [flag, str(value)]
+    extra = {k: v for k, v in params.items()
+             if k != "limit" and k not in WINDOW_FLAGS}
+    if extra:
+        cmd += ["--params", json.dumps(extra, ensure_ascii=False)]
+    return cmd
+
 
 def _lookup_run(conn, pending_id: int):
     """The crawl_runs row a completed execution wrote for this pending id."""
@@ -611,14 +640,7 @@ def main() -> int:
             continue
 
         env = {**os.environ, "FD_PENDING_RUN_ID": str(row["id"])}
-        cmd = [sys.executable, "-m", "fd_industry_data.runner_cli", src,
-               "--limit", str(limit)]
-        # Forward the remaining declared params (everything but limit). Without
-        # this channel a unit's non-limit parameters were unreachable in
-        # production: the claim carried them, nothing passed them to the entry.
-        extra = {k: v for k, v in params.items() if k != "limit"}
-        if extra:
-            cmd += ["--params", json.dumps(extra, ensure_ascii=False)]
+        cmd = runner_command(src, limit, params)
 
         ident = None
         jar_path = None

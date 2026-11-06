@@ -1,6 +1,7 @@
 """fd-runner: execute one content-repo source and report the run.
 
-Usage (container entrypoint): fd-runner <src> [--limit N] [--params JSON] [--dry-run]
+Usage (container entrypoint): fd-runner <src> [--limit N] [--params JSON]
+[--window-start YYYY-MM-DD --window-end YYYY-MM-DD] [--dry-run]
 
 Contract:
 - <src> is a directory under the content spiders root (FD_CONTENT_DIR, default
@@ -12,6 +13,19 @@ Contract:
   dropped with a warning instead of raising ``TypeError`` — a manifest/entry
   mismatch must not fail a run. Without this channel any parameter a unit
   declares beyond ``limit`` is unreachable in production.
+- ``--window-start/--window-end`` carry the dispatcher-computed first-crawl
+  backfill window (industry-crawl-gitops): platform-owned run parameters on
+  the same class of channel as ``--limit`` — deliberately OUTSIDE the
+  ``functions[].parameters`` declaration surface, because the window is
+  scheduler-computed and must not become a caller-overridable trigger param.
+  When present they are injected into the spider-readable call context two
+  ways: entry points whose signature explicitly names ``window_start`` /
+  ``window_end`` receive them as kwargs (same conservative named-only rule
+  as ``--params``; ``**kwargs`` does not count), and every spider sees them
+  as ``FD_WINDOW_START`` / ``FD_WINDOW_END`` in ``os.environ``. Spiders that
+  declare neither simply ignore the window — no fleet-wide signature change.
+  The effective window lands in ``crawl_runs.metrics`` (auditable), and a
+  malformed window fails the run loudly rather than being silently ignored.
 - Exit codes: 0 ok, 2 source missing, 3 adapter failure, 4 no entry point.
 - A run record (and its raw items) is written to the central DB unless
   --dry-run; reporting is best-effort and never masks the crawl result.
@@ -27,6 +41,7 @@ import sys
 import threading
 import time
 import traceback
+from datetime import datetime
 
 from . import cancel_event
 from .writer import cancel_requested, finish_run, open_run_for, report_run, start_run
@@ -84,6 +99,52 @@ def _split_params(fn, raw: str | None) -> tuple[dict, list[str]]:
     return {k: v for k, v in parsed.items() if k in accepted}, unknown
 
 
+def _parse_window(start: str | None, end: str | None) -> dict[str, str] | None:
+    """Validated platform window params (``window_start``/``window_end``) or
+    None when absent.
+
+    Raises ``ValueError`` on malformed input — the caller lets it fail the
+    run so a broken dispatch-side window stays visible in crawl_runs (a run
+    parameter must never be silently ignored; see the dropped-params
+    contract). Strict ``YYYY-MM-DD``: the window is a whole-month-truncated
+    date range by construction, and loose parsing here would silently widen
+    or shift what the spider fetches.
+    """
+    if start is None and end is None:
+        return None
+    if not start or not end:
+        raise ValueError(
+            f"window params need both --window-start and --window-end, "
+            f"got start={start!r} end={end!r}")
+    try:
+        s = datetime.strptime(start, "%Y-%m-%d").date()
+        e = datetime.strptime(end, "%Y-%m-%d").date()
+    except ValueError:
+        raise ValueError(
+            f"window params must be ISO YYYY-MM-DD dates, "
+            f"got start={start!r} end={end!r}") from None
+    if s > e:
+        raise ValueError(f"window_start {start} is after window_end {end}")
+    return {"window_start": s.isoformat(), "window_end": e.isoformat()}
+
+
+def _window_kwargs(fn, window: dict[str, str] | None) -> dict[str, str]:
+    """The window subset the entry point explicitly names.
+
+    Same conservative rule as ``_split_params``: only named signature
+    parameters count, ``**kwargs`` does not (a typo'd key must be visible,
+    not swallowed). Spiders that don't name the window get nothing here —
+    they still see ``FD_WINDOW_START``/``FD_WINDOW_END`` in the environment.
+    """
+    if not window:
+        return {}
+    try:
+        accepted = set(inspect.signature(fn).parameters)
+    except (TypeError, ValueError):  # builtins / C callables: pass nothing
+        return {}
+    return {k: v for k, v in window.items() if k in accepted}
+
+
 def _content_dir() -> str:
     d = os.environ.get("FD_CONTENT_DIR") or os.path.join(os.getcwd(), "spiders")
     return os.path.abspath(d)
@@ -136,6 +197,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--limit", type=int, default=100)
     ap.add_argument("--params", default=None,
                     help="JSON object of declared source parameters beyond limit")
+    ap.add_argument("--window-start", default=None,
+                    help="first-crawl backfill window start (YYYY-MM-DD, "
+                         "platform-owned; pairs with --window-end)")
+    ap.add_argument("--window-end", default=None,
+                    help="first-crawl backfill window end (YYYY-MM-DD, "
+                         "platform-owned; pairs with --window-start)")
     ap.add_argument("--dry-run", action="store_true", help="skip DB reporting")
     args = ap.parse_args(argv)
 
@@ -180,11 +247,25 @@ def main(argv: list[str] | None = None) -> int:
 
     status, rows, error_head, items = "success", 0, None, []
     extra, dropped = _split_params(fn, args.params)
-    metrics = {"dropped_params": dropped} if dropped else None
+    window = None
     try:
+        # Malformed window raises inside the try so the failed run is
+        # recorded (error_head carries the reason) instead of silently
+        # crawling an unscoped window.
+        window = _parse_window(args.window_start, args.window_end)
+        if window:
+            # Spider-readable context, platform-side: every spider sees the
+            # window via env; only entries that explicitly name window_start/
+            # window_end additionally receive it as kwargs (below).
+            os.environ["FD_WINDOW_START"] = window["window_start"]
+            os.environ["FD_WINDOW_END"] = window["window_end"]
         if run_id is not None:
             _watch_cancel(run_id)
-        items = fn(limit=args.limit, **extra) or []
+        # Merged (not **) so a window key that also arrived via --params
+        # cannot raise "multiple values for keyword argument": the
+        # platform-owned window wins.
+        call_kwargs = {**extra, **_window_kwargs(fn, window)}
+        items = fn(limit=args.limit, **call_kwargs) or []
         rows = len(items)
         if cancel_event.is_set():
             status = "cancelled"
@@ -197,6 +278,13 @@ def main(argv: list[str] | None = None) -> int:
         error_head = (traceback.format_exc() or "unknown error").strip().splitlines()[-1][:500]
         traceback.print_exc()
     finished = time.time()
+
+    # Auditability: the effective window travels in crawl_runs.metrics next
+    # to dropped_params — the run record is the only surface that survives
+    # the pod (the dispatcher runs this as a subprocess and keeps no stderr).
+    metrics = {"dropped_params": dropped} if dropped else None
+    if window:
+        metrics = {**(metrics or {}), **window}
 
     if status == "failed" and account and _looks_like_auth_failure(error_head):
         # dual-path feedback, runner side: return the identity to the pool
@@ -229,6 +317,8 @@ def main(argv: list[str] | None = None) -> int:
             print("fd-runner: DB report failed; fallback written, crawl result unaffected", file=sys.stderr)
 
     print(f"fd-runner: {src} -> {status} rows={rows} in {finished - started:.1f}s"
+          + (f" (window {window['window_start']}..{window['window_end']})"
+             if window else "")
           + (f" (dropped params: {', '.join(dropped)})" if dropped else ""))
     return EXIT_OK if status == "success" else EXIT_ADAPTER_ERROR
 

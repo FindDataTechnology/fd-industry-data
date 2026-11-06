@@ -19,6 +19,12 @@
 - 历史月值固定（2001-07 = 2513 套），golden 锚固定 region 固定月值；当期月份绝不锚。
 - 容错：取数失败 / 负载非 CSV / 解析 0 行 → ``RuntimeError``（失败即红）；
   只带常规浏览器 UA，不做频次对抗。
+- 首爬回补窗口（industry-crawl-gitops）：dispatcher 派发首爬时经 runner 注入
+  ``window_start``/``window_end``（YYYY-MM-DD，平台属有参数，同 ``limit`` 走专用
+  flag，不上 manifest 声明面）。入口签名显式命名这两个参数即被 kwargs 注入；
+  未带窗口的运行（增量、golden 重放）行为不变。窗口过滤按 ``TIME_PERIOD``
+  的 ``YYYY-MM`` 前缀比较，且必须先于 ``limit`` 截断——切片自 2001-07 升序，
+  先截断会把最老的行当成窗口产出。
 
 工单：``reports/health-tickets/20261006-abs-sdmx-05cdc4e2.yaml``（``kind=generate``）
 """
@@ -58,8 +64,39 @@ def _num(value):
         return None
 
 
-def run_abs_sdmx(limit: int = 100, key: str = DEFAULT_KEY) -> list[dict]:
-    """取 BA_GCCSA 指定 key 切片的至多 ``limit`` 行；全链路失败 → ``RuntimeError``。"""
+def _window_months(window_start, window_end):
+    """首爬回补窗口 → 闭区间 ``(YYYY-MM, YYYY-MM)`` 月界；未带窗口 → ``None``。
+
+    平台属有参数（YYYY-MM-DD，dispatcher 经 runner 注入）。非法值抛
+    ``ValueError``：带窗口的运行必须响亮失败，而不是静默取错区间。
+    """
+    if window_start is None and window_end is None:
+        return None
+    if not window_start or not window_end:
+        raise ValueError(
+            f"abs-sdmx: window 参数须成对出现，got start={window_start!r} "
+            f"end={window_end!r}")
+    try:
+        s = datetime.strptime(str(window_start), "%Y-%m-%d").strftime("%Y-%m")
+        e = datetime.strptime(str(window_end), "%Y-%m-%d").strftime("%Y-%m")
+    except ValueError:
+        raise ValueError(
+            f"abs-sdmx: window 参数须为 YYYY-MM-DD，got start={window_start!r} "
+            f"end={window_end!r}") from None
+    if s > e:
+        raise ValueError(
+            f"abs-sdmx: window_start {window_start} 晚于 window_end {window_end}")
+    return s, e
+
+
+def run_abs_sdmx(limit: int = 100, key: str = DEFAULT_KEY,
+                 window_start: str | None = None,
+                 window_end: str | None = None) -> list[dict]:
+    """取 BA_GCCSA 指定 key 切片的至多 ``limit`` 行；全链路失败 → ``RuntimeError``。
+
+    ``window_start``/``window_end``（可选，YYYY-MM-DD）为首爬回补窗口：
+    只产出落在窗口内的月份，过滤先于 ``limit`` 截断。
+    """
     try:
         limit = int(limit)
     except (TypeError, ValueError):
@@ -69,6 +106,7 @@ def run_abs_sdmx(limit: int = 100, key: str = DEFAULT_KEY) -> list[dict]:
     if not isinstance(key, str) or not _KEY_RE.match(key.strip()):
         raise ValueError(f"abs-sdmx: SDMX key 形态非法: {key!r}（应为点分维度过滤串）")
     key = key.strip()
+    win = _window_months(window_start, window_end)
 
     url = BASE_URL.format(key=key) + "?format=csv"
     try:
@@ -83,9 +121,14 @@ def run_abs_sdmx(limit: int = 100, key: str = DEFAULT_KEY) -> list[dict]:
 
     rows: list[dict] = []
     for rec in csv.DictReader(io.StringIO(text)):
+        period = rec.get("TIME_PERIOD") or None
+        if win is not None:
+            # TIME_PERIOD 是 YYYY-MM；窗口界取同前缀比较（YYYY-MM-DD → YYYY-MM）
+            if period is None or not (win[0] <= period[:7] <= win[1]):
+                continue
         rows.append(
             {
-                "period": rec.get("TIME_PERIOD") or None,
+                "period": period,
                 "region": rec.get("REGION") or None,
                 "measure": rec.get("MEASURE") or None,
                 "unit": rec.get("UNIT_MEASURE") or None,
