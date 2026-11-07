@@ -12,7 +12,10 @@ schedule: "15 0 * * *"     # 点亮（2.6，2026-11-08）：每日 00:15 UTC = 0
 #   该时点是 120 天分钟级仿真里唯一后半程零冲突的窗口（schedule_overlap_check --new
 #   零 duplicates / 零 window overlap，实测时长 1 分钟；02–06 时段已被日频源占满）。
 #   上游滚动窗约 2 个月，停跑超过 2 个月会永久丢历史，故日频是必要频率。
-data_period: day            # 上游每个工作日一版（实测偶有跳日）；容忍窗 default 3 天
+data_period: day
+# 每轮取数上限（模板默认 100 会把滚动窗截成前 100 行）。实测：一天一版报告最多 46 条报价，
+# 上游滚动窗（10 个列表页）全量约 932 行——默认 100 只覆盖最近约 2 天，跳日一多就会漏天。
+limit: 1200            # 上游每个工作日一版（实测偶有跳日）；容忍窗 default 3 天
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
