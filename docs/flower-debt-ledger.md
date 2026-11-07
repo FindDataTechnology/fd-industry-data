@@ -41,6 +41,8 @@
 
 | F19 | **P1** | **看板代码不在任何 git 仓** | `dashboards/` 位于 finddata 根下，而**根目录不是 git 仓库**（`git status` → `fatal: not a git repository`）。本次改的三个 builder + `publish_flower_boards.py` + `industry_common.py` + `tests/` 全部**无版本控制**，也没有 diff 可复核 | **待裁**：①把 `dashboards/` 纳入某个已有仓（如 fd-industry-data 或新的 fd-dashboards）；②单独建仓。验收：`git status` 能看到这些文件的改动，且历史的每次板面口径变更可追 |
 
+| F20 | ~~P1~~ → **已修** | 集群运行的 `--limit 100` **静默截断**滚动窗 | 实证：集群首次运行 `rows_written=100`（恰好等于 limit）只覆盖 **5 天**；同一 Job 在声明 limit 后重跑 → **932 行 / 42 天**。一天一版报告最多 46 条报价，所以 100 只够最近约 2 天，上游跳日一多就漏天且**不报错**。修法（照酒店线先例，AppSet 已支持 limit 透传）：`dounan-flower-price: limit 1200`、`aiph-stats: limit 300`；push 后 ArgoCD 同步生效（Application 参数 `limit=1200`，CronJob args `--limit 1200`） | 验收：已完成（真实运行实证 100→932 行） |
+
 ## 2. 与侦察簿/宇宙清单的对齐（真查）
 
 | 检查 | 结果 |
