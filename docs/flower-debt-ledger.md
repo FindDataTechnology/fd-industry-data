@@ -8,11 +8,13 @@
 
 | # | 级别 | 项 | 证据（可回指） | 处置 / 去向 |
 |---|---|---|---|---|
-| F1 | **P0** | 两个新源**在集群里还不存在**（manifest 未入库） | `git status --short spiders/{dounan-flower-price,aiph-stats}` → 两条 `??`；`kubectl --context xinru get cronjobs -A \| grep -c fd-industry` = **0**；`kubectl --context cheap-ts get cronjobs -A` 9 条无花卉。库内两次 success 是 2026-11-07T17:50 的**手动试跑**（`rows_written` 932 / 81） | **待授权**：提交 manifest → 打进 `fd-scripts` ConfigMap → `crawl-reconciler` 下一轮（每 15 分钟）才会创建 CronJob。验收：`kubectl -n fd-master get cronjobs \| grep -E "dounan-flower-price\|aiph-stats"` 有两条，且首轮按点触发后 `crawl_runs` 新增 success |
+| F1 | ~~P0~~ → **已修（上产）** | 两个新源在集群里不存在 | 已推 Gitee main（commit `8f0457b`）→ ArgoCD AppSet 生成 Application → **集群出现两条 CronJob**（`fd-industry-dounan-flower-price` `15 0 * * *`、`fd-industry-aiph-stats` `42 0 12 1 *`，CronJob 总数 76→78）；手动触发一次 `flower-verify-*` Job → Pod **Completed**，`crawl_runs` 新增 success `rows_written=100`、`image_tag=…runner:sha-750da3f` | 验收：已完成（真实调度链路端到端跑通） |
+
 | F2 | **P1** | KIFA（`flower-auction`）被雷池 WAF 全站拦 | 2026-11-08 带完整 Chrome 头 + `--http2` 复测四 URL（含首页）全 `HTTP/2 468`、`server: Tengine`、`content-length: 14863`、`set-cookie: sl-session=…`、正文含 `challenge.rivers.chaitin.cn/challenge/v2/challenge.js` | **待裁**：三条解锁条件已写进 `spiders/flower-auction/manifest.yaml` 头注与 README —— ①JS 渲染会话（playwright）②稳定出口 + `sl-session` 24h 复用 ③挑战失效双路反馈。验收：任一条件下取到真表行且 golden 绿。**注意：2026-10-04 旧记录的「需非云出口」已被本次实测推翻** |
 | F3 | ~~P1~~ → **已修（6.6）** | 「成功但查出 0 行」在健康面不可见 | 实证：`flower-auction` **4 次 success / rows_written 合计 0**。已加 manifest 可选字段 `min_rows_per_run` + 分诊**规则 1c**（先于健康短路；未声明即不生效=零回归）+ 10 条测试；真实巡检 `117 源 / 93 healthy` 且 AIPH 不误伤。**剩**：斗南只有一次回补样本（932 行），日常运行行数未测 → 故意不声明下限，等一个日常样本再定 | 验收：斗南日常运行样本到手后声明 `min_rows_per_run`，连续 N 轮低于下限能出单 |
 
-| F4 | **P1** | 公开板**没有发布去处** | `publish_flower_boards.py` 只产出 `*-public.spec.json` + html（本机文件）；`fd-official-web/public/` 下只有 `research/papers`，全站无任何行业板入口（`grep -rl "agriculture-prosperity-public\|astock-trading" fd-official-web` 为空） | **待裁**：交付通道三选一 —— 官网 `research/boards/`、柏讯客户端内嵌、或仅作离线交付物。验收：选定后公网可访问或客户端可打开，且 `content-manifest.json` 有对应条目 |
+| F4 | **P1**（机制已就绪，通道待裁） | 公开板没有发布去处 | 已加 `publish_flower_boards.py --stage DIR`：产出**三份单文件 HTML + manifest.json**（业务名/副标题/as-of/图数/字节数），复制前**逐份复验零内部标识**（防「构建时干净、后来被改脏还照发」）。实测 `--stage /tmp/flower-boards`：3 板 / 6+4+6 图 / 3.0 MB | **待裁**：官网（拷到 `fd-official-web/public/research/boards/` + 加路由与清单条目）、客户端内嵌（随柏讯分发）、或仅离线交付。验收：选定通道后 `--stage` 产出可直接使用，无需改脚本 |
+
 | F5 | **P1** | 美股**分部维度**抽不出来 | `companyfacts` 已剥维度 → 分部图 `chart-segments` 空（带原因占位）；A股 `002200` 的 `stock-zygc` 该实体零条 | **转 change `awaken-flower-report-ingest`**（已存在于 `openspec/changes/`）：走 10-K instance 的分部轴。验收：分部图有真数且与合并口径分图不混算 |
 | F6 | ~~P1~~ → **已修（3.2 完成）** | UN Comtrade 花卉三档已入库 | 密钥取自集群 `tencent/fd-industry/fd-industry-source-keys`（未落盘）；**57 点入库**（6 组合 × 近 10 年），贸易板 4 图出数（10 序列 / 97 点），规则 `hs0603_export_yoy_negative` 已启用（2025 同比 +147.93% → quiet）。接入过程修掉 4 个真缺陷：snake_case 字段名、`partner2_code` 明细行（2016 曾少算 21 倍）、看板派生序列 `dict(s)` 丢属性、`period` 截断把季度冒充年度 | 验收：已完成（2023 三档与官方免 key 预览逐位一致） |
 
@@ -27,9 +29,11 @@
 | F15 | P3 | 事件数曾虚报、台账曾重写 | 90 天窗原始 56 行 → 真申报 28（`crawl_items` 逐次运行追加）；看板去重键漏 `accession`（488 vs 495）；`append_ledger` 只跟已存文件去重、不跟批内去重 → 台账文件实际 **56 行 / 28 键**（已收敛回 28 行，重跑 0 新增） | **已修**：`scan_events` 按业务键收敛 + 看板键补 accession + `append_ledger` 批内去重，三处口径一致，各带测试（6.5/7.3 留痕） |
 | F16 | P3 | 空图曾无占位 | 公网板 5 张空图只有坐标轴（贸易 4 + 分部 1），`no_data` 的「板面出无数据（原因）」承诺未实现 | **已修**：`industry_common.empty_state()` + 两个 builder 挂占位 + 产物级回归测试（7.3 留痕） |
 
-| F17 | P2 | 预警引擎**没有调度** | 全仓无任何 `flower_alerts`/`restaurant_alerts` 的 CronJob 定义（`grep -rn "restaurant_alerts\|flower_alerts" --include=*.yaml .` 只命中 config 描述）；`k8s/cronjob-template` 只渲染 `spiders/*/manifest.yaml` 的源，不含脚本级任务。故四级预警目前只能手动跑 | **待裁**：与餐饮线同一现状，两条线一起定「预警跑哪儿」——①并入 `crawl-watcher-scan`（已每 15 分钟跑）②新增一个 alert CronJob ③外部定时器。验收：连续 N 天有 `reports/flower-alerts/<date>/rules-*.json` 且状态机按边缘触发收敛 |
+| F17 | ~~P2~~ → **已修** | 预警引擎没有调度 | 新增 `.github/workflows/flower-alerts.yml`：每日 **01:05 UTC**（斗南 00:15 UTC 跑完后 50 分钟）跑发布节奏级/阈值级/事件级；**状态机与报告 commit 回 main**（cooldown/episode 必须跨运行持久，否则「连续越阈只报一次」失效）；退出码 1（有越阈）不算失败；复用既有只读 secret `FD_CENTRAL_PG_DSN`（脚本增至三处 DSN 回落，全程只读） | 验收：工作流已上 GitHub main（schedule 生效）；本地按它的命令与 DSN 回落逐条模拟跑通。**残余**：只落仓不推送通知——阈值告警是业务信号、不是爬虫故障，走萬星 spider-heal 会让 agent 去修不该修的东西；通知通道（微信/邮件/看板）仍需你定 |
 
-| F18 | P2 | EU 花卉主面积**没有刷新调度** | 该序列靠 `scripts/extract_flower_wave1.py --only eurostat-api` 从 provider 按需取数写入；全仓没有任何定时任务跑这个抽取器（同 F17 家族）。上游年频、每年一次更新，静默过期不易被发现 | **待裁**：与 F17 一起定「抽取器跑哪儿」——放进 `crawl-watcher-scan` 的批次，或单开年频 job（建议每年 1 月，跟 AIPH 同窗口）。验收：连续两年有新年份点入库 |
+
+| F18 | ~~P2~~ → **已处理（手动触发）** | EU 花卉主面积没有刷新调度 | 已并入同一工作流的 `workflow_dispatch` 步骤（`refresh=true`）：Eurostat 面积 / AIPH / Comtrade 花卉三档都是**年频**，每日空跑会白打 6 次外部 API，故不挂 cron；写库需要 `FD_OPEN_DATA_DSN_WRITE`（现有 `FD_CENTRAL_PG_DSN` 是只读账号 `fd_health_ro`），未配置时**明确 SKIP 不假装跑过** | 验收：配好该 secret 后，每年点一次 `Run workflow` 即可。**残余**：完全自动化需在集群侧加写库 CronJob（镜像 entrypoint 是 fd-runner，跑脚本需全量 checkout + 依赖），另立即可 |
+
 
 ## 2. 与侦察簿/宇宙清单的对齐（真查）
 
