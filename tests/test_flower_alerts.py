@@ -466,3 +466,38 @@ def test_cmd_rules_dry_run_writes_no_state(tmp_path):
                  now, dry_run=True, do_escalate=False)
     assert not (tmp_path / "state" / "alert-state.json").exists()
     assert (outdir / f"rules-{now.date().isoformat()}.json").exists(), "报告照写"
+
+
+# ── 退出码语义（定时任务按它判成败） ─────────────────────────────────────
+
+def test_fatal_paths_exit_2_not_1():
+    """配置/契约错误必须退出 **2**：1 已经表示「有规则越阈」。
+
+    `raise SystemExit("消息")` 在 Python 里退出码是 1 —— 与「有越阈」撞车。
+    2026-11-08 CI 实测就是这么假绿的：`ModuleNotFoundError` 的 1 被当成有告警，
+    job 报 success，而脚本一行都没跑成功。约定 0/1/2 三段。
+    """
+    import subprocess, sys
+    env = {"PATH": "/usr/bin:/bin", "HOME": "/tmp"}   # 清空 DSN 等环境
+    proc = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "flower_alerts.py"), "--rules"],
+        capture_output=True, text=True, env=env, timeout=60,
+    )
+    assert proc.returncode == 2, f"缺 DSN 应退出 2，实际 {proc.returncode}"
+    assert "DSN" in (proc.stderr + proc.stdout)
+
+
+def test_psql_fallback_produces_the_same_verdicts_as_the_driver(monkeypatch):
+    """无驱动环境的 psql 兜底必须与驱动路径同结论（CI 与本地不能各说一套）。
+
+    这里只验适配器的**形状**：`%s` 内联成字面量、空数组、单引号转义、
+    以及 psql 文本输出解析成行。
+    """
+    assert fa._sql_literal(None) == "NULL"
+    assert fa._sql_literal(5) == "5"
+    assert fa._sql_literal("a'b") == "'a''b'"
+    assert fa._sql_literal([]) == "ARRAY[]::text[]"
+    assert fa._sql_literal(["x", "y"]) == "ARRAY['x', 'y']"
+    # 时间列：驱动给 datetime，psql 给空白分隔字符串，都要归一成 ISO
+    assert fa._iso("2026-11-07 17:50:10+00") == "2026-11-07T17:50:10+00"
+    assert fa._iso(NOW) == "2026-11-08T12:00:00+00:00"

@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess  # noqa: S404 - psql 兜底通道
 import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -56,31 +57,114 @@ CATALOG_TICKERS_SQL = """
 def load_config(path: Path) -> dict:
     doc = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(doc, dict) or "rules" not in doc:
-        raise SystemExit(f"FATAL 配置不合法（缺 rules）：{path}")
+        raise _fatal(f"FATAL 配置不合法（缺 rules）：{path}")
     return doc
 
 
+def _fatal(message: str) -> "NoReturn":  # noqa: F821
+    """致命配置/契约错误：写 stderr 后以 **2** 退出。
+
+    为什么不用 ``raise SystemExit("消息")``：Python 对字符串参数取退出码 **1**，
+    与「有规则越阈」的 1 撞车——定时任务会把配置错误读成「有告警」并报成功
+    （2026-11-08 CI 假绿就栽在这条语义上）。约定：0 未越阈 / 1 有越阈 / 2 自身失败。
+    """
+    print(message, file=sys.stderr)
+    raise SystemExit(2)
+
+
+def _sql_literal(value) -> str:
+    """Python 值 → SQL 字面量（psql 模式用；参数全是常量或库内代码，仍严格转义）。"""
+    if value is None:
+        return "NULL"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return repr(value)
+    if isinstance(value, datetime):
+        return "'" + value.isoformat() + "'"
+    if isinstance(value, (list, tuple, set)):
+        items = list(value)
+        if not items:
+            return "ARRAY[]::text[]"
+        return "ARRAY[" + ", ".join(_sql_literal(v) for v in items) + "]"
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+class _PsqlCursor:
+    """经 ``psql`` 子进程执行查询的游标（纯 stdlib，无驱动依赖）。
+
+    为什么需要：定时任务跑在 self-hosted runner 上，那里**没有 psycopg/psycopg2**
+    （2026-11-08 实测 `ModuleNotFoundError`）。健康巡检早就为同一原因走 psql 子进程
+    （`health/inspector.py`：「纯 stdlib；中央库读取经 psql 子进程，避免引入驱动依赖」），
+    本类沿用同一纪律。参数仍以 ``%s`` 书写，这里内联成安全字面量。
+    """
+
+    def __init__(self, dsn: str, binary: str = "psql") -> None:
+        self.dsn, self.binary, self._rows = dsn, binary, []
+
+    def execute(self, sql: str, params=None) -> None:
+        params = tuple(params or ())
+        parts = " ".join(sql.split()).split("%s")
+        if len(parts) - 1 != len(params):
+            raise RuntimeError(
+                f"SQL 占位符 {len(parts) - 1} 个、参数 {len(params)} 个，不匹配")
+        query = parts[0]
+        for value, tail in zip(params, parts[1:]):
+            query += _sql_literal(value) + tail
+        proc = subprocess.run(
+            [self.binary, self.dsn, "-A", "-F", "\t", "-t", "-q",
+             "-v", "ON_ERROR_STOP=1", "-c", query],
+            capture_output=True, text=True, timeout=180,
+        )
+        if proc.returncode != 0:
+            raise RuntimeError(f"psql failed ({proc.returncode}): "
+                               f"{proc.stderr.strip()[:400]}")
+        self._rows = [tuple(line.split("\t"))
+                      for line in proc.stdout.splitlines() if line]
+
+    def fetchall(self):
+        return self._rows
+
+    def fetchone(self):
+        return self._rows[0] if self._rows else None
+
+
+class _PsqlConn:
+    """无驱动环境下 ``connect()`` 返回的连接壳（只提供 cursor/close）。"""
+
+    def __init__(self, dsn: str) -> None:
+        self._cursor = _PsqlCursor(dsn)
+
+    def cursor(self):
+        return self._cursor
+
+    def close(self) -> None:
+        pass
+
+
 def connect(dsn: str | None = None):
-    """只读连接。优先 psycopg3，回退 psycopg2（两种都在环境里出现过）。"""
-    # 三处回落：显式 --dsn → 本地开发用的 FD_OPEN_DATA_DSN → 健康管道既有的只读账号
-    # FD_CENTRAL_PG_DSN。第三个是为了让定时任务复用既有 secret（缺一就得再配一份
-    # 只读凭据；本脚本全程只读，不需要写权）。
+    """只读连接：psycopg3 → psycopg2 → **psql 子进程**（无驱动环境，如 CI runner）。"""
+    # 三处回落：显式 --dsn → 本地 FD_OPEN_DATA_DSN → 健康管道既有只读账号 FD_CENTRAL_PG_DSN
     value = (dsn or os.environ.get("FD_OPEN_DATA_DSN", "")
              or os.environ.get("FD_CENTRAL_PG_DSN", ""))
     if not value:
-        raise SystemExit(
+        raise _fatal(
             "ERROR: 需要 FD_OPEN_DATA_DSN 或 FD_CENTRAL_PG_DSN（先 "
             "`source ~/.config/finddata/dashboards.env`）")
+    if os.environ.get("FD_FLOWER_ALERTS_FORCE_PSQL") == "1":
+        return _PsqlConn(value)          # 测试钩子：强制走 psql 路径
     try:
         import psycopg  # noqa: PLC0415
         conn = psycopg.connect(value, connect_timeout=40)
         conn.read_only = True
         return conn
     except ImportError:
+        pass
+    try:
         import psycopg2  # noqa: PLC0415
-        conn = psycopg2.connect(value, connect_timeout=40)
-        conn.set_session(readonly=True, autocommit=True)
-        return conn
+        return psycopg2.connect(value, connect_timeout=40)
+    except ImportError:
+        return _PsqlConn(value)
 
 
 def series(cur, concept: str, source_used: str,
@@ -114,6 +198,14 @@ def entity_id(cur, code: str, entity_type: str) -> int | None:
     )
     row = cur.fetchone()
     return int(row[0]) if row else None
+
+
+def _iso(value) -> str:
+    """时间列归一成 ISO 字符串：驱动给 datetime，psql 给 "2026-11-07 17:50:10+00"。"""
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    text = str(value).strip()
+    return text.replace(" ", "T", 1) if text else text
 
 
 def _display_path(path: Path) -> str:
@@ -490,7 +582,7 @@ def publication_report(cur, cfg: dict, now: datetime) -> list[dict]:
             """,
             (source, now - timedelta(days=int(spec.get("lookback_days", 120)))),
         )
-        runs = [pub.Run(started_at=r[0].isoformat(), status=r[1], rows=r[2])
+        runs = [pub.Run(started_at=_iso(r[0]), status=str(r[1]), rows=int(r[2]))
                 for r in cur.fetchall()]
         # 水位来自观测面（数据日），不来自遥测——遥测没有数据期列。
         wm_concept = spec.get("watermark_concept")
@@ -536,7 +628,7 @@ def _rule_source(rule: dict, result: dict) -> str:
     for target in entities:                      # 越线实体没注册时退到首个已声明源
         if target.get("source_used"):
             return target["source_used"]
-    raise SystemExit(f"FATAL 规则 {rule.get('name')} 未声明任何 source_used，工单无从归属")
+    raise _fatal(f"FATAL 规则 {rule.get('name')} 未声明任何 source_used，工单无从归属")
 
 
 def _ticket_for(name: str, rule: dict, result: dict, cfg: dict, now: datetime) -> dict:
@@ -589,7 +681,7 @@ def escalate(items: list[dict], cfg: dict, outdir: Path, now: datetime,
         doc = _ticket_for(item["name"], item["rule"], item["result"], cfg, now)
         errors = ticket_mod.validate_ticket(doc)
         if errors:
-            raise SystemExit(f"FATAL 工单不合法（{item['name']}）：{errors}")
+            raise _fatal(f"FATAL 工单不合法（{item['name']}）：{errors}")
         day = doc["created_at"][:10].replace("-", "")
         fname = ticket_mod.ticket_filename(day, doc["source"], doc["ticket_id"].split("-")[-1])
         doc["ticket_id"] = fname[:-5]
@@ -634,7 +726,7 @@ def cmd_rules(cur, cfg: dict, outdir: Path, now: datetime, dry_run: bool,
         notes: list[str] = []
         evaluator = EVALUATORS.get(rule["kind"])
         if evaluator is None:
-            raise SystemExit(f"FATAL 未知 kind={rule['kind']!r}（规则 {name}）")
+            raise _fatal(f"FATAL 未知 kind={rule['kind']!r}（规则 {name}）")
         result = (evaluator(cur, rule, notes, asof=now.date())
                   if rule["kind"] == "ratio" else evaluator(cur, rule, notes))
         prev = (state.get("rules") or {}).get(name, {})
@@ -731,4 +823,14 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # 退出码语义（定时任务按它判成败）：0=全部未越阈 / 1=有规则越阈（预期）/ 2=脚本自身崩溃
+    # 为何必须区分：CI 曾把 ModuleNotFoundError 的退出码 1 当成「有越阈」，job 报 success 而
+    # 脚本根本没跑（假绿，2026-11-08 实测）。
+    try:
+        raise SystemExit(main())
+    except SystemExit:
+        raise
+    except Exception:  # noqa: BLE001 - 兜底：任何未预期异常都必须判红
+        import traceback
+        traceback.print_exc()
+        raise SystemExit(2)

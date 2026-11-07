@@ -60,15 +60,25 @@ jobs:
         working-directory: src
         env:
           FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
+          # runner 上没有 psycopg/psycopg2（实测 ModuleNotFoundError），脚本会回落到
+          # psql 子进程；这里显式指定，避免将来装了驱动又悄悄换路径导致行为漂移。
+          FD_FLOWER_ALERTS_FORCE_PSQL: "1"
         run: |
           ARGS=""
           if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
-          # 退出码 1 = 有规则越阈（预期语义，不是失败）；只在 >1 时判红。
+          # 退出码语义：0=未越阈 / 1=有规则越阈（预期，不算失败）/ 2=脚本崩溃
+          # 这条判断曾经是假绿来源：Python 未捕获异常的退出码也是 1，被当成「有越阈」，
+          # job 报 success 而脚本根本没跑（2026-11-08 实测）。脚本已把崩溃改成 2。
           set +e
           python3 scripts/flower_alerts.py --publication --rules --events --escalate $ARGS
           code=$?
-          echo "flower_alerts exit=$code（1=有越阈，预期）"
-          if [ "$code" -gt 1 ]; then exit "$code"; fi
+          set -e
+          echo "flower_alerts exit=$code"
+          case "$code" in
+            0) echo "结果：全部未越阈" ;;
+            1) echo "结果：有规则越阈（预期语义，非故障）" ;;
+            *) echo "结果：脚本自身失败（exit=$code）"; exit "$code" ;;
+          esac
           exit 0
 
       # 抽取器刷新（F18）：Eurostat 花卉主面积 / AIPH / Comtrade 花卉三档都是**年频**，
