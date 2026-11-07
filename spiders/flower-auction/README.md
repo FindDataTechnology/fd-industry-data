@@ -49,3 +49,44 @@ spider 上打补丁；`golden/` 需要先有真实抓取样本才能立。
 - 侦察与决策：`openspec/changes/add-flower-vertical/`（proposal §KIFA 判死实证、
   design §为什么不用 KIFA）
 - 同类源替代：`docs/flower-series-curation.md`
+
+## 2026-11-08 二次实测：闸门是「必须执行 JS」，真实入口是 `*.do`
+
+**前一版 README 有两处错，这里更正**（原文说「/auction /price /market 三条路径不存在」，
+并暗示换出口即可解决）：
+
+1. **挑战能过**：真实 Chromium 打开首页，显示「Security Detection Powered By SafeLine WAF
+   Client Verifying . . .」，**约 15 秒后自动放行**，落地真实站点
+   （title=昆明国际花卉拍卖交易中心）。所以 468 不是永久拒绝，而是「先执行 JS 挑战」。
+2. **裸 HTTP 仍然不行**：过挑战后 cookie 是 `sl-challenge-server` +
+   `safeline-<sha256>-key`，后者由 JS 现场计算。带 `sl-session` 的 curl 实测仍是 468 →
+   必须常驻浏览器上下文，**不能「拿一次 cookie 就复用」**。
+
+### 真实数据入口（都是 `*.do`，不是 REST 路径）
+
+| 用途 | 路径 |
+|---|---|
+| 价格指数页 | `/kIFAPriceIndex.do?method=index` |
+| 大类走势页 | `/breedQuotation.do?method=index` |
+| **行情 JSON** | `/breedQuotation.do?method=getInfo&breed=<id>` |
+
+`breed` 的值是页面 `<select>` 的 value，**不是中文名**（传中文返回 `[]`）：
+
+| 品种 | breed |
+|---|---|
+| 玫瑰 | `111` |
+| 康乃馨 | `112` |
+| 非洲菊 | `120` |
+
+返回形状（实测玫瑰，日频 6 天）：
+
+```json
+[{"timeString":"20261102","avgPrice":0.32,"highestPrice":3.02}, ...]
+```
+
+### 为什么仍然不点亮
+
+- 令牌与会话绑定、随雷池版本变化 → 复活 = 常驻 playwright + 跟随版本维护；
+- 数据面很窄：3 个大类 × 均价/最高价 × 6 天滚动；斗南日价已按 23 个品种逐日覆盖同类信息。
+
+复活方式写在 `manifest.yaml` 头注（页面上下文内调接口 + 会话池 + 468/验证码双路反馈进健康巡检）。

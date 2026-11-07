@@ -15,8 +15,31 @@ source_url: https://www.kifa.net
 #      不能只靠 impersonate=chrome 的 HTTP 指纹）；
 #   2. 稳定非云出口 + 会话 cookie（sl-session 24h 有效）复用，登录态池可承载；
 #   3. 挑战机理随雷池版本变动 → 复活后必须纳入健康级巡检（验证码/468 双路反馈）。
-# 不点亮理由：结构脆弱（依赖 JS 挑战的实现细节）+ 斗南日价已覆盖同类现货价格信息，
-#   KIFA 增量价值只是「拍卖成交侧」，不构成为它承担 WAF 对抗维护成本的理由。
+# ── 2026-11-08 二次实测（浏览器闯关成功，结论更新）──────────────────────────
+# 用真实 Chromium 打开 https://www.kifa.net/：先显示
+#   「Security Detection Powered By SafeLine WAF Client Verifying . . .」
+#   **约 15 秒后自动放行**，落地真实首页（title=昆明国际花卉拍卖交易中心）。
+# 即：**闸门不是「不可突破」，而是「必须执行 JS 挑战」**——裸 HTTP 永远拿不到。
+#
+# 放行后的真实数据入口（README 里说「不存在」的三条路径是错的，真实入口是 *.do）：
+#   价格指数   /kIFAPriceIndex.do?method=index
+#   大类走势   /breedQuotation.do?method=index
+#   JSON 接口  /breedQuotation.do?method=getInfo&breed=<id>
+#              id：玫瑰=111 / 康乃馨=112 / 非洲菊=120（页面 <select> 的真实取值，
+#              传中文名会返回 []）
+#   返回形状   [{"timeString":"20261102","avgPrice":0.32,"highestPrice":3.02}, ...]
+#              实测玫瑰返回 6 天（20261102–20261107），日频。
+#
+# 为什么仍然 parked（这次的依据更硬）：
+#   * 过挑战后的 cookie 只有 `sl-challenge-server` 与
+#     `safeline-<sha256>-key`——**后者是 JS 现场算出来的挑战令牌**；
+#     裸 curl 即使带上 sl-session 仍是 468（已实测），所以真爬必须常驻浏览器上下文。
+#   * 也就是说「拿一次 cookie 复用」不成立：令牌与会话绑定且随挑战版本变化，
+#     复活=常驻 playwright + 跟随雷池版本维护，成本远高于只读 6 天日频数据的收益。
+#   * 数据增量有限：仅 3 个大类（玫瑰/康乃馨/非洲菊）的均价+最高价，6 天滚动；
+#     斗南日价已按 23 个品种逐日覆盖同类现货信息。
+# 复活方式（若将来要上）：playwright 常驻（chromium + 等挑战通过）+ 在**页面上下文内**
+#   调 getInfo 接口（不要另起 HTTP 客户端）+ 会话池 + 468/验证码双路反馈进健康巡检。
 # 状态：parked: true，`schedule` 故意不写——复活前不得被调度。
 scanner_mode: upstream-curated
 ranking_seed:
