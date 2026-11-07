@@ -11,6 +11,18 @@
       "episode": 1,
       "last_value": -89.493,
       "period": "2026-06-30"
+    },
+    "hs0603_export_yoy_negative": {
+      "last_value": 147.9294,
+      "period": "2025"
+    },
+    "eu_flower_area_yoy_negative": {
+      "state": "firing",
+      "since": "2026-11-07T22:39:21.407268+00:00",
+      "last_notified_at": "2026-11-07T22:39:21.407268+00:00",
+      "episode": 1,
+      "last_value": -2.263,
+      "period": "2024"
     }
   }
 }

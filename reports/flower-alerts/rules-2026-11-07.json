@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-07T22:11:16.527011+00:00",
+  "at": "2026-11-07T22:39:21.407268+00:00",
   "cooldown_hours": 24.0,
   "state_path": "reports/flower-alerts/state/alert-state.json",
   "rules": [
