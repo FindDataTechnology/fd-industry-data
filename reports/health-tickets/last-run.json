@@ -1,21 +1,33 @@
 {
-  "at": "2026-11-07T04:05:29.158753+00:00",
+  "at": "2026-11-07T22:43:31.676477+00:00",
   "source": "psql",
   "config_source": "file:config/health-scope.json",
-  "sources_seen": 102,
-  "healthy": 80,
+  "sources_seen": 117,
+  "healthy": 84,
   "written": [],
   "deferred": [],
   "skipped_unknown_period": [
-    "at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)"
+    "at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "example-stock",
+    "fred-cpi",
+    "hkex-disclosure",
+    "ico-coffee-price",
+    "jp-foodservice-trend",
+    "restaurant-rpi",
+    "samr-food-inspection",
+    "sec-edgar-8k-operating",
+    "sec-edgar-facts",
+    "tpex-monthly-revenue",
+    "yfinance"
   ],
+  "absent_sources": [],
   "master_switch": true,
   "submit": [
     {
       "ticket": "20261107-amis-market-0b865e05.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 1,
+      "attempt": 2,
       "http_status": 401,
       "response": "\"Authentication required\""
     },
@@ -23,7 +35,7 @@
       "ticket": "20261107-gdacs-1457bc7b.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 1,
+      "attempt": 2,
       "http_status": 401,
       "response": "\"Authentication required\""
     },
@@ -31,7 +43,7 @@
       "ticket": "20261107-iea-ev-037aca88.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 1,
+      "attempt": 2,
       "http_status": 401,
       "response": "\"Authentication required\""
     },
@@ -39,7 +51,7 @@
       "ticket": "20261107-nasa-firms-bd40ec7f.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 1,
+      "attempt": 2,
       "http_status": 401,
       "response": "\"Authentication required\""
     },
@@ -47,7 +59,7 @@
       "ticket": "20261107-socrata-chicago-a563e620.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 1,
+      "attempt": 2,
       "http_status": 401,
       "response": "\"Authentication required\""
     }
