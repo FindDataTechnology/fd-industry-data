@@ -27,3 +27,10 @@ build/
 *.db-journal
 output/
 .DS_Store
+
+# 花卉预警的「每次运行都变」的读数快照：可随时重生成，进 git 只会和定时任务
+# 自己的提交反复冲突（2026-11-08 实测：本地与 bot 各写一份 → 合并冲突）。
+# 保留 state/（状态机，必须持久）、tickets/（工单）、alert-drill/ health-drill/ e2e/（演练证据）。
+reports/flower-alerts/publication-*.json
+reports/flower-alerts/rules-*.json
+reports/flower-alerts/events-*.json
