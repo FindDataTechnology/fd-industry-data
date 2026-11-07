@@ -501,3 +501,21 @@ def test_psql_fallback_produces_the_same_verdicts_as_the_driver(monkeypatch):
     # 时间列：驱动给 datetime，psql 给空白分隔字符串，都要归一成 ISO
     assert fa._iso("2026-11-07 17:50:10+00") == "2026-11-07T17:50:10+00"
     assert fa._iso(NOW) == "2026-11-08T12:00:00+00:00"
+
+
+def test_permission_probe_returns_false_instead_of_raising():
+    """只读账号读不了观测表时，探测必须返回 False（而不是抛错炸掉整轮）。"""
+    class Denied:
+        def execute(self, *a, **k):
+            raise RuntimeError("permission denied for table semantic_observations")
+
+        def fetchall(self):
+            return []
+
+    class Allowed(Denied):
+        def execute(self, *a, **k):
+            pass
+
+    assert fa.can_read_observations(Denied()) is False
+    assert fa.can_read_observations(Allowed()) is True
+    assert fa.EXIT_ENV_UNMET == 3

@@ -77,6 +77,19 @@ jobs:
           case "$code" in
             0) echo "结果：全部未越阈" ;;
             1) echo "结果：有规则越阈（预期语义，非故障）" ;;
+            3) # 环境不满足：只读账号还没有 semantic_observations 的 SELECT 权限。
+               # 不判红（长期飘红会让流水线失去信号），但也绝不静默——
+               # 日志 + job summary 都写清缺什么、找谁要（台账 F17b）。
+               echo "::warning title=花卉预警未执行::只读账号缺 semantic_observations 读权限，需 DBA 授权（台账 F17b）"
+               {
+                 echo "### 花卉预警：未执行（缺数据库读权限）"
+                 echo ""
+                 echo "只读账号（fd_health_ro）可读 \`crawl_runs\`，但无 \`semantic_observations\` 的 SELECT 权限，"
+                 echo "阈值级/事件级/发布水位判定都无法执行。"
+                 echo ""
+                 echo "需要 DBA 执行：\`GRANT SELECT ON public.semantic_observations TO fd_health_ro;\`"
+               } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+               exit 0 ;;
             *) echo "结果：脚本自身失败（exit=$code）"; exit "$code" ;;
           esac
           exit 0

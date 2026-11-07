@@ -61,6 +61,27 @@ def load_config(path: Path) -> dict:
     return doc
 
 
+EXIT_ENV_UNMET = 3
+
+
+def can_read_observations(cur) -> bool:
+    """当前账号能否读 ``semantic_observations``。
+
+    为什么要探测：定时任务复用的是健康管道那个**只读账号**（`fd_health_ro`），它只被
+    授权读 `crawl_runs`；阈值级与水位判定都读观测表，直接跑会
+    ``permission denied for table semantic_observations``（2026-11-08 CI 实测）。
+
+    这种情况**既不能假绿也不能每天判红**：判红会让整条流水线长期飘红失去信号，
+    假绿则掩盖真问题。所以显式返回「环境不满足」(exit 3)，由调用方决定如何呈现。
+    """
+    try:
+        cur.execute("SELECT 1 FROM semantic_observations LIMIT 1")
+        cur.fetchall()
+        return True
+    except Exception:  # noqa: BLE001 - 权限/表缺失都按「不可读」处理
+        return False
+
+
 def _fatal(message: str) -> "NoReturn":  # noqa: F821
     """致命配置/契约错误：写 stderr 后以 **2** 退出。
 
@@ -811,6 +832,15 @@ def main(argv: list[str] | None = None) -> int:
     code = 0
     try:
         cur = conn.cursor()
+        if not can_read_observations(cur):
+            # 只读账号能读 crawl_runs 但不能读观测表：阈值级/事件级/水位全都做不了。
+            # 明确报「环境不满足」而不是崩溃或空跑通过。
+            print(
+                "ENV: 当前数据库账号无 `semantic_observations` 读权限——"
+                "阈值级、事件级与发布水位判定均无法执行。\n"
+                "     需要 DBA 授予：GRANT SELECT ON public.semantic_observations "
+                "TO <该只读账号>（台账 F17b）", file=sys.stderr)
+            return EXIT_ENV_UNMET
         if args.publication:
             code = max(code, cmd_publication(cur, cfg, outdir, now, args.dry_run))
         if args.rules:
