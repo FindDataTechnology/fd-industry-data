@@ -1,0 +1,37 @@
+{
+  "sample_id": "001-mct-tourism-demand",
+  "created": "2026-11-08",
+  "target": "run_mct_tourism_demand",
+  "params": {"limit": 2000, "pages": 1, "periods": "2026Q1-Q3,2025"},
+  "expect": {
+    "min_rows": 24,
+    "rows_contains": [
+      {"field": "source", "equals": "mct-tourism-demand"},
+      {"field": "period_kind", "equals": "ytd_9m"},
+      {"field": "period_kind", "equals": "fy"},
+      {"field": "source_kind", "equals": "dispatch"},
+      {"field": "source_kind", "equals": "bulletin"},
+      {"field": "scope", "equals": "城镇"},
+      {"field": "scope", "equals": "农村"},
+      {"field": "indicator", "equals": "domestic_trips"},
+      {"field": "indicator", "equals": "domestic_spending"},
+      {"field": "indicator", "equals": "star_hotels"},
+      {"field": "value", "equals": 53.07},
+      {"field": "value", "equals": 4.95},
+      {"field": "value", "equals": 40.37},
+      {"field": "value", "equals": 12.7},
+      {"field": "value", "equals": 6.3},
+      {"field": "value", "equals": 65.22},
+      {"field": "value", "equals": 7586.0},
+      {"field": "value", "equals": 1448.0},
+      {"field": "value", "equals": 360.2},
+      {"field": "value", "equals": 46.8},
+      {"field": "value", "equals": 15450.0},
+      {"field": "value", "equals": 14836.0},
+      {"field": "yoy_pct", "equals": 6.2},
+      {"field": "yoy_pct", "equals": 2.2},
+      {"field": "yoy_pct", "equals": 16.2}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "doc_url", "report_title", "indicator_note"]
+}

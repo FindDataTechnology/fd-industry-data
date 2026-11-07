@@ -1,0 +1,27 @@
+{
+  "sample_id": "001-mct-star-hotel",
+  "created": "2026-11-08",
+  "target": "run_mct_star_hotel",
+  "params": {"limit": 5000, "pages": 1, "periods": "2024Q3"},
+  "expect": {
+    "min_rows": 1800,
+    "rows_contains": [
+      {"field": "source", "equals": "mct-star-hotel"},
+      {"field": "period", "equals": "2024Q3"},
+      {"field": "table", "equals": "region"},
+      {"field": "table", "equals": "star"},
+      {"field": "table", "equals": "city"},
+      {"field": "table", "equals": "city_star"},
+      {"field": "indicator", "equals": "revpar"},
+      {"field": "value", "equals": 6129.0},
+      {"field": "value", "equals": 390.01},
+      {"field": "value", "equals": 375.1},
+      {"field": "value", "equals": 52.96},
+      {"field": "value", "equals": 198.66},
+      {"field": "area_kind", "equals": "全国"},
+      {"field": "area_kind", "equals": "50城合计"},
+      {"field": "value", "equals": 2209.0}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "doc_url", "xlsx_url", "report_title"]
+}

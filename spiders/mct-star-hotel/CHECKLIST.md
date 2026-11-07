@@ -1,0 +1,25 @@
+# mct-star-hotel 接入检查清单（add-hotel-vertical · 波1）
+
+- [x] 目录名 = manifest `name`（`mct-star-hotel`；入口 `run_mct_star_hotel`）
+- [x] `spider.py` 提供 `run_mct_star_hotel(limit, pages, periods) -> list[dict]`，只依赖标准库 + 仓内 `fd_industry_data.tabular`（无新依赖）
+- [x] manifest 字段齐全：name/label/source_url/functions/columns/entities/fetch
+- [x] `site` 未写（只访问 zwgk.mct.gov.cn 公开静态页与 xlsx，走缺省执行位 tencent；实测连续 20+ 请求全 200，无验证码/无 Cookie/无 Referer 校验）
+- [x] **未写 `schedule`**——静默合入，点亮留给人工门
+- [x] `data_period: irregular` 并写明理由（词表无 quarter；系列已断更，month 会假超期、year 过宽）
+- [x] 表类型判定**只看内页标题**，不看附件名/附件序；`audit-completion` 表整份跳过并留痕
+- [x] 列名映射按标题匹配（含合并表头前向继承）；未知列 = `UnmappedColumn` 硬失败
+- [x] 未披露值（全角「－」/空/`n/a`）整行不入库，不补 0、不插值
+- [x] 50 城表「全国」行按 `area_kind=50城合计` 标注，不与全国混算
+- [x] 年度 `.xls` 附件整份跳过（单位 `千元/间·年` 与季度不同，不换算）
+- [x] `LAST_TRACES` 留痕：每期跳过哪张表、哪期无附件、命中哪些表类型
+- [x] golden 样本 `golden/001-mct-star-hotel.json`（锚 2024Q3 已冻结历史值；`scraped_at/doc_url/xlsx_url/report_title` 入 whitelist）
+- [x] 离线回归：`tests/test_mct_star_hotel.py` 跑 `tests/fixtures/mct_star_hotel/` 六份真件
+- [x] 负例：表头改成未知列 → `UnmappedColumn` → `RuntimeError`（任务 2.4 的硬失败要求）
+- [x] 实跑证据（2026-11-08）：8,482 行 / 5 期 / `area_kind` 城市 5565 · 省 2701 · 50城合计 120 · 全国 96；2024Q3 全国锚与侦察档逐位一致
+- [x] 期次矩阵实核：**只有 2023Q2 / 2024Q2 / 2024Q3 四表齐全**；2023Q1 与 2022Q4 全是「完成表」；2023Q3 有附件块但零 xlsx；2024Q1 只有 city/city_star
+- [ ] 仓级自检全绿：`validate_manifests.py` / `conformance_gate.py` / `check_manifest_commands.py`
+- [ ] 等一个 dispatcher tick（≤5 分钟），Console 源清单出现该源（`crawl_sources`）
+- [ ] 试跑：Console「立即触发」或 agent `platform_trigger`，核对 `crawl_runs` 与产出
+- [ ] 点亮：manifest 补 `schedule` 提交（AppSet ~3 分钟内渲染 CronJob）——**人工门，spider-heal 不点亮**
+- [ ] 指标语义治理（列→绑定→verified→标识符）另行推进，不阻塞爬取本身
+- [ ] 发布节奏 SLA 预警（任务 6.4/6.5）以本源的「2024Q3 后停更」为正样本接线

@@ -1,0 +1,98 @@
+version: "2"
+name: mct-star-hotel         # = spiders/mct-star-hotel/ 目录名，运行时标识符，合入后不可改名
+label: 文化和旅游部 全国星级旅游饭店统计调查报告（季度 · 分省 / 按星级 / 50 城市）
+source_url: https://zwgk.mct.gov.cn/zfxxgkml/447/465/index_3081.html
+# site: 缺省 tencent —— 2026-11-08 实测本机直连 zwgk.mct.gov.cn 与 xlsx 附件全部 200，
+#       无验证码、无 Cookie、无 Referer 校验、无频率限制（连续 20+ 次请求均 200）。
+#
+# schedule: 月频探针（每月 20 日 11:42 UTC = 19:42 CST）——本系列**已停更**，点亮的价值不是取新数，
+#   而是断更/复更检测：MCT 若恢复发布，下一次探针会在 crawl_runs 里出现新期次；
+#   若不恢复，发布节奏预警（任务 6.4/6.5）有稳定基线可比。月频而非季频：季度报告
+#   的发布月并不固定（实测 2024Q3 于 2024-12-26 发布），月探针能覆盖漂移。
+#   槽位经 scripts/schedule_overlap_check.py 60 天仿真校验。
+schedule: "42 11 20 * *"
+#
+# 【本源的重大事实】该系列已停更：最新一期是 2024Q3（2024-12-26 发布）。2024Q4、
+# 2025Q1–Q3、2026Q1–Q3 精确标题检索 totalHits=0；统计信息栏目 2024-12-26 之后 12 条
+# 记录无星级饭店条目。2025 年只有统计公报里的全国年度单点（7586 家 / 营收 1448.0 亿元 /
+# ADR 360.2 / OCC 46.8%），无附件、无分省。**实跑产出窗口 = 2023Q2–2024Q3 五期**
+# （2023Q3 详情页无 xlsx 附件、2023Q1/2022Q4 解析表为空；见 2026-11-08 实跑 trace），
+# 「当期更新」不成立；断更检测交给发布节奏预警（add-hotel-vertical 任务 6.4/6.5），
+# 这是真实的停更样本，不是构造场景。
+data_period: irregular        # 季频，但 data_period 词表只有 day/month/year/irregular（无 quarter）；
+                              # 且该系列实际已断更 —— month(35d 容忍窗) 会在两季之间假超期，
+                              # year(370d) 过宽。按 irregular 登记，断档由 series_state 兜底。
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_mct_star_hotel
+    description: >
+      Fetch the MCT quarterly star-rated hotel survey reports (2023Q4–2024Q3) and emit a long-form
+      table of (period, table, area, star, indicator, value). Four xlsx attachments per period are
+      classified by their INNER sheet title — never by attachment name, attachment order, or filename
+      (2024Q1's attachments 1/2 are mislabelled and byte-identical "audit completion rate" tables and
+      are skipped). Column mapping is by header title, not column order; an unknown header is a hard
+      failure. The 50-city table's "全国" row is a 50-city subtotal (area_kind=50城合计), never the
+      national total. Full-width "－" means not disclosed: the row is omitted, never written as 0.
+    frequency: quarterly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned (four full periods are roughly 2,300 rows across four tables)
+      - name: pages
+        type: int
+        required: false
+        description: Column-page depth to walk (1..12, default 3; page 1 only reaches 2024-09-02, 2023Q4 needs page 2)
+      - name: periods
+        type: string
+        required: false
+        description: Comma-separated period filter such as "2024Q3,2024Q2"; default keeps every period found
+    columns:
+      - name: period
+        type: string
+        description: Report period parsed from the detail-page title, YYYYQN (e.g. 2024Q3)
+      - name: table
+        type: string
+        description: One of region (province-level) / star (province × star) / city (50 cities) / city_star (50 cities × star)
+      - name: area
+        type: string
+        description: Row label exactly as printed (全国 / 北京 / 一星饭店 aggregated label / city name)
+      - name: star
+        type: string
+        description: Star tier 1..5 for star and city_star tables; empty for region and city tables
+      - name: indicator
+        type: string
+        description: Indicator slug — count / revenue / revenue_share_fnb / revenue_share_room / adr / occupancy / revpar / revenue_per_room / adr_yoy / occupancy_yoy / revpar_yoy / revenue_per_room_yoy
+      - name: indicator_label
+        type: string
+        description: Verbatim header cell the row was read from (whitespace stripped), for auditability
+      - name: value
+        type: float
+        description: Value as published; full-width dash / empty / n-a cells are omitted, never written as 0
+      - name: unit
+        type: string
+        description: Unit declared by the column header (家 / 亿元 / % / 元/间夜 / 元/间)
+      - name: area_kind
+        type: string
+        description: Semantic class of the row label — 全国 / 50城合计 / 省 / 城市 / 星级. The 50-city table's "全国" row is 50城合计, a 50-city subtotal, NOT the national total
+      - name: report_title
+        type: string
+        description: Inner sheet title actually read (first three rows concatenated) — proves which table a row came from, and is what rejected the mislabelled 2024Q1 attachments
+      - name: doc_url
+        type: string
+        description: MCT detail page URL (its body is an inline PNG without a text layer, so the caliber prose is not ingested)
+      - name: xlsx_url
+        type: string
+        description: Exact xlsx attachment URL the row was parsed from (filenames are opaque serial numbers)
+      - name: source
+        type: string
+        description: Constant "mct-star-hotel"
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,99 @@
+version: "2"
+name: mct-tourism-demand     # = spiders/mct-tourism-demand/ 目录名，运行时标识符，合入后不可改名
+label: 文化和旅游部 国内居民出游数据（季度稿 · 人次/花费/城镇农村）+ 年度统计公报（入境/出境/旅行社/星级饭店）
+source_url: https://zwgk.mct.gov.cn/zfxxgkml/447/465/index_3081.html
+# site: 缺省 tencent —— 2026-11-08 实测直连 200，无验证码/无 Cookie/无频率限制（与 mct-star-hotel 同栏目）。
+#
+# schedule: 月频探针（每月 10 日 10:42 UTC = 18:42 CST）——发布节奏是「一季度（4 月）/上半年（7 月）/
+#   前三季度（10 月）/年度（次年年初）」四种累计期，没有固定发布日，故按月度探针覆盖；
+#   10 日避开月初公报集中上传窗口，且与 mct-star-hotel（20 日 05:23）不同刻。
+#   槽位经 scripts/schedule_overlap_check.py 60 天仿真校验。
+schedule: "42 10 10 * *"
+#
+# 【本源特征】季度稿是**纯 HTML 正文，无附件无表格**，数字全在中文句子里
+# （53.07亿 / 4.95万亿元 / 15450万人次），属自然语言面；抽取必须是「锚定短语 + 数词 + 单位」，
+# 且锚定短语失配即硬失败（上游改措辞不许静默少期）。年度公报同栏目，给需求侧（出境/入境）
+# 与供给侧（旅行社/星级饭店/A 级景区）的同年同源单点，是 5.2 供需板唯一交汇点。
+data_period: irregular        # 期次是「年度 / 前三季度 / 上半年 / 一季度」四种长度的累计期，
+                              # 词表只有 day/month/year/irregular —— 按 irregular 登记，
+                              # 期次语义由 period + period_kind 两列承载。
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_mct_tourism_demand
+    description: >
+      Fetch MCT domestic-tourism dispatch releases (FY / first nine months / first half / Q1) and
+      yearly culture-and-tourism statistical bulletins, emitting a long table of
+      (period, period_kind, scope, indicator, value, unit, yoy). Numbers live in Chinese prose, not
+      tables: extraction anchors on fixed phrases and keeps the published unit verbatim (亿人次 /
+      万亿元 / 万人次) with no unit conversion. Cumulative and single-quarter granularities are
+      separate rows (period_kind = fy / ytd_h1 / ytd_9m / quarter) — the same 2026Q1 appears in both
+      the Q1 release and the H1 release's quarterly split and is de-duplicated with an agreement
+      trace, never silently chosen. Bulletin rows carry source_kind=bulletin because their star-hotel
+      revenue / ADR / OCC come from a different reporting pipeline (直报系统) than the quarterly
+      star-hotel survey and must not be merged with it.
+    frequency: quarterly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned (default 2000; five years of releases plus bulletins is well under 500)
+      - name: pages
+        type: int
+        required: false
+        description: Column-page depth to walk (1..12, default 3; page 1 alone reaches back to 2024-09-02)
+      - name: periods
+        type: string
+        required: false
+        description: Comma-separated period filter such as "2026Q1-Q3,2025"; default keeps every period found
+    columns:
+      - name: period
+        type: string
+        description: Observation period — YYYY (FY), YYYYH1, YYYYQ1-Q3, or YYYYQn for single quarters (e.g. 2026Q1)
+      - name: period_kind
+        type: string
+        description: Granularity — fy / ytd_h1 / ytd_9m / quarter. Cumulative and single-quarter rows never share a kind
+      - name: scope
+        type: string
+        description: Population — 全国 / 城镇 / 农村 for domestic trips and spending; 外国 / 港澳台 / 内地 for bulletin inbound-outbound rows
+      - name: indicator
+        type: string
+        description: domestic_trips / domestic_spending / inbound_trips / foreign_inbound_trips / hkmotw_inbound_trips / outbound_trips / travel_agencies / star_hotels / star_hotel_revenue / star_hotel_adr / star_hotel_occ / a_level_scenic / scenic_visits / scenic_revenue
+      - name: value
+        type: float
+        description: Value exactly as published (no unit conversion, no rounding, no interpolation)
+      - name: unit
+        type: string
+        description: Published unit — 亿人次 / 万亿元 / 万人次 / 家 / 亿元 / 元/间夜 / % / 个
+      - name: yoy_pct
+        type: float
+        description: Year-on-year percent from the same sentence (negative when the release says 下降/减少); empty when not published
+      - name: delta
+        type: float
+        description: Absolute change from the same sentence (比上年增加/减少 X); only kept when its unit matches the indicator's family
+      - name: delta_unit
+        type: string
+        description: Unit of the absolute change as published (亿 / 万亿元 / 家 ...)
+      - name: source_kind
+        type: string
+        description: dispatch (国内居民出游数据情况) or bulletin (文化和旅游发展统计公报). Bulletin star-hotel figures use a different reporting pipeline and must not be merged with the quarterly survey
+      - name: indicator_note
+        type: string
+        description: Verbatim upstream phrase the value was anchored on, for auditability
+      - name: report_title
+        type: string
+        description: Detail-page title as published (period is parsed from this, never from the publish date)
+      - name: doc_url
+        type: string
+        description: MCT detail page URL
+      - name: source
+        type: string
+        description: Constant "mct-tourism-demand"
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
