@@ -95,5 +95,9 @@ functions:
 entities:
   - entity_type: region
     coverage: universe
+# 每轮行数上限（AppSet 透传给 runner 的 --limit）。7 份文档实测 64 行，
+# 声明 5,000 留足后续期次增长；chart 默认 100 会静默截断（同 star-hotel 的教训）。
+limit: 5000
+
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider

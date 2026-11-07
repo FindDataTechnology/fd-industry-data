@@ -94,5 +94,10 @@ functions:
 entities:
   - entity_type: region
     coverage: universe
+# 每轮行数上限（AppSet 透传给 runner 的 --limit）。本单元一轮就是 4 期 × 4 表
+# × 79 地区的全量快照（实测 8,482 行）；沿用 chart 默认 100 会把快照截成前 100 行
+# 且每轮重复同一切片、永不增长（2026-11-08 排期首跑实证 rows_written=100）。
+limit: 20000
+
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
