@@ -1,41 +1,96 @@
 {
-  "at": "2026-10-30T22:57:37.340472+00:00",
+  "at": "2026-11-07T04:05:29.158753+00:00",
   "source": "psql",
-  "config_source": "db:health_config",
-  "sources_seen": 98,
-  "healthy": 74,
+  "config_source": "file:config/health-scope.json",
+  "sources_seen": 102,
+  "healthy": 80,
   "written": [],
   "deferred": [],
   "skipped_unknown_period": [
-    "akshare",
-    "bls",
-    "ccdi-supervisory-crawl",
-    "ccdi-supervisory-load",
-    "eastmoney-data",
-    "eastmoney-futures",
-    "federation-observer",
-    "flk-law-crawl",
-    "flk-law-embed",
-    "flk-law-load",
-    "gov-rules-crawl",
-    "gov-rules-load",
-    "legal-sources-report",
-    "mfa-treaty-crawl",
-    "mfa-treaty-load",
-    "party-regulation-crawl",
-    "party-regulation-load",
-    "rmfyalk-case-crawl",
-    "rmfyalk-case-load",
-    "wbgapi",
-    "wire-finddatatech-cloud",
-    "worldsteel"
+    "at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)"
   ],
   "master_switch": true,
-  "submit": [],
+  "submit": [
+    {
+      "ticket": "20261107-amis-market-0b865e05.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 401,
+      "response": "\"Authentication required\""
+    },
+    {
+      "ticket": "20261107-gdacs-1457bc7b.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 401,
+      "response": "\"Authentication required\""
+    },
+    {
+      "ticket": "20261107-iea-ev-037aca88.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 401,
+      "response": "\"Authentication required\""
+    },
+    {
+      "ticket": "20261107-nasa-firms-bd40ec7f.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 401,
+      "response": "\"Authentication required\""
+    },
+    {
+      "ticket": "20261107-socrata-chicago-a563e620.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 401,
+      "response": "\"Authentication required\""
+    }
+  ],
   "status": [
     {
+      "ticket": "20261107-amis-market-0b865e05.yaml",
+      "http_status": 401,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261107-gdacs-1457bc7b.yaml",
+      "http_status": 401,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261107-iea-ev-037aca88.yaml",
+      "http_status": 401,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261107-nasa-firms-bd40ec7f.yaml",
+      "http_status": 401,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261107-socrata-chicago-a563e620.yaml",
+      "http_status": 401,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
       "ticket": "20261025-steam-ccu-36a30c20.yaml",
-      "http_status": 200,
+      "http_status": 401,
       "state": null,
       "note": "",
       "pr_url": ""

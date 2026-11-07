@@ -83,4 +83,15 @@ golden:
 lifecycle:
 - at: '2026-11-07T04:05:20.519718+00:00'
   event: created
+- at: '2026-11-07T04:05:33.932526+00:00'
+  event: submitted
+  http_status: 401
+  ok: false
+  response: '"Authentication required"'
+- at: '2026-11-07T04:05:36.610504+00:00'
+  event: status
+  http_status: 401
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
