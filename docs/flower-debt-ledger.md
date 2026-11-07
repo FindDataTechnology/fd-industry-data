@@ -29,7 +29,10 @@
 | F15 | P3 | 事件数曾虚报、台账曾重写 | 90 天窗原始 56 行 → 真申报 28（`crawl_items` 逐次运行追加）；看板去重键漏 `accession`（488 vs 495）；`append_ledger` 只跟已存文件去重、不跟批内去重 → 台账文件实际 **56 行 / 28 键**（已收敛回 28 行，重跑 0 新增） | **已修**：`scan_events` 按业务键收敛 + 看板键补 accession + `append_ledger` 批内去重，三处口径一致，各带测试（6.5/7.3 留痕） |
 | F16 | P3 | 空图曾无占位 | 公网板 5 张空图只有坐标轴（贸易 4 + 分部 1），`no_data` 的「板面出无数据（原因）」承诺未实现 | **已修**：`industry_common.empty_state()` + 两个 builder 挂占位 + 产物级回归测试（7.3 留痕） |
 
-| F17 | ~~P2~~ → **已修** | 预警引擎没有调度 | 新增 `.github/workflows/flower-alerts.yml`：每日 **01:05 UTC**（斗南 00:15 UTC 跑完后 50 分钟）跑发布节奏级/阈值级/事件级；**状态机与报告 commit 回 main**（cooldown/episode 必须跨运行持久，否则「连续越阈只报一次」失效）；退出码 1（有越阈）不算失败；复用既有只读 secret `FD_CENTRAL_PG_DSN`（脚本增至三处 DSN 回落，全程只读） | 验收：工作流已上 GitHub main（schedule 生效）；本地按它的命令与 DSN 回落逐条模拟跑通。**残余**：只落仓不推送通知——阈值告警是业务信号、不是爬虫故障，走萬星 spider-heal 会让 agent 去修不该修的东西；通知通道（微信/邮件/看板）仍需你定 |
+| F17a | ~~P2~~ → **已修（调度）** | 预警引擎没有调度 | 新增 `.github/workflows/flower-alerts.yml`：每日 **01:05 UTC**（斗南 00:15 UTC 跑完后 50 分钟）；状态机与报告 commit 回 main（cooldown/episode 必须跨运行持久）；退出码 **0/1/2/3 分段**：0=未越阈、1=有越阈（预期）、2=脚本自身失败（判红）、3=环境不满足（warning，不判红）。**已真实触发 3 次验证**，其中第 2 次抓出假绿（见 F17b） | 验收：已完成 |
+
+| F17b | **P1（待 DBA 授权）** | 定时任务读不到观测表 | CI 实测：只读账号 `fd_health_ro` 可读 `crawl_runs`，但 `SELECT ... FROM semantic_observations` 报 **permission denied**。阈值级、事件级、发布水位判定全部依赖观测表 → **预警目前跑不了实质内容**（工作流每天会输出 `::warning` + job summary 说明，不假绿也不飘红）。接入过程另外修掉一个真缺陷：CI 首跑时 `ModuleNotFoundError` 的退出码 1 被当成「有越阈」→ job 报 success 而脚本根本没跑；已把崩溃路径统一改为 exit 2（`raise SystemExit("消息")` 的退出码也是 1，正是撞车源头） | **待授权（DB 权限）**：`GRANT SELECT ON public.semantic_observations TO fd_health_ro;`（或给预警单独一个只读账号）。类比：现在的账号像只有「出入库流水」权限的仓管，能看货车来没来（crawl_runs），但看不到货架上具体有多少货（观测数据）。做完后工作流当次即为实质预警 |
+
 
 
 | F18 | ~~P2~~ → **已处理（手动触发）** | EU 花卉主面积没有刷新调度 | 已并入同一工作流的 `workflow_dispatch` 步骤（`refresh=true`）：Eurostat 面积 / AIPH / Comtrade 花卉三档都是**年频**，每日空跑会白打 6 次外部 API，故不挂 cron；写库需要 `FD_OPEN_DATA_DSN_WRITE`（现有 `FD_CENTRAL_PG_DSN` 是只读账号 `fd_health_ro`），未配置时**明确 SKIP 不假装跑过** | 验收：配好该 secret 后，每年点一次 `Run workflow` 即可。**残余**：完全自动化需在集群侧加写库 CronJob（镜像 entrypoint 是 fd-runner，跑脚本需全量 checkout + 依赖），另立即可 |
