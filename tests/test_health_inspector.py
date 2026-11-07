@@ -37,12 +37,13 @@ def _mk_repo(tmp_path):
     return repo
 
 
-def _runs(source, *, fails=0, error="", http=None, last_success_hours=1.0):
+def _runs(source, *, fails=0, error="", http=None, last_success_hours=1.0, watermark=None):
     recs = []
     if last_success_hours is not None:
         recs.append({"source": source, "status": "success",
                      "started_at": (NOW - timedelta(hours=last_success_hours)).isoformat(),
-                     "rows": 10, "error": "", "http_status": 200})
+                     "rows": 10, "error": "", "http_status": 200,
+                     "watermark": watermark})
     for i in range(fails):
         recs.append({"source": source, "status": "failed",
                      "started_at": (NOW - timedelta(minutes=30 - i)).isoformat(),
@@ -223,6 +224,43 @@ def test_plan_data_period_clears_skipped_unknown_period(tmp_path):
     assert plan.emit and plan.emit[0].source == "bls"
 
 
+def test_psql_parse_with_optional_watermark_column(monkeypatch):
+    """telemetry_sql 扩展第 7 列（数据水位）时自动并入；缺列保持 None（向后兼容）。"""
+    class P:
+        returncode = 0
+        stderr = ""
+        stdout = (
+            "alpha\tsuccess\t2026-10-01T00:00:00Z\t10\t\t200\t2026-09-30\n"
+            "alpha\tfailed\t2026-10-02T00:00:00Z\t0\tselector not found\t200\t\n"
+        )
+    monkeypatch.setattr(inspector.subprocess, "run", lambda *a, **k: P())
+    rows = inspector.load_runs_from_psql(DEFAULTS, "postgres://x")
+    assert rows[0]["watermark"] == "2026-09-30"
+    assert rows[1]["watermark"] is None
+
+
+def test_plan_classifies_source_revision(tmp_path):
+    """HTTP 200 但结构变异（golden drift/字段缺失/选择器失效）-> source-revision。"""
+    repo = _mk_repo(tmp_path)
+    records = _runs("alpha", fails=3, error="golden drift: missing field 'close'",
+                    http=200, last_success_hours=100)
+    plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
+    assert [e.verdict.category for e in plan.emit] == ["source-revision"]
+    assert "源改版" in plan.emit[0].verdict.suggested_action
+
+
+def test_plan_network_sample_stays_network(tmp_path):
+    """网络故障样例（超时/5xx）不得被误分到 source-revision。"""
+    repo = _mk_repo(tmp_path)
+    records = (
+        _runs("alpha", fails=3, error="connection timed out", last_success_hours=100)
+        + _runs("beta", fails=3, error="bad gateway", http=502, last_success_hours=100)
+    )
+    plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
+    by_source = {e.source: e.verdict.category for e in plan.emit}
+    assert by_source == {"alpha": "network", "beta": "network"}
+
+
 # ── 规划：3 个故障源各归其类，健康源与无周期源跳过 ────────────────────────
 
 def test_plan_emits_three_categories(tmp_path):
@@ -263,6 +301,35 @@ def test_write_plan_emits_three_with_evidence(tmp_path):
     doc = load_ticket(files[0])
     assert doc["evidence"]["failing_runs"], "工单必须带失败证据"
     assert doc["verify"]["commands"] and doc["verify"]["commands"][0].startswith("python3 scripts/health_verify.py")
+
+
+def test_write_plan_ticket_carries_last_success_and_watermark(tmp_path):
+    """工单证据含最近成功时间与水位（水位来自遥测第 7 列；缺省如实标 unknown）。"""
+    repo = _mk_repo(tmp_path)
+    outdir = tmp_path / "tickets"
+    records = _runs("alpha", fails=3, error="schema mismatch: missing column",
+                    http=200, last_success_hours=100, watermark="2026-09-30")
+    plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
+    inspector.write_plan(plan, repo, outdir, DEFAULTS, NOW)
+    doc = load_ticket(sorted(outdir.glob("*.yaml"))[0])
+    assert doc["category"] == "source-revision"
+    assert doc["evidence"]["last_success"]["started_at"]
+    assert doc["evidence"]["watermark"] == {
+        "latest": "2026-09-30", "basis": "run telemetry watermark",
+    }
+
+
+def test_write_plan_watermark_unknown_is_honest(tmp_path):
+    """遥测不提供数据期时不得编造：latest=None + basis 说明 unknown。"""
+    repo = _mk_repo(tmp_path)
+    outdir = tmp_path / "tickets"
+    records = _runs("alpha", fails=3, error="connection timed out", last_success_hours=100)
+    plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
+    inspector.write_plan(plan, repo, outdir, DEFAULTS, NOW)
+    doc = load_ticket(sorted(outdir.glob("*.yaml"))[0])
+    assert doc["evidence"]["last_success"]["started_at"]
+    assert doc["evidence"]["watermark"]["latest"] is None
+    assert "unknown" in doc["evidence"]["watermark"]["basis"]
 
 
 def test_write_plan_daily_cap(tmp_path):

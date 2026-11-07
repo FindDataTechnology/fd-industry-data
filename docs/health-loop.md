@@ -7,7 +7,7 @@
 
 ```
 GHA health-inspect（xinru-server1，每日 03:17 CST；只读中央库 crawl_runs）
-  → 分诊（fd_industry_data/health/triage.py，五类确定性规则）
+  → 分诊（fd_industry_data/health/triage.py，六类确定性规则）
   → 工单落仓 reports/health-tickets/<date>-<src>-<id>.yaml
   → SUBMIT（Bearer 调用键）→ 萬星 spider-heal Agent Service（30min 节奏，单回合 20min 预算）
   → agent 修复 → 验证链（scripts/health_verify.py）全绿 → 推分支开 PR
@@ -17,9 +17,14 @@ GHA health-inspect（xinru-server1，每日 03:17 CST；只读中央库 crawl_ru
 
 ## 枚举（与萬星契约一致）
 
-- 分诊类别 `category`：`network`（换出口/代理复测，不改代码）/ `structure`（定向修 parser）/
+- 分诊类别 `category`：`network`（换出口/代理复测，不改代码）/ `source-revision`
+  （疑似源改版：源可达但端点结构变化——字段/选择器/golden/schema 漂移；先取证再改 parser）/
+  `structure`（本地解析器残余错误，定向修 parser）/
   `contract`（重侦察数据表面；`suspected_anti_bot` 仅此类的强制标记，禁止逆向）/
   `source-dead`（退役评估）/ `fallback`（整段重生成兜底）。证据不足 → `needs_human`（不猜类别）。
+  `network` 与 `source-revision` 严格互斥：超时/5xx/DNS/连接拒绝永远判 `network`。
+- 工单 evidence：`last_success`（最近成功时间）与 `watermark`（水位=最新数据期 + 口径来源；
+  遥测不提供数据期时 `latest: null` 且 basis 如实标 unknown）。
 - 终态 `terminal`：`fixed-pending-human` / `sample-update-pending-human` / `manual` /
   `retire-suggested` / `queued`（未终态含 None）。
 
@@ -172,6 +177,35 @@ python3 scripts/health_new_generation_ticket.py --slug nmc-weather \
 **硬边界**：巡检器只产修复单（生成是业务决定，仅人工/工具出单）；产物 PR 前双 lint/gate 必绿；
 静默合入与人工门原样适用；首个生成演练源拟定 `nmc.cn`（侦察簿 ★接：国内直连、纯 JSON）。
 
+## 判据增量（2026-11-08，add-flower-vertical）
+
+### 规则 1c：成功但写入行数低于声明下限
+
+- **判据**：源在 `spiders/<slug>/manifest.yaml` 里**显式声明** `min_rows_per_run: N` 时，
+  任何 `status=success` 且 `rows_written < N` 的运行 → `structure` 类工单，
+  action=「核对解析是否只读到表头/空表」。**先于规则 1 的健康短路**判（否则「跑成功、
+  时间新鲜、只是没写出来」会被判健康）。
+- **未声明 = 不生效**（零回归）。理由：0 行的含义因源而异——节假日无新增、幂等 upsert
+  无改动都可能合法，只有源自己知道「一次至少该写出几行」。
+- **实证动机**：`flower-auction` 有 4 次 `success` / `rows_written` 合计 0，健康级此前
+  完全无信号（零行成功只在错误文本命中结构异常时才被看见）——板上一直空、巡检全绿。
+- **声明前必须先有该源的日常运行行数样本**。花卉线只给 `aiph-stats` 声明了 20
+  （2025 版年鉴实测 81 行）；斗南只有一次回补样本（932 行），日常运行写多少行未测，故不声明。
+
+### 记入册但**不在本 health 层**的三级
+
+`health/` 只判「这条源还活着吗」。花卉线另有三级在同一份真源里，脚本与文档见
+`scripts/flower_alerts.py` + `docs/flower-alerts-runbook.md`：
+
+| 级 | 判什么 | 关键区分 |
+|---|---|---|
+| 发布节奏级（`fd_industry_data/publication.py`） | 上游该发的发了吗 | `awaiting_publication`（我们跑到了、上游没发）vs `stream_broken`（我们断了）；冷启动 `window_learning` 不判 |
+| 阈值级 | 读数越过配置阈值 | 边缘触发 + 冷却 + 恢复；`insufficient_data` **不改状态**（否则一次缺数发假恢复） |
+| 事件级 | 披露日历 | 一条申报=一个事件，幂等键 `ticker|form|filed|accession` |
+
+新增健康级缺口（排期在册却整窗零运行、跨源缺席对账）见 `inspector.reconcile_absent()` 与
+`absent_source_policy`（默认 `report` = 零回归）。
+
 ## 已知限制
 
 - 平台滚动窗口内 bot relay 503 时会丢一条通知（单次纪律不重试）——重要工单避开部署窗口。
@@ -181,6 +215,11 @@ python3 scripts/health_new_generation_ticket.py --slug nmc-weather \
   agent 汇报的 `merged` 映射为 `closed`（`TERMINAL_MAP`）；`done` 仍映射 `fixed-pending-human`
   （修复完成待人工）。首个 closed 实例 = 演练单 `20261004-drill-structure-00000001`。
 - Console 设置页（配置面板化）属 panel 仓改动，另行安排；当前配置优先级=文件 > 中央库 > 默认。
+- **年频源在遥测 30 天窗内可能「整窗零运行」**：`inspector.reconcile_absent()` 已把这种源
+  与「该跑却没跑」分开（`period-longer-than-window` vs `no-run-in-window`），
+  但 `absent_source_policy` 默认 `report` —— 只登记、不出单。要出单须显式改 `ticket`。
+- **阈值级/发布节奏级/事件级不在本层**：`health/` 只回答「源活着吗」，另三级见
+  `scripts/flower_alerts.py` 与 `docs/flower-alerts-runbook.md`；**没有任何调度**在跑它们（挂账）。
 
 ## 权限边界（不可协商）
 

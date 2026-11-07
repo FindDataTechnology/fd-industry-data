@@ -1,0 +1,48 @@
+ticket_id: 20261107-dounan-flower-price-f59cd266
+source: dounan-flower-price
+unit: spiders/dounan-flower-price/
+kind: repair
+created_at: '2026-11-07T19:15:34.757170+00:00'
+category: network
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 出口切换/代理复测（不改代码）
+evidence:
+  window:
+    from: '2026-11-04T00:15:00Z'
+    to: '2026-11-07T00:15:00Z'
+  failing_runs:
+  - started_at: '2026-11-05T00:15:00Z'
+    status: failed
+    rows: 0
+    error_summary: 'ReadTimeout: HTTPSConnectionPool(host=''nyncj.km.gov.cn'', port=443)
+      timed out'
+    http_status: null
+  - started_at: '2026-11-06T00:15:00Z'
+    status: failed
+    rows: 0
+    error_summary: 'ReadTimeout: HTTPSConnectionPool(host=''nyncj.km.gov.cn'', port=443)
+      timed out'
+    http_status: null
+  - started_at: '2026-11-07T00:15:00Z'
+    status: failed
+    rows: 0
+    error_summary: 'ReadTimeout: HTTPSConnectionPool(host=''nyncj.km.gov.cn'', port=443)
+      timed out'
+    http_status: null
+  last_success:
+    started_at: '2026-11-04T00:15:00Z'
+    rows: 932
+  watermark:
+    latest: null
+    basis: unknown（遥测未提供数据期；最近成功时间见 evidence.last_success）
+  notes: 'rule5:network votes=3/3 labels={''network'': 3}'
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261107-dounan-flower-price-f59cd266.yaml
+golden:
+- spiders/dounan-flower-price/golden/001-dounan-flower-price.json
+lifecycle:
+- at: '2026-11-07T19:15:34.757170+00:00'
+  event: created
+terminal: null

@@ -11,7 +11,7 @@ import json
 import re
 import subprocess
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -63,7 +63,9 @@ def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql") ->
         if not line.strip():
             continue
         cols = line.split("\t")
-        cols += [""] * (6 - len(cols))
+        # 第 7 列为可选 watermark（数据水位/最新数据期）。telemetry_sql 默认只取
+        # 6 列（中央库 crawl_runs 无数据期列）；运维扩展 SQL 后自动并入工单证据。
+        cols += [""] * (7 - len(cols))
         source, status, started_at, rows, error, http_status = cols[:6]
         out.append({
             "source": source.strip(),
@@ -72,6 +74,7 @@ def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql") ->
             "rows": int(rows) if rows.strip().lstrip("-").isdigit() else None,
             "error": error.strip(),
             "http_status": int(http_status) if http_status.strip().isdigit() else None,
+            "watermark": cols[6].strip() or None,
         })
     return out
 
@@ -85,6 +88,7 @@ def group_runs(records: list[dict]) -> dict[str, list[triage.Run]]:
             rows=r.get("rows"),
             error=str(r.get("error") or ""),
             http_status=r.get("http_status"),
+            watermark=(str(r["watermark"]) if r.get("watermark") else None),
         )
         grouped.setdefault(str(r.get("source", "")), []).append(run)
     for runs in grouped.values():
@@ -183,6 +187,10 @@ class Plan:
     deferred: list[dict]          # {source, category, reason}
     healthy: int
     skipped_unknown_period: list[str]
+    # 在册（manifest 有 schedule 且未 parked）但遥测窗内零运行的源。
+    # 这些源以前**完全不可见**（巡检面 = 遥测里出现过的源），年频源一过 30 天
+    # 遥测窗就静默消失——add-flower-vertical 6.1 实测确认的缺口。
+    absent: list[dict] = field(default_factory=list)   # {source, reason, data_period}
 
 
 def _last_success(runs: list[triage.Run]) -> dict | None:
@@ -192,8 +200,30 @@ def _last_success(runs: list[triage.Run]) -> dict | None:
     return None
 
 
+def _watermark(runs: list[triage.Run], last_success: dict | None) -> dict:
+    """数据水位（最新数据期）证据。
+
+    口径：优先取遥测里最新一个非空 ``watermark``（按时间升序取末个）。中央库
+    ``crawl_runs`` 目前无数据期列，故常态是 unknown——**如实标注口径来源，不编造**；
+    5.4 覆盖度基线的 staleness 口径（最新数据期）可在遥测 SQL 增加第 7 列后并入。
+    """
+    latest = None
+    for run in runs:
+        if run.watermark:
+            latest = str(run.watermark)
+    if latest:
+        return {"latest": latest, "basis": "run telemetry watermark"}
+    basis = (
+        "unknown（遥测未提供数据期；最近成功时间见 evidence.last_success）"
+        if last_success
+        else "unknown（遥测未提供数据期；无成功运行记录）"
+    )
+    return {"latest": None, "basis": basis}
+
+
 def build_evidence(runs: list[triage.Run], verdict: triage.Verdict) -> dict:
     failing = [r for r in runs if r.status != "success"]
+    last_success = _last_success(runs)
     return {
         "window": {"from": runs[0].started_at if runs else "", "to": runs[-1].started_at if runs else ""},
         "failing_runs": [
@@ -201,28 +231,118 @@ def build_evidence(runs: list[triage.Run], verdict: triage.Verdict) -> dict:
              "error_summary": r.error[:300], "http_status": r.http_status}
             for r in failing[-10:]
         ],
-        "last_success": _last_success(runs),
+        "last_success": last_success,
+        "watermark": _watermark(runs, last_success),
         "notes": verdict.rule_trace,
     }
+
+
+def min_rows_floor(repo: Path, source: str) -> int | None:
+    """源 manifest 里**显式声明**的「一次成功运行至少应写入多少行」。
+
+    返回 None = 未声明 = 该规则不生效（零回归：0 行成功对某些源是合法的）。
+    声明字段：``min_rows_per_run: N``（整数，>0）。
+
+    为什么要显式声明而不是代码里给个默认值：0 行的含义因源而异——节假日无新增、
+    幂等 upsert 无改动都可能是正常的；只有源自己知道「我一次至少该写出几行」。
+    实证：`flower-auction` 有 4 次 success / rows_written 合计 0，健康级此前无信号。
+    """
+    path = Path(repo) / "spiders" / source / "manifest.yaml"
+    try:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (yaml.YAMLError, OSError):
+        return None
+    raw = doc.get("min_rows_per_run")
+    if isinstance(raw, bool) or not isinstance(raw, int) or raw <= 0:
+        return None
+    return int(raw)
+
+
+def scheduled_sources(repo: Path) -> dict[str, dict]:
+    """在册源：``spiders/*/manifest.yaml`` 里有 ``schedule`` 且未 ``parked``。
+
+    返回 ``{source: {"data_period": ..., "schedule": ...}}``。这是「应该跑」的集合，
+    与遥测里「真的跑过」的集合对账，才能发现「排期在册却整窗没跑」的源。
+    """
+    out: dict[str, dict] = {}
+    for manifest in sorted((repo / "spiders").glob("*/manifest.yaml")):
+        try:
+            doc = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+        except (yaml.YAMLError, OSError):
+            continue
+        if not str(doc.get("schedule") or "").strip():
+            continue
+        if doc.get("parked") is True:
+            continue
+        period = doc.get("data_period")
+        period = (str(period).strip().lower()
+                  if isinstance(period, str) and str(period).strip().lower() in VALID_DATA_PERIODS
+                  else None)
+        out[manifest.parent.name] = {"data_period": period,
+                                     "schedule": " ".join(str(doc["schedule"]).split())}
+    return out
+
+
+def reconcile_absent(runs_by_source: dict, repo: Path, config: HealthConfig) -> list[dict]:
+    """在册但遥测窗内零运行的源，逐条给出**为什么**（不静默、不混为一谈）。
+
+    两种原因处置完全不同：
+
+    - ``period-longer-than-window``：期别容忍窗比遥测回看窗还长（典型 ``year``
+      → 370 天 vs 30 天）。窗内**本就不该有运行**，据此出单是把口径不足伪造成
+      故障；只报告，任何策略下都不出单。
+    - ``no-run-in-window``：期别短于回看窗却没有一条运行 → 调度面故障
+      （CronJob 没渲染 / 站点不认领该源）。按 ``absent_source_policy`` 决定是否出单。
+    """
+    absent: list[dict] = []
+    for source, meta in sorted(scheduled_sources(repo).items()):
+        if source in runs_by_source or source in config.excluded_sources:
+            continue
+        period = meta.get("data_period")
+        tolerance = data_period_tolerance_hours(period)
+        if tolerance is not None and tolerance > config.lookback_hours:
+            reason = "period-longer-than-window"
+        elif period is None:
+            reason = "period-undeclared"
+        else:
+            reason = "no-run-in-window"
+        absent.append({"source": source, "reason": reason, "data_period": period})
+    return absent
 
 
 def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config: HealthConfig,
                  now: datetime) -> Plan:
     emit, deferred, healthy, unknown = [], [], 0, []
-    for source in sorted(runs_by_source):
+    absent = reconcile_absent(runs_by_source, repo, config)
+    # 遥测里没有的源补成空列表再走同一条分诊链，避免「巡检面 = 遥测里出现过的源」
+    # 这个隐性口径（year 频源一过回看窗就静默消失，add-flower-vertical 6.1）。
+    ticketable = {a["source"] for a in absent
+                  if a["reason"] == "no-run-in-window"
+                  and config.absent_source_policy == "ticket"}
+    merged = dict(runs_by_source)
+    # 只有 ticket 策略下的「该跑却没跑」才进分诊链。report 策略只登记不判——
+    # 否则空 runs 会落规则 2「证据不足」needs_human=True，把「分析口径」变成
+    # 每天一张重出的人工单（正是 rule1b 注释里记的那 15 张的成因）。
+    for entry in absent:
+        if entry["source"] in ticketable:
+            merged.setdefault(entry["source"], [])
+    for source in sorted(merged):
         if source in config.excluded_sources:
             continue
-        runs = runs_by_source[source]
+        runs = merged[source]
         period = expected_period_hours(repo, source, config)
         if period is None:
             unknown.append(source)
             continue
-        verdict = triage.classify(source, f"spiders/{source}/", period, runs, now, config.thresholds)
+        verdict = triage.classify(source, f"spiders/{source}/", period, runs, now, config.thresholds,
+                                  scheduled_absent=source in ticketable,
+                                  min_rows_per_run=min_rows_floor(repo, source))
         if verdict.category is None and not verdict.needs_human:
             healthy += 1
             continue
         emit.append(Emit(source=source, unit=f"spiders/{source}/", verdict=verdict, runs=runs))
-    return Plan(emit=emit, deferred=deferred, healthy=healthy, skipped_unknown_period=unknown)
+    return Plan(emit=emit, deferred=deferred, healthy=healthy,
+                skipped_unknown_period=unknown, absent=absent)
 
 
 def _golden_paths(repo: Path, unit: str) -> list[str]:
@@ -291,7 +411,8 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
         written.append(fname)
         remaining -= 1
     return {"written": written, "deferred": plan.deferred, "healthy": plan.healthy,
-            "skipped_unknown_period": plan.skipped_unknown_period}
+            "skipped_unknown_period": plan.skipped_unknown_period,
+            "absent_sources": plan.absent}
 
 
 # ── 接线：SUBMIT / STATUS（poster/fetcher 可注入） ─────────────────────────

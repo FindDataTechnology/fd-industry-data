@@ -1,0 +1,65 @@
+{
+ "_note": "2026-11-08 取自 UN Comtrade 免 key 预览端点（单期查询）；数值为 2023 年度中国申报值，用于映射口径测试，不作为产线入库来源",
+ "rows": [
+  {
+   "cmdCode": "060311",
+   "flowCode": "X",
+   "partnerCode": 0,
+   "reporterCode": 156,
+   "period": "2023",
+   "primaryValue": 17283341.0,
+   "netWgt": 4929817.0,
+   "refYear": 2023
+  },
+  {
+   "cmdCode": "060311",
+   "flowCode": "M",
+   "partnerCode": 0,
+   "reporterCode": 156,
+   "period": "2023",
+   "primaryValue": 5876523.0,
+   "netWgt": 447451.0,
+   "refYear": 2023
+  },
+  {
+   "cmdCode": "060319",
+   "flowCode": "X",
+   "partnerCode": 0,
+   "reporterCode": 156,
+   "period": "2023",
+   "primaryValue": 39250772.0,
+   "netWgt": 20337231.0,
+   "refYear": 2023
+  },
+  {
+   "cmdCode": "060319",
+   "flowCode": "M",
+   "partnerCode": 0,
+   "reporterCode": 156,
+   "period": "2023",
+   "primaryValue": 42701244.0,
+   "netWgt": 2726744.0,
+   "refYear": 2023
+  },
+  {
+   "cmdCode": "060120",
+   "flowCode": "X",
+   "partnerCode": 0,
+   "reporterCode": 156,
+   "period": "2023",
+   "primaryValue": 19371.0,
+   "netWgt": 6349.0,
+   "refYear": 2023
+  },
+  {
+   "cmdCode": "060120",
+   "flowCode": "M",
+   "partnerCode": 0,
+   "reporterCode": 156,
+   "period": "2023",
+   "primaryValue": 23927.0,
+   "netWgt": 774.0,
+   "refYear": 2023
+  }
+ ]
+}

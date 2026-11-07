@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "description": "花卉线四级预警配置（add-flower-vertical 6.2–6.5）。阈值只在这里，代码内无硬编码阈值。评估器 scripts/flower_alerts.py 只读 semantic_observations 与 crawl_runs（SELECT only），不插值、不补 0。",
+  "defaults": {
+    "outdir": "reports/flower-alerts/2026-11-08/alert-drill",
+    "state": "reports/flower-alerts/2026-11-08/alert-drill/state.json",
+    "events_ledger": "reports/flower-alerts/state/events.jsonl",
+    "cooldown_hours": 24
+  },
+  "publication": {
+    "dounan-flower-price": {
+      "_note": "斗南日价：上游按价格日 T+1 发布（实测 D 日报告在 D 的 17:50 UTC = 次日 01:50 CST 可取到）。水位取观测面最新 price date，滞后由历史样本学出。",
+      "cadence": {
+        "period_days": 1.0,
+        "min_samples": 5,
+        "lag_percentile": 0.95,
+        "lag_trim": 0.1,
+        "grace_hours": 6.0
+      },
+      "watermark_concept": "price.flower.dounan.avg",
+      "watermark_source_used": "dounan-flower-price",
+      "lookback_days": 120
+    }
+  },
+  "rules": [
+    {
+      "name": "dounan_rose_avg_wow_drop",
+      "enabled": true,
+      "kind": "change",
+      "description": "斗南红玫瑰（单头）均价周环比跌幅（周内日均 vs 上一周日均）",
+      "concept": "price.flower.dounan.avg",
+      "source_used": "dounan-flower-price",
+      "entity_code": "dounan-red-rose-single",
+      "entity_type": "commodity",
+      "aggregate": "week_mean",
+      "unit": "percent",
+      "comparator": "gt",
+      "threshold": 99.0,
+      "min_history_periods": 4,
+      "_threshold_note": "口径钉死：周内日均（不是日均的日均），且**周内样本 < 3 的薄桶剔除**——2026-09-07 与 2026-10-05 两周上游只发了 1 天，1 个样本的「周均值」去比 7 个样本的均值会造出 −33% 这种假跌幅。阈值依据（2026-11-08 按库内 2026-09-09..11-05 真值重放，剔除薄桶后剩 6 个周环比）：中位 −12.6%、最差 −36.9%（10-12 周）、最好 +19.5%；其中 3 次跌破 −12%（−35.1% / −36.9% / −12.6%）。故 −12% = 历史中位量级，属「常态即会触发」的灵敏度——想只在极端时报警就把阈值下调到 −30%；要更灵敏就上调。改这里，不改代码。",
+      "min_bucket_samples": 3
+    },
+    {
+      "name": "adjacent_operating_margin_below",
+      "enabled": true,
+      "kind": "ratio",
+      "description": "邻接层公司营业利润率（营业利润/营业收入）跌破阈值（逐家判）——本规则判的是**营业利润率**，不是毛利率：美股 XBRL 白名单里没有毛利 tag，毛利率只有 A股 akshare 口径有（financials.gross_margin），跨市场不可拼",
+      "numerator": {
+        "concept": "financials.operating_profit"
+      },
+      "denominator": {
+        "concept": "financials.revenue"
+      },
+      "entities": [
+        {
+          "code": "FLWS",
+          "entity_type": "stock",
+          "source_used": "sec-edgar-facts"
+        },
+        {
+          "code": "CENT",
+          "entity_type": "stock",
+          "source_used": "sec-edgar-facts"
+        },
+        {
+          "code": "SMG",
+          "entity_type": "stock",
+          "source_used": "sec-edgar-facts"
+        },
+        {
+          "code": "HYFM",
+          "entity_type": "stock",
+          "source_used": "sec-edgar-facts"
+        },
+        {
+          "code": "EDBL",
+          "entity_type": "stock",
+          "source_used": "sec-edgar-facts"
+        },
+        {
+          "code": "002200",
+          "entity_type": "stock",
+          "source_used": "akshare"
+        }
+      ],
+      "periodicity": "quarter",
+      "unit": "percent",
+      "comparator": "lt",
+      "threshold": -95.0,
+      "min_history_periods": 1,
+      "_threshold_note": "−5% 是首版起点值，按 2026-11-08 实测重放：CENT +14.3%、SMG +14.5%（2026-06 期），FLWS −27.1%（2026-09-27，其 Q1 季节性亏损），EDBL −89.5%（2026-06-30，营业利润 −317.7 万 / 营收 355 万，**营收仅 355 万美元的微型公司，本来就是巨亏**——这个告警是真的，不是单位错误）。两条口径闸：①max_period_age_days=200——HYFM 自 2026 起改用含代收税口径报营收，抽取端刻意不并入，其营收序列止于 2025-09-30 而营业利润走到 2026-06-30，不加闸就会拿 14 个月前的期次算当期利润率；②分母缺失/为 0 的那一期不产生比值（不是 0 利润率）。",
+      "max_period_age_days": 200
+    },
+    {
+      "name": "hs0603_export_yoy_negative",
+      "enabled": false,
+      "kind": "change",
+      "description": "HS0603 切花出口额同比转负",
+      "blocked_reason": "un-comtrade 的花卉三档（060311/060319/060120）尚未进抓取参数，库内无花卉贸易序列——不动这条规则，是因为没有数据再好的阈值也只能判「不足」",
+      "unblock": "在 un-comtrade 单元参数里加 cmd_code 三档并点亮排期后，把 aggregate 改成 month_sum、min_history_periods 改成 13（需 12 个月基期）再置 enabled=true"
+    },
+    {
+      "name": "eu_flower_production_gap",
+      "enabled": false,
+      "kind": "change",
+      "description": "EU 花卉产量（apro_cpsh1）同比缺口",
+      "blocked_reason": "eurostat-api 尚未接花卉口径（apro_cpsh1 不在其默认数据集内），库内无该序列",
+      "unblock": "eurostat-api 增 apro_cpsh1 数据集并点亮后，补 concept 与 entity_code 再置 enabled=true；注意 AIPH 年鉴的 Trade 章只是 Eurostat 的转述，不能当独立源"
+    }
+  ],
+  "events": {
+    "enabled": true,
+    "description": "披露日历：花卉宇宙美股 5 家的 SEC 申报事件（10-Q/10-K/8-K），与看板事件图同一数据源（crawl_items 的 kind='event'），一条申报 = 一个事件、按 (ticker, form, filed) 幂等",
+    "source": "sec-edgar-facts",
+    "tickers": [
+      "FLWS",
+      "CENT",
+      "SMG",
+      "HYFM",
+      "EDBL"
+    ],
+    "forms": [
+      "10-Q",
+      "10-K",
+      "8-K"
+    ],
+    "window_days": 90,
+    "level": "info",
+    "level_reason": "定期报告与重大事项申报：登记为事件，不单独升级（升级由读数的阈值级规则负责）",
+    "_not_covered": {
+      "种苗出口国政策": "无结构化源（荷兰 Naktuinbouw / 肯尼亚 KFC 均为 PDF/付费），未接",
+      "检疫与病害公告": "海关总署与农业农村部公告为新闻稿形态，未接；接入后按 events 增加 source 即可"
+    }
+  }
+}

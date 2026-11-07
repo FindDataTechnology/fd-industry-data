@@ -75,6 +75,12 @@ class HealthConfig:
     expected_period_overrides: dict = field(default_factory=dict)
     # 巡检排除的源（如接入演练中的临时源）
     excluded_sources: tuple = ()
+    # 遥测窗内零运行的在册源怎么处理（add-flower-vertical 6.1）：
+    # "report"（默认）= 只记进 plan.absent，不出单——零回归，既有线行为不变；
+    # "ticket" = 另出 contract 工单（排期在册却整窗没跑，属调度面故障）。
+    # 期别长于遥测窗的源（如 year）任何策略下都只 report：窗内本就不该有运行，
+    # 据此出单等于把「口径不足」伪造成「故障」。
+    absent_source_policy: str = "report"
 
 
 DEFAULTS = HealthConfig()
@@ -86,6 +92,7 @@ _KNOWN_KEYS = (
     "telemetry_sql",
     "expected_period_overrides",
     "excluded_sources",
+    "absent_source_policy",
 )
 
 

@@ -15,6 +15,23 @@ Batch2 Wave C extensions (one dedicated entry point each; same dissemination API
                        (indic_bt=PRD + unit=I21; s_adj=CA — NSA x C20 is empty)
 - run_eurostat_bsci    ei_bsco_m consumer confidence, NSA variant, since 1980-01
 - run_eurostat_apri    apri_pi_outq output price index, am_item=AM141000
+- run_eurostat_hicp    prc_hicp_midx HICP catering services (CP111) price index,
+                       unit=I15 (index 2015=100), EU27_2020 aggregate, since
+                       1996-01 (first actual values 2000-12; restaurant-vertical
+                       wave 0 EU leg. NOTE: prc_hicp_inx is dead upstream, HTTP
+                       404 "not available for dissemination" (re-measured
+                       2026-11-07) — never use it; prc_hicp_midx is the live
+                       index-level dataset and I15 is the 2015=100 unit code
+                       (I05/I96 are older bases).)
+- run_eurostat_i56     sts_setu_m NACE I56 (food & beverage service activities)
+                       turnover index, indic_bt=NETTUR, s_adj=SCA, unit=I21
+                       (2021=100), EU27_2020, since 2000-01 — restaurant-vertical
+                       wave 1 EU leg (user adjudication 2026-11-07 "补 NACE I56
+                       营业额指数"). This CORRECTS the wave-0 claim above that the
+                       STS services-turnover family is wholly dead: sts_tsur_m is
+                       404, but sts_setu_m serves I56 (319 values 2000-01..2026-07,
+                       no gaps, re-measured 2026-11-08). Price index ≠ turnover
+                       index, so it never merges with the HICP series.
 - run_eurostat_comext  DS-045409 EU-China monthly trade, HS6 PV/LED family via the
                        api/comext/dissemination SDMX 2.1 segment (GenericData XML).
                        The /statistics/1.0 dissemination segment 404s for comext —
@@ -39,7 +56,8 @@ treated as upstream/parameter drift, never as success.
 
 Entry points (fd-runner):
 - run_eurostat_api(limit=100) -> list[dict]        (original three datasets)
-- run_eurostat_c20 / run_eurostat_bsci / run_eurostat_apri / run_eurostat_comext
+- run_eurostat_c20 / run_eurostat_bsci / run_eurostat_apri / run_eurostat_hicp
+- run_eurostat_comext
 
 Network: overseas source — direct first; only if a direct connection fails at the
 connection layer, probe 127.0.0.1:7890 and retry once through that proxy. The
@@ -280,7 +298,7 @@ def _jsonstat_rows(doc: dict, colmap: dict, dataset: str, source_url: str, scrap
 
 
 def _wave_c_rows(limit: int) -> list[dict]:
-    """Rows from the three index-shaped Wave-C extensions, via their own entries.
+    """Rows from the four index-shaped Wave-C extensions, via their own entries.
 
     Delegating to the declared commands (rather than only reusing their CFGs)
     keeps the manifest honest: a declared command is now genuinely invoked by
@@ -289,22 +307,40 @@ def _wave_c_rows(limit: int) -> list[dict]:
     Each is called by explicit name in its own try block — not looped over a
     tuple of functions — because the admission gate resolves the entry's call
     graph statically and a dynamic call target is invisible to it.
+
+    The four outputs are round-robin interleaved (not concatenated): the
+    caller interleaves this list against the base-dataset bucket and truncates
+    to ``limit``, so a concatenation let the first extension (c20) own the
+    whole wave-c share — at the scheduled ``--limit 100`` only the first ~50
+    wave-c rows survive, which starved bsci/apri entirely and would never
+    store a single hicp row (measured 2026-11-07, run 4785: 100 rows, all
+    base + c20-as-sts_inpr_m).
     """
-    out: list[dict] = []
+    buckets: list[list[dict]] = []
     n = max(limit, 1)
     try:
-        out.extend(run_eurostat_c20(limit=n))
+        buckets.append(run_eurostat_c20(limit=n))
     except Exception as e:  # noqa: BLE001 - one dataset must not kill the run
         logger.warning("eurostat-api: c20 failed; skipping: %s", e)
     try:
-        out.extend(run_eurostat_bsci(limit=n))
+        buckets.append(run_eurostat_bsci(limit=n))
     except Exception as e:  # noqa: BLE001
         logger.warning("eurostat-api: bsci failed; skipping: %s", e)
     try:
-        out.extend(run_eurostat_apri(limit=n))
+        buckets.append(run_eurostat_apri(limit=n))
     except Exception as e:  # noqa: BLE001
         logger.warning("eurostat-api: apri failed; skipping: %s", e)
-    return out
+    try:
+        buckets.append(run_eurostat_hicp(limit=n))
+    except Exception as e:  # noqa: BLE001
+        logger.warning("eurostat-api: hicp failed; skipping: %s", e)
+    try:
+        # 餐饮垂直线 EU leg（NACE I56 营业额指数）：同为指数形状，一并进 wave-c 轮转。
+        # 声明了命令却无人调用会被 conformance 判 declared-command-reachability。
+        buckets.append(run_eurostat_i56(limit=n))
+    except Exception as e:  # noqa: BLE001
+        logger.warning("eurostat-api: i56 failed; skipping: %s", e)
+    return _interleave(buckets)
 
 
 async def _run(limit: int) -> list[dict]:
@@ -399,6 +435,40 @@ APRI_CFG: dict = {
     "colmap": {"indic": "am_item", "nace_r2": None, "s_adj": None, "p_adj": "p_adj"},
 }
 
+HICP_CFG: dict = {
+    # prc_hicp_inx is dead upstream (HTTP 404 "not available for dissemination",
+    # re-measured 2026-11-07 regardless of parameters) — prc_hicp_midx is the
+    # live index-level HICP dataset. unit I15 = index 2015=100 (dimension also
+    # carries I05/I96 older bases); coicop CP111 = Catering services (CP11 =
+    # Restaurants and hotels). Restaurant-vertical wave 0 EU leg: replaces the
+    # dead STS services-turnover view with the HICP price-index view.
+    "dataset": "prc_hicp_midx",
+    "dims": {"freq": "M", "unit": "I15", "coicop": "CP111"},
+    "geos": ["EU27_2020"],
+    # full history: header window starts 1996-01, first actual value 2000-12
+    # (null cells omitted upstream), 301 monthly values through 2025-12, no gaps.
+    "since": "1996-01",
+    "colmap": {"indic": "coicop", "nace_r2": None, "s_adj": None, "p_adj": None},
+}
+
+
+SETU_I56_CFG: dict = {
+    # Restaurant-vertical wave 1 EU leg (user adjudication 2026-11-07: "补 NACE I56
+    # 营业额指数"). sts_setu_m = Turnover in services, monthly. LIVE (re-measured
+    # 2026-11-08): NETTUR + SCA + I21 + EU27_2020 + I56 = 319 values 2000-01..2026-07,
+    # no gaps; 2015-01 = 88.7, 2026-07 = 180.5 (2021=100 base).
+    # This corrects the wave-0 note that called the whole STS services-turnover
+    # family dead: sts_tsur_m IS 404, but sts_setu_m serves I56 fine. Both
+    # s_adj=CA and SCA are non-empty; SCA (calendar+seasonally adjusted) is used
+    # so month-on-month comparisons are meaningful.
+    "dataset": "sts_setu_m",
+    "dims": {"freq": "M", "indic_bt": "NETTUR", "nace_r2": "I56",
+             "s_adj": "SCA", "unit": "I21"},
+    "geos": ["EU27_2020"],
+    "since": "2000-01",
+    "colmap": {"indic": "indic_bt", "nace_r2": "nace_r2", "s_adj": "s_adj", "p_adj": None},
+}
+
 
 def _assert_nonempty(rows: list[dict], dataset: str, url: str) -> list[dict]:
     """Eurostat answers HTTP 200 with an empty set for dead parameter combos.
@@ -450,6 +520,153 @@ def run_eurostat_apri(limit: int = 100) -> list[dict]:
     Frozen anchor: 2026-Q2 = 135.29 (I20, NI). apri_pi05_outq is dead upstream (404).
     """
     return asyncio.run(_run_single(APRI_CFG, max(0, int(limit))))
+
+
+def run_eurostat_hicp(limit: int = 100) -> list[dict]:
+    """HICP catering services (CP111) index, I15 2015=100 (EU27_2020, monthly).
+
+    prc_hicp_inx is dead upstream (404) — the live index-level dataset is
+    prc_hicp_midx. Full history since 1996-01; first actual value 2000-12.
+    Frozen anchors: 2000-12 = 67.72 (first value), 2015-01 = 99.28 (I15).
+    """
+    return asyncio.run(_run_single(HICP_CFG, max(0, int(limit))))
+
+
+def run_eurostat_i56(limit: int = 500) -> list[dict]:
+    """EU27 NACE I56 (food & beverage service activities) turnover index, monthly.
+
+    sts_setu_m / NETTUR / SCA / I21 (2021=100), full history since 2000-01.
+    Frozen anchors (SCA variant, measured 2026-11-08): 2000-01 = 82.9,
+    2026-07 = 179.5 (last value), 319 monthly values with no gaps.
+    Restaurant-vertical wave 1 EU leg.
+    """
+    return asyncio.run(_run_single(SETU_I56_CFG, max(0, int(limit))))
+
+
+# --------------------------------------------------------------------------
+# hotel-vertical wave 0 — accommodation (NACE I55) + tourism nights.
+# Every combo below was measured live on 2026-11-08; the two NEGATIVE results
+# are recorded too, because they explain why this line has no price index:
+#   * sts_setu_m nace_r2=I551 (hotels only) -> HTTP 200 with 0 values
+#   * prc_hicp_midx coicop=CP11 / CP112     -> 404 "not available for
+#     dissemination" (only CP111, catering, is served)
+# Never re-add a CP11/CP112 accommodation price series without re-measuring.
+# --------------------------------------------------------------------------
+
+SETU_I55_CFG: dict = {
+    # Accommodation (NACE I55) turnover index. LIVE, measured 2026-11-08:
+    # NETTUR + SCA + I21 + EU27_2020 + I55 = 139 values 2015-01..2026-07.
+    # Note the depth difference against I56 (319 values from 2000-01) in the
+    # SAME dataset: the I55 branch starts in 2015, so never copy I56's
+    # "since 2000-01, no gaps" wording into anything about I55.
+    "dataset": "sts_setu_m",
+    "dims": {"freq": "M", "indic_bt": "NETTUR", "nace_r2": "I55",
+             "s_adj": "SCA", "unit": "I21"},
+    "geos": ["EU27_2020"],
+    "since": "2000-01",
+    "colmap": {"indic": "indic_bt", "nace_r2": "nace_r2", "s_adj": "s_adj", "p_adj": None},
+}
+
+TOUR_OCC_M_CFG: dict = {
+    # Nights spent at tourist accommodation establishments, monthly.
+    # c_resid x unit are both list-valued → four series in one request:
+    # TOTAL/NR, TOTAL/PCH_SM, FOR/NR, FOR/PCH_SM (188 values each,
+    # 2011-01..2026-08). c_resid maps onto the `indic` column because it is the
+    # series-defining dimension here (same convention as HICP's coicop).
+    "dataset": "tour_occ_nim",
+    "dims": {"freq": "M", "c_resid": ["TOTAL", "FOR"], "unit": ["NR", "PCH_SM"],
+             "nace_r2": "I551-I553"},
+    "geos": ["EU27_2020"],
+    "since": "1990-01",
+    "colmap": {"indic": "c_resid", "nace_r2": "nace_r2", "s_adj": None, "p_adj": None},
+}
+
+TOUR_OCC_A_CFG: dict = {
+    # Nights spent, annual. Header says 1990..2025 but the EU27_2020 aggregate
+    # carries only 21 non-null values (early years empty) — gaps stay gaps.
+    "dataset": "tour_occ_ninat",
+    "dims": {"freq": "A", "c_resid": "TOTAL", "unit": "NR", "nace_r2": "I551"},
+    "geos": ["EU27_2020"],
+    "since": "1990-01",
+    "colmap": {"indic": "c_resid", "nace_r2": "nace_r2", "s_adj": None, "p_adj": None},
+}
+
+TOUR_CAP_CFG: dict = {
+    # Accommodation capacity in bed places, annual; 21 values 2005..2025
+    # (2005 is the first year the EU27 aggregate publishes a value).
+    "dataset": "tour_cap_nat",
+    "dims": {"freq": "A", "accomunit": "BEDPL", "unit": "NR", "nace_r2": "I551"},
+    "geos": ["EU27_2020"],
+    "since": "1990-01",
+    "colmap": {"indic": "accomunit", "nace_r2": "nace_r2", "s_adj": None, "p_adj": None},
+}
+
+
+def run_eurostat_i55(limit: int = 500) -> list[dict]:
+    """EU27 NACE I55 (accommodation) turnover index, monthly, 2021=100.
+
+    sts_setu_m / NETTUR / SCA / I21, 139 values 2015-01..2026-07 (measured
+    2026-11-08). The hotels-only branch I551 returns 0 values upstream, so this
+    is the accommodation aggregate — never label it "hotel turnover".
+    """
+    return asyncio.run(_run_single(SETU_I55_CFG, max(0, int(limit))))
+
+
+def run_eurostat_tour_occ(limit: int = 1000) -> list[dict]:
+    """EU27 nights spent at tourist accommodation establishments, monthly.
+
+    tour_occ_nim, nace_r2=I551-I553, four series (TOTAL/FOR x NR/PCH_SM),
+    188 values each 2011-01..2026-08 (measured 2026-11-08).
+    """
+    return asyncio.run(_run_single(TOUR_OCC_M_CFG, max(0, int(limit))))
+
+
+def run_eurostat_tour_annual(limit: int = 200) -> list[dict]:
+    """EU27 nights spent, annual (tour_occ_ninat, TOTAL/NR/I551).
+
+    21 non-null values 1990..2025 — the header window is wider than the data;
+    missing years are omitted, never interpolated or zero-filled.
+    """
+    return asyncio.run(_run_single(TOUR_OCC_A_CFG, max(0, int(limit))))
+
+
+def run_eurostat_tour_cap(limit: int = 200) -> list[dict]:
+    """EU27 accommodation capacity in bed places, annual (tour_cap_nat).
+
+    accomunit=BEDPL, nace_r2=I551, 21 values 2005..2025 (measured 2026-11-08).
+    """
+    return asyncio.run(_run_single(TOUR_CAP_CFG, max(0, int(limit))))
+
+
+FLOWER_AREA_CFG: dict = {
+    # 花卉垂直线（add-flower-vertical 3.3）：apro_cpsh1 = "Crop production in EU
+    # standard humidity"。实测 2026-11-08（直连 HTTP 200）：
+    # * 花卉作物码 = N0000「Flowers and ornamental plants (excluding nurseries)」；
+    # * 该作物**只有 MAR_THS_HA（Main area · 千公顷）有值**——AR_THS_HA /
+    #   HPRD_HUMD_EU_THS_T / YLD_HUMD_EU_T_HA 三种口径查询均返回 0 值（先按
+    #   产量口径试过才改判面积），所以这里只能取主面积，绝不能标成「产量」；
+    # * 覆盖 41 geo × 12 年（2015–2026），316 个非零值；EU 合计 2021 = 72.48 千公顷。
+    # geo 取花卉生产主要国 + EU 口径合计：EU27_2020 是「欧盟 27 国」现役口径，
+    # EU28/EU 是历史口径（同一年的值可能相同），三者不可相加、只作对照。
+    "dataset": "apro_cpsh1",
+    "dims": {"freq": "A", "crops": "N0000", "strucpro": "MAR_THS_HA"},
+    "geos": ["EU27_2020", "NL", "IT", "DE", "FR", "ES", "PL", "BE"],
+    "since": "2015",
+    # crops/strucpro 是这一数据集特有的维度：其它入口的 colmap 没有它们，
+    # 所以只能在本条 cfg 里声明（_jsonstat_rows 按 colmap 逐键取维度值）。
+    "colmap": {"indic": None, "nace_r2": None, "s_adj": None, "p_adj": None,
+               "crops": "crops", "strucpro": "strucpro"},
+}
+
+
+def run_eurostat_flower_area(limit: int = 200) -> list[dict]:
+    """EU 花卉（N0000）主面积，年频，千公顷（apro_cpsh1 / MAR_THS_HA）。
+
+    8 个 geo × 12 年 ≈ 96 行，所以本命令自带 limit；它**不参与
+    ``run_eurostat_api`` 的 --limit 100 轮转**（轮转会把 96 行截成头 10 行，
+    存成半截序列比没有更坏）。抽取器按酒店线先例直接调用本函数。
+    """
+    return asyncio.run(_run_single(FLOWER_AREA_CFG, max(0, int(limit))))
 
 
 # -- comext: EU-China trade via the SDMX 2.1 dissemination segment ------------

@@ -1,0 +1,7 @@
+{
+  "master_switch": false,
+  "max_daily_tickets": 10,
+  "lookback_hours": 720,
+  "absent_source_policy": "report",
+  "_note": "演练配置：master_switch=False 只落单不 SUBMIT；absent_source_policy=report 保持既有线默认语义。花卉年频源（aiph-stats）在 30 天遥测窗内零运行属 normal，演练的两种故障形态都是「有运行记录但失败」。"
+}

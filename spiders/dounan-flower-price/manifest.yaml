@@ -1,0 +1,96 @@
+version: "2"
+name: dounan-flower-price   # = spiders/dounan-flower-price/ 目录名，运行时标识符，合入后不可改名
+label: 昆明斗南花卉市场日价（昆明市农业农村局·价格行情）
+source_url: https://nyncj.km.gov.cn/nygz/jgxq/
+# site: 缺省（tencent）——本机直连 nyncj.km.gov.cn 实测 200（2026-11-08），静态 shtml，
+#       无 WAF / 无鉴权 / 无 cookie；国内政府源仅直连，从不走代理。证书为国内 CA，
+#       单元按仓内惯例 verify=False。
+#
+schedule: "15 0 * * *"     # 点亮（2.6，2026-11-08）：每日 00:15 UTC = 08:15 CST。
+#   定此时点的依据：上游按价格日 T+1 发布（实测 D 日报告在 D 的 17:50 UTC = 次日 01:50 CST
+#   已可取到），00:15 UTC 在发布点后 6.5 小时，取到的是上一价格日，留足迟到余量。
+#   该时点是 120 天分钟级仿真里唯一后半程零冲突的窗口（schedule_overlap_check --new
+#   零 duplicates / 零 window overlap，实测时长 1 分钟；02–06 时段已被日频源占满）。
+#   上游滚动窗约 2 个月，停跑超过 2 个月会永久丢历史，故日频是必要频率。
+data_period: day            # 上游每个工作日一版（实测偶有跳日）；容忍窗 default 3 天
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_dounan_flower_price
+    description: Fetch daily Dounan flower-market quotes (item / unit / high / low / average) from the Kunming municipal agriculture bureau price channel; newest price date first. Upstream keeps only a rolling ~2-month window (10 list pages, index.shtml + index_2..index_10; index_1 is 404), so history accumulates from activation onward — backfill as much as the window shows, never claim long history. Price date comes from the report title (T+1 publication), not the list-page publish date.
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (rows, not reports; newest price date first). Default 500 truncates the oldest days of the visible window; 23 items x ~42 reports is about 966 rows for a full backfill
+      - name: max_pages
+        type: int
+        required: false
+        description: Maximum list pages walked (default 10 = the whole currently visible window; the channel ends at index_10, index_11 is 404)
+      - name: window_start
+        type: str
+        required: false
+        description: Inclusive lower bound on price_date (YYYY-MM-DD). Injected by the runner's first-crawl backfill window; window filter is applied before the limit truncation
+      - name: window_end
+        type: str
+        required: false
+        description: Inclusive upper bound on price_date (YYYY-MM-DD)
+    columns:
+      - name: price_date
+        type: str
+        description: 价格日期 (ISO, from the report title — NOT the publish date; the source publishes T+1)
+      - name: publish_date
+        type: str
+        description: 发布日期 (from the list page span, YYYY-MM-DD)
+      - name: item
+        type: str
+        description: 品种品名 (e.g. 红玫瑰（单头）, 金鱼草, 绣球)
+      - name: unit
+        type: str
+        description: 计量单位 (元/枝 / 元/把 / 元/扎 / 元/盆 …), as published and not normalized
+      - name: price_high
+        type: float
+        description: 最高价; None when the source omits it — never 0-filled
+      - name: price_low
+        type: float
+        description: 最低价; None when the source omits it — never 0-filled
+      - name: price_avg
+        type: float
+        description: 均价 (as published; never derived from high/low); None when omitted
+      - name: report_title
+        type: str
+        description: 文章标题 (云南昆明斗南花卉市场YYYY年M月D日花卉价格信息)
+      - name: report_url
+        type: str
+        description: 正文页 URL the row was parsed from
+      - name: source
+        type: str
+        description: 固定 dounan-flower-price
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+concepts:
+  - column: price_high
+    concept: price.flower.dounan.high
+    entity_type: commodity
+    measure: price
+    unit: currency_cny
+    frequency: daily
+  - column: price_low
+    concept: price.flower.dounan.low
+    entity_type: commodity
+    measure: price
+    unit: currency_cny
+    frequency: daily
+  - column: price_avg
+    concept: price.flower.dounan.avg
+    entity_type: commodity
+    measure: price
+    unit: currency_cny
+    frequency: daily
+entities:
+  - entity_type: commodity
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

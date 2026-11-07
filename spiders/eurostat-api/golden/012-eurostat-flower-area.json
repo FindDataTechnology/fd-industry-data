@@ -1,0 +1,20 @@
+{
+  "sample_id": "012-eurostat-flower-area",
+  "created": "2026-11-08",
+  "target": "run_eurostat_flower_area",
+  "params": {"limit": 500},
+  "expect": {
+    "min_rows": 60,
+    "rows_contains": [
+      {"field": "dataset", "equals": "apro_cpsh1"},
+      {"field": "crops", "equals": "N0000"},
+      {"field": "strucpro", "equals": "MAR_THS_HA"},
+      {"field": "geo", "equals": "EU27_2020"},
+      {"field": "freq", "equals": "A"},
+      {"field": "period", "equals": "2024"},
+      {"field": "value", "equals": 66.51},
+      {"field": "source_url", "equals": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/apro_cpsh1?format=JSON&lang=EN&freq=A&crops=N0000&strucpro=MAR_THS_HA&geo=EU27_2020&geo=NL&geo=IT&geo=DE&geo=FR&geo=ES&geo=PL&geo=BE&sinceTimePeriod=2015"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

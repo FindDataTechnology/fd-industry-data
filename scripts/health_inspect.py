@@ -109,6 +109,11 @@ def main() -> int:
         "written": stats["written"],
         "deferred": stats["deferred"],
         "skipped_unknown_period": stats["skipped_unknown_period"],
+        # 在册（manifest 有 schedule、未 parked）但遥测窗内零运行的源。
+        # 以前这些源在巡检面上**完全不可见**——年频源一过回看窗就静默消失
+        # （add-flower-vertical 6.1）。现在逐条带原因落进 summary：
+        # period-longer-than-window（窗内本就不该跑）/ no-run-in-window（调度面故障）。
+        "absent_sources": getattr(plan, "absent", []),
         "master_switch": config.master_switch,
     }
 

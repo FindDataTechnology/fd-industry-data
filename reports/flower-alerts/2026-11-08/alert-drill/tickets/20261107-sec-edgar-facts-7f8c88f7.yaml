@@ -1,0 +1,40 @@
+ticket_id: 20261107-sec-edgar-facts-7f8c88f7
+source: sec-edgar-facts
+unit: spiders/sec-edgar-facts/
+kind: repair
+created_at: '2026-11-07T20:10:55.636945+00:00'
+category: contract
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 核对 adjacent_operating_margin_below 的读数与口径（邻接层公司营业利润率（营业利润/营业收入）跌破阈值（逐家判）——本规则判的是**营业利润率**，不是毛利率：美股
+  XBRL 白名单里没有毛利 tag，毛利率只有 A股 akshare 口径有（financials.gross_margin），跨市场不可拼）；阈值级告警不自动改数据
+evidence:
+  window:
+    from: '2026-06-30'
+    to: '2026-06-30'
+  failing_runs:
+  - started_at: '2026-11-07T20:10:55.636945+00:00'
+    status: failed
+    rows: null
+    error_summary: 阈值告警 adjacent_operating_margin_below：读数 -89.493 percent lt -5.0（期
+      2026-06-30）
+    http_status: null
+  last_success: null
+  watermark:
+    latest: '2026-06-30'
+    basis: 告警读数所在期
+  notes: 级别=阈值级；依据=邻接层公司营业利润率（营业利润/营业收入）跌破阈值（逐家判）——本规则判的是**营业利润率**，不是毛利率：美股 XBRL 白名单里没有毛利
+    tag，毛利率只有 A股 akshare 口径有（financials.gross_margin），跨市场不可拼；读数=-89.493 percent（EDBL）；阈值=lt
+    -5.0；越线实体=['FLWS', 'EDBL']；归因=数据侧越线，非抓取故障
+verify:
+  commands:
+  - python3 scripts/flower_alerts.py --rules --asof 2026-11-07
+golden: []
+lifecycle:
+- at: '2026-11-07T20:10:55.636945+00:00'
+  event: created
+terminal: null
+brief:
+  rule: adjacent_operating_margin_below
+  level: threshold
+  config: /Users/chengsishi/finddata/fd-industry-data/config/flower-alerts.json

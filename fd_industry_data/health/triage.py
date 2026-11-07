@@ -4,7 +4,7 @@
 只考察“尾部连续 failed 段”（最近一次成功之后的连续失败）；更早的失败不参与
 分诊。``source`` / ``unit`` 仅随工单携带，规则本身不依赖它们。
 
-规则（优先级 3 > 4 > 5 > 6 > 7 > 9 > 8；规则 1/1b/2 先于以上）：
+规则（优先级 3 > 4 > 5 > 6a > 6b > 7 > 9 > 8；规则 1/1b/2 先于以上）：
 
 1. 健康短路：最近一次 success 距今 <= expected_period_hours *
    freshness_multiplier，且尾部连续 failed < consecutive_failures -> 健康
@@ -27,8 +27,15 @@
 5. 网络层：error 命中 timeout|timed out|connect|reset|econn|tls|ssl|unreachable|
    502|503|504（或 http_status in {502, 503, 504}）-> "network"，
    action="出口切换/代理复测（不改代码）"。
-6. 结构层：error 命中 parse|json decode|keyerror|selector|no element|table|column|
-   解码|empty，且 http_status in {200, None} -> "structure"，action="定向修 parser"。
+6a. 疑似源改版（securities-source-alerting 2026-11-07 新增）：源可达（http_status
+   in {200, None}，且未被 4/5 判为源死亡/网络故障）但失败模式指向**端点结构变化**：
+   golden drift / schema mismatch / 字段或列缺失 / 选择器失效 / 解析零行（rows==0
+   且为结构类错误）/ 返回非 JSON。-> "source-revision"，action=先取证核对端点结构
+   再更新 parser 与 golden 样本。与 "network" 严格互斥（超时/5xx/DNS/连接拒绝
+   在规则 4/5 已先行判走，不会落到本规则）。
+6b. 结构层（残余）：error 命中 parse|json decode|keyerror|selector|no element|table|
+   column|解码|empty，且 http_status in {200, None}，但没有 6a 的结构变异证据
+   （典型=本地解析器崩溃/未知解析错误）-> "structure"，action="定向修 parser"。
 7. 契约层：error 命中 400|401|param|parameter|invalid|endpoint|moved|redirect|
    schema|版本（或 http_status in {400, 401}）-> "contract"，
    action="重新侦察数据表面"。
@@ -38,9 +45,9 @@
    次完全相同错误指纹 -> "fallback"，action="整段重生成（兜底）"。
 
 判定方式：先做规则 3 的签名短路；否则对尾部连续 failed 段逐 run 按 4~7 顺序取
-第一个命中规则，再多数投票（None 未命中作为一票参与）；未命中占多数或平票走
-规则 8 转人工（规则 9 优先于规则 8）。``rule_trace`` 记录命中规则路径，供工单
-evidence 引用。
+第一个命中规则（6a 先于 6b），再多数投票（None 未命中作为一票参与）；未命中占多数
+或平票走规则 8 转人工（规则 9 优先于规则 8）。``rule_trace`` 记录命中规则路径，供
+工单 evidence 引用。
 """
 from __future__ import annotations
 
@@ -51,10 +58,15 @@ from datetime import datetime, timezone
 ANTIBOT_ACTION = "更换数据表面（官方 API/替代入口）或退役；禁止逆向"
 SOURCE_DEAD_ACTION = "退役评估"
 NETWORK_ACTION = "出口切换/代理复测（不改代码）"
+SOURCE_REVISION_ACTION = "疑似源改版：先取样本核对端点结构（字段/选择器/golden），再更新 parser 与样本（非网络故障）"
 STRUCTURE_ACTION = "定向修 parser"
 CONTRACT_ACTION = "重新侦察数据表面"
 FALLBACK_ACTION = "整段重生成（兜底）"
 SILENT_ACTION = "重新侦察调度面：核对 schedule/站点心跳/注册行（遥测静默，非代码问题）"
+ABSENT_ACTION = "重新侦察调度面：排期在册但整窗没有一次运行（查 CronJob 是否渲染/站点是否认领该源）"
+EMPTY_SUCCESS_ACTION = (
+    "核对解析是否只读到表头/空表：最近的成功运行写入行数低于该源声明的 "
+    "min_rows_per_run（成功但没数据，不是「没有新数据」，也不是 0 值）")
 HUMAN_ACTION = "人工分诊（失败模式分歧/无法归类）"
 INSUFFICIENT_ACTION = "补充遥测样本后复检（证据不足）"
 
@@ -79,6 +91,19 @@ _STRUCT_RE = re.compile(
     r"parse|json decode|keyerror|selector|no element|table|column|解码|empty",
     re.IGNORECASE,
 )
+# 6a 疑似源改版：端点可达但payload形状变化的显式证据（先于 contract/6b 判定）。
+# 不收录裸 "schema"/"版本"（那是 contract 的重侦察语义），只收 mismatch/drift/缺失类。
+_REVISION_RE = re.compile(
+    r"golden\s*(?:drift|mismatch|changed?|diff)|schema\s*(?:mismatch|drift|changed?|break)"
+    r"|字段(?:缺失|丢失|不存在)|(?:missing|absent|unexpected)\s+(?:field|column)"
+    r"|no\s+(?:such\s+)?(?:field|column)|column\s+(?:missing|absent)"
+    r"|选择器(?:失效|未命中|不存在)|selector\s*(?:not\s*found|missing|broken?|failed)"
+    r"|no element|零行|zero\s*rows|0\s*rows|empty\s+(?:result|payload|response|dataset)"
+    r"|no\s+rows|解析(?:结果)?(?:为)?空|返回空|unexpected\s+(?:html|token)"
+    r"|not\s+(?:valid\s+)?json|html\s+(?:page|instead)"
+    r"|表头(?:异常|变更|漂移)|列(?:缺失|不存在|变更)|布局变更|页面改版|端点改版",
+    re.IGNORECASE,
+)
 _CONTRACT_RE = re.compile(
     r"\b(?:400|401)\b|param|parameter|invalid|endpoint|moved|redirect|schema|版本",
     re.IGNORECASE,
@@ -87,13 +112,18 @@ _CONTRACT_RE = re.compile(
 
 @dataclass(frozen=True)
 class Run:
-    """单次运行遥测。started_at 为 ISO8601；error 为错误摘要文本（可空）。"""
+    """单次运行遥测。started_at 为 ISO8601；error 为错误摘要文本（可空）。
+
+    ``watermark`` 是本次运行观测到的数据水位（最新数据期，如 "2026-09-30"）；
+    遥测源不提供时为空——工单 evidence.watermark 如实标注 unknown 而非编造。
+    """
 
     started_at: str
     status: str  # "success" | "failed"
     rows: int | None = None
     error: str = ""
     http_status: int | None = None
+    watermark: str | None = None
 
 
 @dataclass(frozen=True)
@@ -164,8 +194,15 @@ def _classify_run(run: Run, stale: bool) -> str | None:
     error = run.error or ""
     if (_DEAD_RE.search(error) or run.http_status in _DEAD_HTTP) and stale:
         return "source-dead"
+    # 规则 5 先行：超时/连接类/5xx 永远不是"源改版"（与网络故障严格互斥）。
     if _NET_RE.search(error) or run.http_status in _NET_HTTP:
         return "network"
+    # 规则 6a：可达（200/未标注，且未被网络/死亡判走）但结构变异证据成立。
+    # 解析零行（rows==0 + 结构类错误）也算改版证据；rows 未知（None）不猜。
+    if run.http_status in (200, None):
+        if _REVISION_RE.search(error) or (run.rows == 0 and _STRUCT_RE.search(error)):
+            return "source-revision"
+    # 规则 6b：残余结构类（无端点结构变化证据的本地解析错误）。
     if _STRUCT_RE.search(error) and run.http_status in (200, None):
         return "structure"
     if _CONTRACT_RE.search(error) or run.http_status in _CONTRACT_HTTP:
@@ -176,7 +213,8 @@ def _classify_run(run: Run, stale: bool) -> str | None:
 _NOTES = {
     "source-dead": (4, SOURCE_DEAD_ACTION),
     "network": (5, NETWORK_ACTION),
-    "structure": (6, STRUCTURE_ACTION),
+    "source-revision": ("6a", SOURCE_REVISION_ACTION),
+    "structure": ("6b", STRUCTURE_ACTION),
     "contract": (7, CONTRACT_ACTION),
 }
 
@@ -188,12 +226,37 @@ def classify(
     runs: list[Run],
     now: datetime,
     thresholds: Thresholds = Thresholds(),
+    *,
+    scheduled_absent: bool = False,
+    min_rows_per_run: int | None = None,
 ) -> Verdict:
-    """确定性分诊入口。规则与优先级见模块 docstring。"""
+    """确定性分诊入口。规则与优先级见模块 docstring。
+
+    ``scheduled_absent``（add-flower-vertical 6.1）：该源 manifest 里**有 schedule**
+    但整个遥测窗内没有一条运行记录。这时 ``runs`` 为空、尾部失败=0，落到规则 2
+    「证据不足」是错判——证据不足指「有失败样本但不够判」，而这里是**一次都没跑**，
+    属调度面故障（CronJob 没渲染 / 站点不认领 / 期别声明与排期矛盾），
+    应判 contract 并给出可执行的侦察动作。
+
+    ``min_rows_per_run``（add-flower-vertical 6.6）：该源 manifest 显式声明的
+    「一次成功运行至少应写入多少行」。未声明（None）时本规则完全不生效——这是
+    零回归的关键：0 行成功对某些源是合法的（节假日无新增、幂等 upsert），
+    只有源自己声明了下限后，「成功但行数不够」才算故障。
+    实证来源：`flower-auction` 有 **4 次 success / rows_written 合计 0**，
+    而健康级此前对此**完全无信号**（零行成功只在错误文本命中结构异常时才被看见）。
+    """
     ordered = sorted(runs, key=lambda run: _parse_ts(run.started_at))
     period = float(expected_period_hours)
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
+
+    # 规则 0：排期在册但整窗零运行（必须先于规则 1/1b/2——那三条都以「有运行记录」为前提）
+    if scheduled_absent and not ordered:
+        trace = (
+            "rule0:scheduled-but-never-ran 遥测窗内零运行记录"
+            f"（期别期望窗={_fmt_hours(period * thresholds.freshness_multiplier)}h）"
+        )
+        return Verdict("contract", False, False, ABSENT_ACTION, trace)
 
     last_success = None
     for run in ordered:
@@ -207,6 +270,23 @@ def classify(
 
     tail = _trailing_failed(ordered)
     tail_failed = len(tail)
+
+    # 规则 1c（6.6）：成功但行数低于声明下限。必须**先于**规则 1 的健康短路——
+    # 否则「跑成功、时间新鲜、只是什么都没写出来」会被判健康，正是要抓的那种静默。
+    if min_rows_per_run is not None and last_success is not None:
+        floor = int(min_rows_per_run)
+        thin = [
+            run for run in ordered
+            if run.status == "success" and (run.rows if run.rows is not None else 0) < floor
+        ]
+        if thin:
+            worst = min(thin, key=lambda run: run.rows if run.rows is not None else 0)
+            trace = (
+                "rule1c:success-but-too-few-rows "
+                f"最近成功 {len(thin)} 次中最低 rows={worst.rows}"
+                f" < min_rows_per_run={floor}（首次 {worst.started_at}）"
+            )
+            return Verdict("structure", False, False, EMPTY_SUCCESS_ACTION, trace)
 
     # 规则 1：健康短路
     fresh_cutoff = period * thresholds.freshness_multiplier

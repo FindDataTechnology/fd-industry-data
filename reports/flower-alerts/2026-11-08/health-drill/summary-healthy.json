@@ -1,0 +1,583 @@
+{
+  "at": "2026-11-07T19:15:45.456305+00:00",
+  "source": "snapshot:reports/flower-alerts/2026-11-08/health-drill/snapshot-healthy.json",
+  "config_source": "file:reports/flower-alerts/2026-11-08/health-drill/drill-health-config.json",
+  "sources_seen": 2,
+  "healthy": 2,
+  "written": [],
+  "deferred": [],
+  "skipped_unknown_period": [],
+  "absent_sources": [
+    {
+      "source": "abs-sdmx",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "afdc",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "amis-market",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "bls",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "boxofficemojo",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "carbon-monitor",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "cba-wealth-index",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "census-eits",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "census-m3",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "chinabond-monthly",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "chinabond-yield-curve",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "chinamoney-lpr",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "chinamoney-ncd-curve",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "chinamoney-shibor",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "chinawealth-reports",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "chinawuliu-logistics",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "cisa",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "clinicaltrials",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "cninfo-operating",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "cpcaauto-monthly",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "dagong-ratings",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "dbnomics-api",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "dce",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "dfjc-ratings",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "eastmoney-data",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "eastmoney-disclosure-plan",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "eastmoney-futures",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "ecb-exr",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "edgar-emissions",
+      "reason": "period-longer-than-window",
+      "data_period": "year"
+    },
+    {
+      "source": "education_cc_courses",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "education_oa_fulltext",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "education_oer_aggregators",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "education_openalex",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "education_podcast",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "eia-v2",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "elexon-bmrs",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "ember",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "entsoe-e",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "eurostat-api",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "fangchan-market",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "fao-empres",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "fao-food-price",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "gb-standards",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "gdacs",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "gleif-lei",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "hf-datasets",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "hsgt-northbound",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "ico-coffee-price",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "iea-ev",
+      "reason": "period-longer-than-window",
+      "data_period": "year"
+    },
+    {
+      "source": "imf-pcps",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "jodi-gas",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "jodi-oil",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "jp-estat",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "jp-foodservice-trend",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "kitco",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "lh-ratings",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "lhb-daily",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "mem-disaster",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "miit-gxsj",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "moa-hog-price",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "mofcom-data",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "mohurd-yearbook",
+      "reason": "period-longer-than-window",
+      "data_period": "year"
+    },
+    {
+      "source": "nasa-firms",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "nasa-power",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "nbs-housing",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "nbs-stats",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "nfra-penalty",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "nfra-stats-xls",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "nifdc-batchcert",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "nmc-weather",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "noaa-ncei",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "noaa-swpc",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "oecd-cli",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "open-meteo",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "openalex-works",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "openchargemap",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "openfda",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "ourairports",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "pboc-credit-funds",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "pboc-inclusive",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "pboc-loan-usage",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "pboc-monetary",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "portwatch-imf",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "ratings-ccxi",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "restaurant-rpi",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "sac-securities",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "samr-food-inspection",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "sc-gd-stats",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "shclearing-capital-notes",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "shclearing-monthly",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "socrata-chicago",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "socrata-ny",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "spb-express",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "sse-szse-margin",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "sse-szse-market-stats",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "statcan-bulk",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "steam-ccu",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "stock-zygc",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "ted-notices",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "tpex-monthly-revenue",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "twse-monthly-revenue",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "uk-hpi",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "un-comtrade",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "unido-sdmx",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "usda-psd",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "usda-quickstats",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "usgs-nwis",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "wire-finddatatech-cloud",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "worldbank-procnotices",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "worldsteel",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "wto-eping",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "xsj-ratings",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "yindeng-npl-transfer",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "zgdypf-boxoffice",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    }
+  ],
+  "master_switch": false
+}

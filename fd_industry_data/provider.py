@@ -2,11 +2,28 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from fd_open_data_protocol.provider import BaseDataProvider
 
 from .catalog import CATALOG
+
+_SPIDERS = Path(__file__).resolve().parent.parent / "spiders"
+
+
+def _dashed_unit_entry(slug: str, target: str):
+    """Load ``target`` from ``spiders/<slug>/spider.py`` when the dir name has a dash.
+
+    A dash is not a valid module identifier, and the conformance gate forbids
+    keeping both ``eurostat-api`` and ``eurostat_api`` (adapter-dash-underscore-pair),
+    so such units are loaded by file path instead of by import. Delegates to the
+    same loader the golden replayer uses, which names the module
+    ``unit_<slug_underscored>`` so repeated loads never collide in sys.modules.
+    """
+    from .health.guard import load_unit_entry
+
+    return load_unit_entry(_SPIDERS / slug, target)
 
 
 class IndustryDataProvider(BaseDataProvider):
@@ -73,6 +90,25 @@ class IndustryDataProvider(BaseDataProvider):
         elif command == "run_doab_oai_harvest":
             from spiders.education_oer_aggregators.spider import run_doab_oai_harvest
             return run_doab_oai_harvest(**params)
+        # hotel-vertical wave 0: the four accommodation/tourism series live in
+        # eurostat-api but are deliberately NOT folded into its scheduled
+        # wave-C rotation — adding four buckets there would dilute the
+        # restaurant/agriculture shares of the same --limit. They get their own
+        # command surface instead (the wave-0 extractor calls these by name).
+        # eurostat-api is dash-named, so it is loaded by file path.
+        elif command == "run_eurostat_i55":
+            return _dashed_unit_entry("eurostat-api", command)(**params)
+        elif command == "run_eurostat_tour_occ":
+            return _dashed_unit_entry("eurostat-api", command)(**params)
+        elif command == "run_eurostat_tour_annual":
+            return _dashed_unit_entry("eurostat-api", command)(**params)
+        elif command == "run_eurostat_tour_cap":
+            return _dashed_unit_entry("eurostat-api", command)(**params)
+        elif command == "run_eurostat_flower_area":
+            # 花卉垂直线（add-flower-vertical 3.3）：EU 花卉主面积。按酒店线先例
+            # 走 provider 按需取数，不并入 run_eurostat_api 的 --limit 轮转
+            # （轮转会把 8 geo × 12 年截成头 10 行，存成半截序列）。
+            return _dashed_unit_entry("eurostat-api", command)(**params)
         else:
             raise NotImplementedError(f"Unknown command: {command}")
 

@@ -1,0 +1,193 @@
+# 花卉行业监控宇宙（双层）— add-flower-vertical task 4.1 真源
+#
+# 唯一机器可读真源。注册脚本与看板只读本文件，不在单元内硬编码实体列表。
+#
+# entity_type 一律 `stock`（fd-open-data-protocol/vocabulary/entity_types.yaml）。
+#
+# 代码约定（沿用 docs/hotel-universe.yaml / docs/restaurant-universe.yaml）：
+#   * A股：裸 6 位数字（002200），不带 .SZ/.SH 后缀；
+#   * 日股：4 位数字 + `.T`（1377.T）；
+#   * 美股：裸 ticker（FLWS）。
+#
+# ── 分层口径（spec: 宇宙分纯花卉层与邻接层，分层依据为主营构成证据）────────
+#   tier: pure-flower  = 主营收入以花卉/观赏植物为核心
+#   tier: adjacency    = 有可核验的花卉相关业务分部（园艺用品/温室/园林苗木）
+#   仅凭名称、品牌或行业标签含花卉字样**不得**作为纳入依据。
+#
+# ── segment 闭集（不模糊归类、不允许同义异写）───────────────────────────
+#   cutflower-trade        切花贸易（种球/切花流通与交易）
+#   breeding-propagation   种苗育种（育种、种子、组培繁殖）
+#   horticultural-supplies 园艺用品（基质、肥料、花盆、园艺耗材）
+#   greenhouse-equipment   温室设施（温室结构、补光、灌溉、环境控制设备）
+#   greenhouse-grower      温室种植（受控环境农业种植主体）
+#   landscape-nursery      园林苗木（苗木种植、租摆、绿化施工中的苗木分部）
+#
+# ── 车道（lanes）与 region 必须一致 ───────────────────────────────────
+#   US → sec-edgar-facts（既有单元）
+#   JP → edinet-api（**无 key，车道不可用**；ticker 亦未上游核实）
+#   CN → stock-zygc（既有单元，东财 F10 主营构成，含 segment_type 分部）
+#   分部深抽取（三通道）另见 change awaken-flower-report-ingest 的
+#   `xbrl-segment-extraction`（US 10-K instance）与 `stock-zygc`（A股）。
+#
+# ── flower_revenue_share 口径（spec: 未披露即显式不可得）────────────────
+#   取值来自可得的分部披露（主营构成或等价结构化披露），单位=小数（0.0023 = 0.23%）。
+#   `null` = **显式不可得**（当期未披露或口径不可比），不是 0，也不得用估算补齐。
+#   以该字段排序的排名/占比图必须排除 null 实体。
+#
+# ── 验证状态 ─────────────────────────────────────────────────────────
+#   verified.ticker   票符是否上游核实
+#   verified.segments 分部/主营构成是否已实测
+#   未核实项在读取面须呈现「不可得」，不得静默渲染成数字。
+
+version: "2026-11-08"
+change: add-flower-vertical
+task: "4.1"
+
+tiers:
+  pure-flower: 纯花卉
+  adjacency: 邻接
+
+segments:
+  cutflower-trade: 切花贸易
+  breeding-propagation: 种苗育种
+  horticultural-supplies: 园艺用品
+  greenhouse-equipment: 温室设施
+  greenhouse-grower: 温室种植
+  landscape-nursery: 园林苗木
+
+# 三项失败即拒自检的期望值（注册脚本按此断言）
+expected:
+  total: 7
+  pure_flower: 2
+  adjacency: 5
+
+companies:
+  # ══ 纯花卉层（2）══════════════════════════════════════════════════
+  - code: "FLWS"
+    name_zh: 1-800-FLOWERS.COM
+    name_en: 1-800-FLOWERS.COM, Inc.
+    region: US
+    exchange: NASDAQ
+    tier: pure-flower
+    segment: cutflower-trade
+    flower_revenue_share: 1.0
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, segments: true}
+    notes: >-
+      CIK 1084869。三个 reportable segment 全部为花卉/礼赠业务
+      （ConsumerFloralAndGifts / GourmetFoodsAndGiftBaskets / BloomNet），
+      花卉相关口径占比 100%。10-K instance 实测 412 个 explicitMember、
+      分部轴 57 个 context、可抽 60 条分部收入事实（companyfacts 聚合接口
+      已剥掉维度，必须走 instance —— 见 awaken-flower-report-ingest）。
+
+  - code: "1377.T"
+    name_zh: 坂田种苗
+    name_en: Sakata Seed Corporation
+    region: JP
+    exchange: TSE
+    tier: pure-flower
+    segment: breeding-propagation
+    flower_revenue_share: null
+    lanes: [edinet-api]
+    verified: {ticker: false, segments: false}
+    notes: >-
+      花卉/蔬菜种苗育种主业。**票符未上游核实、EDINET API key 未申请**
+      （全仓无 key；酒店线 docs/hotel-universe.yaml 第 301 行同样挂账）。
+      在 key 到位前该公司只出现在宇宙中、不出现在任何财务排名里。
+
+  # ══ 邻接层（5）═══════════════════════════════════════════════════
+  - code: "CENT"
+    name_zh: Central Garden & Pet
+    name_en: Central Garden & Pet Company
+    region: US
+    exchange: NASDAQ
+    tier: adjacency
+    segment: horticultural-supplies
+    flower_revenue_share: null
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, segments: false}
+    notes: 园艺用品（花卉园艺耗材、草种、肥料）；分部占比待 instance 实测
+
+  - code: "SMG"
+    name_zh: 施可得
+    name_en: The Scotts Miracle-Gro Company
+    region: US
+    exchange: NYSE
+    tier: adjacency
+    segment: horticultural-supplies
+    flower_revenue_share: null
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, segments: false}
+    notes: 园艺基质/肥料（Hawthorne 园艺照明与耗材）；分部占比待实测
+
+  - code: "HYFM"
+    name_zh: Hydrofarm Holdings
+    name_en: Hydrofarm Holdings Group, Inc.
+    region: US
+    exchange: NASDAQ
+    tier: adjacency
+    segment: greenhouse-equipment
+    flower_revenue_share: null
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, segments: false}
+    notes: 温室/室内种植设备与耗材（补光、通风、营养液）；占比待实测
+
+  - code: "EDBL"
+    name_zh: Edible Garden
+    name_en: Edible Garden AG Incorporated
+    region: US
+    exchange: NASDAQ
+    tier: adjacency
+    segment: greenhouse-grower
+    flower_revenue_share: null
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, segments: false}
+    notes: 温室种植（香草/生菜为主，含盆栽活体植物）；占比待实测
+
+  - code: "002200"
+    name_zh: 云投生态
+    name_en: Yunnan YunTou Ecological Environment Co., Ltd.
+    region: CN
+    exchange: SZSE
+    tier: adjacency
+    segment: landscape-nursery
+    flower_revenue_share: 0.0023
+    lanes: [stock-zygc]
+    verified: {ticker: true, segments: true}
+    notes: >-
+      东财 F10 主营构成（RPT_F10_FN_MAINOP，2026-06-30）实测：工程施工 97.70%、
+      苗木销售 0.15% + 苗木租摆 0.08% = **0.23%**。是 A股唯一有苗木/花卉分部的标的，
+      占比极低故只进邻接层，且在按占比排序的图里必然垫底。
+
+# ══ 排除清单（证伪留痕：名称相关但主营构成无花卉分部）══════════════════
+# 每条的实测占比见侦察簿「花卉 W0 端点级复测」与「企业面复核」两节。
+exclusions:
+  - code: "603007"
+    name_zh: 花王股份
+    reason: 已转型新能源汽车混动核心零部件 98.24%（2026-H1 主营构成），花卉业务退出
+    measured: {mainop: "新能源汽车混动核心零部件 98.24%", date: "2026-06-30"}
+  - code: "002717"
+    name_zh: 岭南股份
+    reason: 主营构成无花卉/苗木分部（生态修复 51.61% / 水务 48.39% / 文旅 0%）
+    measured: {mainop: "生态环境建设与修复 51.61% + 水务水环境治理 48.39%", date: "2026-06-30"}
+  - code: "002431"
+    name_zh: 棕榈股份
+    reason: 主营构成无花卉/苗木分部（工程施工 90.85% / 城市运营 3.95% / 设计 2.69%）
+    measured: {mainop: "工程施工 90.85%", date: "2026-06-30"}
+  - code: "300355"
+    name_zh: 蒙草生态
+    reason: 分部为草种与生态修复，非花卉（草种及乡土植物销售 1.12%）
+    measured: {mainop: "生态环境建设与运营 90.12% + 草种及乡土植物销售 1.12%", date: "2026-06-30"}
+  - code: "000713"
+    name_zh: 丰乐种业
+    reason: 农化 69.65% / 种子 16.51% / 香料 13.85%，无花卉分部（香料非花卉）
+    measured: {mainop: "农化类 69.65%", date: "2026-06-30"}
+  - code: "FLO"
+    name_zh: Flowers Foods
+    reason: 名字陷阱 —— 烘焙食品公司，与花卉无关
+  - code: "AFCG"
+    name_zh: AFC Gamma
+    reason: 名字陷阱 —— 大麻贷款 REIT
+  - code: "GSIW"
+    name_zh: Garden Stage Ltd
+    reason: 名字陷阱 —— 港资资产管理，非园艺

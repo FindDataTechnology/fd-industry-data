@@ -15,7 +15,8 @@
     evidence:
       window: {from: ..., to: ...}
       failing_runs: [...]
-      last_success: {...} | None
+      last_success: {...} | None          # 最近成功时间（started_at/rows）
+      watermark: {latest, basis} | None   # 水位：最新数据期 + 口径来源（未知时如实标 unknown）
       notes: str
     verify:
       commands: [...]         # 验证链命令声明
@@ -30,9 +31,10 @@
 - ``kind`` 缺省视为 ``repair``，必须属于 KINDS；
 - repair：needs_human=False 时 category 必填（不猜类别也不许空分类）；
   needs_human=True 时 category 允许 None（证据不足转人工）；
-- generate：category 必须为空（生成不属故障分诊五类）；brief 必填且含
+- generate：category 必须为空（生成不属故障分诊六类）；brief 必填且含
   非空 source_urls 列表与 expectations 字符串；
 - suspected_anti_bot 仅当 category == "contract" 才可为 True；
+- evidence.watermark 可空；有值时必须为 dict（含最新数据期 latest 与口径 basis）；
 - terminal 为 None 或 TERMINALS 之一。
 
 生命周期只追加不篡改：``append_event`` / ``set_terminal`` 仅向 lifecycle 末尾
@@ -47,7 +49,7 @@ from pathlib import Path
 
 import yaml
 
-CATEGORIES = ("network", "structure", "contract", "source-dead", "fallback")
+CATEGORIES = ("network", "source-revision", "structure", "contract", "source-dead", "fallback")
 KINDS = ("repair", "generate")
 TERMINALS = (
     "queued",
@@ -92,6 +94,7 @@ def _normalize_evidence(evidence: dict) -> dict:
         "window": window,
         "failing_runs": list(failing_runs),
         "last_success": src.get("last_success"),
+        "watermark": src.get("watermark"),
         "notes": src.get("notes", "") or "",
     }
 
@@ -173,6 +176,10 @@ def validate_ticket(doc: dict) -> list[str]:
     evidence = doc.get("evidence")
     if evidence is not None and not isinstance(evidence, dict):
         errors.append("evidence 必须是 dict")
+    elif isinstance(evidence, dict):
+        watermark = evidence.get("watermark")
+        if watermark is not None and not isinstance(watermark, dict):
+            errors.append("evidence.watermark 必须是 dict 或 None")
 
     verify = doc.get("verify")
     if verify is not None:
@@ -201,7 +208,7 @@ def validate_ticket(doc: dict) -> list[str]:
 
     if kind == "generate":
         if category is not None:
-            errors.append("kind=generate 时 category 必须为空（生成不属故障分诊五类）")
+            errors.append("kind=generate 时 category 必须为空（生成不属故障分诊六类）")
         brief = doc.get("brief")
         if not isinstance(brief, dict):
             errors.append("kind=generate 时 brief 必填且为 dict")

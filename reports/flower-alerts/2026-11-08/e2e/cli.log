@@ -1,0 +1,24 @@
+dounan-flower-price: window_learning  水位=2026-11-05  滞后=未学出  样本=1
+    窗口学习中：带水位的成功样本 1 < 5，发布滞后窗尚未学出（此处不判「未发布」，冷启动期不出告警）
+· dounan_rose_avg_wow_drop: quiet 读数=4.3675 percent 期=2026-11-02
+    dounan_rose_avg_wow_drop: 剔除薄桶 ['2026-09-07', '2026-10-05']（样本数 < min_bucket_samples=3：单日样本冒充周均值会造出假跌幅）
+🔴 adjacent_operating_margin_below: crossed 读数=-89.493 percent 期=2026-06-30 [EDBL]
+    FLWS: -27.14%  期=2026-09-27 分母=171,351,000 ✗
+    CENT: +14.26%  期=2026-06-27 分母=882,362,000
+    SMG: +14.47%  期=2026-06-27 分母=1,172,100,000
+    EDBL: -89.49%  期=2026-06-30 分母=3,550,000 ✗
+    002200: +9.16%  期=2026-09-30 分母=427,906,634
+    ⊘ HYFM: 最近有效期次 2025-09-30 距今 403 天 > max_period_age_days=200（分母序列未跟进：financials.revenue）
+⊘ hs0603_export_yoy_negative: 未启用 —— un-comtrade 的花卉三档（060311/060319/060120）尚未进抓取参数，库内无花卉贸易序列——不动这条规则，是因为没有数据再好的阈值也只能判「不足」
+⊘ eu_flower_production_gap: 未启用 —— eurostat-api 尚未接花卉口径（apro_cpsh1 不在其默认数据集内），库内无该序列
+events（dry-run）：扫到 28 条，不落账
+  2026-08-11 EDBL 8-K
+  2026-08-14 EDBL 10-Q
+  2026-08-14 EDBL 8-K
+  2026-08-14 HYFM 8-K
+  2026-08-14 HYFM 10-Q
+  2026-08-17 EDBL 8-K
+  2026-08-24 EDBL 8-K
+  2026-08-27 SMG 8-K
+  2026-09-02 EDBL 8-K
+  2026-09-03 SMG 8-K

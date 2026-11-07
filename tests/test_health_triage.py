@@ -235,17 +235,18 @@ def test_network_http_5xx():
 
 # ---------------------------------------------------------------- 规则 6：结构层
 
-def test_structure_parse_errors_with_http_200():
+def test_structure_residual_parse_errors_without_revision_evidence():
+    """6b 残余结构类：可解析层错误但无端点结构变化证据（http 未标注/200）。"""
     runs = [_ok(100)] + [
-        _fail(3, "json decode error: unexpected token", http_status=200),
-        _fail(2, "selector not found", http_status=200),
-        _fail(1, "KeyError: 'data'", http_status=200),
+        _fail(3, "json decode error", http_status=None),
+        _fail(2, "KeyError: 'data'", http_status=None),
+        _fail(1, "parse error in transformer", http_status=None),
     ]
     verdict = _classify(runs)
     assert verdict.category == "structure"
     assert verdict.needs_human is False
     assert verdict.suggested_action == "定向修 parser"
-    assert "rule6" in verdict.rule_trace
+    assert "rule6b" in verdict.rule_trace
 
 
 def test_structure_requires_success_or_absent_http_status():
@@ -256,6 +257,107 @@ def test_structure_requires_success_or_absent_http_status():
     ]
     verdict = _classify(runs)
     assert verdict.category != "structure"
+
+
+# ---------------------------------------------------------------- 规则 6a：疑似源改版
+
+def test_source_revision_schema_and_golden_drift_with_http_200():
+    """可达（HTTP 200）但端点结构变化：schema mismatch / golden drift / 选择器失效
+    -> source-revision（与 network 区分，不笼统标失败）。"""
+    runs = [_ok(100)] + [
+        _fail(3, "JSON schema mismatch: missing field 'close'", http_status=200),
+        _fail(2, "golden drift: sample rows 0 vs expected 20", http_status=200),
+        _fail(1, "selector not found: table#daily-quotes", http_status=200),
+    ]
+    verdict = _classify(runs)
+    assert verdict.category == "source-revision"
+    assert verdict.needs_human is False
+    assert verdict.suspected_anti_bot is False
+    assert "源改版" in verdict.suggested_action
+    assert "rule6a" in verdict.rule_trace
+    assert "network" not in verdict.rule_trace
+
+
+def test_source_revision_zero_rows_with_http_200():
+    """解析零行：HTTP 200 可达、rows==0 且结构类错误 -> source-revision。"""
+    runs = [_ok(100)] + [
+        _fail(3, "parse error in extractor", http_status=200, rows=0),
+        _fail(2, "parse error in extractor", http_status=200, rows=0),
+        _fail(1, "parse error in extractor", http_status=200, rows=0),
+    ]
+    verdict = _classify(runs)
+    assert verdict.category == "source-revision"
+    assert "rule6a" in verdict.rule_trace
+
+
+def test_source_revision_without_explicit_http_status_still_works():
+    """中央库 crawl_runs 无 http_status 列（恒 None）：结构漂移证据仍判改版。"""
+    runs = [_ok(100)] + [
+        _fail(3, "schema changed: missing column amount", http_status=None),
+        _fail(2, "zero rows parsed from listing page", http_status=None),
+        _fail(1, "接口字段缺失 trade_date", http_status=None),
+    ]
+    verdict = _classify(runs)
+    assert verdict.category == "source-revision"
+    assert "rule6a" in verdict.rule_trace
+
+
+def test_network_wins_over_revision_tokens():
+    """超时/5xx 永远不是源改版：即使错误文本里带 parse/selector 等结构词。"""
+    timeouts = [_ok(100)] + [
+        _fail(3, "timeout while reading parse buffer"),
+        _fail(2, "connection reset during selector retry"),
+        _fail(1, "502 bad gateway (upstream html)"),
+    ]
+    assert _classify(timeouts).category == "network"
+
+    http_5xx = [_ok(100)] + [
+        _fail(3, "selector not found", http_status=503),
+        _fail(2, "schema mismatch", http_status=502),
+        _fail(1, "zero rows", http_status=504),
+    ]
+    verdict = _classify(http_5xx)
+    assert verdict.category == "network"
+    assert "rule5" in verdict.rule_trace
+
+
+def test_network_sample_and_revision_sample_do_not_cross_classify():
+    """两类样例各归各类：改版样例不判 network，网络样例不判 source-revision。"""
+    revision = [_ok(100)] + [
+        _fail(3, "golden mismatch on golden/001.json", http_status=200),
+        _fail(2, "missing field: volume", http_status=200),
+        _fail(1, "no element matching .quote-table", http_status=200),
+    ]
+    network = [_ok(100)] + [
+        _fail(3, "read timed out"),
+        _fail(2, "connection refused"),
+        _fail(1, "HTTP 503", http_status=503),
+    ]
+    rev, net = _classify(revision), _classify(network)
+    assert rev.category == "source-revision" and net.category == "network"
+    assert rev.suggested_action != net.suggested_action
+
+
+def test_source_revision_majority_beats_network_minority():
+    runs = [_ok(100)] + [
+        _fail(4, "schema mismatch: price column absent", http_status=200),
+        _fail(3, "selector failed", http_status=200),
+        _fail(2, "connection reset"),
+    ]
+    verdict = _classify(runs)
+    assert verdict.category == "source-revision"
+    assert "rule6a" in verdict.rule_trace
+
+
+def test_anti_bot_still_beats_source_revision():
+    runs = [_ok(100)] + [
+        _fail(3, "selector not found", http_status=200),
+        _fail(2, "captcha challenge page", http_status=200),
+        _fail(1, "schema mismatch", http_status=200),
+    ]
+    verdict = _classify(runs)
+    assert verdict.category == "contract" and verdict.suspected_anti_bot is True
+    assert "rule3" in verdict.rule_trace
 
 
 # ---------------------------------------------------------------- 规则 7：契约层
@@ -288,8 +390,8 @@ def test_contract_schema_change():
 
 def test_tie_between_two_categories_needs_human():
     runs = [_ok(100)] + [
-        _fail(4, "json decode error", http_status=200),
-        _fail(3, "selector not found", http_status=200),
+        _fail(4, "json decode error", http_status=None),
+        _fail(3, "parse error in extractor", http_status=None),
         _fail(2, "invalid parameter", http_status=200),
         _fail(1, "endpoint moved", http_status=200),
     ]

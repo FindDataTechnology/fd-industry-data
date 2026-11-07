@@ -1,0 +1,25 @@
+{
+  "sample_id": "010-eurostat-tour-annual",
+  "created": "2026-11-08",
+  "target": "run_eurostat_tour_annual",
+  "params": {"limit": 200},
+  "expect": {
+    "min_rows": 21,
+    "rows_contains": [
+      {"field": "dataset", "equals": "tour_occ_ninat"},
+      {"field": "geo", "equals": "EU27_2020"},
+      {"field": "freq", "equals": "A"},
+      {"field": "unit", "equals": "NR"},
+      {"field": "indic", "equals": "TOTAL"},
+      {"field": "nace_r2", "equals": "I551"},
+      {"field": "period", "equals": "1990"},
+      {"field": "value", "equals": "985791091.0"},
+      {"field": "period", "equals": "2015"},
+      {"field": "value", "equals": "1620327189.0"},
+      {"field": "period", "equals": "2020"},
+      {"field": "value", "equals": "795014048.0"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"],
+  "note": "酒店垂直线波0 欧盟年度过夜数。tour_occ_ninat / TOTAL / NR / nace_r2=I551，表头写 1990..2025（36 年）但 EU27_2020 聚合只有 21 个非空值 —— 空年上游就是空，不补零不插值，图上必须有断点。锚点：1990=985,791,091（首值）、2015=1,620,327,189（常规年）、2020=795,014,048（疫情年，腰斩一半，证明是真年度量）。min_rows 钉 21，多一行少一行都要当上游变动处理。trend 门：21 期 < 24，入库按 short_window 登记。所有值 2026-11-08 由真实调用逐字读出。"
+}

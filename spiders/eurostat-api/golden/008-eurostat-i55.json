@@ -1,0 +1,25 @@
+{
+  "sample_id": "008-eurostat-i55",
+  "created": "2026-11-08",
+  "target": "run_eurostat_i55",
+  "params": {"limit": 1000},
+  "expect": {
+    "min_rows": 130,
+    "rows_contains": [
+      {"field": "dataset", "equals": "sts_setu_m"},
+      {"field": "geo", "equals": "EU27_2020"},
+      {"field": "unit", "equals": "I21"},
+      {"field": "indic", "equals": "NETTUR"},
+      {"field": "s_adj", "equals": "SCA"},
+      {"field": "nace_r2", "equals": "I55"},
+      {"field": "period", "equals": "2015-01"},
+      {"field": "value", "equals": "144.1"},
+      {"field": "period", "equals": "2020-04"},
+      {"field": "value", "equals": "23.2"},
+      {"field": "period", "equals": "2021-01"},
+      {"field": "value", "equals": "54.1"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"],
+  "note": "酒店垂直线波0 欧盟供给腿。nace_r2=I55（住宿业整体）实测 139 值 2015-01..2026-07；锚点选 2015-01=144.1（序列首值）、2020-04=23.2（疫情封锁谷底，证明是量/营业额口径而非平滑价格指数）、2021-01=54.1（基期年起点）。末月不入锚（可能修订）。同数据集 nace_r2=I551（纯酒店）实测 0 值，故本序列只能叫「住宿业营业额指数」，不许写成「酒店营业额」。所有值 2026-11-08 由真实调用逐字读出。"
+}

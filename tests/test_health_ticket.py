@@ -72,6 +72,7 @@ def test_new_ticket_evidence_defaults():
         "window": {"from": None, "to": None},
         "failing_runs": [],
         "last_success": None,
+        "watermark": None,
         "notes": "",
     }
     assert doc["golden"] == []
@@ -117,6 +118,37 @@ def test_empty_doc_reports_all_required_fields():
 def test_invalid_category_rejected():
     errors = ticket.validate_ticket(_base(category="weird"))
     assert any("category" in message and "非法" in message for message in errors)
+
+
+def test_source_revision_is_a_first_class_category():
+    """疑似源改版是独立分诊类（与 network 区分，不笼统标失败）。"""
+    assert "source-revision" in ticket.CATEGORIES
+    assert ticket.validate_ticket(_base(category="source-revision")) == []
+
+
+def test_watermark_preserved_in_evidence():
+    doc = ticket.new_ticket(
+        "sse-szse-margin",
+        "spiders/sse-szse-margin/",
+        evidence={
+            "last_success": {"started_at": "2026-11-06T18:50:00+00:00", "rows": 20},
+            "watermark": {"latest": "2026-11-05", "basis": "run telemetry watermark"},
+        },
+        verify_commands=[],
+        category="source-revision",
+    )
+    assert doc["evidence"]["last_success"]["started_at"] == "2026-11-06T18:50:00+00:00"
+    assert doc["evidence"]["watermark"] == {
+        "latest": "2026-11-05", "basis": "run telemetry watermark",
+    }
+    assert ticket.validate_ticket(doc) == []
+
+
+def test_invalid_watermark_type_rejected():
+    doc = _base()
+    doc["evidence"]["watermark"] = "2026-11-05"
+    errors = ticket.validate_ticket(doc)
+    assert any("watermark" in message for message in errors)
 
 
 @pytest.mark.parametrize("category", ticket.CATEGORIES)

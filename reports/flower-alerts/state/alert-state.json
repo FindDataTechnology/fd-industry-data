@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "dounan_rose_avg_wow_drop": {
+      "last_value": 4.3675,
+      "period": "2026-11-02"
+    },
+    "adjacent_operating_margin_below": {
+      "state": "firing",
+      "since": "2026-11-07T20:31:58.143660+00:00",
+      "last_notified_at": "2026-11-07T20:31:58.143660+00:00",
+      "episode": 1,
+      "last_value": -89.493,
+      "period": "2026-06-30"
+    }
+  }
+}

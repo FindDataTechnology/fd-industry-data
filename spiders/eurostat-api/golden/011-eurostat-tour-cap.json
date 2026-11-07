@@ -1,0 +1,25 @@
+{
+  "sample_id": "011-eurostat-tour-cap",
+  "created": "2026-11-08",
+  "target": "run_eurostat_tour_cap",
+  "params": {"limit": 200},
+  "expect": {
+    "min_rows": 21,
+    "rows_contains": [
+      {"field": "dataset", "equals": "tour_cap_nat"},
+      {"field": "geo", "equals": "EU27_2020"},
+      {"field": "freq", "equals": "A"},
+      {"field": "unit", "equals": "NR"},
+      {"field": "indic", "equals": "BEDPL"},
+      {"field": "nace_r2", "equals": "I551"},
+      {"field": "period", "equals": "2005"},
+      {"field": "value", "equals": "10339171.0"},
+      {"field": "period", "equals": "2015"},
+      {"field": "value", "equals": "11794753.0"},
+      {"field": "period", "equals": "2025"},
+      {"field": "value", "equals": "13066737.0"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"],
+  "note": "酒店垂直线波0 欧盟供给能力（床位，年）。tour_cap_nat / accomunit=BEDPL / nace_r2=I551，21 值 2005..2025（2005 是 EU27 聚合首个有值年，绝不是「序列起点=2005 的历史起点」）。accomunit 映射到 indic 列（与 HICP 的 coicop 同约定）。锚点：2005=10,339,171（首值）、2015=11,794,753（常规年）、2025=13,066,737（末日历年，年频存量数据，若后续修订会先撞 min_rows/锚点再人工裁决）。trend 门：21 期 < 24，入库按 short_window 登记。所有值 2026-11-08 由真实调用逐字读出。"
+}

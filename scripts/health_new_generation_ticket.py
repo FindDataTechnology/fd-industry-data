@@ -53,6 +53,7 @@ def main() -> int:
             "window": {"from": now, "to": now},
             "failing_runs": [],
             "last_success": None,
+            "watermark": {"latest": None, "basis": "n/a（生成单：目标单元尚不存在）"},
             "notes": "生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本",
         },
         verify_commands=[],

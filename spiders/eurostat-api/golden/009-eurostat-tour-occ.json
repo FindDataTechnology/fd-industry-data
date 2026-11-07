@@ -1,0 +1,25 @@
+{
+  "sample_id": "009-eurostat-tour-occ",
+  "created": "2026-11-08",
+  "target": "run_eurostat_tour_occ",
+  "params": {"limit": 1000},
+  "expect": {
+    "min_rows": 700,
+    "rows_contains": [
+      {"field": "dataset", "equals": "tour_occ_nim"},
+      {"field": "geo", "equals": "EU27_2020"},
+      {"field": "nace_r2", "equals": "I551-I553"},
+      {"field": "period", "equals": "2011-01"},
+      {"field": "unit", "equals": "NR"},
+      {"field": "indic", "equals": "TOTAL"},
+      {"field": "value", "equals": "102002788.0"},
+      {"field": "indic", "equals": "FOR"},
+      {"field": "value", "equals": "44178570.0"},
+      {"field": "period", "equals": "2020-04"},
+      {"field": "unit", "equals": "PCH_SM"},
+      {"field": "value", "equals": "-98.38"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"],
+  "note": "酒店垂直线波0 欧盟需求腿（过夜数，月）。一次请求取四条序列：c_resid=TOTAL/FOR × unit=NR/PCH_SM，各 188 值 2011-01..2026-08，合计 752 行。锚点：2011-01 TOTAL/NR=102,002,788（序列首值）、同月 FOR/NR=44,178,570（外国居民分项，验证 c_resid 映射到 indic 列）、2020-04 FOR/PCH_SM=-98.38（封锁月同比近 -100%，证明 PCH_SM 是真同比而非水平值）。注意 rows_contains 只支持 {field,equals} 精确匹配，故一次只锁一个字段组合；同一 period 的多条序列靠 min_rows 与 unit/indic 分项锚点共同约束。末月不入锚。所有值 2026-11-08 由真实调用逐字读出。"
+}

@@ -1,0 +1,146 @@
+version: "2"
+name: aiph-stats            # = spiders/aiph-stats/ 目录名，运行时标识符，合入后不可改名
+label: AIPH 国际花卉统计年鉴·分品种分国别种植面积（AIPH / Union Fleurs）
+source_url: https://aiph.org/giic/international-statistical-yearbook/
+# site: 缺省（tencent）——本机直连 aiph.org 实测 200（2026-11-08），Cloudflare 前置但无 JS 挑战；
+#       海外公开附件，无需换执行位。
+#
+schedule: "42 0 12 1 *"    # 点亮（2.6，2026-11-08）：每年 1 月 12 日 00:42 UTC = 08:42 CST。
+#   定此时点的依据：年鉴为**年度**出版物，实测 2025 版于 2025-12 上传，1 月中旬取一次已稳。
+#   撞点验证按 2027–2031 逐年做过（周频源的落点随星期漂移，只验一年多会漏）：
+#   五个年份在 00:42 UTC 均零冲突；03:26 UTC 会撞 bls 的日频窗与 nmc-weather。
+data_period: year
+# 健康级 6.6：一次成功运行至少应写出 20 行（实测 2025 版年鉴 81 行、9 张面积表）。
+# 年频源最容易静默：跑成功但工作簿改版解析出 0 行时，板上会一直空、巡检全绿。
+min_rows_per_run: 20           # 年鉴年更；容忍窗 default 400 天（跨年版更不必催）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_aiph_stats
+    description: >-
+      Fetch planted-area cross-sections per flower product and country from the AIPH /
+      Union Fleurs International Statistics yearbook public XLSX attachment (the "product
+      chapters" workbook; 27 sheets, of which 9 are planted-area tables). Discovers the
+      newest edition from the yearbook index page (<year>-yearbook-data-links) and picks
+      the chapter workbook semantically — file naming drifts per edition (2025
+      ISYB_2025_production.xlsx, 2024/2023 SYB_<year>_chapter2_products-_pages.xlsx).
+      Area only: the Trade sheets in the same workbook are Eurostat provisional re-publication
+      already covered by eurostat-api / un-comtrade, so they are deliberately excluded.
+      Every row carries its own ref_year — data vintage differs per country (2005–2024 inside
+      the 2025 edition), so this is a cross-section, never a time series. The AIPH CDN
+      truncates transfers mid-stream (measured 119679/131982 bytes against content-length
+      136164), so the workbook download resumes by Range and is zip-verified before parsing;
+      a bad package skips the whole edition, never partially parses.
+    frequency: yearly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (newest edition first, then per product by area desc). One edition yields about 60–90 country rows (measured 81 for the 2025 edition)
+      - name: editions
+        type: int
+        required: false
+        description: How many yearly editions to ingest, newest first (default 1 = latest only). The index page currently links 2022–2025, so editions=4 gives a four-edition panel — the only way to build history, since each edition is a snapshot
+    columns:
+      - name: product
+        type: str
+        description: Normalized flower product key (rose / carnation / orchid / chrysanthemum / lily / christmas_tree / cut_foliage / flowering_plant / green_foliage_plant) — from an explicit sheet-name map, never name matching
+      - name: product_label
+        type: str
+        description: Display label of the product section as published (e.g. Roses, Green and foliage plants)
+      - name: country
+        type: str
+        description: "Country name with the footnote superscript stripped (e.g. 'Netherlands' from 'Netherlands 3')"
+      - name: country_raw
+        type: str
+        description: Country cell exactly as published, including footnote markers
+      - name: area_ha
+        type: float
+        description: Total planted area in hectares (the "Total" column, which includes unspecified area per upstream footnote 2); None when omitted — never 0-filled
+      - name: area_open_ha
+        type: float
+        description: Area in the open, ha; None when the sheet has no such column or the cell is empty
+      - name: area_protected_ha
+        type: float
+        description: Area under protection, ha; None likewise. Upstream is self-inconsistent for Orchids/Netherlands (total 80 vs protected 90) — recorded as published, never reconciled
+      - name: ref_year
+        type: int
+        description: "Reference year of THIS row's figure (not the edition year). Differs per country — 2005–2024 inside the 2025 edition. Downstream charts must label by this field"
+      - name: yearbook
+        type: int
+        description: Yearbook edition year the row came from (e.g. 2025)
+      - name: source_sheet
+        type: str
+        description: "Exact worksheet name the row was parsed from (e.g. 'Roses Production ', 'Chysanthemum Prod.' — the latter is an upstream typo)"
+      - name: workbook_url
+        type: str
+        description: Direct XLSX URL of the edition's product-chapters workbook
+      - name: source
+        type: str
+        description: 固定 aiph-stats
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+concepts:
+  # 品类编进 concept code、国家落在 entity（同 price.food.fao.<commodity> 先例）。
+  # 同一 column（area_ha）挂 9 个 code，是因为上游一张表里品类是列内维度；
+  # 若把品类放到 entity 侧，同国两品类会撞 uq_sem_obs 主键而互相覆盖。
+  - column: area_ha
+    concept: area.flower.rose.planted
+    entity_type: country
+    measure: area
+    unit: hectare
+    frequency: annual
+  - column: area_ha
+    concept: area.flower.carnation.planted
+    entity_type: country
+    measure: area
+    unit: hectare
+    frequency: annual
+  - column: area_ha
+    concept: area.flower.orchid.planted
+    entity_type: country
+    measure: area
+    unit: hectare
+    frequency: annual
+  - column: area_ha
+    concept: area.flower.chrysanthemum.planted
+    entity_type: country
+    measure: area
+    unit: hectare
+    frequency: annual
+  - column: area_ha
+    concept: area.flower.lily.planted
+    entity_type: country
+    measure: area
+    unit: hectare
+    frequency: annual
+  - column: area_ha
+    concept: area.flower.christmas_tree.planted
+    entity_type: country
+    measure: area
+    unit: hectare
+    frequency: annual
+  - column: area_ha
+    concept: area.flower.cut_foliage.planted
+    entity_type: country
+    measure: area
+    unit: hectare
+    frequency: annual
+  - column: area_ha
+    concept: area.flower.flowering_plant.planted
+    entity_type: country
+    measure: area
+    unit: hectare
+    frequency: annual
+  - column: area_ha
+    concept: area.flower.green_foliage_plant.planted
+    entity_type: country
+    measure: area
+    unit: hectare
+    frequency: annual
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

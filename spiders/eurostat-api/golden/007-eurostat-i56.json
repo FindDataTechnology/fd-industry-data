@@ -1,0 +1,25 @@
+{
+  "sample_id": "007-eurostat-i56",
+  "created": "2026-11-08",
+  "target": "run_eurostat_i56",
+  "params": {"limit": 1000},
+  "expect": {
+    "min_rows": 300,
+    "rows_contains": [
+      {"field": "dataset", "equals": "sts_setu_m"},
+      {"field": "geo", "equals": "EU27_2020"},
+      {"field": "unit", "equals": "I21"},
+      {"field": "indic", "equals": "NETTUR"},
+      {"field": "s_adj", "equals": "SCA"},
+      {"field": "nace_r2", "equals": "I56"},
+      {"field": "period", "equals": "2000-01"},
+      {"field": "value", "equals": "82.9"},
+      {"field": "period", "equals": "2015-01"},
+      {"field": "value", "equals": "105.4"},
+      {"field": "period", "equals": "2020-04"},
+      {"field": "value", "equals": "31.9"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"],
+  "note": "餐饮垂直线波1 欧盟腿（用户 2026-11-07 裁决「补 NACE I56 营业额指数」）。锚点选历史定稿月而非末月：2000-01=82.9（序列首值）、2015-01=105.4（常规月）、2020-04=31.9（疫情封锁谷底，用于证明口径真是营业额指数而非价格指数——价格指数不会单月腰斩）。末月（2026-07=179.5）不入锚，后续版本可能修订。所有值 2026-11-08 由真实调用逐字读出。"
+}

@@ -1,0 +1,16 @@
+{
+  "at": "2026-11-07T20:17:22.499240+00:00",
+  "sources": [
+    {
+      "source": "dounan-flower-price",
+      "state": "window_learning",
+      "detail": "窗口学习中：带水位的成功样本 1 < 5，发布滞后窗尚未学出（此处不判「未发布」，冷启动期不出告警）",
+      "watermark": "2026-11-05",
+      "expected_next_by": null,
+      "learned_lag_days": null,
+      "samples": 1,
+      "needs_attention": false,
+      "watermark_basis": "price.flower.dounan.avg@dounan-flower-price 最新数据日（观测面），非逐次运行带回"
+    }
+  ]
+}

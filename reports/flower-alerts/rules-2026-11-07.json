@@ -1,0 +1,271 @@
+{
+  "at": "2026-11-07T21:49:43.494328+00:00",
+  "cooldown_hours": 24.0,
+  "state_path": "reports/flower-alerts/state/alert-state.json",
+  "rules": [
+    {
+      "name": "dounan_rose_avg_wow_drop",
+      "rule": {
+        "name": "dounan_rose_avg_wow_drop",
+        "enabled": true,
+        "kind": "change",
+        "description": "斗南红玫瑰（单头）均价周环比跌幅（周内日均 vs 上一周日均）",
+        "concept": "price.flower.dounan.avg",
+        "source_used": "dounan-flower-price",
+        "entity_code": "dounan-red-rose-single",
+        "entity_type": "commodity",
+        "aggregate": "week_mean",
+        "unit": "percent",
+        "comparator": "lt",
+        "threshold": -12.0,
+        "min_history_periods": 4,
+        "_threshold_note": "口径钉死：周内日均（不是日均的日均），且**周内样本 < 3 的薄桶剔除**——2026-09-07 与 2026-10-05 两周上游只发了 1 天，1 个样本的「周均值」去比 7 个样本的均值会造出 −33% 这种假跌幅。阈值依据（2026-11-08 按库内 2026-09-09..11-05 真值重放，剔除薄桶后剩 6 个周环比）：中位 −12.6%、最差 −36.9%（10-12 周）、最好 +19.5%；其中 3 次跌破 −12%（−35.1% / −36.9% / −12.6%）。故 −12% = 历史中位量级，属「常态即会触发」的灵敏度——想只在极端时报警就把阈值下调到 −30%；要更灵敏就上调。改这里，不改代码。",
+        "min_bucket_samples": 3
+      },
+      "verdict": "quiet",
+      "value": 4.3675,
+      "unit": "percent",
+      "period": "2026-11-02",
+      "basis": {
+        "period": "2026-11-02",
+        "aggregate": "week_mean",
+        "value": 0.2475,
+        "samples": 4
+      },
+      "baseline": {
+        "period": "2026-10-26",
+        "value": 0.237143,
+        "samples": 7
+      },
+      "threshold": -12.0,
+      "comparator": "lt",
+      "action": "idle",
+      "notes": [
+        "dounan_rose_avg_wow_drop: 剔除薄桶 ['2026-09-07', '2026-10-05']（样本数 < min_bucket_samples=3：单日样本冒充周均值会造出假跌幅）"
+      ]
+    },
+    {
+      "name": "adjacent_operating_margin_below",
+      "rule": {
+        "name": "adjacent_operating_margin_below",
+        "enabled": true,
+        "kind": "ratio",
+        "description": "邻接层公司营业利润率（营业利润/营业收入）跌破阈值（逐家判）——本规则判的是**营业利润率**，不是毛利率：美股 XBRL 白名单里没有毛利 tag，毛利率只有 A股 akshare 口径有（financials.gross_margin），跨市场不可拼",
+        "numerator": {
+          "concept": "financials.operating_profit"
+        },
+        "denominator": {
+          "concept": "financials.revenue"
+        },
+        "entities": [
+          {
+            "code": "FLWS",
+            "entity_type": "stock",
+            "source_used": "sec-edgar-facts"
+          },
+          {
+            "code": "CENT",
+            "entity_type": "stock",
+            "source_used": "sec-edgar-facts"
+          },
+          {
+            "code": "SMG",
+            "entity_type": "stock",
+            "source_used": "sec-edgar-facts"
+          },
+          {
+            "code": "HYFM",
+            "entity_type": "stock",
+            "source_used": "sec-edgar-facts"
+          },
+          {
+            "code": "EDBL",
+            "entity_type": "stock",
+            "source_used": "sec-edgar-facts"
+          },
+          {
+            "code": "002200",
+            "entity_type": "stock",
+            "source_used": "akshare"
+          }
+        ],
+        "periodicity": "quarter",
+        "unit": "percent",
+        "comparator": "lt",
+        "threshold": -5.0,
+        "min_history_periods": 1,
+        "_threshold_note": "−5% 是首版起点值，按 2026-11-08 实测重放：CENT +14.3%、SMG +14.5%（2026-06 期），FLWS −27.1%（2026-09-27，其 Q1 季节性亏损），EDBL −89.5%（2026-06-30，营业利润 −317.7 万 / 营收 355 万，**营收仅 355 万美元的微型公司，本来就是巨亏**——这个告警是真的，不是单位错误）。两条口径闸：①max_period_age_days=200——HYFM 自 2026 起改用含代收税口径报营收，抽取端刻意不并入，其营收序列止于 2025-09-30 而营业利润走到 2026-06-30，不加闸就会拿 14 个月前的期次算当期利润率；②分母缺失/为 0 的那一期不产生比值（不是 0 利润率）。",
+        "max_period_age_days": 200
+      },
+      "verdict": "crossed",
+      "value": -89.493,
+      "unit": "percent",
+      "period": "2026-06-30",
+      "entity": "EDBL",
+      "basis": {
+        "period": "2026-06-30",
+        "numerator": -3177000.0,
+        "denominator": 3550000.0
+      },
+      "threshold": -5.0,
+      "comparator": "lt",
+      "per_entity": [
+        {
+          "entity": "FLWS",
+          "entity_id": 301105,
+          "value": -27.1367,
+          "period": "2026-09-27",
+          "crossed": true,
+          "denominator": 171351000.0,
+          "basis": {
+            "period": "2026-09-27",
+            "numerator": -46499000.0,
+            "denominator": 171351000.0
+          }
+        },
+        {
+          "entity": "CENT",
+          "entity_id": 301107,
+          "value": 14.2622,
+          "period": "2026-06-27",
+          "crossed": false,
+          "denominator": 882362000.0,
+          "basis": {
+            "period": "2026-06-27",
+            "numerator": 125844000.0,
+            "denominator": 882362000.0
+          }
+        },
+        {
+          "entity": "SMG",
+          "entity_id": 301108,
+          "value": 14.4698,
+          "period": "2026-06-27",
+          "crossed": false,
+          "denominator": 1172100000.0,
+          "basis": {
+            "period": "2026-06-27",
+            "numerator": 169600000.0,
+            "denominator": 1172100000.0
+          }
+        },
+        {
+          "entity": "EDBL",
+          "entity_id": 301110,
+          "value": -89.493,
+          "period": "2026-06-30",
+          "crossed": true,
+          "denominator": 3550000.0,
+          "basis": {
+            "period": "2026-06-30",
+            "numerator": -3177000.0,
+            "denominator": 3550000.0
+          }
+        },
+        {
+          "entity": "002200",
+          "entity_id": 3306,
+          "value": 9.1624,
+          "period": "2026-09-30",
+          "crossed": false,
+          "denominator": 427906634.46,
+          "basis": {
+            "period": "2026-09-30",
+            "numerator": 39206459.45,
+            "denominator": 427906634.46
+          }
+        }
+      ],
+      "skipped": [
+        {
+          "entity": "HYFM",
+          "reason": "最近有效期次 2025-09-30 距今 403 天 > max_period_age_days=200（分母序列未跟进：financials.revenue）",
+          "last_valid_period": "2025-09-30"
+        }
+      ],
+      "crossed_entities": [
+        "FLWS",
+        "EDBL"
+      ],
+      "action": "suppress",
+      "notes": []
+    },
+    {
+      "name": "hs0603_export_yoy_negative",
+      "rule": {
+        "name": "hs0603_export_yoy_negative",
+        "enabled": true,
+        "kind": "change",
+        "description": "玫瑰切花（HS 060311）对全球出口额同比转负——切花出口是品类景气的前瞻信号",
+        "concept": "trade.export_flow.world",
+        "source_used": "un-comtrade",
+        "entity_code": "060311",
+        "entity_type": "hs_code",
+        "aggregate": "year_sum",
+        "unit": "percent",
+        "comparator": "lt",
+        "threshold": 0.0,
+        "min_history_periods": 2,
+        "min_bucket_samples": 1,
+        "_threshold_note": "阈值=0（出口额同比下降即报）。口径：只取 060311 一档，三档恒不合并；partner=0（世界）、partner2=0（第二伙伴国明细行必须剔除——2016/2017 上游会返回 29/31 行，其中只有 partner2=0 那行是世界合计，全行合计正好是它的两倍）。实测序列（2026-11-08 入库，10 年）：2016 940 万 → 2019 1,130 万 → 2021 1,408 万 → 2023 1,728 万（与官方免 key 预览逐位一致）→ 2024 2,595 万 → 2025 6,434 万美元；2025 同比 +148% 是真实量增（单价稳定在 $3.5/kg，净重同步翻倍到 1,826 万 kg），不是口径突变。历史 10 年无一年同比下降，故本规则目前**不会越阈**——它是「出口转弱」的哨兵，不是常规告警。"
+      },
+      "verdict": "quiet",
+      "value": 147.9294,
+      "unit": "percent",
+      "period": "2025",
+      "basis": {
+        "period": "2025",
+        "aggregate": "year_sum",
+        "value": 64338444.0,
+        "samples": 1
+      },
+      "baseline": {
+        "period": "2024",
+        "value": 25950308.0,
+        "samples": 1
+      },
+      "threshold": 0.0,
+      "comparator": "lt",
+      "action": "idle",
+      "notes": []
+    },
+    {
+      "name": "eu_flower_area_yoy_negative",
+      "rule": {
+        "name": "eu_flower_area_yoy_negative",
+        "enabled": true,
+        "kind": "change",
+        "description": "欧盟花卉主面积（EU27 合计）同比转负——面积是供给的前瞻指标，先于产量与价格",
+        "concept": "area.flower.all.planted",
+        "source_used": "eurostat-api",
+        "entity_code": "EU27_2020",
+        "entity_type": "country",
+        "aggregate": "year_mean",
+        "unit": "percent",
+        "comparator": "lt",
+        "threshold": 0.0,
+        "min_history_periods": 2,
+        "_threshold_note": "阈值=0（只要面积同比下降就报，不给幅度）。取值理由：面积是**结构性**指标，年频、滞后一年发布，任何下降都意味着下一季供给收缩，不存在「常态小幅下降」这种可忽略区间。实测（2026-11-08 入库 77 点）：EU27_2020 口径 2018 起有值——2022 71.46 → 2023 68.05（−4.77%）→ 2024 66.51（−2.26%）千公顷，连续两年为负，所以本规则**上线即会越阈**（这是真实的面积收缩，不是噪声）。口径闸：EU27_2020 与历史 EU28/EU 口径**不可相加**；单位由千公顷折成公顷入库；成员国面积与欧盟合计不可相加。想只在剧烈收缩时报警就把阈值下调到 −3。"
+      },
+      "verdict": "crossed",
+      "value": -2.263,
+      "unit": "percent",
+      "period": "2024",
+      "basis": {
+        "period": "2024",
+        "aggregate": "year_mean",
+        "value": 66510.0,
+        "samples": 1
+      },
+      "baseline": {
+        "period": "2023",
+        "value": 68050.0,
+        "samples": 1
+      },
+      "threshold": 0.0,
+      "comparator": "lt",
+      "action": "alert",
+      "notes": []
+    }
+  ]
+}

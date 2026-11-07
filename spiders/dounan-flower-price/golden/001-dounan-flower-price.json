@@ -1,0 +1,33 @@
+{
+  "sample_id": "001-dounan-flower-price",
+  "created": "2026-11-08",
+  "target": "run_dounan_flower_price",
+  "params": {
+    "limit": 500,
+    "max_pages": 10,
+    "window_start": "2026-11-05",
+    "window_end": "2026-11-05"
+  },
+  "expect": {
+    "min_rows": 20,
+    "rows_contains": [
+      {"field": "source", "equals": "dounan-flower-price"},
+      {"field": "price_date", "equals": "2026-11-05"},
+      {"field": "unit", "equals": "元/枝"},
+      {"field": "unit", "equals": "元/把"},
+      {"field": "item", "equals": "金鱼草"},
+      {"field": "item", "equals": "红玫瑰（单头）"},
+      {"field": "item", "equals": "尤加利叶"},
+      {"field": "item", "equals": "茉莉花"},
+      {"field": "price_high", "equals": 1.15},
+      {"field": "price_low", "equals": 0.94},
+      {"field": "price_avg", "equals": 1.05},
+      {"field": "price_high", "equals": 0.35},
+      {"field": "price_low", "equals": 0.22},
+      {"field": "price_avg", "equals": 0.27},
+      {"field": "price_avg", "equals": 5.75},
+      {"field": "price_avg", "equals": 7.27}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "report_url", "report_title", "publish_date"]
+}

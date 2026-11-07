@@ -1,0 +1,66 @@
+[
+  {
+    "source": "dounan-flower-price",
+    "status": "success",
+    "started_at": "2026-11-04T00:15:00Z",
+    "rows": 932,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "dounan-flower-price",
+    "status": "failed",
+    "started_at": "2026-11-05T00:15:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: HTTPSConnectionPool(host='nyncj.km.gov.cn', port=443) timed out",
+    "http_status": null
+  },
+  {
+    "source": "dounan-flower-price",
+    "status": "failed",
+    "started_at": "2026-11-06T00:15:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: HTTPSConnectionPool(host='nyncj.km.gov.cn', port=443) timed out",
+    "http_status": null
+  },
+  {
+    "source": "dounan-flower-price",
+    "status": "failed",
+    "started_at": "2026-11-07T00:15:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: HTTPSConnectionPool(host='nyncj.km.gov.cn', port=443) timed out",
+    "http_status": null
+  },
+  {
+    "source": "aiph-stats",
+    "status": "success",
+    "started_at": "2026-11-04T00:42:00Z",
+    "rows": 81,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "aiph-stats",
+    "status": "failed",
+    "started_at": "2026-11-05T00:42:00Z",
+    "rows": 0,
+    "error": "zipfile.BadZipFile: truncated workbook (119679/131982 bytes); schema mismatch on sheet 'roses'",
+    "http_status": 200
+  },
+  {
+    "source": "aiph-stats",
+    "status": "failed",
+    "started_at": "2026-11-06T00:42:00Z",
+    "rows": 0,
+    "error": "zipfile.BadZipFile: truncated workbook (119679/131982 bytes); schema mismatch on sheet 'roses'",
+    "http_status": 200
+  },
+  {
+    "source": "aiph-stats",
+    "status": "failed",
+    "started_at": "2026-11-07T00:42:00Z",
+    "rows": 0,
+    "error": "zipfile.BadZipFile: truncated workbook (119679/131982 bytes); schema mismatch on sheet 'roses'",
+    "http_status": 200
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "sample_id": "001-aiph-stats",
+  "created": "2026-11-08",
+  "target": "run_aiph_stats",
+  "params": {"limit": 2000, "editions": 1},
+  "expect": {
+    "min_rows": 50,
+    "rows_contains": [
+      {"field": "source", "equals": "aiph-stats"},
+      {"field": "product", "equals": "rose"},
+      {"field": "product", "equals": "chrysanthemum"},
+      {"field": "product", "equals": "christmas_tree"},
+      {"field": "country", "equals": "India"},
+      {"field": "country", "equals": "Kenya"},
+      {"field": "country", "equals": "Netherlands"},
+      {"field": "country_raw", "equals": "Netherlands 3"},
+      {"field": "area_ha", "equals": 41000.0},
+      {"field": "area_ha", "equals": 2163.8},
+      {"field": "area_protected_ha", "equals": 90.0},
+      {"field": "ref_year", "equals": 2023},
+      {"field": "ref_year", "equals": 2012}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "workbook_url", "source_sheet"]
+}

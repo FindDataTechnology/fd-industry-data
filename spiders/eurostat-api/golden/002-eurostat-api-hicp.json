@@ -1,0 +1,22 @@
+{
+  "sample_id": "002-eurostat-api-hicp",
+  "created": "2026-11-07",
+  "target": "run_eurostat_hicp",
+  "params": {"limit": 1000},
+  "expect": {
+    "min_rows": 300,
+    "rows_contains": [
+      {"field": "dataset", "equals": "prc_hicp_midx"},
+      {"field": "geo", "equals": "EU27_2020"},
+      {"field": "unit", "equals": "I15"},
+      {"field": "indic", "equals": "CP111"},
+      {"field": "freq", "equals": "M"},
+      {"field": "period", "equals": "2000-12"},
+      {"field": "value", "equals": "67.72"},
+      {"field": "period", "equals": "2015-01"},
+      {"field": "value", "equals": "99.28"},
+      {"field": "source_url", "equals": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_midx?format=JSON&lang=EN&freq=M&unit=I15&coicop=CP111&geo=EU27_2020&sinceTimePeriod=1996-01"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

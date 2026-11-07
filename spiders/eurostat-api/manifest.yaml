@@ -241,6 +241,327 @@ functions:
       - name: source_url
         type: str
         description: Exact API request URL the row was parsed from
+  - command: run_eurostat_hicp
+    description: Fetch HICP catering services price index (prc_hicp_midx, coicop=CP111, unit=I15 index 2015=100) for the EU27_2020 aggregate, monthly since 1996-01 (first actual values 2000-12, JSON-stat 2.0); restaurant-vertical wave 0 EU leg — the STS services-turnover datasets (sts_tsur family) are dead upstream and prc_hicp_inx is dead upstream (HTTP 404 "not available for dissemination", re-measured 2026-11-07), so the live index-level dataset prc_hicp_midx is used; asserts a non-empty parse
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return
+    columns:
+      - name: dataset
+        type: str
+        description: Eurostat dataset code (always prc_hicp_midx; prc_hicp_inx is dead upstream and must never be used)
+      - name: geo
+        type: str
+        description: Country/aggregate code (EU27_2020)
+      - name: freq
+        type: str
+        description: Frequency code (M monthly)
+      - name: unit
+        type: str
+        description: Unit code (I15 index 2015=100; I05/I96 are the older bases in the dimension)
+      - name: indic
+        type: str
+        description: COICOP classification code (CP111 catering services; CP11 restaurants and hotels)
+      - name: s_adj
+        type: str
+        description: Seasonal adjustment code (always empty for this dataset)
+      - name: nace_r2
+        type: str
+        description: NACE Rev.2 code (always empty for this dataset)
+      - name: p_adj
+        type: str
+        description: Price adjustment code (always empty for this dataset)
+      - name: period
+        type: str
+        description: Period label (YYYY-MM)
+      - name: value
+        type: float
+        description: HICP index value (2015=100); upstream null cells are omitted, never fabricated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
+  - command: run_eurostat_i56
+    description: "Fetch EU27 NACE I56 (food and beverage service activities) turnover index (sts_setu_m, indic_bt=NETTUR, s_adj=SCA, unit=I21 index 2021=100) monthly since 2000-01 — restaurant-vertical wave 1 EU leg; corrects the earlier note that the whole STS services-turnover family is dead (sts_tsur_m is 404, sts_setu_m serves I56: 319 values 2000-01..2026-07, no gaps); asserts a non-empty parse"
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (default 500 covers the full 319-month history)
+    columns:
+      - name: dataset
+        type: str
+        description: Eurostat dataset code (always sts_setu_m; sts_tsur_m is dead upstream, HTTP 404)
+      - name: geo
+        type: str
+        description: Country/aggregate code (EU27_2020)
+      - name: freq
+        type: str
+        description: Frequency code (M monthly)
+      - name: unit
+        type: str
+        description: Unit code (I21 index 2021=100)
+      - name: indic
+        type: str
+        description: Short-term business statistic indicator (NETTUR net turnover)
+      - name: nace_r2
+        type: str
+        description: NACE Rev.2 activity code (I56 food and beverage service activities)
+      - name: s_adj
+        type: str
+        description: Seasonal adjustment code (SCA calendar and seasonally adjusted)
+      - name: p_adj
+        type: str
+        description: Price adjustment code (always empty for this dataset)
+      - name: period
+        type: str
+        description: Period label (YYYY-MM)
+      - name: value
+        type: float
+        description: Turnover index value (2021=100); upstream null cells are omitted, never fabricated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
+  - command: run_eurostat_i55
+    description: "Fetch EU27 NACE I55 (accommodation) turnover index (sts_setu_m, indic_bt=NETTUR, s_adj=SCA, unit=I21 index 2021=100) — hotel-vertical wave 0 EU supply leg; 139 values 2015-01..2026-07 measured 2026-11-08; the hotels-only branch nace_r2=I551 returns 0 values, so this is the accommodation aggregate, never a hotel-only series; asserts a non-empty parse"
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (default 500 covers the full 139-month history)
+    columns:
+      - name: dataset
+        type: str
+        description: Eurostat dataset code (always sts_setu_m)
+      - name: geo
+        type: str
+        description: Country/aggregate code (EU27_2020)
+      - name: freq
+        type: str
+        description: Frequency code (M monthly)
+      - name: unit
+        type: str
+        description: Unit code (I21 index 2021=100)
+      - name: indic
+        type: str
+        description: Short-term business statistic indicator (NETTUR net turnover)
+      - name: nace_r2
+        type: str
+        description: NACE Rev.2 activity code (I55 accommodation; I551 hotels is empty upstream)
+      - name: s_adj
+        type: str
+        description: Seasonal adjustment code (SCA calendar and seasonally adjusted)
+      - name: p_adj
+        type: str
+        description: Price adjustment code (always empty for this dataset)
+      - name: period
+        type: str
+        description: Period label (YYYY-MM)
+      - name: value
+        type: float
+        description: Turnover index value (2021=100); upstream null cells are omitted, never fabricated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
+  - command: run_eurostat_tour_occ
+    description: "Fetch EU27 nights spent at tourist accommodation establishments (tour_occ_nim, nace_r2=I551-I553) monthly for four series: c_resid=TOTAL/FOR x unit=NR/PCH_SM — hotel-vertical wave 0 EU demand leg; 188 values per series 2011-01..2026-08 measured 2026-11-08; asserts a non-empty parse"
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (default 1000 covers 4 series x 188 months)
+    columns:
+      - name: dataset
+        type: str
+        description: Eurostat dataset code (always tour_occ_nim)
+      - name: geo
+        type: str
+        description: Country/aggregate code (EU27_2020)
+      - name: freq
+        type: str
+        description: Frequency code (M monthly)
+      - name: unit
+        type: str
+        description: Unit code (NR number of nights, PCH_SM percentage change on same month previous year)
+      - name: indic
+        type: str
+        description: Residence dimension carried on the indic column (TOTAL all residents, FOR foreign residents)
+      - name: nace_r2
+        type: str
+        description: NACE Rev.2 activity code (I551-I553 the whole tourist accommodation sector)
+      - name: s_adj
+        type: str
+        description: Seasonal adjustment code (always empty for this dataset)
+      - name: p_adj
+        type: str
+        description: Price adjustment code (always empty for this dataset)
+      - name: period
+        type: str
+        description: Period label (YYYY-MM)
+      - name: value
+        type: float
+        description: Nights spent, or the year-on-year percentage change when unit=PCH_SM; upstream nulls omitted, never fabricated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
+  - command: run_eurostat_tour_annual
+    description: "Fetch EU27 nights spent at tourist accommodation establishments, annual (tour_occ_ninat, c_resid=TOTAL, unit=NR, nace_r2=I551) — hotel-vertical wave 0 EU demand leg; 21 non-null values 1990..2025 measured 2026-11-08 (header window is wider than the data; missing years stay missing)"
+    frequency: yearly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (default 200 covers the whole history)
+    columns:
+      - name: dataset
+        type: str
+        description: Eurostat dataset code (always tour_occ_ninat)
+      - name: geo
+        type: str
+        description: Country/aggregate code (EU27_2020)
+      - name: freq
+        type: str
+        description: Frequency code (A annual)
+      - name: unit
+        type: str
+        description: Unit code (NR number of nights)
+      - name: indic
+        type: str
+        description: Residence dimension carried on the indic column (TOTAL all residents)
+      - name: nace_r2
+        type: str
+        description: NACE Rev.2 activity code (I551 hotels and similar accommodation)
+      - name: s_adj
+        type: str
+        description: Seasonal adjustment code (always empty for this dataset)
+      - name: p_adj
+        type: str
+        description: Price adjustment code (always empty for this dataset)
+      - name: period
+        type: str
+        description: Period label (YYYY)
+      - name: value
+        type: float
+        description: Nights spent; years with no EU27 value are omitted, never zero-filled
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
+  - command: run_eurostat_tour_cap
+    description: "Fetch EU27 accommodation capacity in bed places, annual (tour_cap_nat, accomunit=BEDPL, unit=NR, nace_r2=I551) — hotel-vertical wave 0 EU supply leg; 21 values 2005..2025 measured 2026-11-08"
+    frequency: yearly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (default 200 covers the whole history)
+    columns:
+      - name: dataset
+        type: str
+        description: Eurostat dataset code (always tour_cap_nat)
+      - name: geo
+        type: str
+        description: Country/aggregate code (EU27_2020)
+      - name: freq
+        type: str
+        description: Frequency code (A annual)
+      - name: unit
+        type: str
+        description: Unit code (NR absolute number)
+      - name: indic
+        type: str
+        description: Capacity unit carried on the indic column (BEDPL bed places)
+      - name: nace_r2
+        type: str
+        description: NACE Rev.2 activity code (I551 hotels and similar accommodation)
+      - name: s_adj
+        type: str
+        description: Seasonal adjustment code (always empty for this dataset)
+      - name: p_adj
+        type: str
+        description: Price adjustment code (always empty for this dataset)
+      - name: period
+        type: str
+        description: Period label (YYYY)
+      - name: value
+        type: float
+        description: Bed places; upstream nulls omitted, never fabricated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
+  - command: run_eurostat_flower_area
+    description: "Fetch EU flower main area, annual (apro_cpsh1, crops=N0000 Flowers and ornamental plants excluding nurseries, strucpro=MAR_THS_HA main area in thousand hectares), 8 geos incl EU27_2020 — flower-vertical 3.3. Measured live 2026-11-08: 41 geo x 12 years (2015-2026), 316 non-zero values; the area-only shape is a fact of the dataset (production/yield measures return 0 values for N0000), so this series is AREA, never 'production'"
+    frequency: yearly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (default 200 covers 8 geos x 12 years; this command does NOT share the unit's --limit 100 rotation)
+    columns:
+      - name: dataset
+        type: str
+        description: Eurostat dataset code (always apro_cpsh1)
+      - name: geo
+        type: str
+        description: Country/aggregate code (EU27_2020, NL, IT, DE, FR, ES, PL, BE)
+      - name: freq
+        type: str
+        description: Frequency code (A annual)
+      - name: unit
+        type: str
+        description: Unit code (always empty for this dataset; the measure lives in strucpro)
+      - name: crops
+        type: str
+        description: Crop code (N0000 flowers and ornamental plants, excluding nurseries)
+      - name: strucpro
+        type: str
+        description: Structure/production measure (MAR_THS_HA main area, thousand hectares)
+      - name: indic
+        type: str
+        description: Always empty for this dataset (kept for row-shape parity)
+      - name: nace_r2
+        type: str
+        description: Always empty for this dataset (kept for row-shape parity)
+      - name: s_adj
+        type: str
+        description: Always empty for this dataset (kept for row-shape parity)
+      - name: p_adj
+        type: str
+        description: Always empty for this dataset (kept for row-shape parity)
+      - name: period
+        type: str
+        description: Reference year (YYYY)
+      - name: value
+        type: float
+        description: Main area in thousand hectares; upstream nulls omitted, never interpolated
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+      - name: source_url
+        type: str
+        description: Exact API request URL the row was parsed from
 concepts:
   # run_eurostat_api / _c20 / _bsci / _apri: index & survey-balance semantics.
   - column: value
@@ -257,6 +578,16 @@ concepts:
     entity_type: country
     measure: value
     unit: EUR
+    frequency: monthly
+  # run_eurostat_hicp: restaurant-vertical wave 0 — HICP catering services
+  # (CP111) price index, EU27_2020; the semantic_observations extractor
+  # (scripts/restaurant_extractors/eurostat_api.py) writes it under the same
+  # concept code with unit index_2015_100.
+  - column: value
+    concept: hicp.eu.catering.monthly
+    entity_type: country
+    measure: value
+    unit: index_2015_100
     frequency: monthly
 entities:
   - entity_type: country

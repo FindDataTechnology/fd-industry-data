@@ -254,7 +254,7 @@ def _options_rationale(facts: dict) -> str:
     ok_text = f"最近一次成功运行 {last_ok}" if last_ok else "工单里无成功运行记录（unknown）"
     return f"""### repair（解冻，恢复自愈派发，关闭队列项）
 
-适合根因可修（network/structure/contract）或调度面仍在、修复有抓手时。
+适合根因可修（network/source-revision/structure/contract）或调度面仍在、修复有抓手时。
 本源事实：{sched_text}；{ok_text}；根因线索：{top_rules}。
 repair 后该源立即解冻（``FROZEN_STATUSES`` 之外），新工单恢复派发；
 建议同步走人工路径把存量 manual 工单收口为 closed，避免重复升级。

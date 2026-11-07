@@ -1,7 +1,23 @@
 version: '1'
 name: flower-auction
-label: 昆明国际花卉拍卖中心
+label: 昆明国际花卉拍卖中心（KIFA·kifa.net）
 source_url: https://www.kifa.net
+# ── 复活评估留痕（add-flower-vertical 2.5，实测 2026-11-08，仍 parked）────────────
+# 结论：**全站**（含首页）HTTP/2 468，雷池 SafeLine WAF 的 JS 挑战，不是端点级故障。
+# 实测（带完整 Chrome 请求头 + HTTP/2 直连，非云出口，四个 URL 结果完全一致）：
+#   468 · server: Tengine · content-length: 14863
+#   set-cookie: sl-session=<每次新值>; SameSite=None; Secure; HttpOnly
+#   正文含 /.safeline/static/favicon.png 与 challenge.rivers.chaitin.cn/challenge/v2/challenge.js
+# 与旧 park 记录的差异（重要）：旧记录说「需非云出口」，本次从非云出口直连**仍然 468**，
+#   故决定性闸门是**浏览器会话执行 JS 挑战**，换出口不解决；两个条件都要，只换出口无用。
+# 解锁条件（全满足才可复活，成本 L）：
+#   1. 具备 JS 执行与指纹能力的浏览器会话（playwright/chromium，需过 challenge v2，
+#      不能只靠 impersonate=chrome 的 HTTP 指纹）；
+#   2. 稳定非云出口 + 会话 cookie（sl-session 24h 有效）复用，登录态池可承载；
+#   3. 挑战机理随雷池版本变动 → 复活后必须纳入健康级巡检（验证码/468 双路反馈）。
+# 不点亮理由：结构脆弱（依赖 JS 挑战的实现细节）+ 斗南日价已覆盖同类现货价格信息，
+#   KIFA 增量价值只是「拍卖成交侧」，不构成为它承担 WAF 对抗维护成本的理由。
+# 状态：parked: true，`schedule` 故意不写——复活前不得被调度。
 scanner_mode: upstream-curated
 ranking_seed:
 - 0.5
@@ -9,7 +25,9 @@ ranking_seed:
 functions:
 - command: run_flower_auction
   description: Fetch flower auction results, price data, and market analysis from
-    KIFC
+    KIFA (kifa.net). Parked — the whole site currently answers HTTP/2 468 with a
+    SafeLine WAF JS challenge, so no run can succeed; see the header note for the
+    measured evidence and the unlock conditions.
   frequency: daily
   parameters:
   - name: limit

@@ -1,0 +1,34 @@
+[
+  {
+    "source": "dounan-flower-price",
+    "status": "success",
+    "started_at": "2026-11-05T00:15:00Z",
+    "rows": 932,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "dounan-flower-price",
+    "status": "success",
+    "started_at": "2026-11-06T00:15:00Z",
+    "rows": 928,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "dounan-flower-price",
+    "status": "success",
+    "started_at": "2026-11-07T00:15:00Z",
+    "rows": 935,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "aiph-stats",
+    "status": "success",
+    "started_at": "2026-11-07T00:42:00Z",
+    "rows": 81,
+    "error": "",
+    "http_status": 200
+  }
+]
