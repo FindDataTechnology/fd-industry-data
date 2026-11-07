@@ -31,7 +31,8 @@
 
 | F17a | ~~P2~~ → **已修（调度）** | 预警引擎没有调度 | 新增 `.github/workflows/flower-alerts.yml`：每日 **01:05 UTC**（斗南 00:15 UTC 跑完后 50 分钟）；状态机与报告 commit 回 main（cooldown/episode 必须跨运行持久）；退出码 **0/1/2/3 分段**：0=未越阈、1=有越阈（预期）、2=脚本自身失败（判红）、3=环境不满足（warning，不判红）。**已真实触发 3 次验证**，其中第 2 次抓出假绿（见 F17b） | 验收：已完成 |
 
-| F17b | **P1（待 DBA 授权）** | 定时任务读不到观测表 | CI 实测：只读账号 `fd_health_ro` 可读 `crawl_runs`，但 `SELECT ... FROM semantic_observations` 报 **permission denied**。阈值级、事件级、发布水位判定全部依赖观测表 → **预警目前跑不了实质内容**（工作流每天会输出 `::warning` + job summary 说明，不假绿也不飘红）。接入过程另外修掉一个真缺陷：CI 首跑时 `ModuleNotFoundError` 的退出码 1 被当成「有越阈」→ job 报 success 而脚本根本没跑；已把崩溃路径统一改为 exit 2（`raise SystemExit("消息")` 的退出码也是 1，正是撞车源头） | **待授权（DB 权限）**：`GRANT SELECT ON public.semantic_observations TO fd_health_ro;`（或给预警单独一个只读账号）。类比：现在的账号像只有「出入库流水」权限的仓管，能看货车来没来（crawl_runs），但看不到货架上具体有多少货（观测数据）。做完后工作流当次即为实质预警 |
+| F17b | ~~P1~~ → **已修（授权 + 端到端实证）** | 定时任务读不到业务表 | 已授予只读账号 `fd_health_ro` 的 SELECT：`semantic_observations` / `concepts` / `entities` / `crawl_items`（另有既有的 `crawl_runs` / `health_config`），共 **6 张表**；用 `fd`（表 owner）执行，可 `REVOKE` 回滚。**CI 端到端实证**（不是本地模拟）：工作日流第 4 次运行 → `success`，日志里四条规则全部执行——斗南日价 `window_learning`、周环比 quiet `4.3675%`、邻接利润率 crossed `−89.493%`（EDBL）、Comtrade 花卉出口 quiet `+147.93%`、EU 花卉面积 crossed `−2.263%`、事件台账 `28 条已入账 0 新增`，`flower_alerts exit=1`（有越阈，预期）。**踩坑记录**：授予是一张表一张表暴露的（观测表→concepts→crawl_items），每补一张重跑一次 CI 才算确认——本地凭据是 `fd` 超级用户，看不出这种缺口 | 验收：已完成 |
+
 
 
 
