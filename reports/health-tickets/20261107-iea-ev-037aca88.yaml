@@ -1,0 +1,31 @@
+ticket_id: 20261107-iea-ev-037aca88
+source: iea-ev
+unit: spiders/iea-ev/
+kind: repair
+created_at: '2026-11-07T04:05:20.519718+00:00'
+category: null
+needs_human: true
+suspected_anti_bot: false
+suggested_action: 补充遥测样本后复检（证据不足）
+evidence:
+  window:
+    from: '2026-11-06 10:01:08.929732+00'
+    to: '2026-11-06 10:01:08.929732+00'
+  failing_runs:
+  - started_at: '2026-11-06 10:01:08.929732+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: iea-ev: 数据口取数失败 https://api.iea.org/evs?region=World&category=Historical&parameter=EV+sales&mode=Cars&powertrain=BEV:
+      HTTPError: HTTP Error 404: Not Found'
+    http_status: null
+  last_success: null
+  notes: rule2:insufficient-evidence tail_failed=1<min_runs_for_verdict=3 last_success_age=noneh
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261107-iea-ev-037aca88.yaml
+golden:
+- spiders/iea-ev/golden/001-iea-ev.json
+lifecycle:
+- at: '2026-11-07T04:05:20.519718+00:00'
+  event: created
+terminal: null

@@ -1,0 +1,46 @@
+ticket_id: 20261107-socrata-chicago-a563e620
+source: socrata-chicago
+unit: spiders/socrata-chicago/
+kind: repair
+created_at: '2026-11-07T04:05:20.519718+00:00'
+category: contract
+needs_human: false
+suspected_anti_bot: true
+suggested_action: 更换数据表面（官方 API/替代入口）或退役；禁止逆向
+evidence:
+  window:
+    from: '2026-10-08 08:59:43.072671+00'
+    to: '2026-11-06 10:04:02.267415+00'
+  failing_runs:
+  - started_at: '2026-11-06 07:26:54.140695+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: socrata-chicago: 请求失败 https://data.cityofchicago.org/resource/bynn-gwxy.json?%24select=month_beginning%2Csum%28monthtotal%29&%24group=month_beginning&%24order=month_beginning+DESC&%24limit=400:
+      HTTPError: HTTP Error 403: Forbidden'
+    http_status: null
+  - started_at: '2026-11-06 07:27:10.340359+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: socrata-chicago: 请求失败 https://data.cityofchicago.org/resource/bynn-gwxy.json?%24select=month_beginning%2Csum%28monthtotal%29&%24group=month_beginning&%24order=month_beginning+DESC&%24limit=400:
+      HTTPError: HTTP Error 403: Forbidden'
+    http_status: null
+  - started_at: '2026-11-06 10:04:02.267415+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: socrata-chicago: 请求失败 https://data.cityofchicago.org/resource/bynn-gwxy.json?%24select=month_beginning%2Csum%28monthtotal%29&%24group=month_beginning&%24order=month_beginning+DESC&%24limit=20:
+      HTTPError: HTTP Error 403: Forbidden'
+    http_status: null
+  last_success:
+    started_at: '2026-11-01 21:09:06.253691+00'
+    rows: 100
+  notes: 'rule3:anti-bot run#1/3 http_status=None error=''RuntimeError: socrata-chicago:
+    请求失败 https://data.cityofchicago.org/resource/bynn-gwxy.json?%24select=month_beginning%2C…'''
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261107-socrata-chicago-a563e620.yaml
+golden:
+- spiders/socrata-chicago/golden/001-socrata-chicago.json
+lifecycle:
+- at: '2026-11-07T04:05:20.519718+00:00'
+  event: created
+terminal: null
