@@ -62,9 +62,15 @@ def load_config(path: Path) -> dict:
 
 def connect(dsn: str | None = None):
     """只读连接。优先 psycopg3，回退 psycopg2（两种都在环境里出现过）。"""
-    value = dsn or os.environ.get("FD_OPEN_DATA_DSN", "")
+    # 三处回落：显式 --dsn → 本地开发用的 FD_OPEN_DATA_DSN → 健康管道既有的只读账号
+    # FD_CENTRAL_PG_DSN。第三个是为了让定时任务复用既有 secret（缺一就得再配一份
+    # 只读凭据；本脚本全程只读，不需要写权）。
+    value = (dsn or os.environ.get("FD_OPEN_DATA_DSN", "")
+             or os.environ.get("FD_CENTRAL_PG_DSN", ""))
     if not value:
-        raise SystemExit("ERROR: FD_OPEN_DATA_DSN 未设置（先 `source ~/.config/finddata/dashboards.env`）")
+        raise SystemExit(
+            "ERROR: 需要 FD_OPEN_DATA_DSN 或 FD_CENTRAL_PG_DSN（先 "
+            "`source ~/.config/finddata/dashboards.env`）")
     try:
         import psycopg  # noqa: PLC0415
         conn = psycopg.connect(value, connect_timeout=40)

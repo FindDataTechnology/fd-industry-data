@@ -1,0 +1,115 @@
+# 花卉线四级预警 · 定时执行（add-flower-vertical F17）
+#
+# 为什么需要它：`scripts/flower_alerts.py` 写完后一直是手动跑——告警再好，不跑就等于没有。
+# 本工作流把它挂成每日任务，并把**状态文件也提交回仓库**：状态机（firing / cooldown /
+# episode）必须跨运行持久，否则「连续越阈只报一次」会失效。
+#
+# 设计取舍（与 health-inspect.yml 同一套模式，不引入新机制）：
+# * self-hosted runner（labels: self-hosted, fd-health），不下载 action（TLS 偶发失败）；
+# * 复用既有只读 secret `FD_CENTRAL_PG_DSN`——脚本只读，不需要写权；
+# * 产物（报告 / 台账 / 工单 / 状态）commit + push 回 main，带 rebase 重试；
+# * 时间：斗南 00:15 UTC 跑数，本任务 01:05 UTC 起，留 50 分钟余量。
+#
+# 交付边界（诚实说明）：本工作流**只落仓不推送通知**。阈值级告警是业务信号，
+# 不是爬虫故障，走萬星 spider-heal 会让 agent 去修「不该修的东西」。
+# 通知通道（微信/邮件/看板）是独立决策，见 docs/flower-debt-ledger.md F17。
+name: flower-alerts
+
+on:
+  schedule:
+    - cron: "5 1 * * *" # 每日 09:05 CST（斗南 08:15 CST 跑完之后）
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只算不写状态（演练）"
+        type: boolean
+        default: false
+      refresh:
+        description: "同时刷新年频序列（Eurostat 面积 / AIPH / Comtrade 花卉三档；需要一个写库 DSN）"
+        type: boolean
+        default: false
+
+concurrency:
+  group: flower-alerts
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  alerts:
+    runs-on: [self-hosted, fd-health]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout (shell clone, retry)
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          rm -rf src
+          for i in 1 2 3 4 5; do
+            if git clone --depth=1 \
+                 "https://x-access-token:${{ github.token }}@github.com/FindDataTechnology/fd-industry-data.git" src; then
+              break
+            fi
+            echo "clone attempt $i failed; retrying in 8s"
+            rm -rf src
+            sleep 8
+          done
+          test -d src/.git
+
+      - name: Evaluate (发布节奏 / 阈值 / 事件)
+        working-directory: src
+        env:
+          FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
+        run: |
+          ARGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          # 退出码 1 = 有规则越阈（预期语义，不是失败）；只在 >1 时判红。
+          set +e
+          python3 scripts/flower_alerts.py --publication --rules --events --escalate $ARGS
+          code=$?
+          echo "flower_alerts exit=$code（1=有越阈，预期）"
+          if [ "$code" -gt 1 ]; then exit "$code"; fi
+          exit 0
+
+      # 抽取器刷新（F18）：Eurostat 花卉主面积 / AIPH / Comtrade 花卉三档都是**年频**，
+      # 只有年度才需要重跑一次；这里做成手动触发的独立步骤，避免每日空跑 6 次外部 API。
+      # 需要**写库**权限（现有 FD_CENTRAL_PG_DSN 是只读账号 fd_health_ro），
+      # 故 gated on FD_OPEN_DATA_DSN_WRITE——没配就明确跳过，不假装跑过。
+      - name: Refresh annual series (manual, needs write DSN)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh == 'true' }}
+        working-directory: src
+        env:
+          FD_OPEN_DATA_DSN: ${{ secrets.FD_OPEN_DATA_DSN_WRITE }}
+          COMTRADE_API_KEY: ${{ secrets.COMTRADE_API_KEY }}
+        run: |
+          if [ -z "$FD_OPEN_DATA_DSN" ]; then
+            echo "SKIP：未配置 FD_OPEN_DATA_DSN_WRITE（年度刷新需要写库权限）"
+            exit 0
+          fi
+          python3 scripts/extract_flower_wave1.py --only eurostat-api
+          python3 scripts/extract_flower_wave1.py --only aiph-stats
+          if [ -n "$COMTRADE_API_KEY" ]; then
+            python3 scripts/extract_flower_wave1.py --only un-comtrade
+          else
+            echo "SKIP：未配置 COMTRADE_API_KEY（该源会自行跳过并留 note）"
+          fi
+
+      # 状态机必须回仓：cooldown/episode 只活在这份 json 里，丢了就会重复打扰。
+      - name: Commit reports + state
+        working-directory: src
+        run: |
+          git config user.name  "fd-health-bot"
+          git config user.email "fd-health-bot@finddatatech.cloud"
+          git add reports/flower-alerts
+          if git diff --cached --quiet; then
+            echo "no alert changes"
+            exit 0
+          fi
+          git commit -m "flower-alerts: $(date -u +%F)"
+          for i in 1 2 3; do
+            if git push origin HEAD:main; then exit 0; fi
+            echo "push attempt $i failed; rebase+retry in 8s"
+            git pull --rebase origin main || true
+            sleep 8
+          done
+          echo "push failed after retries"; exit 1
