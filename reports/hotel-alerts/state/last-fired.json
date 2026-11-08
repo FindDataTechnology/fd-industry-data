@@ -1,0 +1,17 @@
+{
+  "at": "2026-11-08T08:03:08.919376+00:00",
+  "rules": {
+    "eu_accommodation_turnover_yoy_negative|hotel.eu.turnover.accommodation.monthly": {
+      "key": "eu_accommodation_turnover_yoy_negative|hotel.eu.turnover.accommodation.monthly",
+      "rule": "eu_accommodation_turnover_yoy_negative",
+      "concept": "hotel.eu.turnover.accommodation.monthly",
+      "state": "quiet",
+      "verdict": "quiet",
+      "trigger_date": null,
+      "trigger_value": null,
+      "threshold": 100.0,
+      "comparator": "lt",
+      "reason": null
+    }
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "rule": "eu_accommodation_turnover_yoy_negative",
+  "description": "欧盟住宿业营业额指数低于基期（< 100，2021=100）——欧盟腿的景气转弱读数",
+  "asof": "2026-11-08",
+  "replay_from": "2023-11-01",
+  "generated_at": "2026-11-08T08:02:41.634765+00:00",
+  "config": "config/restaurant-alerts.json",
+  "evidence": [
+    {
+      "rule": "eu_accommodation_turnover_yoy_negative",
+      "concept": "hotel.eu.turnover.accommodation.monthly",
+      "source_used": "eurostat-api",
+      "entity_type": "country",
+      "entity_id": 300990,
+      "window": [
+        "2023-11",
+        "2026-07"
+      ],
+      "observed": [
+        {
+          "date": "2023-11",
+          "value": 201.5
+        },
+        {
+          "date": "2023-12",
+          "value": 204.9
+        },
+        {
+          "date": "2024-01",
+          "value": 204.2
+        },
+        {
+          "date": "2024-02",
+          "value": 208.5
+        },
+        {
+          "date": "2024-03",
+          "value": 209.7
+        },
+        {
+          "date": "2024-04",
+          "value": 205.0
+        },
+        {
+          "date": "2024-05",
+          "value": 211.0
+        },
+        {
+          "date": "2024-06",
+          "value": 208.0
+        },
+        {
+          "date": "2024-07",
+          "value": 211.4
+        },
+        {
+          "date": "2024-08",
+          "value": 213.0
+        },
+        {
+          "date": "2024-09",
+          "value": 211.9
+        },
+        {
+          "date": "2024-10",
+          "value": 214.3
+        },
+        {
+          "date": "2024-11",
+          "value": 217.7
+        },
+        {
+          "date": "2024-12",
+          "value": 217.0
+        },
+        {
+          "date": "2025-01",
+          "value": 220.6
+        },
+        {
+          "date": "2025-02",
+          "value": 216.4
+        },
+        {
+          "date": "2025-03",
+          "value": 219.9
+        },
+        {
+          "date": "2025-04",
+          "value": 222.7
+        },
+        {
+          "date": "2025-05",
+          "value": 223.8
+        },
+        {
+          "date": "2025-06",
+          "value": 227.7
+        },
+        {
+          "date": "2025-07",
+          "value": 225.6
+        },
+        {
+          "date": "2025-08",
+          "value": 227.0
+        },
+        {
+          "date": "2025-09",
+          "value": 229.6
+        },
+        {
+          "date": "2025-10",
+          "value": 232.1
+        },
+        {
+          "date": "2025-11",
+          "value": 231.2
+        },
+        {
+          "date": "2025-12",
+          "value": 235.5
+        },
+        {
+          "date": "2026-01",
+          "value": 233.9
+        },
+        {
+          "date": "2026-02",
+          "value": 233.3
+        },
+        {
+          "date": "2026-03",
+          "value": 233.4
+        },
+        {
+          "date": "2026-04",
+          "value": 235.9
+        },
+        {
+          "date": "2026-05",
+          "value": 238.2
+        },
+        {
+          "date": "2026-06",
+          "value": 238.1
+        },
+        {
+          "date": "2026-07",
+          "value": 239.6
+        }
+      ],
+      "trigger_date": null,
+      "trigger_value": null,
+      "threshold": 100.0,
+      "comparator": "lt",
+      "verdict": "quiet",
+      "unit": "index_2021_100",
+      "gaps": [],
+      "gap_counts": {
+        "never_held": 0,
+        "gap_in_series": 0,
+        "not_applicable": 0
+      },
+      "never_held": null,
+      "closest": {
+        "date": "2023-11",
+        "value": 201.5,
+        "distance": 101.5,
+        "unit": "index_2021_100"
+      },
+      "evaluated_points": 33,
+      "provenance": "semantic_observations; concept=hotel.eu.turnover.accommodation.monthly; source_used=eurostat-api; entity_id=300990",
+      "rejected_values": [],
+      "trigger_count": 0,
+      "triggers": []
+    }
+  ]
+}
