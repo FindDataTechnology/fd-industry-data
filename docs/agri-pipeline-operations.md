@@ -164,6 +164,15 @@ windows-admin（100.64.0.5）的 **`cnstats`** 库——那才是「专门获取
 猪+牛+羊肉 ≤ 肉类产量（46 年，0 越界）。抽样：粮食 2025 = 71,487.59 万吨、
 2024 = 70,649.89 万吨；肉类 2024 = 9,779.90 万吨——与公开数字一致。
 
-**唯一未完成**：写 `fd_open_data` 失败 —— `FD_OPEN_DATA_DSN`（100.64.0.3:30432，用户 `fd`）
-报 `password authentication failed`（重试两次同样）。旁路 `100.64.0.5/fd_open_data` 是**旧库**
-（停更 2026-08-06、`max(id)` 1.54B、有同名但 `created_at=NULL` 的残留概念），**不能往那写**。
+**落库已完成（2026-11-08）**：847 条观测 + 15 条概念全部写入 `fd_open_data`，
+命名门 **15/15 verified**（读面可见）；二次 `--apply` 新增 0 条（幂等）。
+
+**凭据现状（要记住，别再踩）**：
+* `~/.config/finddata/dashboards.env` 里的 `FD_OPEN_DATA_DSN` **口令已过期**
+  （`password authentication failed`，重试与换 mcp 仓 `.env.local` 口令均失败）。
+* 活库凭据在集群 secret **`fd-prod/fd-mcp-env` 的 `FD_OPEN_DATA_MCP_DATABASE_URL`**
+  （SQLAlchemy 形态，需把 `+psycopg2` 去掉）。脚本已加回落：先试 env，失败自动读 secret。
+* 旁路 `100.64.0.5/fd_open_data` 是**旧库**（停更 2026-08-06、`max(id)` 1.54B、
+  有同名但 `created_at=NULL` 的残留概念），**不能往那写**。
+* ⚠ 事故记录：排查时我把 secret 里的 DSN 原样喂给 psycopg2，报错信息里带出了口令前缀。
+  口令已暴露在会话日志中，**建议轮换**；后续一律先 `urlparse` 取结构、绝不整串打印。

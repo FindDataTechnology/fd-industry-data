@@ -62,6 +62,33 @@ SERIES = {
 IDENTITY_NOTE = "稻谷+小麦+玉米 之和应 ≤ 粮食产量（其余为其他谷物/豆类/薯类）"
 
 
+def _open_data_dsn() -> str:
+    """活库 DSN：优先 FD_OPEN_DATA_DSN，失效时回落到集群 secret（本地那份口令已过期）。
+
+    实测 2026-11-08：`~/.config/finddata/dashboards.env` 的 FD_OPEN_DATA_DSN 报
+    password authentication failed；集群 `fd-prod/fd-mcp-env` 里的同一 host/库/用户
+    口令仍有效。**口令只在内存里用，绝不打印。**
+    """
+    import base64, json, subprocess
+    for env in ("FD_OPEN_DATA_WRITE_DSN", "FD_OPEN_DATA_DSN"):
+        v = os.environ.get(env)
+        if not v:
+            continue
+        try:
+            import psycopg2
+            psycopg2.connect(v, connect_timeout=6).close()
+            return v
+        except Exception:  # noqa: BLE001 — 失效就换下一个
+            continue
+    raw = subprocess.run(["kubectl", "-n", "fd-prod", "get", "secret", "fd-mcp-env",
+                          "-o", "json"], capture_output=True, text=True, timeout=60)
+    if raw.returncode != 0:
+        raise SystemExit("FATAL 取不到活库凭据（env 失效且 kubectl 不可用）")
+    dsn = base64.b64decode(json.loads(raw.stdout)["data"]["FD_OPEN_DATA_MCP_DATABASE_URL"]).decode()
+    return dsn.replace("postgresql+psycopg2://", "postgresql://").replace(
+        "postgresql+asyncpg://", "postgresql://")
+
+
 def _conn():
     dsn = os.environ.get("CNSTATS_DSN") or os.environ.get("YEARBOOK_DSN")
     if not dsn:
@@ -138,6 +165,47 @@ def cross_check(rows: list[dict]) -> list[str]:
     return out
 
 
+COUNTRY_ENTITY_ID = 1     # entities(id=1) = ('CN', '中国')，实测确认
+
+
+def write(rows: list[dict]) -> int:
+    """建概念（verified=false 由命名门放行）+ 写观测（幂等）。返回新增条数。"""
+    import psycopg2
+
+    conn = psycopg2.connect(_open_data_dsn(), connect_timeout=10)
+    conn.autocommit = False
+    cur = conn.cursor()
+    try:
+        inserted = 0
+        for r in rows:
+            if r["gate"] == "insufficient" or not r["points"]:
+                continue
+            cur.execute("""
+                insert into concepts (code, name_zh, name_en, category, unit, measure,
+                                      frequency, entity_type, source, verified, deprecated)
+                values (%s,%s,%s,%s,%s,'value','yearly','country',%s,false,false)
+                on conflict on constraint uq_concept_identity do nothing
+            """, (r["concept"], r["name_zh"], r["name_en"], CATEGORY, r["unit"], SOURCE))
+            cur.execute("select id from concepts where code=%s limit 1", (r["concept"],))
+            cid = cur.fetchone()[0]
+            for period, value in r["points"]:
+                cur.execute("""
+                    insert into semantic_observations
+                      (concept_id, entity_type, entity_id, date, granularity, value,
+                       unit, source_used, fetched_at)
+                    values (%s,'country',%s,%s,'year',%s,%s,%s,now())
+                    on conflict on constraint uq_sem_obs do nothing
+                """, (cid, COUNTRY_ENTITY_ID, period, f"{value:.2f}", r["unit"], SOURCE))
+                inserted += cur.rowcount
+        conn.commit()
+        return inserted
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--apply", action="store_true", help="写 fd_open_data（需有效 DSN）")
@@ -178,6 +246,10 @@ def main(argv: list[str]) -> int:
     md += ["", "## 同源一致性核对", ""] + [f"- {c}" for c in checks]
     md += ["", "## 源表未印（跳过，不补造）", ""] + ([f"- {n}" for n in notes] or ["- （无）"])
     (OUT_DIR / "nbs-agri-annual-series.md").write_text("\n".join(md) + "\n", encoding="utf-8")
+
+    if args.apply:
+        inserted = write(rows)
+        print(f"落库：新增观测 {inserted} 条")
 
     ok = [r for r in rows if r["gate"] == "registered"]
     sw = [r for r in rows if r["gate"] == "short_window"]

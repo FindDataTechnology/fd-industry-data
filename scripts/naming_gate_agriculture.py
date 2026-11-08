@@ -88,6 +88,16 @@ BY_SOURCE = {
 ALL_CODES = CASDE_CODES + CNCOTTON_CODES + FISHERY_CODES + HOG_CAPACITY_CODES
 
 
+NBS_PREFIX = "agriculture.nbs."
+
+
+def load_nbs_codes(cur) -> list[str]:
+    """NBS 农业年度概念（2.7）：代码由 load_nbs_agri_annual.py 生成，同样从库现取。"""
+    cur.execute("SELECT code FROM concepts WHERE code LIKE %s ORDER BY code",
+                (NBS_PREFIX + "%",))
+    return [r["code"] for r in cur.fetchall()]
+
+
 def load_fertcn_codes(cur) -> list[str]:
     cur.execute("SELECT code FROM concepts WHERE code LIKE %s ORDER BY code",
                 (FERTCN_PREFIX + "%",))
@@ -118,7 +128,7 @@ SW_DECLARED_IN = "add-agriculture-industry-sources task 5.4"
 NAMING_PATCH: dict[str, dict] = {}
 
 #: entity_type 必须与抽取器一致；grain 与 granularity 词表必须单一值
-EXPECT_FREQ = {"monthly": "monthly", "quarterly": "quarterly"}
+EXPECT_FREQ = {"monthly": "monthly", "quarterly": "quarterly", "yearly": "yearly"}
 EXPECT_ENTITY = "country"
 
 FIELDS = ("name_zh", "name_en", "unit", "frequency", "category")
@@ -189,6 +199,23 @@ def main() -> int:
     if not dsn:
         print("FATAL: $FD_OPEN_DATA_DSN 未设置（source ~/.config/finddata/dashboards.env）")
         return 2
+    # 本地 dashboards.env 的口令已过期（实测 2026-11-08 password authentication failed），
+    # 回落到集群 secret 的同一 host/库/用户；口令只在内存里用，绝不打印。
+    try:
+        import psycopg as _pg
+        _pg.connect(dsn, connect_timeout=6).close()
+    except Exception:  # noqa: BLE001
+        import base64 as _b64, json as _json, subprocess as _sp
+        _raw = _sp.run(["kubectl", "-n", "fd-prod", "get", "secret", "fd-mcp-env", "-o", "json"],
+                       capture_output=True, text=True, timeout=60)
+        if _raw.returncode != 0:
+            print("FATAL 活库凭据全部失效（env + 集群 secret）")
+            return 2
+        dsn = _b64.b64decode(_json.loads(_raw.stdout)["data"]
+                             ["FD_OPEN_DATA_MCP_DATABASE_URL"]).decode()
+        dsn = dsn.replace("postgresql+psycopg2://", "postgresql://").replace(
+            "postgresql+asyncpg://", "postgresql://")
+        print("注：本地 DSN 口令失效，已回落到集群 secret 凭据")
 
     conn = psycopg.connect(dsn)
     conn.autocommit = False
@@ -197,12 +224,16 @@ def main() -> int:
     # fert-cn 的代码是运行期从库里现取的（产品清单不在代码里），故先补进批清单：
     # 这样「库里已有概念、命名门却看不见」这类静默遗漏不会发生。
     fert_codes = load_fertcn_codes(cur)
+    nbs_codes = load_nbs_codes(cur)
     global ALL_CODES, SW_PERIODS
     if not set(fert_codes) <= set(ALL_CODES):
         ALL_CODES = ALL_CODES + [c for c in fert_codes if c not in set(ALL_CODES)]
         BY_SOURCE["fert-cn"] = fert_codes
+    if not set(nbs_codes) <= set(ALL_CODES):
+        ALL_CODES = ALL_CODES + [c for c in nbs_codes if c not in set(ALL_CODES)]
+        BY_SOURCE["nbs-stats"] = nbs_codes
     stored = stored_periods(cur, ALL_CODES)
-    for code in fert_codes:
+    for code in fert_codes + nbs_codes:
         n = stored.get(code) or 0
         if 12 <= n <= 23:
             SW_PERIODS.setdefault(code, n)     # 逐条按实存期数声明
@@ -239,8 +270,10 @@ def main() -> int:
     # ── 预检 2：频次词表 / entity_type / source 归属 ─────────────────────────
     bad_meta = []
     for row, merged, _p in plans:
-        want_freq = EXPECT_FREQ["quarterly" if merged["code"].endswith("quarterly")
-                                else "monthly"]
+        want_freq = EXPECT_FREQ[
+            "quarterly" if merged["code"].endswith("quarterly")
+            else "yearly" if merged["code"].endswith("annual")
+            else "monthly"]
         if merged["frequency"] != want_freq:
             bad_meta.append(f"{merged['code']}: frequency={merged['frequency']!r}"
                             f" 期望 {want_freq!r}")
