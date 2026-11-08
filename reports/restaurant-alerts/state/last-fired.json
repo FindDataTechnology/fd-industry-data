@@ -1,0 +1,41 @@
+{
+  "at": "2026-11-08T07:54:50.453882+00:00",
+  "fired": {
+    "catering_yoy_negative|retail.cn.catering.yoy": {
+      "key": "catering_yoy_negative|retail.cn.catering.yoy",
+      "rule": "catering_yoy_negative",
+      "concept": "retail.cn.catering.yoy",
+      "trigger_date": "2022-12",
+      "trigger_value": -14.1,
+      "threshold": 0.0,
+      "comparator": "lt"
+    },
+    "cpi_scissors|price.cpi.us.food_away_from_home - price.cpi.us.food_at_home": {
+      "key": "cpi_scissors|price.cpi.us.food_away_from_home - price.cpi.us.food_at_home",
+      "rule": "cpi_scissors",
+      "concept": "price.cpi.us.food_away_from_home - price.cpi.us.food_at_home",
+      "trigger_date": "2024-11",
+      "trigger_value": 2.083653,
+      "threshold": 2.0,
+      "comparator": "abs_gte"
+    },
+    "price_spike|price.coffee.icip.daily": {
+      "key": "price_spike|price.coffee.icip.daily",
+      "rule": "price_spike",
+      "concept": "price.coffee.icip.daily",
+      "trigger_date": "2026-08-25",
+      "trigger_value": 2.743015,
+      "threshold": 2.5,
+      "comparator": "abs_gte"
+    },
+    "price_spike|price.palm_oil.imf.monthly": {
+      "key": "price_spike|price.palm_oil.imf.monthly",
+      "rule": "price_spike",
+      "concept": "price.palm_oil.imf.monthly",
+      "trigger_date": "2026-03",
+      "trigger_value": 2.740782,
+      "threshold": 2.5,
+      "comparator": "abs_gte"
+    }
+  }
+}
