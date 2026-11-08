@@ -1,0 +1,88 @@
+# 告警线自检（评估器沉默 + 投递链鉴权）· 每日排程
+#
+# 为什么需要它：五条线的告警各自会喊"越阈了"，但没有任何东西会喊
+# **"这条线自己哑了"**。2026-11-07 工单链 5 张单全 401，除了 last-run.json
+# 里那几行，没有任何人被告知；而一条从不运行的评估器，与"没有越阈"在外部
+# 看起来完全一样。
+#
+# 只在"沉默/失效"集合变化时发信，集合清空时发一封恢复——否则自检自己就成了噪音源。
+# 退出码：0=正常 / 2=崩溃 / 4=自检的邮件发不出去
+name: alert-selfcheck
+
+on:
+  schedule:
+    # 每日 13:47 UTC = 21:47 CST，晚于全部五条线的排程（银行 14:05 UTC 除外，
+    # 故银行在自检里可能显示"当天尚无产物"，容忍窗 2 天足以覆盖）。
+    - cron: "47 13 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只算不发（演练）"
+        type: boolean
+        default: false
+
+concurrency:
+  group: alert-selfcheck
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  selfcheck:
+    runs-on: [self-hosted, fd-health]
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (shell clone, retry)
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          rm -rf src
+          for i in 1 2 3 4 5; do
+            if git clone --depth=1 \
+                 "https://x-access-token:${{ github.token }}@github.com/FindDataTechnology/fd-industry-data.git" src; then
+              break
+            fi
+            echo "clone attempt $i failed; retrying in 8s"
+            rm -rf src
+            sleep 8
+          done
+          test -d src/.git
+
+      - name: Check (沉默 / 工单链鉴权)
+        working-directory: src
+        env:
+          FD_ALERT_SMTP_HOST: ${{ secrets.FD_ALERT_SMTP_HOST }}
+          FD_ALERT_SMTP_PORT: ${{ secrets.FD_ALERT_SMTP_PORT }}
+          FD_ALERT_SMTP_USER: ${{ secrets.FD_ALERT_SMTP_USER }}
+          FD_ALERT_SMTP_PASS: ${{ secrets.FD_ALERT_SMTP_PASS }}
+          FD_ALERT_SMTP_FROM: ${{ secrets.FD_ALERT_SMTP_FROM }}
+          FD_ALERT_SMTP_TO: ${{ secrets.FD_ALERT_SMTP_TO }}
+          FD_ALERT_SMTP_SSL: "1"
+          FD_ALERT_SMTP_TLS: "0"
+        run: |
+          ARGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          set +e
+          python3 scripts/alert_selfcheck.py $ARGS
+          code=$?
+          set -e
+          echo "alert_selfcheck exit=$code"
+          case "$code" in
+            0) echo "结果：自检完成" ;;
+            4) echo "::error title=自检邮件未送出::自检发现的问题送不到人手上，等于没发现"
+               exit 4 ;;
+            *) echo "结果：自检自身失败（exit=$code）"; exit "$code" ;;
+          esac
+
+      - name: Commit check record + state
+        working-directory: src
+        run: |
+          git config user.name  "fd-health-bot"
+          git config user.email "fd-health-bot@finddatatech.cloud"
+          git add reports/alert-selfcheck 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "无变更，跳过提交"
+          else
+            git commit -m "alert-selfcheck: $(date -u +%F)"
+            for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 8; done
+          fi
