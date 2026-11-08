@@ -1,0 +1,7 @@
+{
+  "at": "2026-11-08T08:11:02.150056+00:00",
+  "findings": [
+    "silent:agriculture",
+    "ticket_auth"
+  ]
+}

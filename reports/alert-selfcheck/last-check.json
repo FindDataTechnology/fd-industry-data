@@ -1,0 +1,29 @@
+{
+  "at": "2026-11-08T08:11:02.150056+00:00",
+  "silent": [
+    {
+      "line": "agriculture",
+      "kind": "never_reported",
+      "last": null,
+      "days": null,
+      "max_days": 2
+    }
+  ],
+  "ticket": {
+    "checked": true,
+    "at": "2026-11-07T22:43:31.676477+00:00",
+    "total": 5,
+    "auth_failed": 5,
+    "broken": true
+  },
+  "findings": [
+    "silent:agriculture",
+    "ticket_auth"
+  ],
+  "notify": {
+    "sent": 1,
+    "failed": 0,
+    "skipped": 0,
+    "reason": null
+  }
+}
