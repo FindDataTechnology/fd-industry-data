@@ -362,7 +362,24 @@ def test_dry_run_reads_state_so_drill_matches_reality():
     assert "{} if args.dry_run" not in src
 
 
-# --- 健康级 -------------------------------------------------------------------
+def test_uncaught_exception_exits_2_not_1():
+    """崩溃必须 exit 2：1 是「有通知发送失败」的预期语义，混用会让流水线假绿。"""
+    def boom(argv=None):
+        raise RuntimeError("boom")
+
+    orig = ba.main
+    ba.main = boom
+    try:
+        assert ba._guarded_main([]) == 2
+    finally:
+        ba.main = orig
+
+
+def test_sql_literal_escapes_quotes():
+    assert ba._sql_literal("a'b") == "'a''b'"
+
+
+# --- 健康级 -----------------------------------------------------------------
 
 def test_no_runs_is_scheduled_absent_not_healthy():
     """一次都没跑过是调度面故障，不是「健康」也不是「证据不足」。"""

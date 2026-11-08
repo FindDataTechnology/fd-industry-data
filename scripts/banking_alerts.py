@@ -83,58 +83,120 @@ def load_config(path: str | Path | None = None) -> dict:
 
 # ─── 取数 ─────────────────────────────────────────────────────────────────────
 
+def _sql_literal(value: str) -> str:
+    """把字符串安全地塞进 SQL 字面量（psql 回退路径用；正常路径走参数绑定）。"""
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def _psql(dsn: str, sql: str) -> list[str]:
+    """用 psql 子进程取行（制表符分隔、无表头）。
+
+    为什么需要这条路径：GitHub 自托管 runner（`cheap-health-runner`）的系统 python
+    **没有 psycopg2**，而 runner 镜像里有。花卉线 F17 就是这么被坑的（实测
+    ModuleNotFoundError），故这里两条路都留：有驱动用驱动，没有就用 psql。
+    """
+    import subprocess
+
+    env = {**os.environ, "PGCONNECT_TIMEOUT": "10"}
+    proc = subprocess.run(["psql", dsn, "-At", "-F", "\t", "--no-align",
+                           "--tuples-only", "-v", "ON_ERROR_STOP=1", "-c", sql],
+                          capture_output=True, text=True, env=env, timeout=120)
+    if proc.returncode != 0:
+        raise RuntimeError(f"psql failed: {proc.stderr.strip()[:300]}")
+    return [line for line in proc.stdout.splitlines() if line != ""]
+
+
+def _have_psycopg2() -> bool:
+    try:
+        import psycopg2  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
 def fetch_ratio_series(dsn: str, concepts: list[str]) -> dict:
     """取比率指标近期序列：``{(concept, entity_code): {"name", "points":[(date, value)]}}``。
 
     值在库里是 varchar，转不动 float 的行直接跳过——宁可少一个样本，
     也不要把坏值当 0 喂给阈值判定。
     """
-    import psycopg2
-
-    out: dict = {}
-    with psycopg2.connect(dsn, connect_timeout=10) as conn, conn.cursor() as cur:
-        cur.execute(
-            "select c.code, e.code, e.name_zh, o.date, o.value "
+    base = ("select c.code, e.code, coalesce(e.name_zh, e.code), o.date, o.value "
             "from semantic_observations o "
             "join concepts c on c.id = o.concept_id "
             "join entities e on e.id = o.entity_id "
-            "where c.code = any(%s) and e.entity_type = 'stock' "
-            "order by c.code, e.code, o.date", (concepts,))
-        for concept, entity, name, dt, raw in cur.fetchall():
-            try:
-                val = float(str(raw).replace(",", ""))
-            except (TypeError, ValueError):
-                continue
-            slot = out.setdefault((concept, entity), {"name": name or entity, "points": []})
-            slot["points"].append((str(dt)[:10], val))
+            "where e.entity_type = 'stock' and ")
+    out: dict = {}
+    rows: list[tuple] = []
+    if _have_psycopg2():
+        import psycopg2
+
+        with psycopg2.connect(dsn, connect_timeout=10) as conn, conn.cursor() as cur:
+            cur.execute(base + "c.code = any(%s) order by c.code, e.code, o.date",
+                        (concepts,))
+            rows = list(cur.fetchall())
+    else:
+        codes = ",".join(_sql_literal(c) for c in concepts) or "''"
+        for line in _psql(dsn, base + f"c.code in ({codes}) order by 1, 2, 4"):
+            parts = line.split("\t")
+            if len(parts) == 5:
+                rows.append(tuple(parts))
+    for concept, entity, name, dt, raw in rows:
+        try:
+            val = float(str(raw).replace(",", ""))
+        except (TypeError, ValueError):
+            continue
+        slot = out.setdefault((concept, entity), {"name": name or entity, "points": []})
+        slot["points"].append((str(dt)[:10], val))
     return out
 
 
 def fetch_source_runs(dsn: str, sources: list[str]) -> dict[str, list[Run]]:
-    import psycopg2
-
+    sql = ("select source, started_at, status, rows_written, coalesce(error_head, '') "
+           "from crawl_runs ")
     out: dict[str, list[Run]] = {s: [] for s in sources}
-    with psycopg2.connect(dsn, connect_timeout=10) as conn, conn.cursor() as cur:
-        cur.execute(
-            "select source, started_at, status, rows_written, error_head from crawl_runs "
-            "where source = any(%s) order by started_at desc limit 200", (sources,))
-        for source, started, status, rows, err in cur.fetchall():
-            out.setdefault(source, []).append(Run(
-                started_at=started.isoformat() if hasattr(started, "isoformat") else str(started),
-                status="success" if str(status) in ("success", "ok", "succeeded") else "failed",
-                rows=rows, error=err or ""))
+    rows_raw: list[tuple] = []
+    if _have_psycopg2():
+        import psycopg2
+
+        with psycopg2.connect(dsn, connect_timeout=10) as conn, conn.cursor() as cur:
+            cur.execute(sql + "where source = any(%s) order by started_at desc limit 200",
+                        (sources,))
+            rows_raw = list(cur.fetchall())
+    else:
+        names = ",".join(_sql_literal(x) for x in sources) or "''"
+        for line in _psql(dsn, sql + f"where source in ({names}) "
+                                     "order by started_at desc limit 200"):
+            parts = line.split("\t")
+            if len(parts) == 5:
+                rows_raw.append(tuple(parts))
+    for source, started, status, rows, err in rows_raw:
+        out.setdefault(source, []).append(Run(
+            started_at=started.isoformat() if hasattr(started, "isoformat") else str(started),
+            status="success" if str(status) in ("success", "ok", "succeeded") else "failed",
+            rows=int(rows) if str(rows).isdigit() else rows, error=err or ""))
     return out
 
 
 def fetch_crawl_items(dsn: str, source: str) -> list[dict]:
-    import psycopg2
+    # 先按 run 时间取子集再聚合：json_agg 之后不能再按非聚合列排序（实测报错）。
+    sql = ("select json_agg(p.payload)::text from ("
+           "  select i.payload from crawl_items i join crawl_runs r on r.id = i.run_id "
+           "  where r.source = ")
+    if _have_psycopg2():
+        import psycopg2
 
-    with psycopg2.connect(dsn, connect_timeout=10) as conn, conn.cursor() as cur:
-        cur.execute(
-            "select i.payload from crawl_items i join crawl_runs r on r.id = i.run_id "
-            "where r.source = %s order by r.started_at desc limit 20000", (source,))
-        rows = [r[0] for r in cur.fetchall()]
-    return [json.loads(r) if isinstance(r, str) else r for r in rows]
+        with psycopg2.connect(dsn, connect_timeout=10) as conn, conn.cursor() as cur:
+            cur.execute(sql + "%s", (source,))
+            got = cur.fetchone()[0]
+        return json.loads(got) if got else []
+    lines = _psql(dsn, sql + _sql_literal(source)
+                  + " order by r.started_at desc limit 20000) p")
+    blob = "\n".join(lines).strip()
+    if not blob:
+        return []
+    try:
+        return json.loads(blob)
+    except ValueError:
+        return []
 
 
 # ─── 健康级 ───────────────────────────────────────────────────────────────────
@@ -543,5 +605,25 @@ def main(argv: list[str] | None = None) -> int:
     return 1 if result.get("failed") else 0
 
 
+def _guarded_main(argv: list[str] | None = None) -> int:
+    """把未捕获异常收敛成 **exit 2**。
+
+    为什么必须区分：Python 未捕获异常的退出码也是 **1**，而 1 在本脚本里表示
+    「有通知发送失败」的**预期语义**。工作流按这个语义放行，于是脚本崩了也报绿——
+    实测 2026-11-08 GitHub 自托管 runner 上 `ModuleNotFoundError: psycopg2`
+    就是这样被吞掉的（job success，脚本根本没跑）。花卉线 F17 踩过同一个坑。
+    """
+    try:
+        return main(argv)
+    except SystemExit:
+        raise
+    except Exception as exc:  # noqa: BLE001 — 崩溃必须与「预期失败」区分
+        import traceback
+
+        traceback.print_exc()
+        print(f"脚本自身出错（exit=2）：{type(exc).__name__}: {exc}", file=sys.stderr)
+        return 2
+
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(_guarded_main())
