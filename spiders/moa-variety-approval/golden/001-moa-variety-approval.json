@@ -1,0 +1,25 @@
+{
+  "sample_id": "001-moa-variety-approval",
+  "created": "2026-11-08",
+  "updated": "2026-11-08",
+  "target": "run_moa_variety_approval",
+  "params": {"limit": 40, "window_start": "2026-11-01", "window_end": "2026-11-30"},
+  "expect": {
+    "min_rows": 6,
+    "rows_contains": [
+      {"field": "publish_date", "equals": "2026-11-03"},
+      {"field": "publish_date", "equals": "2026-11-06"},
+      {"field": "notice_type", "equals": "provincial_variety_approval"},
+      {"field": "notice_type", "equals": "seed_license"},
+      {"field": "province", "equals": "四川省"},
+      {"field": "province", "equals": "海南省"},
+      {"field": "province", "equals": "湖南省"},
+      {"field": "province", "equals": "内蒙古自治区"},
+      {"field": "scope", "equals": "provincial"},
+      {"field": "has_attachment", "equals": null},
+      {"field": "attachment_count", "equals": null}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "title", "url"],
+  "note": "事件面单元：本源详情页 <table> 数 = 0，品种清单全在 .doc 附件（zxfile/reader 代理）内，故不产任何数值观测。窗口钉 2026-11（实测该月 6 条）：锚 2026-11-03 川/琼/湘省级审定公示与 2026-11-06 粤/冀/蒙种子生产经营许可公示；has_attachment/attachment_count 为 null 是默认 with_detail=False 的真实值（未知记未知，不写 False）。"
+}

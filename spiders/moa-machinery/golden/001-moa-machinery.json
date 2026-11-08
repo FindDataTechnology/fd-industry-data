@@ -1,0 +1,23 @@
+{
+  "sample_id": "001-moa-machinery",
+  "created": "2026-11-08",
+  "target": "run_moa_machinery",
+  "params": {"limit": 20},
+  "expect": {
+    "min_rows": 60,
+    "rows_contains": [
+      {"field": "period", "equals": "2025"},
+      {"field": "title", "equals": "2025年全国农业机械化发展统计公报"},
+      {"field": "item", "equals": "operated_area_mu_times"},
+      {"field": "item", "equals": "crop_mechanization_rate_wheat"},
+      {"field": "unit", "equals": "亿亩次"},
+      {"field": "value", "equals": 79.76},
+      {"field": "value", "equals": 76.82},
+      {"field": "value", "equals": 1999.19},
+      {"field": "period", "equals": "2022"},
+      {"field": "value", "equals": 73.11},
+      {"field": "value", "equals": 2144.07}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"]
+}

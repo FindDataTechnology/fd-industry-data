@@ -1,0 +1,23 @@
+{
+  "sample_id": "001-moa-fishery",
+  "created": "2026-11-08",
+  "updated": "2026-11-08",
+  "target": "run_moa_fishery",
+  "params": {"limit": 200, "window_start": "2025-01", "window_end": "2025-12"},
+  "expect": {
+    "min_rows": 40,
+    "rows_contains": [
+      {"field": "granularity", "equals": "year"},
+      {"field": "granularity", "equals": "cumulative_month"},
+      {"field": "period", "equals": "2025"},
+      {"field": "item", "equals": "总产量"},
+      {"field": "item", "equals": "海水养殖"},
+      {"field": "unit", "equals": "万吨"},
+      {"field": "value", "equals": 7652.14},
+      {"field": "value", "equals": 6325.62},
+      {"field": "value", "equals": 3859.94}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"],
+  "note": "用窗口钉死 2025 年（年度行按 12 月计入窗口），同时命中 year 与 cumulative_month 两种粒度：年度总产量 7652.14 万吨、养殖 6325.62、海水产品 3859.94。窗口可过滤 -> 新月份发布不会把锚点挤出 limit。"
+}

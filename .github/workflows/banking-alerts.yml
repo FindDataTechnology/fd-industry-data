@@ -74,7 +74,8 @@ jobs:
         run: |
           ARGS="--run"
           if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
-          # 退出码语义：0=已执行 / 1=有通知发送失败 / 2=脚本自身出错 / 3=环境不满足（缺读权限）
+          # 退出码语义：0=已执行 / 1=有通知发送失败 / 2=脚本自身出错 /
+          # 3=环境不满足（缺 DSN 或只读账号缺 SELECT 权限）
           set +e
           python3 scripts/banking_alerts.py $ARGS
           code=$?
@@ -83,11 +84,18 @@ jobs:
           case "$code" in
             0) echo "结果：已执行" ;;
             1) echo "结果：有通知发送失败（已留 notify_failed 记录）" ;;
-            3) echo "::warning title=银行预警未执行::只读账号缺 semantic_observations 读权限，需 DBA 授权"
+            3) # 两种成因都必须显式写出来，否则排查会被引到错的方向：
+               #   · FD_CENTRAL_PG_DSN 没配 ⇒ 所有取数被跳过，输出「0 判定/0 事件」的假绿
+               #   · DSN 配了但账号缺 SELECT ⇒ psql 兜底会 SystemExit(3)
+               echo "::warning title=银行预警未执行::环境不满足（缺 DSN 或缺 semantic_observations 读权限）"
                {
-                 echo "### 银行预警：未执行（缺数据库读权限）"
+                 echo "### 银行预警：未执行（环境不满足）"
                  echo ""
-                 echo "需要 DBA 执行：\`GRANT SELECT ON public.semantic_observations TO <健康巡检只读账号>;\`"
+                 echo "两种成因之一，按序排查："
+                 echo "1. 仓库 Secrets 是否有 \`FD_CENTRAL_PG_DSN\`；没有则所有取数被跳过，"
+                 echo "   输出会是「0 判定 / 0 事件」的**假绿**，不是真的没告警。"
+                 echo "2. DSN 有但只读账号缺权限，需要 DBA："
+                 echo "   \`GRANT SELECT ON public.semantic_observations TO <健康巡检只读账号>;\`"
                } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
                exit 0 ;;
             *) echo "结果：脚本自身失败（exit=$code）"; exit "$code" ;;

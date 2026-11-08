@@ -1,0 +1,93 @@
+version: "2"
+name: usda-wasde
+label: USDA 世界农产品供需预测（WASDE）月度平衡表
+source_url: https://usda.gov/oce/commodity/wasde/
+# authority: official —— 美国农业部（USDA）本级发布
+authority: official
+# site: 不写（海外直连；spider 内显式空代理表）
+# 不写 schedule：先静默合入（点亮时才补 cron）。月更，每月 9—12 日发布。
+schedule: 55 6 9 * *
+data_period: month
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_usda_wasde
+    description: >-
+      Fetch USDA WASDE world supply-and-use summary tables from the monthly
+      .txt report (wasde{MM}{YY}.txt). Parses the three summary sections —
+      Grains / Cotton / Oilseeds "World and U.S. Supply and Use" — into a long
+      table: issue x region (World / United States / Foreign) x commodity x
+      season x item (output / supply / trade / total_use / ending_stocks).
+      Column items are positional per USDA's fixed 5-column layout; forecast
+      rows keep their month (Sep / Oct) so a revision can be compared with the
+      prior month rather than overwriting it. Unpublished issues return HTTP 200
+      with a 369-byte apology page, so content-type, body size and the
+      "WASDE - <n>" header are all checked before parsing. Historical archive
+      page returns 403, so availability is a short window (latest 2 issues) —
+      declared as such, never padded.
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (rows, not issues); deterministic order = newest issue first, then table order
+      - name: window_start
+        type: str
+        required: false
+        description: Backfill window start (YYYY-MM or YYYY-MM-DD, platform-owned); filters by RELEASE month before the limit truncation
+      - name: window_end
+        type: str
+        required: false
+        description: Backfill window end (YYYY-MM or YYYY-MM-DD, platform-owned); must be paired with window_start
+    columns:
+      - name: wasde_no
+        type: int
+        description: WASDE issue number from the report header (e.g. 676)
+      - name: release_month
+        type: str
+        description: Release month YYYY-MM parsed from the header month name + year
+      - name: section
+        type: str
+        description: Summary table identity — Grains / Cotton / Oilseeds
+      - name: region
+        type: str
+        description: World / United States / Foreign (only these three appear in the summary tables)
+      - name: commodity
+        type: str
+        description: Commodity label as published (Total Grains / Wheat / Coarse Grains / Rice, milled / Cotton / Oilseeds / Oilmeals / Vegetable Oils)
+      - name: season
+        type: str
+        description: Marketing season column label (2024/25, 2025/26, 2026/27 …)
+      - name: basis
+        type: str
+        description: Actual / Estimate / Projection — from the season label suffix
+      - name: forecast_month
+        type: str
+        description: Forecast month of the row (Sep/Oct/…) for projection seasons; null for actual/estimate rows
+      - name: item
+        type: str
+        description: Balance-sheet line — output / supply / trade / total_use / ending_stocks (fixed 5-column order)
+      - name: value
+        type: float
+        description: Value in the section unit; missing cells (- / —) produce no row and are never zero-filled
+      - name: unit
+        type: str
+        description: Section unit — Million Metric Tons (Grains, Oilseeds) / Million 480-lb. Bales (Cotton)
+      - name: source_url
+        type: str
+        description: .txt report URL for the issue
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: agriculture.supply_demand_balance
+    entity_type: industry
+    measure: value
+    unit: mixed
+    frequency: month
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,50 @@
+version: "2"
+name: moa-machinery          # = spiders/moa-machinery/ 目录名，运行时标识符，合入后不可改名
+label: 农业农村部全国农业机械化发展统计公报 (MOA Agricultural Mechanization Bulletin)
+source_url: https://njhs.moa.gov.cn/nyjxhqk/
+# authority: official —— 农业农村部农业机械化管理司本级发布
+authority: official
+# site: tencent              # 缺省 tencent；国内源直连，spider 显式禁用代理（ProxyHandler({})）
+# schedule: 不写——年度源，静默合入，cron 待后续单独决策
+schedule: 25 7 15 4 *
+data_period: year            # 年度：每年一期统计公报（可见 2022–2025 四期）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_moa_machinery
+    description: Fetch annual indicators from MOA 全国农业机械化发展统计公报 (operated area, mechanization rates, tractor counts, service income)
+    frequency: yearly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum bulletins to return (editions, newest first; each edition yields ~19 rows)
+    columns:
+      - name: period
+        type: str
+        description: 期号年份 YYYY（标题里的年度，如 2025；不是发布日期年份）
+      - name: item
+        type: str
+        description: 指标标识 (operated_area_mu_times / mechanization_rate / tillage_rate / seeding_rate / harvest_rate / tractor_count / tractor_implement_count / uav_count / cooperative_count / operator_count / service_income / crop_mechanization_rate_<crop>)
+      - name: value
+        type: float
+        description: 指标数值（按 unit 列解释；解析失败跳过不出行，绝不写 0）
+      - name: unit
+        type: str
+        description: 计量单位（亿亩次 / % / 万台 / 万部 / 万架 / 万个 / 万人 / 亿元）
+      - name: title
+        type: str
+        description: 公报标题（如 2025年全国农业机械化发展统计公报）
+      - name: source_url
+        type: str
+        description: 正文页 URL
+      - name: scraped_at
+        type: str
+        description: 抓取时刻（UTC ISO8601）
+# concepts 留空：本单元是 item/value/unit 长表，同一 value 列跨多种量纲，
+# 单一 concept 绑定会失真；指标语义走统一指标注册目录另行治理（不阻塞爬取）。
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

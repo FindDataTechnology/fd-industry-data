@@ -1,0 +1,32 @@
+{
+  "sample_id": "001-usda-wasde",
+  "created": "2026-11-08",
+  "updated": "2026-11-08",
+  "target": "run_usda_wasde",
+  "params": {"limit": 500, "window_start": "2026-10", "window_end": "2026-10"},
+  "expect": {
+    "min_rows": 400,
+    "rows_contains": [
+      {"field": "wasde_no", "equals": 676},
+      {"field": "release_month", "equals": "2026-10"},
+      {"field": "section", "equals": "Grains"},
+      {"field": "section", "equals": "Cotton"},
+      {"field": "section", "equals": "Oilseeds"},
+      {"field": "region", "equals": "World"},
+      {"field": "region", "equals": "Foreign"},
+      {"field": "region", "equals": "United States"},
+      {"field": "commodity", "equals": "Total Grains"},
+      {"field": "commodity", "equals": "Cotton"},
+      {"field": "item", "equals": "ending_stocks"},
+      {"field": "basis", "equals": "Estimate"},
+      {"field": "basis", "equals": "Projection"},
+      {"field": "forecast_month", "equals": "Oct"},
+      {"field": "value", "equals": 2858.26},
+      {"field": "value", "equals": 119.55},
+      {"field": "unit", "equals": "Million 480-lb. Bales"},
+      {"field": "unit", "equals": "Million Metric Tons"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"],
+  "note": "窗口钉 2026-10（WASDE-676），锚世界总谷物 2024/25 产量 2858.26 百万吨与世界棉花 2024/25 产量 119.55 百万包，两处均与 txt 原文逐字对齐。用窗口而非 limit 定位，未来新期发布不会把锚点挤出。min_rows 400 < 实测 480 是给「表格行数微调」留余量。"
+}

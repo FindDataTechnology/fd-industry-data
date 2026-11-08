@@ -1,0 +1,29 @@
+{
+  "sample_id": "001-agri-casde",
+  "created": "2026-11-08",
+  "updated": "2026-11-08",
+  "target": "run_agri_casde",
+  "params": {"limit": 5000, "window_start": "2026-05-01", "window_end": "2026-05-31"},
+  "expect": {
+    "min_rows": 320,
+    "rows_contains": [
+      {"field": "casde_no", "equals": 119},
+      {"field": "period", "equals": "2026-05"},
+      {"field": "commodity", "equals": "corn"},
+      {"field": "commodity", "equals": "soybean"},
+      {"field": "commodity", "equals": "cotton"},
+      {"field": "commodity", "equals": "edible_oil"},
+      {"field": "commodity", "equals": "sugar"},
+      {"field": "item", "equals": "Cotlook A 指数"},
+      {"field": "item", "equals": "期末库存"},
+      {"field": "unit", "equals": "美分/磅"},
+      {"field": "unit", "equals": "千公顷"},
+      {"field": "forecast_kind", "equals": "previous"},
+      {"field": "value", "equals": 788.0},
+      {"field": "value", "equals": 79.0},
+      {"field": "value", "equals": 2838.0}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"],
+  "note": "窗口钉 2026-05（= CASDE-No.119 一期，实测 343 行；五张表 corn 66 / soybean 62 / cotton 50 / edible_oil 87 / sugar 78 全取到）。锚该历史期：棉花期末库存 2024/25=788 万吨、Cotlook A 指数 2024/25=79 美分/磅、播种面积 2838 千公顷。选历史期不选最新期，避免下期修订造成假故障；窗口钉住后新期次不会把锚点挤出 limit 截断窗。"
+}
