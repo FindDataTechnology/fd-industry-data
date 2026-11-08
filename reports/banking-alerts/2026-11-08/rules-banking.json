@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-11-08T06:37:53.508772+00:00",
+  "generated_at": "2026-11-08T08:21:39.759678+00:00",
   "today": "2026-11-08",
   "health": [
     {
       "source": "eastmoney-disclosure-plan",
       "healthy": true,
       "category": null,
-      "detail": "rule1:healthy last_success_age=1.56h<=60.00h tail_failed=0<3"
+      "detail": "rule1:healthy last_success_age=3.29h<=60.00h tail_failed=0<3"
     },
     {
       "source": "nfra-penalty",
       "healthy": true,
       "category": null,
-      "detail": "rule1:healthy last_success_age=1.38h<=60.00h tail_failed=0<3"
+      "detail": "rule1:healthy last_success_age=0.30h<=60.00h tail_failed=0<3"
     }
   ],
   "coverage": {
@@ -2733,7 +2733,7 @@
       "no_due_date": 0
     },
     "penalty": {
-      "total": 200,
+      "total": 300,
       "documents": 39,
       "new": 0
     },
@@ -2742,8 +2742,7 @@
       "sent": 0,
       "failed": 0,
       "failures": [],
-      "skipped": true,
-      "reason": "no-smtp-config"
+      "skipped": false
     }
   },
   "disabled_rules": [
