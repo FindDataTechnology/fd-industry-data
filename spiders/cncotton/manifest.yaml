@@ -7,8 +7,10 @@ source_url: http://www.chinacotton.org/articleList.aspx?sort=6
 # 非政府统计部门、非行业协会、非商业报价聚合商）。报告内数值为转述 USDA 官方预测 +
 # 自有进口统计，故只作参考序列，不作阈值预警判据。
 authority: industry
-# 2026-11-08 点亮：月更。上游列表页最新一期 2025-08（已停更），5 号继续探，恢复即接上
-schedule: 25 6 5 * *
+# 2026-11-08 挂起（parked）：上游列表页最新一期为 2025-08，此后停更；
+#   排期会让回补窗（前 12 个整月）恒为空 → spider 按契约抛「0 rows parsed」→ 每月假红。
+#   数据面仍保留到 2025-08；上游恢复发布后去掉 parked 并补 schedule 即可接上。
+parked: true
 data_period: month
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
