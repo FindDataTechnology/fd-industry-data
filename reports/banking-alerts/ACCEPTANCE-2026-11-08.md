@@ -181,6 +181,36 @@ export FD_CENTRAL_PG_DSN="postgresql://fd:<pwd>@100.64.0.3:30432/fd_open_data"
 - 两条路径都实跑过：默认（有驱动）与 `FD_ALERTS_FORCE_PSQL=1` 结果完全一致
   （104 条判定 / 42 家 / 0 事件）。
 
+## 6.8 spider 镜像从未被采用（根因与修复，2026-11-08 16:0x）
+
+**现象**：`fd-industry-*` 的全部 CronJob 一直跑 `fd-industry-runner:sha-750da3f`，
+而每次推 main 都会构建新镜像。表现是集群里的 `fd_industry_data` 包比仓库旧——
+`universes.py` / `pg_fallback.py` / `alerts_core` 都不在里面，逼得披露 spider 加了
+兜底导入、chart 的 sparse-checkout 不得不扩到 `fd_industry_data/` 与 `universes/`。
+
+**排查（三步都排除了）**：
+1. 不是没出片——`image.yml` 每次推 main 都构建，当天连续成功；
+2. 不是没中继——cheap-3 的 `tcr-relay` 日志显示 `finddata/fd-industry-runner`
+   `copied=5 skipped=49 failed=0`，`sha-01c5ffb` / `sha-668e945` 早已在 ccr；
+3. 不是镜像本身坏——用 `sha-01c5ffb` 起只读探针，
+   `universes.py` / `pg_fallback.py` / `alerts_core/state.py` **三个都在**。
+
+**真因**：Argo ApplicationSet `fd-industry-crawl` 的 helm 参数 `image` **硬编码**
+`sha-750da3f`，没有任何机制把它推到新 tag。镜像流水线是通的，只是**没人采用**。
+
+**修复**：该 ApplicationSet 无 App 托管（无 tracking-id、无 appset 应用），是手工
+`kubectl apply` 的，故直接 patch `image` → `sha-01c5ffb`（改前备份在
+`/tmp/appset-bak/`）。Application 自动同步后 CronJob 重渲染：
+**79 个源全部切到 `sha-01c5ffb`**；`fd-industry-dispatcher` 属独立组件
+（label `fd-industry/component=dispatcher`，非 appset 管理）保持原样。
+
+**实弹**：用新镜像跑 `fd-industry-nfra-penalty` → Job `Complete`，
+`crawl_runs` 新增一条 `success / 100 行`（2026-11-08 08:03:33Z）。
+
+**遗留**：披露 spider 里的 `universes` 兜底导入现在已冗余，可删（下轮清理）；
+ApplicationSet 的 image 参数仍是手写 tag，**每次出片都要人工 bump**——
+若要自动化，应改成 `main` 或加一个「出片后自动 patch appset」的步骤。
+
 ## 7. 未决
 
 - ~~处罚源尚未纳入平台排期~~ **已解决**：两个源均已进排期并成功运行（见 §2）。
