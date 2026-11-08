@@ -136,6 +136,31 @@ export FD_CENTRAL_PG_DSN="postgresql://fd:<pwd>@100.64.0.3:30432/fd_open_data"
   「没配通道」而不是「配了没用上」）。已改为**在构造 SmtpConfig 之前把配置收件人注入 env**。
 - 未配置凭据时仍一律 `skipped`，绝不假装发过
 
+## 6.6 定时巡检（GitHub Actions，已实跑）
+
+- 仓库 `FindDataTechnology/fd-industry-data` 是 **PUBLIC** ⇒ 免费无限 CI；自托管 runner
+  `cheap-health-runner`（标签 `self-hosted, fd-health`）在线。
+- `banking-alerts.yml` 已注册（active），**工作日 22:05 CST** 触发；已用 `workflow_dispatch` 实跑：
+  ```
+  健康级: [('eastmoney-disclosure-plan', 'ok'), ('nfra-penalty', 'ok')]
+  阈值级: 30 条判定 | 覆盖 5 家 / 宇宙 42
+  事件级: 披露 100 行全部已披露 | 处罚 39 文书 / 新增 0
+  banking_alerts exit=0
+  ```
+- **注意**：仓库主推 gitee，GitHub 是镜像。**只推 gitee 的话工作流文件在 GitHub 上不存在、
+  Actions 永远不会调度**——本次就因此实际空转了一次。两端都要推。
+
+### 6.6.1 两个让流水线假绿的缺陷（都已修）
+
+1. **runner 没有 psycopg2**：自托管 runner 的系统 python 缺驱动（runner **镜像**里有，但工作流
+   不在镜像里跑）。花卉线 F17 栽过同样的坑，解法一致：`_psql()` 子进程回退，三条查询都走它。
+   实测强制回退路径：比率 5 家、两源 crawl_runs、200 条处罚 json_agg 全部通过。
+2. **exit 1 有两种含义**：Python 未捕获异常的退出码也是 1，而工作流把 1 当「有通知发送失败」
+   的**预期语义**放行 ⇒ 脚本崩了也报绿（首次运行就是这样：job success，实际 `ModuleNotFoundError`）。
+   已加 `_guarded_main()`：未捕获异常收敛为 **exit 2**，1 只保留原意。
+
+顺带修了一个真 SQL 错：`json_agg()` 不能按非聚合列排序，items 查询改为在子查询里按 run 时间取子集后再聚合。
+
 ## 7. 未决
 
 - ~~处罚源尚未纳入平台排期~~ **已解决**：两个源均已进排期并成功运行（见 §2）。
