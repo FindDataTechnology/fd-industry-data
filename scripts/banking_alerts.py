@@ -440,7 +440,10 @@ def main(argv: list[str] | None = None) -> int:
     today = date.fromisoformat(args.today) if args.today else now.date()
 
     dsn = os.environ.get(args.dsn_env)
-    states = {} if args.dry_run else load_state(STATE)
+    # 演练要回答「**现在**真跑会发生什么」，所以照样读状态，只是不写回。
+    # 早先写的是 `{} if dry_run else load_state(...)`，于是演练每次都把历史事件
+    # 重新算成「新增 39 条」，与真实运行（0 条）不符——这种偏离正是演练失去意义的方式。
+    states = load_state(STATE)
 
     # 健康级
     health: list[SourceHealth] = []

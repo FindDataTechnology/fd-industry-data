@@ -329,6 +329,18 @@ def test_repo_config_loads_and_has_no_npl_threshold():
             assert r.get("unlock"), f"{r['rule_id']} 停用但没写 unlock"
 
 
+def test_dry_run_reads_state_so_drill_matches_reality():
+    """演练必须反映「现在真跑会发生什么」：读状态、不写回。
+
+    早先 dry-run 从空状态起算，于是每次演练都把历史事件重新算成「新增」，
+    与真实运行结果不符——演练就此失去意义。
+    """
+    import inspect
+    src = inspect.getsource(ba.main)
+    assert "states = load_state(STATE)" in src
+    assert "{} if args.dry_run" not in src
+
+
 # --- 健康级 -------------------------------------------------------------------
 
 def test_no_runs_is_scheduled_absent_not_healthy():
