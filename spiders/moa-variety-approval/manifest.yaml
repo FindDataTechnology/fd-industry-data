@@ -4,7 +4,8 @@ label: 农业农村部种业管理司 公示公告（品种审定 / 种子生产
 source_url: https://zys.moa.gov.cn/gsgg/
 # authority: official —— 农业农村部种业管理司（部委司局）本级发布
 authority: official
-# 不写 schedule：先静默合入（点亮时才补 cron）
+# 不定期；2026-11-08 点亮，按周轮询（周三）
+# 2026-11-08 点亮：不定期，按周轮询（周三）
 schedule: 40 7 * * 3
 data_period: irregular
 scanner_mode: upstream-curated
