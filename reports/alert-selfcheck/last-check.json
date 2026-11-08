@@ -1,14 +1,6 @@
 {
-  "at": "2026-11-08T08:14:05.854239+00:00",
-  "silent": [
-    {
-      "line": "agriculture",
-      "kind": "never_reported",
-      "last": null,
-      "days": null,
-      "max_days": 2
-    }
-  ],
+  "at": "2026-11-08T08:22:55.571245+00:00",
+  "silent": [],
   "ticket": {
     "checked": true,
     "at": "2026-11-07T22:43:31.676477+00:00",
@@ -17,7 +9,6 @@
     "broken": true
   },
   "findings": [
-    "silent:agriculture",
     "ticket_auth:route_moved"
   ],
   "notify": {

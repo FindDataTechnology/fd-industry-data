@@ -1,7 +1,6 @@
 {
-  "at": "2026-11-08T08:14:05.854239+00:00",
+  "at": "2026-11-08T08:22:55.571245+00:00",
   "findings": [
-    "silent:agriculture",
     "ticket_auth:route_moved"
   ]
 }
