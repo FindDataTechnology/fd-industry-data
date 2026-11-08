@@ -43,7 +43,8 @@
 | F18 | ~~P2~~ → **已处理（手动触发）** | EU 花卉主面积没有刷新调度 | 已并入同一工作流的 `workflow_dispatch` 步骤（`refresh=true`）：Eurostat 面积 / AIPH / Comtrade 花卉三档都是**年频**，每日空跑会白打 6 次外部 API，故不挂 cron；写库需要 `FD_OPEN_DATA_DSN_WRITE`（现有 `FD_CENTRAL_PG_DSN` 是只读账号 `fd_health_ro`），未配置时**明确 SKIP 不假装跑过** | 验收：配好该 secret 后，每年点一次 `Run workflow` 即可。**残余**：完全自动化需在集群侧加写库 CronJob（镜像 entrypoint 是 fd-runner，跑脚本需全量 checkout + 依赖），另立即可 |
 
 
-| F19 | **P1** | **看板代码不在任何 git 仓** | `dashboards/` 位于 finddata 根下，而**根目录不是 git 仓库**（`git status` → `fatal: not a git repository`）。本次改的三个 builder + `publish_flower_boards.py` + `industry_common.py` + `tests/` 全部**无版本控制**，也没有 diff 可复核 | **待裁**：①把 `dashboards/` 纳入某个已有仓（如 fd-industry-data 或新的 fd-dashboards）；②单独建仓。验收：`git status` 能看到这些文件的改动，且历史的每次板面口径变更可追 |
+| F19 | ~~P1~~ → **已修（本地基线）** | 看板代码不在任何 git 仓 | 已在 `dashboards/` 建立 git 仓并提交基线（`19ae3a7`，**104 个源文件**）：只跟踪源码（43 个 builder/publish 脚本、data_plane/public_projection、tests、README），**忽略 `*.html` 与 `*.spec.json`**（1MB×N 的生成物，可由源码+库重跑）。验证：改一行即可 `git diff` 看到（此前完全无从复核）| **剩余=远端待裁**：放 `fd-industry-data` 子目录，还是新建 `fd-dashboards`（需你定）。验收：本地基线已可用；远端定后 `git remote add` + push 即闭环 |
+
 
 | F20 | ~~P1~~ → **已修** | 集群运行的 `--limit 100` **静默截断**滚动窗 | 实证：集群首次运行 `rows_written=100`（恰好等于 limit）只覆盖 **5 天**；同一 Job 在声明 limit 后重跑 → **932 行 / 42 天**。一天一版报告最多 46 条报价，所以 100 只够最近约 2 天，上游跳日一多就漏天且**不报错**。修法（照酒店线先例，AppSet 已支持 limit 透传）：`dounan-flower-price: limit 1200`、`aiph-stats: limit 300`；push 后 ArgoCD 同步生效（Application 参数 `limit=1200`，CronJob args `--limit 1200`） | 验收：已完成（真实运行实证 100→932 行） |
 
