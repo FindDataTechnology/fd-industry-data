@@ -815,6 +815,13 @@ def _dedupe_latest(items: list[dict], key_name: str) -> dict:
 
 
 def _fetch_unit_payloads(cur, source: str) -> list[dict]:
+    """抓取该源的 crawl_items.payload。
+
+    **两条连接路径的类型不同**：psycopg 把 ``jsonb`` 解成 dict，而 psql 子进程只返回
+    文本（见 ``fd_industry_data/pg_fallback.py`` 的语义差异说明）。CI runner 只能走
+    psql，于是这里统一补一次解码——否则事件级会以
+    ``AttributeError: 'str' object has no attribute 'get'`` 崩掉（2026-11-08 CI 实测）。
+    """
     sql = """
         SELECT ci.payload
         FROM crawl_items ci
@@ -822,7 +829,19 @@ def _fetch_unit_payloads(cur, source: str) -> list[dict]:
         WHERE r.source = %s AND r.status = 'success'
     """
     cur.execute(sql, (source,))
-    return [row[0] for row in cur.fetchall()]
+    out: list[dict] = []
+    for row in cur.fetchall():
+        value = row[0]
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode("utf-8")
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except (TypeError, ValueError):
+                continue
+        if isinstance(value, dict):
+            out.append(value)
+    return out
 
 
 def _title_hash(title: str, n: int = 8) -> str:
