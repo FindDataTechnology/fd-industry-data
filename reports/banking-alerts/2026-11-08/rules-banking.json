@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-11-08T08:21:39.759678+00:00",
+  "generated_at": "2026-11-08T18:48:20.042831+00:00",
   "today": "2026-11-08",
   "health": [
     {
       "source": "eastmoney-disclosure-plan",
       "healthy": true,
       "category": null,
-      "detail": "rule1:healthy last_success_age=3.29h<=60.00h tail_failed=0<3"
+      "detail": "rule1:healthy last_success_age=13.73h<=60.00h tail_failed=0<3"
     },
     {
       "source": "nfra-penalty",
       "healthy": true,
       "category": null,
-      "detail": "rule1:healthy last_success_age=0.30h<=60.00h tail_failed=0<3"
+      "detail": "rule1:healthy last_success_age=10.75h<=60.00h tail_failed=0<3"
     }
   ],
   "coverage": {
