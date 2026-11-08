@@ -757,6 +757,9 @@ def scan_event_rule(cur, rule: dict, asof: date) -> list[dict]:
     date_field = rule.get("date_field", "date")
     window_days = int(rule.get("window_days", 90))
     since = asof - timedelta(days=window_days)
+    # **监测宇宙过滤**：不加这层，`crawl_items` 里全市场的公告都会命中（实测港交所
+    # profit-alert 全是餐饮股，与农业宇宙无关）。只保留配置里列的代码/CIK。
+    universe = {str(x) for x in (rule.get("universe") or [])}
     out: list[dict] = []
     for (payload,) in cur.fetchall():
         if isinstance(payload, str):
@@ -766,6 +769,10 @@ def scan_event_rule(cur, rule: dict, asof: date) -> list[dict]:
                 continue
         if not isinstance(payload, dict):
             continue
+        if universe:
+            keys = {str(payload.get(k) or "") for k in ("stock_code", "cik", "entity_code")}
+            if not (keys & universe):
+                continue
         raw_day = str(payload.get(date_field) or "")[:10]
         parsed = parse_period_date(raw_day)
         if parsed is None or parsed < since:
@@ -982,6 +989,20 @@ def cmd_health(cur, cfg: dict, outdir: Path, now: datetime, dry_run: bool) -> in
         print(f"\n-- 未点亮原因（{len(unlit)}）--")
         for row in unlit:
             print(f"- {row['source']}: {row['unlit_reason']}")
+    # **覆盖缺口显式化**：「未点亮不判停更」是对的（避免误报），但副作用是
+    # 「源没注册 → 数据永远不再更新」也没人说话。这里把它单列，并给出数据陈旧天数，
+    # 让「不报警」不等于「没问题」。
+    # 注意 `registered` 在 `_health_row` 里的语义是「**有 schedule 且未被 parked**」，
+    # 不是「在 crawl_sources 里有行」。所以这里只能说「无排期」，不能断言「未注册」——
+    # 第一版把 wfp-food-price（在 crawl_sources 里但无 schedule）印成「未注册」，措辞不准。
+    if unlit:
+        print(f"\n-- 覆盖缺口（无排期 → 不会自动更新）--")
+        for row in unlit:
+            print(f"- {row['source']}: **无排期** → 不会自动刷新；"
+                  f"观测面 {row['observations']['rows']} 行，"
+                  f"最新 {row['observations']['latest'] or '—'}")
+        print("  处置：注册/排期要有平台写权限（本引擎只读）。在注册之前，"
+              "这些源的数据日期只会往后不动，**读面上要按「一次性快照」对待**。")
     print("\n说明：未点亮的源不判停更（无 schedule ≠ 停更），避免把「未点亮」误报成「停更」。")
     print(f"== 汇总 == 在册排期源 {len(registered)} / 已点亮 {len(lit)} / "
           f"未点亮 {len(unlit)} / 遥测静默 {len(silent)}")

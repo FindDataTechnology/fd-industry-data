@@ -1,0 +1,76 @@
+version: "2"
+name: moa-fishery
+label: 农业农村部渔业渔政管理局水产品产量（月度累计 + 年度公报）
+source_url: https://yyj.moa.gov.cn/gzdt/
+# authority: official —— 农业农村部渔业渔政管理局本级发布
+authority: official
+schedule: 40 6 7 * *
+data_period: month
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_moa_fishery
+    description: Fetch aquatic-product output from MOA Bureau of Fisheries (月度累计产量 + 年度渔业经济统计公报)
+    frequency: on_demand
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (rows, not articles; newest article first)
+      - name: window_start
+        type: str
+        required: false
+        description: Backfill window start (YYYY-MM or YYYY-MM-DD, platform-owned); only rows in the closed window are returned, filtering before limit truncation
+      - name: window_end
+        type: str
+        required: false
+        description: Backfill window end (YYYY-MM or YYYY-MM-DD, platform-owned); must be paired with window_start
+    columns:
+      - name: period
+        type: str
+        description: 数据期间 — 月度累计为累计终点月 YYYY-MM（如 2026-09），年度为 YYYY（如 2025）
+      - name: granularity
+        type: str
+        description: 粒度 — cumulative_month=年内月度累计行；year=年度公报行；两类绝不合并
+      - name: cumulative_month
+        type: int
+        description: 累计到第几个月（1..N 的 N），仅 cumulative_month 行有值；年度行为 None
+      - name: item
+        type: str
+        description: 指标名（总产量 / 海水养殖 / 海洋捕捞 / 淡水养殖 / 淡水捕捞 / 养殖 / 捕捞 / 海水产品 / 淡水产品）
+      - name: value
+        type: float
+        description: 产量（万吨），取不到的字段为 None，绝不填 0
+      - name: unit
+        type: str
+        description: 计量单位（固定 万吨）
+      - name: yoy_pct
+        type: float
+        description: 同比涨跌幅（%），signed；下降=-，增长=+；原文缺失或不可解析=None
+      - name: title
+        type: str
+        description: 文章标题（列表页 title）
+      - name: source_url
+        type: str
+        description: 正文页 URL
+      - name: scraped_at
+        type: str
+        description: ISO 时间戳（提取时刻）
+concepts:
+  - column: value
+    concept: agriculture.aquatic_product_output
+    entity_type: industry
+    measure: value
+    unit: ten_thousand_tonnes
+    frequency: month
+  - column: yoy_pct
+    concept: agriculture.aquatic_product_output_yoy
+    entity_type: industry
+    measure: value
+    unit: percent
+    frequency: month
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,89 @@
+version: "2"
+name: agri-casde
+label: 中国农业农村信息网 CASDE 农产品供需形势分析月度平衡表
+source_url: https://www.agri.cn/sj/gxxs/
+# authority: official —— 农业农村部市场预警专家委员会（CASDE）本级发布
+authority: official
+# site: tencent  （缺省即 tencent；国内站，脚本内自行禁用代理）
+# 不写 schedule：先静默合入（点亮时才补 cron）。月更，每月 9—12 日发布。
+schedule: 10 6 3 * *
+data_period: month
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_agri_casde
+    description: >-
+      Fetch the CASDE monthly agricultural supply-and-demand balance sheets from
+      the MOA information portal (www.agri.cn/sj/gxxs/). Each issue carries five
+      HTML tables — corn / soybean / cotton / edible oil / sugar — of 18-24 rows.
+      Issue identity is CASDE-No.<n> (e.g. No.124 = 2026-10); the list page mixes
+      in garlic / tilapia / prawn specials which are filtered out by the CASDE-No.
+      marker. Units switch inside the table on their own rows (千公顷 / 万吨 /
+      元/吨 / 公斤/公顷 / 吨/公顷 / 美分/磅) and are never treated as data rows.
+      Forecast columns carry the forecast month in the header (e.g. 2026/27
+      （10月预测）) and are classified current/previous against the issue month,
+      never by column position. Price ranges such as 2300-2600 are split into
+      *_low / *_high rows — no midpoint, no zero filling.
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (rows, not issues), deterministic order = list newest-first, table row order, column order
+      - name: window_start
+        type: str
+        required: false
+        description: Backfill window start (YYYY-MM or YYYY-MM-DD, platform-owned); filters issues by issue period before the limit truncation
+      - name: window_end
+        type: str
+        required: false
+        description: Backfill window end (YYYY-MM or YYYY-MM-DD, platform-owned); must be paired with window_start
+    columns:
+      - name: casde_no
+        type: int
+        description: CASDE issue number (期次主键), e.g. 124
+      - name: period
+        type: str
+        description: Issue month YYYY-MM (No.124 = 2026-10); from the list title, falling back to the issue-number sequence
+      - name: commodity
+        type: str
+        description: Table identity — corn / soybean / cotton / edible_oil / sugar
+      - name: item
+        type: str
+        description: Row label as published (播种面积 / 产量 / 进口量 / 消费量 / 期末库存 / 价格区间 …)
+      - name: value
+        type: float
+        description: Numeric value in the unit of the same row; unparsable cells are skipped and counted, never written as 0
+      - name: unit
+        type: str
+        description: Unit inherited from the preceding unit row — 千公顷 / 万吨 / 元/吨 / 公斤/公顷 / 吨/公顷 / 美分/磅
+      - name: forecast_kind
+        type: str
+        description: actual (historical season, no forecast month) / current (header month == issue month) / previous (other forecast month)
+      - name: season
+        type: str
+        description: Marketing/season column label as published, e.g. 2026/27
+      - name: forecast_month
+        type: str
+        description: Forecast month parsed out of the column header YYYY-MM, null for actual seasons
+      - name: basis
+        type: str
+        description: Published basis word — forecast / estimate — null when the header carries neither
+      - name: source_url
+        type: str
+        description: Article page URL
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: agriculture.supply_demand_balance
+    entity_type: industry
+    measure: value
+    unit: mixed
+    frequency: month
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,83 @@
+version: "2"
+name: moa-variety-approval
+label: 农业农村部种业管理司 公示公告（品种审定 / 种子生产经营许可，事件面）
+source_url: https://zys.moa.gov.cn/gsgg/
+# authority: official —— 农业农村部种业管理司（部委司局）本级发布
+authority: official
+# 不写 schedule：先静默合入（点亮时才补 cron）
+schedule: 40 7 * * 3
+data_period: irregular
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_moa_variety_approval
+    description: >-
+      Register notice events from the MARA Seed Industry Management Department
+      bulletin board (zys.moa.gov.cn/gsgg/). This unit is EVENT-FACE ONLY and
+      produces no numeric observations: the detail pages carry zero <table>
+      elements and every variety list (variety name / crop / approval number)
+      lives inside a .doc attachment served through a government reader proxy
+      (zxfile/reader?file=...). Parsing .doc and OCR are both out of scope, so
+      the unit records what the notice IS rather than pretending to have values
+      — precedent spiders/samr-food-inspection/. Notice types form a closed set
+      classified from the title alone: national_variety_approval /
+      provincial_variety_approval / seed_license / variety_revocation / other.
+      Attachment presence is reported as null unless with_detail=True actually
+      fetched the page — unknown is recorded as unknown, never as false.
+    frequency: irregular
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of events to return (events, not rows); pages are walked newest-first and stop at the first page whose every item predates window_start
+      - name: window_start
+        type: str
+        required: false
+        description: Backfill window start (YYYY-MM or YYYY-MM-DD) applied to publish_date before the limit truncation; must be paired with window_end
+      - name: window_end
+        type: str
+        required: false
+        description: Backfill window end (YYYY-MM or YYYY-MM-DD); must be paired with window_start
+      - name: with_detail
+        type: bool
+        required: false
+        description: Opt-in. Fetch each detail page to count attachments (one extra request per event). Default false → attachment_count/has_attachment stay null
+    columns:
+      - name: publish_date
+        type: str
+        description: Publication date YYYY-MM-DD parsed from the anchor text (the site glues the date onto the link label)
+      - name: title
+        type: str
+        description: Notice title with the trailing date stripped
+      - name: notice_type
+        type: str
+        description: Closed set — national_variety_approval / provincial_variety_approval / seed_license / variety_revocation / other
+      - name: province
+        type: str
+        description: Provincial-level division parsed from the title (e.g. 四川省, 内蒙古自治区); null for national notices and for titles with no province
+      - name: scope
+        type: str
+        description: national when the national variety approval committee is the issuer, otherwise provincial
+      - name: url
+        type: str
+        description: Detail page URL (https://zys.moa.gov.cn/gsgg/YYYYMM/tYYYYMMDD_id.htm)
+      - name: has_attachment
+        type: bool
+        description: Whether the detail page links an attachment; null when with_detail=False (never guessed)
+      - name: attachment_count
+        type: int
+        description: Number of distinct attachment links on the detail page; null when with_detail=False
+      - name: variety_list_in_attachment
+        type: bool
+        description: Mirrors has_attachment — the variety list is only ever inside the attachment, never inline; null when with_detail=False
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of the fetch
+concepts: []
+entities:
+  - entity_type: organization
+    coverage: subset
+  - entity_type: crop_variety
+    coverage: subset
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

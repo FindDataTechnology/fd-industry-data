@@ -1,0 +1,23 @@
+{
+  "sample_id": "001-fert-cn",
+  "created": "2026-11-08",
+  "updated": "2026-11-08",
+  "target": "run_fert_cn",
+  "params": {"limit": 200, "window_start": "2026-08", "window_end": "2026-08"},
+  "expect": {
+    "min_rows": 20,
+    "rows_contains": [
+      {"field": "period", "equals": "2026-08"},
+      {"field": "product", "equals": "尿素"},
+      {"field": "product", "equals": "磷酸二铵"},
+      {"field": "flow", "equals": "export"},
+      {"field": "flow", "equals": "import"},
+      {"field": "volume_wan_t", "equals": 52.46},
+      {"field": "amount_usd", "equals": 217872915.0},
+      {"field": "avg_price_usd_t", "equals": 415.28},
+      {"field": "source", "equals": "fert-cn"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url", "title", "published_date", "record_id"],
+  "note": "窗口钉死数据月 2026-08（不是发布日）。锚尿素出口 52.46 万吨 / 217,872,915 美元 / 均价 415.28 美元每吨。authority=industry（中肥网商业门户），本序列只作成本链参考，不得作预警判据。"
+}

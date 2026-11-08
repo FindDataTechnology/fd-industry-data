@@ -1,0 +1,125 @@
+version: "2"
+name: fert-cn                # = spiders/fert-cn/ 目录名，运行时标识符，合入后不可改名
+label: 中肥网 化肥月度进出口统计（fert.cn /10005/）
+source_url: https://www.fert.cn/10005/
+# authority: industry —— 中肥网是商业门户/产业媒体，不是行业协会；绝不标 association。
+# 口径红线：本单元产出只作成本链参考序列，不得作为预警判据。
+authority: industry
+# 不写 schedule：先静默合入（点亮时才补 cron），遵循 unified-source-onboarding 契约。
+schedule: 10 7 11 * *
+data_period: month
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_fert_cn
+    description: >-
+      Fetch China monthly fertilizer import/export statistics from the fert.cn
+      /10005/ column (authority=industry: a commercial portal, NOT an industry
+      association; cost-chain reference series only, never a warning criterion).
+      Parses the free-text statement in each article body for volume, USD amount,
+      average USD/tonne, MoM and YoY; volume is normalised to 10k tonnes with the
+      published value and unit kept for audit (the column mixes 万吨/吨/千克 in the
+      same article). VIP-only production/output data is out of scope.
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (one row per product x flow x month)
+      - name: window_start
+        type: string
+        required: false
+        description: >-
+          Inclusive YYYY-MM lower bound applied to the article's DATA month
+          (the "YYYY年M月份" in the title/body, not the publication date);
+          applied before the limit truncation
+      - name: window_end
+        type: string
+        required: false
+        description: >-
+          Inclusive YYYY-MM upper bound on the article's DATA month
+          (not the publication date)
+    columns:
+      - name: record_id
+        type: string
+        description: Stable key "YYYY-MM|product|flow" (flow is export/import)
+      - name: period
+        type: string
+        description: Data month as YYYY-MM, taken from the article statement (not the publication date)
+      - name: product
+        type: string
+        description: Product name exactly as published (尿素 / 磷酸二铵 / 硫酸钾 / 其他氯化钾 …)
+      - name: product_kind
+        type: string
+        description: Locally derived bucket — fertilizer / raw_material / other (the column also publishes sulphur, phosphate rock, crude oil, anthracite)
+      - name: flow
+        type: string
+        description: Trade direction — export or import, from the statement verb
+      - name: volume_wan_t
+        type: float
+        description: >-
+          Volume normalised to 10k tonnes (万吨); conversion from the published
+          unit is lossless in the row (see volume_published + volume_unit)
+      - name: volume_published
+        type: float
+        description: Volume exactly as published, in the unit given by volume_unit
+      - name: volume_unit
+        type: string
+        description: Published volume unit — 万吨 / 吨 / 千克 (same article can use different units per statement)
+      - name: amount_usd
+        type: float
+        description: Total amount in USD (金额总计), null when absent — never zero-filled
+      - name: avg_price_usd_t
+        type: float
+        description: Average unit price in USD per tonne (平均单价) exactly as published, null when absent
+      - name: mom_pct
+        type: float
+        description: Month-on-month change in percent, signed (减少/下降 negative), null when no direction word (sign cannot be inferred)
+      - name: yoy_pct
+        type: float
+        description: Year-on-year change in percent, signed (减少/下降 negative), null when no direction word
+      - name: prev_month_volume_wan_t
+        type: float
+        description: Previous month volume (上月) normalised to 10k tonnes, null when absent
+      - name: prev_year_volume_wan_t
+        type: float
+        description: Same month last year volume (同期) normalised to 10k tonnes, null when absent
+      - name: title
+        type: string
+        description: Article title as published
+      - name: published_date
+        type: string
+        description: Publication date from the column list (YYYY-MM-DD)
+      - name: source_url
+        type: string
+        description: Article URL (https://www.fert.cn/news/YYYY/MM/DD/<id>.shtml)
+      - name: source
+        type: string
+        description: Source identifier (fert-cn)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: volume_wan_t
+    concept: commodity.volume
+    entity_type: product
+    measure: volume
+    unit: 万吨
+    frequency: monthly
+  - column: amount_usd
+    concept: trade.flow_value
+    entity_type: product
+    measure: value
+    unit: usd
+    frequency: monthly
+  - column: avg_price_usd_t
+    concept: commodity.avg_price
+    entity_type: product
+    measure: price
+    unit: usd/tonne
+    frequency: monthly
+entities:
+  - entity_type: product
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

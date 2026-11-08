@@ -1,0 +1,99 @@
+version: "2"
+name: cncotton
+label: 中国棉花网 棉花国际市场价格与贸易分析报告（月度，PDF 文本层）
+# 必须 http：https 的 443 端口从未部署（连接 RST），改 https 直接断流
+source_url: http://www.chinacotton.org/articleList.aspx?sort=6
+# authority: industry —— 发布方是「现代棉花产业技术体系产业经济研究室」（研究机构，
+# 非政府统计部门、非行业协会、非商业报价聚合商）。报告内数值为转述 USDA 官方预测 +
+# 自有进口统计，故只作参考序列，不作阈值预警判据。
+authority: industry
+# 不写 schedule：先静默合入（点亮时才补 cron）
+schedule: 25 6 5 * *
+data_period: month
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_cncotton
+    description: >-
+      Fetch monthly figures from China Cotton Network's
+      《棉花国际市场价格与贸易分析报告》 (column sort=6). The article detail page
+      carries no inline body — only a PDF attachment — so the unit downloads the
+      PDF and reads its TEXT LAYER via the platform shared layer
+      fd_industry_data.pdftext (pdftotext). No OCR is used anywhere: an
+      image-only PDF yields an empty text layer and the report is skipped and
+      counted, never guessed. Extracted metrics per report period: planted area
+      (万亩 / 万公顷), production, consumption, ending stocks, stocks-to-use
+      ratio, Cotlook A index (previous-month average and current month-to-date,
+      kept as separate sub_period rows), cumulative imports and current-month
+      imports. Direction words (增/减/涨/跌/降/持平, including the two-character
+      减少/增加 forms) are mapped to signed percentages; 持平 maps to 0.0.
+      Missing metrics are skipped and logged — never zero-filled.
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (rows, not reports); reports are walked newest-first
+      - name: window_start
+        type: str
+        required: false
+        description: Backfill window start (YYYY-MM or YYYY-MM-DD, platform-owned) applied to the report period before the limit truncation
+      - name: window_end
+        type: str
+        required: false
+        description: Backfill window end (YYYY-MM or YYYY-MM-DD, platform-owned); must be paired with window_start
+    columns:
+      - name: period
+        type: str
+        description: Report period YYYY-MM taken from the title (e.g. 2025年8月 → 2025-08)
+      - name: report_title
+        type: str
+        description: Article title as published
+      - name: forecast_season
+        type: str
+        description: USDA marketing year the report forecasts (e.g. 2025/26), parsed from the body
+      - name: item
+        type: str
+        description: Metric key — planted_area / production / consumption / ending_stocks / stock_use_ratio / cotlook_a_index / import_cum_volume / import_month_volume
+      - name: sub_period
+        type: str
+        description: Caliber — forecast_season (season forecast) / prev_month_avg / current_mtd_avg / cumulative_Nm / month
+      - name: quote_month
+        type: str
+        description: Quoted month YYYY-MM for cotlook_a_index rows; null for other metrics
+      - name: value
+        type: float
+        description: Value in the row unit; unparsable metrics produce no row and are never zero-filled
+      - name: unit
+        type: str
+        description: 万亩 / 万公顷 / 万吨 / % / 美分/磅
+      - name: yoy_pct
+        type: float
+        description: Year-on-year change in percent, signed; 持平 → 0.0; absent → null
+      - name: mom_pct
+        type: float
+        description: Month-on-month change in percent, signed; only for cotlook_a_index and import_month_volume
+      - name: article_url
+        type: str
+        description: articlePage.aspx URL
+      - name: pdf_url
+        type: str
+        description: PDF attachment URL the figures were read from (http, not https)
+      - name: published_at
+        type: str
+        description: Publication date from the detail page (YYYY-MM-DD)
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: agriculture.cotton_market_report
+    entity_type: product
+    measure: value
+    unit: mixed
+    frequency: month
+entities:
+  - entity_type: product
+    coverage: subset
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

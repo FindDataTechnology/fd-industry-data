@@ -466,6 +466,14 @@ def main(argv: list[str] | None = None) -> int:
     today = date.fromisoformat(args.today) if args.today else now.date()
 
     dsn = os.environ.get(args.dsn_env)
+    # 缺 DSN 必须判「环境不满足」并**非零退出**：否则三个取数全跳过，
+    # 输出「0 条判定 / 0 条事件」、退出码 0 —— 与「一切正常」长得一模一样。
+    # 这是本线第三次遇到同一类假绿（exit-1 混淆、dry-run 从空状态起算、本条）。
+    if not dsn and not (args.disclosure_json or args.penalty_json):
+        print("环境不满足：未设置 " + args.dsn_env + "，且没有本地 dump 可读。",
+              file=sys.stderr)
+        print("  该环境下所有取数都会被跳过，输出会是「0 判定 / 0 事件」的假绿。", file=sys.stderr)
+        return 3
     # 演练要回答「**现在**真跑会发生什么」，所以照样读状态，只是不写回。
     # 早先写的是 `{} if dry_run else load_state(...)`，于是演练每次都把历史事件
     # 重新算成「新增 39 条」，与真实运行（0 条）不符——这种偏离正是演练失去意义的方式。
