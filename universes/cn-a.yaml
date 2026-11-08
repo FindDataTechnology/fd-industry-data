@@ -1,0 +1,264 @@
+# A 股（SSE / SZSE）监控宇宙 — 车道默认值真源
+#
+# 消费方：spiders/eastmoney-disclosure-plan（默认股票集合，参数化后）
+#         spiders/cninfo-operating（关键词白名单，非宇宙驱动）
+# 代码形态：裸 6 位数字（与库内既有惯例一致，不带 .SZ/.SH）
+
+version: "2026-11-08"
+region: CN-A
+exchange: SSE+SZSE
+code_form: "bare 6-digit A-share code"
+
+entities:
+
+  # ── 银行（add-banking-* 42 家；eastmoney-disclosure-plan 默认宇宙）─────
+  - ticker: "601398"
+    name_zh: 工商银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601288"
+    name_zh: 农业银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601988"
+    name_zh: 中国银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601939"
+    name_zh: 建设银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601328"
+    name_zh: 交通银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601658"
+    name_zh: 邮储银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "600036"
+    name_zh: 招商银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601166"
+    name_zh: 兴业银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601998"
+    name_zh: 中信银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "600016"
+    name_zh: 民生银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601818"
+    name_zh: 光大银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "600000"
+    name_zh: 浦发银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "600015"
+    name_zh: 华夏银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601916"
+    name_zh: 浙商银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601838"
+    name_zh: 成都银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601860"
+    name_zh: 紫金银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "603323"
+    name_zh: 苏农银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "600919"
+    name_zh: 江苏银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "600926"
+    name_zh: 杭州银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "600928"
+    name_zh: 西安银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "600908"
+    name_zh: 无锡银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601009"
+    name_zh: 南京银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601169"
+    name_zh: 北京银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601187"
+    name_zh: 厦门银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601229"
+    name_zh: 上海银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601128"
+    name_zh: 常熟银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601077"
+    name_zh: 渝农商行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601825"
+    name_zh: 沪农商行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601997"
+    name_zh: 贵阳银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601963"
+    name_zh: 重庆银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601665"
+    name_zh: 齐鲁银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601577"
+    name_zh: 长沙银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "601528"
+    name_zh: 瑞丰银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "002142"
+    name_zh: 宁波银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "000001"
+    name_zh: 平安银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "001227"
+    name_zh: 兰州银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "002807"
+    name_zh: 江阴银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "002839"
+    name_zh: 张家港行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "002966"
+    name_zh: 苏州银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "002948"
+    name_zh: 青岛银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "002936"
+    name_zh: 郑州银行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  - ticker: "002958"
+    name_zh: 青农商行
+    name_en: ""
+    segment: bank
+    verticals: [bank]
+  # ── 餐饮（add-restaurant-vertical 波2）─────────────────────────────
+  - ticker: "002186"
+    name_zh: 全聚德
+    name_en: China Quanjude (Group) Co., Ltd.
+    segment: full-service
+    verticals: [restaurant]
+  - ticker: "603043"
+    name_zh: 广州酒家
+    name_en: Guangzhou Restaurant Group Co., Ltd.
+    segment: full-service
+    verticals: [restaurant]
+  - ticker: "000721"
+    name_zh: 西安饮食
+    name_en: Xi'an Catering Co., Ltd.
+    segment: full-service
+    verticals: [restaurant]
+  - ticker: "603517"
+    name_zh: 绝味食品
+    name_en: Juewei Food Co., Ltd.
+    segment: prepared-food
+    verticals: [restaurant]
+  - ticker: "603057"
+    name_zh: 紫燕食品
+    name_en: Ziyan Foods Co., Ltd.
+    segment: prepared-food
+    verticals: [restaurant]
+  - ticker: "605338"
+    name_zh: 巴比食品
+    name_en: Babi Food Co., Ltd.
+    segment: prepared-food
+    verticals: [restaurant]
+  # ── 花卉（add-flower-vertical 波3）─────────────────────────────────
+  # 全 A 股唯一有苗木/花卉分部的标的（主营构成实测苗木销售 0.15% + 租摆 0.08%）；
+  # 其余 4 个草案候选（603007/002717/002431/300355/000713）实测无花卉分部，已入排除清单
+  # 见 docs/flower-universe.yaml。
+  - ticker: "002200"
+    name_zh: 云投生态
+    name_en: Yunnan YunTou Ecological Environment Co., Ltd.
+    segment: landscape-nursery
+    verticals: [flower]

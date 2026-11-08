@@ -1,0 +1,69 @@
+version: "2"
+name: nfra-penalty            # = spiders/nfra-penalty/ 目录名，运行时标识符，合入后不可改名
+label: NFRA Administrative Penalties (bureau/branch public disclosure tables)
+source_url: https://www.nfra.gov.cn/cbircweb/DocInfo/SelectDocByItemIdAndChild?itemId=4113
+# site: 缺省 —— 本机直连 www.nfra.gov.cn 实测 200（2026-11-07，见 README 证据表）
+schedule: "15 13 * * *"       # 逐字按批次六排期（日频巡检；三个叶子栏目当天发布、次日可取）
+data_period: day
+scanner_mode: upstream-curated
+functions:
+  - command: run_nfra_penalty
+    description: Fetch NFRA administrative penalty disclosures from the three live leaf columns (4113 总局 / 4114 监管局 / 4115 监管分局; the 931 aggregate column is broken and out of scope) — one row per penalised party, parsed from the docClob HTML table (5-column and 6-column layouts both handled, the latter carries the 行政处罚决定书文号), fine amounts summed per row in 万元, authority level derived from the deciding office
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of penalty rows to return (three leaves are consumed round-robin so a single 总局 batch list cannot starve the 分局 layout; ~150 rows covers the latest ~57 documents)
+    columns:
+      - name: penalty_no
+        type: string
+        description: Administrative penalty decision document number (行政处罚决定书文号) as published; falls back to the parenthesised number in the document title, empty when the table/layout carries none (总局 batch lists omit it)
+      - name: party
+        type: string
+        description: Penalised party as published (当事人名称) — an institution, an institution plus responsible officers, or a named individual
+      - name: violation
+        type: string
+        description: Main violations as published (主要违法违规行为), verbatim
+      - name: penalty_content
+        type: string
+        description: Penalty content as published (行政处罚内容), verbatim — fines, warnings, industry bans
+      - name: amount
+        type: float
+        description: Row fine total in 万元 (sum of every 罚款/处以 amount inside 行政处罚内容; 没收违法所得 excluded); null for warning/ban-only rows — never zero-filled
+      - name: office
+        type: string
+        description: Deciding authority as published (作出决定机关)
+      - name: authority_level
+        type: string
+        description: Locally derived level from the deciding office — 总局 / 局 (监管局) / 分局
+      - name: leaf
+        type: string
+        description: Source leaf column — general_bureau (4113) / bureau (4114) / branch (4115)
+      - name: doc_date
+        type: string
+        description: Document publish date (YYYY-MM-DD, upstream publishDate truncated to the date)
+      - name: doc_url
+        type: string
+        description: Absolute URL of the published penalty document (pdfFileUrl, path predictable as /chinese/OFFICE/PDF/<docId>.pdf)
+      - name: doc_id
+        type: string
+        description: NFRA docId of the disclosed document (one document can hold many penalised parties)
+      - name: source
+        type: string
+        description: Data source identifier (constant "nfra-penalty")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: amount
+    concept: banking.penalty_amount
+    entity_type: organization
+    measure: amount
+    unit: 万元
+    frequency: daily
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

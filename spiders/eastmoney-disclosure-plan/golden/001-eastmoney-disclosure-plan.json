@@ -1,0 +1,18 @@
+{
+  "sample_id": "001-eastmoney-disclosure-plan",
+  "created": "2026-11-07",
+  "target": "run_eastmoney_disclosure_plan",
+  "params": {"limit": 200},
+  "expect": {
+    "min_rows": 2,
+    "rows_contains": [
+      {"field": "source", "equals": "eastmoney-disclosure-plan"},
+      {"field": "stock_code", "equals": "601398"},
+      {"field": "fiscal_year", "equals": "2025"},
+      {"field": "report_type", "equals": "年报"},
+      {"field": "first_appoint_date", "equals": "2026-03-31"},
+      {"field": "actual_publish_date", "equals": "2026-03-28"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

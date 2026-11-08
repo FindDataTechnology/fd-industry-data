@@ -1,0 +1,65 @@
+# 港股（HKEX）监控宇宙 — 车道默认值真源
+#
+# 消费方：spiders/hkex-disclosure（默认 stocks）
+# 代码形态：5 位零填充港股代码
+#
+# 特海国际 = 09658（上游实测，2026-11-07 经 prefix.do 确认；00965 解析即落到 09658）。
+# docs/restaurant-universe.yaml 记的 00965 是已知分歧，本文件采用实测值。
+
+version: "2026-11-08"
+region: HK
+exchange: HKEX
+code_form: "5-digit zero-padded HKEX ticker"
+
+entities:
+  # ── 餐饮（add-restaurant-vertical 波2）─────────────────────────────
+  - ticker: "06862"
+    name_zh: 海底捞
+    name_en: Haidilao International Holding Ltd.
+    segment: full-service
+    verticals: [restaurant]
+  - ticker: "09922"
+    name_zh: 九毛九
+    name_en: Jiumaojiu International Holdings Ltd.
+    segment: full-service
+    verticals: [restaurant]
+  - ticker: "00520"
+    name_zh: 呷哺呷哺
+    name_en: Xiabuxiabu Catering Management (China) Holdings Co., Ltd.
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "01405"
+    name_zh: 达势股份
+    name_en: DPC Dash Ltd.
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "09658"
+    name_zh: 特海国际
+    name_en: Super Hi International Holding Ltd.
+    segment: full-service
+    verticals: [restaurant]
+  - ticker: "09987"
+    name_zh: 百胜中国
+    name_en: Yum China Holdings, Inc.
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "00341"
+    name_zh: 大家乐
+    name_en: Cafe de Coral Holdings Ltd.
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "00052"
+    name_zh: 大快活
+    name_en: Fairwood Holdings Ltd.
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "02150"
+    name_zh: 奈雪的茶
+    name_en: Nayuki Holdings Ltd.
+    segment: cafe-teahouse
+    verticals: [restaurant]
+  - ticker: "01458"
+    name_zh: 周黑鸭
+    name_en: Zhou Hei Ya International Holdings Co., Ltd.
+    segment: prepared-food
+    verticals: [restaurant]

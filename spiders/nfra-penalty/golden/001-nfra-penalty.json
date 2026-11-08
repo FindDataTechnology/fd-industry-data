@@ -1,0 +1,25 @@
+{
+  "sample_id": "001-nfra-penalty",
+  "created": "2026-11-07",
+  "target": "run_nfra_penalty",
+  "params": {"limit": 60},
+  "expect": {
+    "min_rows": 40,
+    "rows_contains": [
+      {"field": "source", "equals": "nfra-penalty"},
+      {"field": "leaf", "equals": "general_bureau"},
+      {"field": "leaf", "equals": "bureau"},
+      {"field": "leaf", "equals": "branch"},
+      {"field": "authority_level", "equals": "总局"},
+      {"field": "authority_level", "equals": "局"},
+      {"field": "authority_level", "equals": "分局"},
+      {"field": "party", "equals": "兴业银行股份有限公司"},
+      {"field": "amount", "equals": 695.0},
+      {"field": "party", "equals": "中国光大银行股份有限公司"},
+      {"field": "amount", "equals": 180.0},
+      {"field": "penalty_no", "equals": "冀金罚决字〔2026〕68号"},
+      {"field": "office", "equals": "重庆金融监管局"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

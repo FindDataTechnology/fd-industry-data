@@ -1,0 +1,57 @@
+version: "2"
+name: eastmoney-disclosure-plan    # = spiders/eastmoney-disclosure-plan/ 目录名，运行时标识符，合入后不可改名
+label: 东财定期报告预约披露日历（注册表驱动宇宙 universes/cn-a.yaml，默认 verticals=[bank]）
+source_url: https://data.eastmoney.com/bbsj/   # 东财「年报季报」落地页；JSON 通道 datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_PUBLIC_BS_APPOIN（见 README）
+# site: 缺省 —— 本机直连东财数据中心实测 200（2026-11-07，见 README 证据表），无需代理出口
+schedule: "15 10 * * *"   # 逐字按批次六排期（日频巡检，错峰既有排期）
+data_period: day
+scanner_mode: upstream-curated
+functions:
+  - command: run_eastmoney_disclosure_plan
+    description: Fetch the scheduled-report disclosure calendar (first appointment date / change date / actual publish date) for the registry-driven A-share universe from Eastmoney datacenter RPT_PUBLIC_BS_APPOIN; the filter expression is urlencoded as a whole (the source's primary trap), the universe is an `in` batch over codes read from universes/cn-a.yaml (default verticals=[bank], 42 names), window is FIRST_APPOINT_DATE >= 2025-01-01 with automatic widening to the 2007 full history when limit exceeds the window
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of rows returned, most recent first_appoint_date first (default 200; capped at 2080 = full 2007-onward history)
+      - name: codes
+        type: array
+        required: false
+        description: Monitored universe override — 6-digit A-share codes as a list or comma-separated string (e.g. ["600754","600258"] for hotel names); default = every entity in universes/cn-a.yaml whose verticals intersect DEFAULT_VERTICALS (bank). An empty collection is a hard failure, never a silent fall-back to the registry default
+    columns:
+      - name: stock_code
+        type: string
+        description: A-share stock code of the bank (upstream SECURITY_CODE, e.g. 601398)
+      - name: stock_name
+        type: string
+        description: Bank short name (upstream SECURITY_NAME_ABBR, e.g. 工商银行)
+      - name: report_type
+        type: string
+        description: Report period type in Chinese — 年报 / 半年报 / 一季报 / 三季报 (upstream REPORT_TYPE 4/2/1/3)
+      - name: fiscal_year
+        type: int
+        description: Fiscal year the report covers (upstream REPORT_YEAR, e.g. 2025 = FY2025 annual report)
+      - name: first_appoint_date
+        type: string
+        description: First scheduled disclosure date (YYYY-MM-DD; upstream FIRST_APPOINT_DATE), the sort key (descending)
+      - name: change_date
+        type: string
+        description: Latest rescheduled disclosure date (YYYY-MM-DD; max of upstream FIRST/SECOND/THIRD_CHANGE_DATE), null when never rescheduled
+      - name: actual_publish_date
+        type: string
+        description: Actual publication date (YYYY-MM-DD; upstream ACTUAL_PUBLISH_DATE), null when not yet published
+      - name: plan_status
+        type: string
+        description: Locally derived status — 已披露 (actual date present) / 已变更 (rescheduled, not yet published) / 预约中 (scheduled, unchanged)
+      - name: source
+        type: string
+        description: Data source identifier (constant "eastmoney-disclosure-plan")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch (UTC)
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

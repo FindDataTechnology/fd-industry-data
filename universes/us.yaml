@@ -1,0 +1,101 @@
+# 美股（NYSE / NASDAQ）监控宇宙 — 车道默认值真源
+#
+# 消费方：spiders/sec-edgar-facts（默认 tickers）
+# 代码形态：裸 ticker
+#
+# 顺序即车道默认抓取顺序（新增实体请追加在末尾，勿重排既有行）。
+
+version: "2026-11-08"
+region: US
+exchange: NYSE+NASDAQ
+code_form: "bare ticker"
+
+entities:
+  # ── 餐饮（add-restaurant-vertical 波2）─────────────────────────────
+  - ticker: "MCD"
+    name_zh: 麦当劳
+    name_en: McDonald's Corporation
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "SBUX"
+    name_zh: 星巴克
+    name_en: Starbucks Corporation
+    segment: cafe-teahouse
+    verticals: [restaurant]
+  - ticker: "YUM"
+    name_zh: 百胜餐饮集团
+    name_en: Yum! Brands, Inc.
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "CMG"
+    name_zh: 墨式烧烤
+    name_en: Chipotle Mexican Grill, Inc.
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "QSR"
+    name_zh: 餐饮品牌国际
+    name_en: Restaurant Brands International Inc.
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "DRI"
+    name_zh: 达登餐饮
+    name_en: Darden Restaurants, Inc.
+    segment: full-service
+    verticals: [restaurant]
+  - ticker: "DPZ"
+    name_zh: 达美乐披萨
+    name_en: Domino's Pizza, Inc.
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "WEN"
+    name_zh: 温蒂汉堡
+    name_en: The Wendy's Company
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "TXRH"
+    name_zh: 德州客栈
+    name_en: Texas Roadhouse, Inc.
+    segment: full-service
+    verticals: [restaurant]
+  - ticker: "BROS"
+    name_zh: Dutch Bros
+    name_en: Dutch Bros Inc.
+    segment: cafe-teahouse
+    verticals: [restaurant]
+  - ticker: "WING"
+    name_zh: Wingstop
+    name_en: Wingstop Inc.
+    segment: limited-service
+    verticals: [restaurant]
+  - ticker: "EAT"
+    name_zh: 布林克国际
+    name_en: Brinker International, Inc.
+    segment: full-service
+    verticals: [restaurant]
+
+  # ── 花卉（add-flower-vertical 波3）─────────────────────────────────
+  - ticker: "FLWS"
+    name_zh: 1-800-FLOWERS.COM
+    name_en: 1-800-FLOWERS.COM, Inc.
+    segment: cutflower-trade
+    verticals: [flower]
+  - ticker: "CENT"
+    name_zh: Central Garden & Pet
+    name_en: Central Garden & Pet Company
+    segment: horticultural-supplies
+    verticals: [flower]
+  - ticker: "SMG"
+    name_zh: 施可得
+    name_en: The Scotts Miracle-Gro Company
+    segment: horticultural-supplies
+    verticals: [flower]
+  - ticker: "HYFM"
+    name_zh: Hydrofarm Holdings
+    name_en: Hydrofarm Holdings Group, Inc.
+    segment: greenhouse-equipment
+    verticals: [flower]
+  - ticker: "EDBL"
+    name_zh: Edible Garden
+    name_en: Edible Garden AG Incorporated
+    segment: greenhouse-grower
+    verticals: [flower]
