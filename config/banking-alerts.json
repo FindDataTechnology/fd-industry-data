@@ -27,7 +27,7 @@
       "citation_version": "2023 年第 4 号（2024-01-01 施行）",
       "citation_verified": "document",
       "citation_note": "10.5% = 最低 8% + 储备资本 2.5%（不含逆周期资本 0–2.5%）；按「含储备资本的监管红线」告警。条款编号未逐条核对。",
-      "depends_on": "cn-report"
+      "depends_on": "eastmoney-f10"
     },
     {
       "rule_id": "bank-tier1-adequacy",
@@ -41,7 +41,7 @@
       "citation_version": "2023 年第 4 号（2024-01-01 施行）",
       "citation_verified": "document",
       "citation_note": "8.5% = 最低 6% + 储备资本 2.5%",
-      "depends_on": "cn-report"
+      "depends_on": "eastmoney-f10"
     },
     {
       "rule_id": "bank-cet1-adequacy",
@@ -220,5 +220,6 @@
     ],
     "channel": "阿里云 DirectMail（与 Logto 同一条）：smtpdm.aliyun.com:465，隐式 TLS",
     "_note": "收件人属于配置（可版本化、非机密），凭据仍走 Secrets/env。环境变量 FD_ALERT_SMTP_TO 非空时以 env 为准，否则用这里的列表。渠道未配置（无 host/凭据）时一律记 skipped，绝不假装发过。"
-  }
+  },
+  "_coverage_note": "覆盖分层：资本充足率/一级资本充足率 由东财 F10 供数（42 家，无滞后）；核心一级/杠杆率/LCR/NSFR 仍靠 cn-report 报告抽取（5 家试点）。拨备覆盖率/贷款拨备率 数据虽由 F10 覆盖，但规则因「区间+分档条件」仍停用——有数据不等于可以单侧判违规。"
 }
