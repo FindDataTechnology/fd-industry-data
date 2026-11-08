@@ -49,6 +49,7 @@ from fd_industry_data.alerts_core.state import (  # noqa: E402
     FIRING, INSUFFICIENT, OK, PENDING, RESOLVED, attach_rule,
 )
 from fd_industry_data.health.triage import Run, classify  # noqa: E402
+from fd_industry_data.pg_fallback import connect_readonly  # noqa: E402
 
 CONFIG = ROOT / "config" / "banking-alerts.json"
 REPORT_DIR = ROOT / "reports" / "banking-alerts"
@@ -83,70 +84,35 @@ def load_config(path: str | Path | None = None) -> dict:
 
 # ─── 取数 ─────────────────────────────────────────────────────────────────────
 
-#: crawl_items 取行的唯一 SQL 模板。``{src}`` 由两条路径各自填值：
-#: 驱动路径填 ``%s``（参数绑定），psql 路径填转义后的字面量。
+#: crawl_items 取行的唯一 SQL 模板。``{src}`` 由 psycopg3/psycopg2 填 ``%s``（参数绑定）、
+#: 由 psql 兜底填转义字面量——但两条路都从这一个模板生成，不会再拼出不同形状。
 _ITEMS_SQL = ("select json_agg(p.payload)::text from ("
               "  select i.payload from crawl_items i join crawl_runs r on r.id = i.run_id "
               "  where r.source = {src} "
               "  order by r.started_at desc limit 20000) p")
 
 
-def _sql_literal(value: str) -> str:
-    """把字符串安全地塞进 SQL 字面量（psql 回退路径用；正常路径走参数绑定）。"""
-    return "'" + str(value).replace("'", "''") + "'"
-
-
-def _psql(dsn: str, sql: str) -> list[str]:
-    """用 psql 子进程取行（制表符分隔、无表头）。
-
-    为什么需要这条路径：GitHub 自托管 runner（`cheap-health-runner`）的系统 python
-    **没有 psycopg2**，而 runner 镜像里有。花卉线 F17 就是这么被坑的（实测
-    ModuleNotFoundError），故这里两条路都留：有驱动用驱动，没有就用 psql。
-    """
-    import subprocess
-
-    env = {**os.environ, "PGCONNECT_TIMEOUT": "10"}
-    proc = subprocess.run(["psql", dsn, "-At", "-F", "\t", "--no-align",
-                           "--tuples-only", "-v", "ON_ERROR_STOP=1", "-c", sql],
-                          capture_output=True, text=True, env=env, timeout=120)
-    if proc.returncode != 0:
-        raise RuntimeError(f"psql failed: {proc.stderr.strip()[:300]}")
-    return [line for line in proc.stdout.splitlines() if line != ""]
-
-
-def _have_psycopg2() -> bool:
-    try:
-        import psycopg2  # noqa: F401
-        return True
-    except ImportError:
-        return False
-
 def fetch_ratio_series(dsn: str, concepts: list[str]) -> dict:
     """取比率指标近期序列：``{(concept, entity_code): {"name", "points":[(date, value)]}}``。
 
-    值在库里是 varchar，转不动 float 的行直接跳过——宁可少一个样本，
-    也不要把坏值当 0 喂给阈值判定。
+    连接走 ``pg_fallback.connect_readonly``：psycopg3 → psycopg2 → psql 子进程。
+    早先本文件自己写了一套 psql 兜底，与共享模块重复；现已统一，两条路径不再分叉。
+    值在库里是 varchar，转不动 float 的行直接跳过——宁可少一个样本，也不把坏值当 0。
     """
-    base = ("select c.code, e.code, coalesce(e.name_zh, e.code), o.date, o.value "
+    out: dict = {}
+    conn = connect_readonly(dsn)
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "select c.code, e.code, coalesce(e.name_zh, e.code), o.date, o.value "
             "from semantic_observations o "
             "join concepts c on c.id = o.concept_id "
             "join entities e on e.id = o.entity_id "
-            "where e.entity_type = 'stock' and ")
-    out: dict = {}
-    rows: list[tuple] = []
-    if _have_psycopg2():
-        import psycopg2
-
-        with psycopg2.connect(dsn, connect_timeout=10) as conn, conn.cursor() as cur:
-            cur.execute(base + "c.code = any(%s) order by c.code, e.code, o.date",
-                        (concepts,))
-            rows = list(cur.fetchall())
-    else:
-        codes = ",".join(_sql_literal(c) for c in concepts) or "''"
-        for line in _psql(dsn, base + f"c.code in ({codes}) order by 1, 2, 4"):
-            parts = line.split("\t")
-            if len(parts) == 5:
-                rows.append(tuple(parts))
+            "where e.entity_type = 'stock' and c.code = any(%s) "
+            "order by c.code, e.code, o.date", (concepts,))
+        rows = cur.fetchall()
+    finally:
+        conn.close()
     for concept, entity, name, dt, raw in rows:
         try:
             val = float(str(raw).replace(",", ""))
@@ -158,48 +124,35 @@ def fetch_ratio_series(dsn: str, concepts: list[str]) -> dict:
 
 
 def fetch_source_runs(dsn: str, sources: list[str]) -> dict[str, list[Run]]:
-    sql = ("select source, started_at, status, rows_written, coalesce(error_head, '') "
-           "from crawl_runs ")
     out: dict[str, list[Run]] = {s: [] for s in sources}
-    rows_raw: list[tuple] = []
-    if _have_psycopg2():
-        import psycopg2
-
-        with psycopg2.connect(dsn, connect_timeout=10) as conn, conn.cursor() as cur:
-            cur.execute(sql + "where source = any(%s) order by started_at desc limit 200",
-                        (sources,))
-            rows_raw = list(cur.fetchall())
-    else:
-        names = ",".join(_sql_literal(x) for x in sources) or "''"
-        for line in _psql(dsn, sql + f"where source in ({names}) "
-                                     "order by started_at desc limit 200"):
-            parts = line.split("\t")
-            if len(parts) == 5:
-                rows_raw.append(tuple(parts))
-    for source, started, status, rows, err in rows_raw:
+    conn = connect_readonly(dsn)
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "select source, started_at, status, rows_written, coalesce(error_head, '') "
+            "from crawl_runs where source = any(%s) "
+            "order by started_at desc limit 200", (sources,))
+        rows = cur.fetchall()
+    finally:
+        conn.close()
+    for source, started, status, rows_n, err in rows:
         out.setdefault(source, []).append(Run(
             started_at=started.isoformat() if hasattr(started, "isoformat") else str(started),
             status="success" if str(status) in ("success", "ok", "succeeded") else "failed",
-            rows=int(rows) if str(rows).isdigit() else rows, error=err or ""))
+            rows=int(rows_n) if str(rows_n).isdigit() else rows_n, error=err or ""))
     return out
 
 
 def fetch_crawl_items(dsn: str, source: str) -> list[dict]:
-    """读某源已落库的行（``crawl_items.payload``）。
-
-    **一份 SQL 模板、两种填值方式**：早先 psycopg2 路径与 psql 路径各拼一份，
-    结果 psycopg2 那份漏了子查询收尾 ``) p``，直到真跑才暴露 SyntaxError。
-    现在统一从 ``_ITEMS_SQL`` 生成，两条路径不可能再拼出不同形状。
-    """
-    if _have_psycopg2():
-        import psycopg2
-
-        with psycopg2.connect(dsn, connect_timeout=10) as conn, conn.cursor() as cur:
-            cur.execute(_ITEMS_SQL.format(src="%s"), (source,))
-            got = cur.fetchone()[0]
-        return json.loads(got) if got else []
-    lines = _psql(dsn, _ITEMS_SQL.format(src=_sql_literal(source)))
-    blob = "\n".join(lines).strip()
+    """读某源已落库的行（``crawl_items.payload``），单条 SQL 模板 + 单条连接路径。"""
+    conn = connect_readonly(dsn)
+    try:
+        cur = conn.cursor()
+        cur.execute(_ITEMS_SQL.format(src="%s"), (source,))
+        row = cur.fetchone()
+    finally:
+        conn.close()
+    blob = (row[0] if row else None)
     if not blob:
         return []
     try:

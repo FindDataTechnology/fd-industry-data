@@ -375,23 +375,32 @@ def test_uncaught_exception_exits_2_not_1():
         ba.main = orig
 
 
-def test_items_sql_is_one_template_for_both_paths():
-    """两条取数路径必须拼出同一形状的 SQL。
+def test_items_sql_is_one_template():
+    """取 crawl_items 只有一份 SQL 模板。
 
-    踩过：psycopg2 路径与 psql 路径各拼一份，前者漏了子查询收尾 `) p`，
-    直到真跑才 SyntaxError。现在只有一个模板，`{src}` 占位符只出现一次。
+    踩过：驱动路径与 psql 路径各拼一份，前者漏了子查询收尾 `) p`，直到真跑才
+    SyntaxError。现在只有一条路径、一个模板，``{src}`` 只出现一次。
     """
     assert ba._ITEMS_SQL.count("{src}") == 1
     assert ba._ITEMS_SQL.strip().endswith(") p")
     assert "json_agg" in ba._ITEMS_SQL
-    # 两条路径都用同一个模板
     import inspect
-    src = inspect.getsource(ba.fetch_crawl_items)
-    assert src.count("_ITEMS_SQL.format(") == 2
+    assert inspect.getsource(ba.fetch_crawl_items).count("_ITEMS_SQL.format(") == 1
 
 
-def test_sql_literal_escapes_quotes():
-    assert ba._sql_literal("a'b") == "'a''b'"
+def test_readers_use_the_shared_pg_fallback():
+    """三处取数都用共享的 ``connect_readonly``，不许再自带 psql 实现。
+
+    本条是**去重约束**：本文件曾自写 _psql/_sql_literal/_have_psycopg2，
+    与 fd_industry_data.pg_fallback 重复；现在共享模块是唯一实现
+    （psycopg3 → psycopg2 → psql，且权限不足时 SystemExit(3)）。
+    """
+    import inspect
+    for fn in (ba.fetch_ratio_series, ba.fetch_source_runs, ba.fetch_crawl_items):
+        src = inspect.getsource(fn)
+        assert "connect_readonly(" in src, fn.__name__
+    assert not hasattr(ba, "_psql"), "不得保留本地 psql 实现"
+    assert not hasattr(ba, "_sql_literal"), "不得保留本地字面量转义"
 
 
 # --- 健康级 -----------------------------------------------------------------

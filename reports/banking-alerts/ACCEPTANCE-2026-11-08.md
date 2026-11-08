@@ -168,6 +168,19 @@ export FD_CENTRAL_PG_DSN="postgresql://fd:<pwd>@100.64.0.3:30432/fd_open_data"
 
 顺带修了一个真 SQL 错：`json_agg()` 不能按非聚合列排序，items 查询改为在子查询里按 run 时间取子集后再聚合。
 
+## 6.7 公共内核已成事实上的共享件（2026-11-08 15:4x 复核）
+
+- `alerts_core` 现有**两个真实调用方**：`scripts/banking_alerts.py`、
+  `scripts/flower_alerts.py`（后者调用 `notify.smtp_config_from_env()` /
+  `send_email()`，由并发会话迁移，提交 `6d20909`）。之前记录的
+  「只有 1 个调用方 ⇒ 抽取未证实」的债务**已消解**。
+- psql 兜底也已被抽成共享模块 `fd_industry_data/pg_fallback.py`
+  （psycopg3 → psycopg2 → psql，权限不足直接 `SystemExit(3)`）。
+  银行线原先自写的 `_psql` / `_sql_literal` / `_have_psycopg2` **已删除**，
+  三处取数统一走 `connect_readonly`；有测试守住「不得再自带实现」。
+- 两条路径都实跑过：默认（有驱动）与 `FD_ALERTS_FORCE_PSQL=1` 结果完全一致
+  （104 条判定 / 42 家 / 0 事件）。
+
 ## 7. 未决
 
 - ~~处罚源尚未纳入平台排期~~ **已解决**：两个源均已进排期并成功运行（见 §2）。
