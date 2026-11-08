@@ -375,6 +375,21 @@ def test_uncaught_exception_exits_2_not_1():
         ba.main = orig
 
 
+def test_items_sql_is_one_template_for_both_paths():
+    """两条取数路径必须拼出同一形状的 SQL。
+
+    踩过：psycopg2 路径与 psql 路径各拼一份，前者漏了子查询收尾 `) p`，
+    直到真跑才 SyntaxError。现在只有一个模板，`{src}` 占位符只出现一次。
+    """
+    assert ba._ITEMS_SQL.count("{src}") == 1
+    assert ba._ITEMS_SQL.strip().endswith(") p")
+    assert "json_agg" in ba._ITEMS_SQL
+    # 两条路径都用同一个模板
+    import inspect
+    src = inspect.getsource(ba.fetch_crawl_items)
+    assert src.count("_ITEMS_SQL.format(") == 2
+
+
 def test_sql_literal_escapes_quotes():
     assert ba._sql_literal("a'b") == "'a''b'"
 

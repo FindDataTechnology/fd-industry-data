@@ -83,6 +83,14 @@ def load_config(path: str | Path | None = None) -> dict:
 
 # ─── 取数 ─────────────────────────────────────────────────────────────────────
 
+#: crawl_items 取行的唯一 SQL 模板。``{src}`` 由两条路径各自填值：
+#: 驱动路径填 ``%s``（参数绑定），psql 路径填转义后的字面量。
+_ITEMS_SQL = ("select json_agg(p.payload)::text from ("
+              "  select i.payload from crawl_items i join crawl_runs r on r.id = i.run_id "
+              "  where r.source = {src} "
+              "  order by r.started_at desc limit 20000) p")
+
+
 def _sql_literal(value: str) -> str:
     """把字符串安全地塞进 SQL 字面量（psql 回退路径用；正常路径走参数绑定）。"""
     return "'" + str(value).replace("'", "''") + "'"
@@ -177,19 +185,20 @@ def fetch_source_runs(dsn: str, sources: list[str]) -> dict[str, list[Run]]:
 
 
 def fetch_crawl_items(dsn: str, source: str) -> list[dict]:
-    # 先按 run 时间取子集再聚合：json_agg 之后不能再按非聚合列排序（实测报错）。
-    sql = ("select json_agg(p.payload)::text from ("
-           "  select i.payload from crawl_items i join crawl_runs r on r.id = i.run_id "
-           "  where r.source = ")
+    """读某源已落库的行（``crawl_items.payload``）。
+
+    **一份 SQL 模板、两种填值方式**：早先 psycopg2 路径与 psql 路径各拼一份，
+    结果 psycopg2 那份漏了子查询收尾 ``) p``，直到真跑才暴露 SyntaxError。
+    现在统一从 ``_ITEMS_SQL`` 生成，两条路径不可能再拼出不同形状。
+    """
     if _have_psycopg2():
         import psycopg2
 
         with psycopg2.connect(dsn, connect_timeout=10) as conn, conn.cursor() as cur:
-            cur.execute(sql + "%s", (source,))
+            cur.execute(_ITEMS_SQL.format(src="%s"), (source,))
             got = cur.fetchone()[0]
         return json.loads(got) if got else []
-    lines = _psql(dsn, sql + _sql_literal(source)
-                  + " order by r.started_at desc limit 20000) p")
+    lines = _psql(dsn, _ITEMS_SQL.format(src=_sql_literal(source)))
     blob = "\n".join(lines).strip()
     if not blob:
         return []
@@ -210,15 +219,17 @@ class SourceHealth:
 
 
 def judge_health(source: str, runs: list[Run], now: datetime) -> SourceHealth:
-    """复用共享分诊器。没有任何运行记录 → ``scheduled_absent``（调度面故障，不是健康）。"""
+    """复用共享分诊器。没有任何运行记录 → ``scheduled_absent``（调度面故障，不是健康）。
+
+    这条曾把整条银行告警打成假警报：两个事件源当时一条运行记录都没有，
+    若按「健康」处理，阈值层就会带着陈旧数据正常告警。
+    """
     verdict = classify(source, unit=f"{source}-unit", expected_period_hours=DAILY_PERIOD_HOURS,
                        runs=runs, now=now, scheduled_absent=not runs)
     healthy = verdict.category is None and not verdict.needs_human
     return SourceHealth(source=source, healthy=healthy, category=verdict.category,
                         detail=verdict.rule_trace or verdict.suggested_action)
 
-
-# ─── 判定 ─────────────────────────────────────────────────────────────────────
 
 def threshold_verdicts(cfg: dict, series: dict, states: dict, *, now: datetime,
                        unhealthy_sources: set[str] | None = None) -> tuple[list[dict], dict, dict]:
