@@ -149,3 +149,56 @@ def test_receipt_is_json_serialisable(smtp_env):
     receipt = flower.deliver_notifications([_item()], _cfg(), dry_run=False,
                                            now=NOW, smtp_factory=lambda h, p: smtp)
     assert json.loads(json.dumps(receipt))["sent"] == 1
+
+
+# ── 5. 期次时效闸（kind=change 也要有）────────────────────────────────
+
+
+def _fake_series(monkeypatch, points):
+    monkeypatch.setattr(flower, "entity_id", lambda cur, code, et="commodity": 1)
+    monkeypatch.setattr(flower, "series", lambda cur, concept, src, eid: (points, []))
+
+
+def _year_rule(max_age=None):
+    rule = {"name": "eu_flower_area_yoy_negative", "kind": "change",
+            "concept": "area.flower.all.planted", "source_used": "eurostat-api",
+            "entity_code": "EU", "aggregate": "year_mean", "comparator": "lt",
+            "threshold": 0.0, "min_history_periods": 2}
+    if max_age is not None:
+        rule["max_period_age_days"] = max_age
+    return rule
+
+
+from datetime import date as _date  # noqa: E402
+
+
+def test_change_rule_without_guard_reports_crossed_on_old_year(monkeypatch):
+    """不加闸时，2024 年报的跌幅会被当成当期信号——这正是要防的。"""
+    _fake_series(monkeypatch, [("2023-01-01", 100.0), ("2024-01-01", 97.7)])
+    out = flower.eval_change_rule(None, _year_rule(), [], asof=_date(2026, 11, 8))
+    assert out["verdict"] == "crossed"
+    assert out["period"] == "2024"
+
+
+def test_change_rule_guard_blocks_stale_period(monkeypatch):
+    _fake_series(monkeypatch, [("2023-01-01", 100.0), ("2024-01-01", 97.7)])
+    out = flower.eval_change_rule(None, _year_rule(max_age=500), [], asof=_date(2026, 11, 8))
+    assert out["verdict"] == "insufficient_data"
+    assert out["period"] == "2024"
+    assert out["stale_days"] > 500
+
+
+def test_change_rule_guard_allows_fresh_period(monkeypatch):
+    _fake_series(monkeypatch, [("2024-01-01", 100.0), ("2025-01-01", 99.0)])
+    out = flower.eval_change_rule(None, _year_rule(max_age=500), [], asof=_date(2026, 11, 8))
+    assert out["verdict"] in ("crossed", "quiet")
+    assert out["period"] == "2025"
+
+
+def test_bucket_end_date_takes_last_day_of_bucket():
+    """取桶覆盖到的最后一天，否则跨月/跨年周在闸门边界上会误判。"""
+    assert flower._bucket_end_date("2026-02", "month_mean") == _date(2026, 2, 28)
+    assert flower._bucket_end_date("2024-02", "month_mean") == _date(2024, 2, 29)  # 闰年
+    assert flower._bucket_end_date("2026", "year_mean") == _date(2026, 12, 31)
+    assert flower._bucket_end_date("2026-11-02", "week_mean") == _date(2026, 11, 8)
+    assert flower._bucket_end_date("bad", "year_mean") is None
