@@ -282,6 +282,25 @@ def test_config_recipients_injected_before_smtp_config_is_built():
     assert src.index('smtp_env["FD_ALERT_SMTP_TO"]') < src.index("smtp_config_from_env(smtp_env)")
 
 
+def test_stale_ratio_sources_is_year_based_not_calendar():
+    """陈旧判定按**财年**，不按天数。
+
+    踩过：先写成「最新观测早于 30 天」⇒ 年频指标永远被判陈旧（11-08 跑，
+    最新期 2025-12-31，本来就早于 30 天窗口），把健康数据误降级。
+    """
+    from datetime import date
+    series = {("c", "600036"): {"name": "x", "source_used": "eastmoney-f10",
+                                "points": [("2025-12-31", 18.2)]}}
+    assert ba.stale_ratio_sources(series, today=date(2026, 11, 8)) == set()
+    assert ba.stale_ratio_sources(series, today=date(2028, 6, 1)) == {"eastmoney-f10"}
+
+
+def test_stale_source_without_points_is_not_stale():
+    """没有观测 ≠ 陈旧：那是「未覆盖」，由覆盖率口径表达，不该触发降级。"""
+    from datetime import date
+    assert ba.stale_ratio_sources({}, today=date(2030, 1, 1)) == set()
+
+
 def test_repo_config_declares_notify_recipients():
     """收件人是配置（可版本化），凭据才是机密——两者不能混在一处。"""
     cfg = ba.load_config()
