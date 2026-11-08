@@ -207,9 +207,20 @@ export FD_CENTRAL_PG_DSN="postgresql://fd:<pwd>@100.64.0.3:30432/fd_open_data"
 **实弹**：用新镜像跑 `fd-industry-nfra-penalty` → Job `Complete`，
 `crawl_runs` 新增一条 `success / 100 行`（2026-11-08 08:03:33Z）。
 
-**遗留**：披露 spider 里的 `universes` 兜底导入现在已冗余，可删（下轮清理）；
-ApplicationSet 的 image 参数仍是手写 tag，**每次出片都要人工 bump**——
-若要自动化，应改成 `main` 或加一个「出片后自动 patch appset」的步骤。
+**遗留**：
+1. 披露 spider 里的 `universes` 兜底导入现在已冗余，**但故意保留**——tag 仍需人工 bump，
+   下次落后时它就是唯一防线。等采用环节真正自动化后再删。
+2. **采用环节已工具化**：`scripts/fd-image-bump.sh`
+   - 默认只报告；`--check` 漂移时 exit 1（可挂 cron 当哨兵）；`--apply` 备份 appset → patch → 等 Synced → 核对 CronJob。
+   - **不能拿"最新构建"当目标**：每次推 main 都出新片，构建永远快于 relay（实测连续
+     `sha-1cb54b4`、`sha-ae62d2e` 两轮都还没到 ccr），那样会永久报漂移却永远 apply 不了。
+     脚本改为**从新到旧挑第一个 `skopeo inspect` 通过的 tag**，即"ccr 上已可拉取的最新一片"。
+   - 与 `fd-image-pin-audit.sh` 互补：pin-audit 问「钉的 tag 还能拉到吗」（死 tag），
+     bump 问「钉的 tag 是不是最新的」（静默落伍）。
+   - **必须在能访问 tencent 集群的机器上跑**：cheap3 只有 `default` context（自己的 k3s），
+     实测报 `FATAL: cannot read pinned image from appset`；GHA 工作流也无集群凭据。
+3. 若要彻底免人工，需给出片流程加一步「构建成功后 patch appset」——
+   那要求给 CI 配 kubeconfig 凭据（或自托管 runner 带集群访问），属扩基建，未做。
 
 ## 7. 未决
 
