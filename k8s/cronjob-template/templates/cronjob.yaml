@@ -53,7 +53,12 @@ spec:
                   git clone --depth 1 --filter=blob:none --sparse \
                     "https://FindDataTechnology:${GITEE_TOKEN}@gitee.com/FindDataTechnology/fd-industry-data.git" /content
                   cd /content
-                  git sparse-checkout set spiders/
+                  # spiders/ 是爬虫本体；fd_industry_data/ 与 universes/ 是**运行时依赖**：
+                  # 部分单元在模块作用域 import `fd_industry_data.universes`（车道默认宇宙，
+                  # 真源是仓库根的 universes/*.yaml）。只检 spiders/ 会让这些单元在镜像
+                  # 尚未包含该模块时直接 ImportError——实测 2026-11-08
+                  # fd-industry-eastmoney-disclosure-plan 连续两次失败。
+                  git sparse-checkout set spiders/ fd_industry_data/ universes/
                   git rev-parse HEAD > /content/.commit
               volumeMounts:
                 - name: content
