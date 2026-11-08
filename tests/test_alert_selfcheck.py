@@ -189,3 +189,25 @@ def test_unknown_issue_id_in_config_is_ignored(tmp_path):
         json.dumps({"ticket_auth": ["made-up-id"]}), encoding="utf-8")
     report = selfcheck.evaluate(tmp_path, TODAY)
     assert "ticket_auth" in report["findings"]
+
+
+# ── 6. 落物形状：目录与扁平日文件都要认 ──────────────────────────────
+
+
+def test_flat_date_files_count_as_reports(tmp_path):
+    """农业/花卉写 `rules-<date>.json` 扁平文件，不能因此被判成"从未报告"。"""
+    d = tmp_path / "reports/agriculture-alerts"
+    d.mkdir(parents=True)
+    (d / (TODAY.isoformat())).with_suffix("")
+    (d / f"rules-{TODAY.isoformat()}.json").write_text("{}", encoding="utf-8")
+    silent = selfcheck.check_silence(tmp_path, TODAY, {"agriculture": ("reports/agriculture-alerts", 2)})
+    assert silent == []
+
+
+def test_flat_stale_file_is_still_silent(tmp_path):
+    d = tmp_path / "reports/agriculture-alerts"
+    d.mkdir(parents=True)
+    old = (TODAY - timedelta(days=9)).isoformat()
+    (d / f"rules-{old}.json").write_text("{}", encoding="utf-8")
+    silent = selfcheck.check_silence(tmp_path, TODAY, {"agriculture": ("reports/agriculture-alerts", 2)})
+    assert silent and silent[0]["kind"] == "stale" and silent[0]["days"] == 9
