@@ -1,0 +1,108 @@
+# 银行线三层预警 · 定时执行（add-banking-source-alerting 5.1）
+#
+# 为什么需要它：`scripts/banking_alerts.py` 写完后如果没人跑，告警等于没有。
+# 本工作流把它挂成每日任务，并把**状态文件也提交回仓库**：状态机（quiet/firing/resolved、
+# 同报告期不重复）只活在那份 json 里，丢了就会重复打扰或丢掉恢复通知。
+#
+# 与花卉线同一体裁（`flower-alerts.yml`），不引入新机制：
+# * self-hosted runner（labels: self-hosted, fd-health），不下载 action；
+# * 复用既有只读 secret `FD_CENTRAL_PG_DSN`——脚本只读判据，写的是仓内状态/报告；
+# * 产物（报告 / 状态 / 留痕）commit + push 回 main，带 rebase 重试；
+# * 时间错峰：披露日历源 10:15 跑数、处罚源 13:15 跑数，本任务 14:05 起。
+#
+# 交付边界（诚实说明）：
+# * 阈值级只覆盖有比率观测的主体。当前实测 **5/42 家**，报告里显式写 `coverage{covered, universe}`，
+#   其余记 not_covered——不写「正常」。
+# * 银行监管阈值的 `citation` 是**文件级**（`citation_verified: "document"`），条款编号未逐条核；
+#   核不到出处的条目在配置里 `enabled: false` 并写了 blocked_reason，不会被评估。
+# * 通知走邮件；未配置 `FD_ALERT_SMTP_*` 时记 `skipped`（不是成功），不会假装发过。
+name: banking-alerts
+
+on:
+  schedule:
+    - cron: "5 14 * * *" # 每日 22:05 CST（披露 18:15 / 处罚 21:15 CST 之后）
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只算不写状态（演练）"
+        type: boolean
+        default: false
+
+concurrency:
+  group: banking-alerts
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  alerts:
+    runs-on: [self-hosted, fd-health]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout (shell clone, retry)
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          rm -rf src
+          for i in 1 2 3 4 5; do
+            if git clone --depth=1 \
+                 "https://x-access-token:${{ github.token }}@github.com/FindDataTechnology/fd-industry-data.git" src; then
+              break
+            fi
+            echo "clone attempt $i failed; retrying in 8s"
+            rm -rf src
+            sleep 8
+          done
+          test -d src/.git
+
+      - name: Evaluate (健康 / 阈值 / 事件)
+        working-directory: src
+        env:
+          FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
+          FD_ALERT_SMTP_HOST: ${{ secrets.FD_ALERT_SMTP_HOST }}
+          FD_ALERT_SMTP_PORT: ${{ secrets.FD_ALERT_SMTP_PORT }}
+          FD_ALERT_SMTP_USER: ${{ secrets.FD_ALERT_SMTP_USER }}
+          FD_ALERT_SMTP_PASS: ${{ secrets.FD_ALERT_SMTP_PASS }}
+          FD_ALERT_SMTP_FROM: ${{ secrets.FD_ALERT_SMTP_FROM }}
+          FD_ALERT_SMTP_TO: ${{ secrets.FD_ALERT_SMTP_TO }}
+        run: |
+          ARGS="--run"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          # 退出码语义：0=已执行 / 1=有通知发送失败 / 2=脚本自身出错 / 3=环境不满足（缺读权限）
+          set +e
+          python3 scripts/banking_alerts.py $ARGS
+          code=$?
+          set -e
+          echo "banking_alerts exit=$code"
+          case "$code" in
+            0) echo "结果：已执行" ;;
+            1) echo "结果：有通知发送失败（已留 notify_failed 记录）" ;;
+            3) echo "::warning title=银行预警未执行::只读账号缺 semantic_observations 读权限，需 DBA 授权"
+               {
+                 echo "### 银行预警：未执行（缺数据库读权限）"
+                 echo ""
+                 echo "需要 DBA 执行：\`GRANT SELECT ON public.semantic_observations TO <健康巡检只读账号>;\`"
+               } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+               exit 0 ;;
+            *) echo "结果：脚本自身失败（exit=$code）"; exit "$code" ;;
+          esac
+
+      # 状态机必须回仓：firing/resolved 与「同一报告期不重复」只活在这份 json 里。
+      - name: Commit reports + state
+        working-directory: src
+        run: |
+          git config user.name  "fd-health-bot"
+          git config user.email "fd-health-bot@finddatatech.cloud"
+          git add reports/banking-alerts
+          if git diff --cached --quiet; then
+            echo "no alert changes"
+            exit 0
+          fi
+          git commit -m "banking-alerts: $(date -u +%F)"
+          for i in 1 2 3; do
+            if git push origin HEAD:main; then exit 0; fi
+            echo "push attempt $i failed; rebase+retry in 8s"
+            git pull --rebase origin main || true
+            sleep 8
+          done
+          echo "push failed after retries"; exit 1

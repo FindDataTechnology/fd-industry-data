@@ -1,0 +1,216 @@
+{
+  "version": 1,
+  "created": "2026-11-08",
+  "change": "add-banking-source-alerting",
+  "_rules_note": "阈值一律参数化并带出处；代码里不得出现阈值数值。`citation_verified` 只承认两种值：`document`（文件身份已核，条款编号未逐条核）与 `false`（未核，不得启用）。核不到出处的条目必须 enabled=false 并写 blocked_reason + unlock——宁可停用，不编一个看起来合理的数。",
+  "_caliber_note": "阈值判定用本仓语义观测层的比率指标；金额类指标不是监管阈值判据，不在此表。比率指标目前只有 5 家试点（cn-report），巡检输出必须显式声明覆盖 5/42，其余记 not_covered。",
+  "cadence": {
+    "quarter": {
+      "cooldown_periods": 1,
+      "note": "季频判据：同一报告期只报一次"
+    },
+    "year": {
+      "cooldown_periods": 1,
+      "note": "年频判据：同一报告期只报一次"
+    }
+  },
+  "threshold_rules": [
+    {
+      "rule_id": "bank-capital-adequacy",
+      "indicator_zh": "资本充足率",
+      "operator": ">=",
+      "value": 10.5,
+      "unit": "%",
+      "cadence": "quarter",
+      "enabled": true,
+      "citation": "《商业银行资本管理办法》（国家金融监督管理总局令 2023 年第 4 号）关于资本充足率最低要求与储备资本的规定",
+      "citation_version": "2023 年第 4 号（2024-01-01 施行）",
+      "citation_verified": "document",
+      "citation_note": "10.5% = 最低 8% + 储备资本 2.5%（不含逆周期资本 0–2.5%）；按「含储备资本的监管红线」告警。条款编号未逐条核对。",
+      "depends_on": "cn-report"
+    },
+    {
+      "rule_id": "bank-tier1-adequacy",
+      "indicator_zh": "一级资本充足率",
+      "operator": ">=",
+      "value": 8.5,
+      "unit": "%",
+      "cadence": "quarter",
+      "enabled": true,
+      "citation": "《商业银行资本管理办法》（国家金融监督管理总局令 2023 年第 4 号）关于一级资本充足率最低要求与储备资本的规定",
+      "citation_version": "2023 年第 4 号（2024-01-01 施行）",
+      "citation_verified": "document",
+      "citation_note": "8.5% = 最低 6% + 储备资本 2.5%",
+      "depends_on": "cn-report"
+    },
+    {
+      "rule_id": "bank-cet1-adequacy",
+      "indicator_zh": "核心一级资本充足率",
+      "operator": ">=",
+      "value": 7.5,
+      "unit": "%",
+      "cadence": "quarter",
+      "enabled": true,
+      "citation": "《商业银行资本管理办法》（国家金融监督管理总局令 2023 年第 4 号）关于核心一级资本充足率最低要求与储备资本的规定",
+      "citation_version": "2023 年第 4 号（2024-01-01 施行）",
+      "citation_verified": "document",
+      "citation_note": "7.5% = 最低 5% + 储备资本 2.5%",
+      "depends_on": "cn-report"
+    },
+    {
+      "rule_id": "bank-leverage-ratio",
+      "indicator_zh": "杠杆率",
+      "operator": ">=",
+      "value": 4.0,
+      "unit": "%",
+      "cadence": "quarter",
+      "enabled": true,
+      "citation": "《商业银行资本管理办法》（国家金融监督管理总局令 2023 年第 4 号）关于杠杆率最低要求的规定",
+      "citation_version": "2023 年第 4 号（2024-01-01 施行）",
+      "citation_verified": "document",
+      "citation_note": "杠杆率不得低于 4%",
+      "depends_on": "cn-report"
+    },
+    {
+      "rule_id": "bank-lcr",
+      "indicator_zh": "流动性覆盖率",
+      "operator": ">=",
+      "value": 100.0,
+      "unit": "%",
+      "cadence": "quarter",
+      "enabled": true,
+      "citation": "《商业银行流动性风险管理办法》（中国银行保险监督管理委员会令 2018 年第 3 号）关于流动性覆盖率的规定",
+      "citation_version": "2018 年第 3 号",
+      "citation_verified": "document",
+      "depends_on": "cn-report"
+    },
+    {
+      "rule_id": "bank-nsfr",
+      "indicator_zh": "净稳定资金比例",
+      "operator": ">=",
+      "value": 100.0,
+      "unit": "%",
+      "cadence": "quarter",
+      "enabled": true,
+      "citation": "《商业银行流动性风险管理办法》（中国银行保险监督管理委员会令 2018 年第 3 号）关于净稳定资金比例的规定",
+      "citation_version": "2018 年第 3 号",
+      "citation_verified": "document",
+      "depends_on": "cn-report"
+    },
+    {
+      "rule_id": "bank-liquidity-ratio-rmb",
+      "indicator_zh": "流动性比例（人民币）",
+      "operator": ">=",
+      "value": 25.0,
+      "unit": "%",
+      "cadence": "quarter",
+      "enabled": false,
+      "citation": "《商业银行流动性风险管理办法》（中国银行保险监督管理委员会令 2018 年第 3 号）关于流动性比例的规定",
+      "citation_version": "2018 年第 3 号",
+      "citation_verified": "document",
+      "citation_note": "该指标已有 5 家 golden 锚 5/5 精确（流动性比例核值记录在 reports/banking-report-ingest）",
+      "blocked_reason": "该指标尚无 financials.* 概念与语义观测（harden 期只建了 golden 锚，规则 id 2336 可抽但未登记观测），阈值判定无数据可判。",
+      "unlock": "登记 financials.liquidity_ratio_rmb 概念并补观测后启用",
+      "depends_on": "cn-report"
+    },
+    {
+      "rule_id": "bank-provision-coverage",
+      "indicator_zh": "拨备覆盖率",
+      "operator": ">=",
+      "value": 120.0,
+      "unit": "%",
+      "cadence": "quarter",
+      "enabled": false,
+      "citation": "《关于调整商业银行贷款损失准备监管要求的通知》（银监发〔2018〕7 号）关于拨备覆盖率监管要求的规定",
+      "citation_version": "银监发〔2018〕7 号",
+      "citation_verified": false,
+      "blocked_reason": "该文设定的是 120%–150% 的**区间**并附调整条件（按贷款分类准确性、处置不良主动性、资本充足性分档），不是单一硬底线；用单侧 >=120% 判会误报——120% 是「可接受的下限档」而非「越线即违规」。",
+      "unlock": "在内核支持区间判据并核对分档适用条件后启用",
+      "depends_on": "cn-report"
+    },
+    {
+      "rule_id": "bank-loan-provision-ratio",
+      "indicator_zh": "贷款拨备率",
+      "operator": ">=",
+      "value": 1.5,
+      "unit": "%",
+      "cadence": "quarter",
+      "enabled": false,
+      "citation": "《关于调整商业银行贷款损失准备监管要求的通知》（银监发〔2018〕7 号）关于贷款拨备率监管要求的规定",
+      "citation_version": "银监发〔2018〕7 号",
+      "citation_verified": false,
+      "blocked_reason": "同拨备覆盖率：1.5%–2.5% 是区间且与拨备覆盖率联动适用，单侧判会误报。",
+      "unlock": "同 bank-provision-coverage",
+      "depends_on": "cn-report"
+    }
+  ],
+  "_no_npl_threshold_note": "不良率**刻意不设阈值**：监管无统一硬上限（仅有「不良率高于 5% 需说明」一类披露性要求，非越线即违规）。按 spec 要求，不良率只作事件级关注，不进入阈值规则。",
+  "event_rules": [
+    {
+      "rule_id": "bank-disclosure-overdue",
+      "source": "eastmoney-disclosure-plan",
+      "enabled": true,
+      "kind": "disclosure_overdue",
+      "description": "定期报告到期未披露：预约披露日（或最新变更日）已过且实际披露日为空",
+      "idempotency": "(stock_code, report_type, fiscal_year)",
+      "resolves_when": "实际披露日出现"
+    },
+    {
+      "rule_id": "bank-penalty-new",
+      "source": "nfra-penalty",
+      "enabled": true,
+      "kind": "penalty_increment",
+      "description": "新增行政处罚：按 doc_id 水位取增量（不比日期，避免同批多篇同日漏号）",
+      "idempotency": "doc_id",
+      "scope": {
+        "authority_subset": "仅银行监管条线（总局/省局/分局的银行机构处罚），其余不入表",
+        "attribution": "机构名精确匹配监控名单 → 简称/全称别名 → 否则标 unattributed 并保留原名",
+        "no_force_attribution": true
+      }
+    }
+  ],
+  "health": {
+    "personal_ratio_sources": [
+      "cn-report"
+    ],
+    "event_sources": [
+      "eastmoney-disclosure-plan",
+      "nfra-penalty"
+    ],
+    "degrade_when_unhealthy": "源不健康时：通知正文前置「信息可能不完整」，firing 判定降级为 pending（不擅自 resolved，也不新发 firing）"
+  },
+  "indicator_concepts": {
+    "资本充足率": "financials.capital_adequacy_ratio",
+    "核心一级资本充足率": "financials.cet1_capital_adequacy_ratio",
+    "一级资本充足率": "financials.tier1_capital_adequacy_ratio",
+    "流动性覆盖率": "financials.liquidity_coverage_ratio",
+    "杠杆率": "financials.leverage_ratio",
+    "净稳定资金比例": "financials.net_stable_funding_ratio",
+    "_note": "指标中文名 → 本体概念码。抽查：流动性比例（人民币）的概念码见 daas/concepts 实际值。"
+  },
+  "monitored_universe": {
+    "size": 42,
+    "source": "fd-cn-report 的 daas.db report_documents（A 股 42 家银行）",
+    "_note": "阈值层实际覆盖以 semantic_observations 中有比率的实体现数为准，通常远小于 42。"
+  },
+  "party_aliases": {
+    "_note": "处罚主体机构名 → 股票代码。只放能确定的映射；匹配不上就是 unattributed。",
+    "中国工商银行股份有限公司": "601398",
+    "中国建设银行股份有限公司": "601939",
+    "中国农业银行股份有限公司": "601288",
+    "中国银行股份有限公司": "601988",
+    "招商银行股份有限公司": "600036",
+    "上海浦东发展银行股份有限公司": "600000",
+    "兴业银行股份有限公司": "601166",
+    "中信银行股份有限公司": "601998",
+    "平安银行股份有限公司": "000001",
+    "华夏银行股份有限公司": "600015",
+    "中国民生银行股份有限公司": "600016",
+    "江苏银行股份有限公司": "600919",
+    "南京银行股份有限公司": "601009",
+    "宁波银行股份有限公司": "002142",
+    "杭州银行股份有限公司": "600926"
+  },
+  "_data_note": "比率指标实际有观测的只有 17 个 financials.* 概念 × 5 家（source_used='cn-report'，最新期 2025-12-31）。阈值规则的 indicator_zh 必须能映射到这 17 个概念之一，否则无数据。",
+  "_depends_note": "阈值规则的判据来自哪条数据源，写死在 depends_on；降级只按本规则依赖的源判定。踩过的坑：一开始用「任一源不健康就整体降级」，结果事件源从未排期（health=contract）把本来健康的阈值层一起打成 pending，等于永远不告警。"
+}

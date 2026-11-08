@@ -1,0 +1,188 @@
+{
+  "bank-capital-adequacy:000001": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:600036": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601288": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601398": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601939": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-cet1-adequacy:000001": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-cet1-adequacy:600036": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-cet1-adequacy:601288": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-cet1-adequacy:601398": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-cet1-adequacy:601939": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-lcr:000001": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-lcr:600036": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-lcr:601288": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-lcr:601398": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-lcr:601939": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-leverage-ratio:000001": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-leverage-ratio:600036": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-leverage-ratio:601288": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-leverage-ratio:601398": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-leverage-ratio:601939": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-nsfr:000001": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-nsfr:600036": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-nsfr:601288": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-nsfr:601398": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-nsfr:601939": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-penalty-new": {
+    "episode": 0,
+    "last_key": null,
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:000001": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:600036": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601288": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601398": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601939": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  }
+}
