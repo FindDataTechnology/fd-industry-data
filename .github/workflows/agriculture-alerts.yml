@@ -1,0 +1,101 @@
+# 农业线三层预警（阈值级 + 事件级）· 每日排程
+#
+# 为什么要有它：`scripts/agriculture_alerts.py` 与 `config/agriculture-alerts.json` 早就写好了，
+# 但**从来没有排程**——规则永远不评估，`reports/agriculture-alerts/` 里只有一份手工跑出来的
+# health 快照。等于"告警写好了，但没人按点看"。
+#
+# 与 health-inspect 的分工：健康级（源活着吗）由 `health_inspect.py` 管；本工作流只跑
+# 阈值级与事件级，不重复判健康。告警不是爬虫故障，MUST NOT 走萬星 spider-heal。
+#
+# 通知出口：邮件（阿里云 DirectMail smtpdm.aliyun.com:465 隐式 TLS）。
+# 该脚本的 TLS 开关是 `FD_ALERT_SMTP_TLS=ssl|starttls|none`（**与 alerts_core 的布尔语义不同**），
+# 465 必须写 `ssl`；写成布尔会退回 STARTTLS 连不上。
+name: agriculture-alerts
+
+on:
+  schedule:
+    # 每日 18:17 CST（10:17 UTC）：晚于农业农村部周报（周二 08:58 UTC）与统计局
+    # （04:11 UTC，4/14/24 日）落数；避开花卉 01:05 / 银行 14:05 / 巡检 19:17 的窗口。
+    - cron: "17 10 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只算不写状态/不发通知（演练）"
+        type: boolean
+        default: false
+
+concurrency:
+  group: agriculture-alerts
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  alerts:
+    runs-on: [self-hosted, fd-health]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout (shell clone, retry)
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          rm -rf src
+          for i in 1 2 3 4 5; do
+            if git clone --depth=1 \
+                 "https://x-access-token:${{ github.token }}@github.com/FindDataTechnology/fd-industry-data.git" src; then
+              break
+            fi
+            echo "clone attempt $i failed; retrying in 8s"
+            rm -rf src
+            sleep 8
+          done
+          test -d src/.git
+
+      - name: Evaluate (阈值级 / 事件级)
+        working-directory: src
+        env:
+          FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
+          FD_ALERT_SMTP_HOST: ${{ secrets.FD_ALERT_SMTP_HOST }}
+          FD_ALERT_SMTP_PORT: ${{ secrets.FD_ALERT_SMTP_PORT }}
+          FD_ALERT_SMTP_USER: ${{ secrets.FD_ALERT_SMTP_USER }}
+          FD_ALERT_SMTP_PASS: ${{ secrets.FD_ALERT_SMTP_PASS }}
+          FD_ALERT_SMTP_FROM: ${{ secrets.FD_ALERT_SMTP_FROM }}
+          # 收件人默认取 config/agriculture-alerts.json；secret 非空时覆盖。
+          FD_ALERT_SMTP_TO: ${{ secrets.FD_ALERT_SMTP_TO }}
+          FD_ALERT_SMTP_TLS: "ssl"
+        run: |
+          ARGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          # 退出码：0=未越阈 / 1=有规则越阈（预期，不算失败）/ 2=脚本崩溃 / 3=环境不满足
+          # 2 与 1 分开是必须的：未捕获异常的默认退出码也是 1，混在一起会让崩溃看起来像正常越阈。
+          set +e
+          python3 scripts/agriculture_alerts.py --rules --events $ARGS
+          code=$?
+          set -e
+          echo "agriculture_alerts exit=$code"
+          case "$code" in
+            0) echo "结果：全部未越阈" ;;
+            1) echo "结果：有规则越阈（预期语义，非故障）" ;;
+            3) echo "::warning title=农业预警未执行::只读账号缺 semantic_observations 读权限"
+               {
+                 echo "### 农业预警：未执行（环境不满足）"
+                 echo ""
+                 echo "需要 DBA 执行：\`GRANT SELECT ON public.semantic_observations TO <健康巡检只读账号>;\`"
+               } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+               exit 0 ;;
+            *) echo "结果：脚本自身失败（exit=$code）"; exit "$code" ;;
+          esac
+
+      # 状态机必须回仓：边缘触发/冷却跨轮存活，只在这份 json 里。
+      - name: Commit reports + state
+        working-directory: src
+        run: |
+          git config user.name  "fd-health-bot"
+          git config user.email "fd-health-bot@finddatatech.cloud"
+          git add reports/agriculture-alerts state 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "无变更，跳过提交"
+          else
+            git commit -m "agriculture-alerts: $(date -u +%F)"
+            for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 8; done
+          fi
