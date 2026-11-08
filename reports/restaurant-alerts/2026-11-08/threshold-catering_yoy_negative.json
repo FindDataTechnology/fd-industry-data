@@ -3,7 +3,7 @@
   "description": "餐饮收入当月同比转负（< 0%）",
   "asof": "2026-11-08",
   "replay_from": "2018-11-01",
-  "generated_at": "2026-11-08T07:56:19.120464+00:00",
+  "generated_at": "2026-11-08T08:33:41.051248+00:00",
   "config": "config/restaurant-alerts.json",
   "evidence": [
     {
@@ -432,6 +432,8 @@
       "evaluated_points": 79,
       "provenance": "semantic_observations; concept=retail.cn.catering.yoy; source_used=nbs-stats; entity_id=1",
       "rejected_values": [],
+      "latest_period": "2026-09",
+      "current_fired": false,
       "trigger_count": 20,
       "triggers": [
         {
