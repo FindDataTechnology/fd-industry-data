@@ -43,6 +43,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
 from fd_industry_data import publication as pub  # noqa: E402
+from fd_industry_data.alerts_core import notify as alert_notify  # noqa: E402
 from fd_industry_data.health import ticket as ticket_mod  # noqa: E402
 
 DEFAULT_CONFIG = REPO / "config" / "flower-alerts.json"
@@ -728,13 +729,79 @@ def cmd_publication(cur, cfg: dict, outdir: Path, now: datetime, dry_run: bool) 
     return 1 if any(r["needs_attention"] for r in rows) else 0
 
 
+def _notify_targets(cfg: dict) -> list[str]:
+    """收件人：env 覆盖优先，否则读配置的 delivery.to（可版本化、非机密）。"""
+    env_to = [x.strip() for x in (os.environ.get("FD_ALERT_SMTP_TO") or "").split(",")
+              if x.strip()]
+    if env_to:
+        return env_to
+    delivery = cfg.get("delivery") or {}
+    return [str(x).strip() for x in (delivery.get("to") or []) if str(x).strip()]
+
+
+def deliver_notifications(items: list[dict], cfg: dict, *, dry_run: bool,
+                          now: datetime, smtp_factory=None) -> dict:
+    """把边缘触发的 alert/recover 发出去，返回三态回执。
+
+    三条纪律（每条都对应一种"看起来发了其实没发"）：
+
+    1. **无通道 = skipped(带原因)**，不是成功。凭证缺失时报告里必须能看到原因。
+    2. **单条失败不阻塞同批**，但失败条数与原因要落进回执（调用方据此置 exit 4）。
+    3. **dry-run 不发**，回执里明确 `reason=dry-run`。
+    """
+    receipt: dict = {"sent": 0, "failed": 0, "skipped": 0, "messages": []}
+    if not items:
+        return receipt
+    if dry_run:
+        receipt["skipped"] = len(items)
+        receipt["reason"] = "dry-run（不发送）"
+        return receipt
+
+    cfg_smtp = alert_notify.smtp_config_from_env()
+    if cfg_smtp is None:
+        receipt["skipped"] = len(items)
+        receipt["reason"] = ("no-smtp-config：缺 FD_ALERT_SMTP_HOST/FROM/TO；"
+                             "落仓成功不等于有人收到")
+        print(f"通知：跳过 {len(items)} 条 —— {receipt['reason']}")
+        return receipt
+
+    recipients = _notify_targets(cfg) or cfg_smtp.recipients
+    cfg_smtp.recipients = recipients
+    for item in items:
+        res = item["result"]
+        rule = item.get("rule") or {}
+        kind = "越阈" if item["action"] == "alert" else "恢复"
+        subject = f"[花卉线] {kind}：{item['name']}"
+        body = "\n".join([
+            f"规则：{item['name']}",
+            f"状态：{kind}",
+            f"读数：{res.get('value')} {res.get('unit', '')}".rstrip(),
+            f"期次：{res.get('period')}",
+            f"实体：{res.get('entity') or '-'}",
+            f"引用：{rule.get('citation') or '-'}（{rule.get('citation_version') or '-'}）",
+            "",
+            f"判定时间：{now.isoformat()}",
+            "本邮件由 fd-industry-data 花卉线预警在边缘触发时自动发出；持续期不重复。",
+        ])
+        try:
+            alert_notify.send_email(cfg_smtp, subject, body, smtp_factory=smtp_factory)
+            receipt["sent"] += 1
+            receipt["messages"].append({"rule": item["name"], "status": "sent"})
+        except Exception as exc:  # noqa: BLE001 — 单条失败不阻塞同批
+            receipt["failed"] += 1
+            receipt["messages"].append({"rule": item["name"], "status": "failed",
+                                        "error": f"{type(exc).__name__}: {exc}"[:200]})
+    print(f"通知：sent={receipt['sent']} failed={receipt['failed']} → {recipients}")
+    return receipt
+
+
 def cmd_rules(cur, cfg: dict, outdir: Path, now: datetime, dry_run: bool,
               do_escalate: bool) -> int:
     defaults = cfg.get("defaults") or {}
     cooldown = float(defaults.get("cooldown_hours", 24))
     state_path = REPO / defaults.get("state", "reports/flower-alerts/state/alert-state.json")
     state = _read_json(state_path, {"rules": {}})
-    reports, escalate_items = [], []
+    reports, escalate_items, notify_items = [], [], []
     exit_code = 0
     for rule in cfg["rules"]:
         name = rule["name"]
@@ -780,11 +847,24 @@ def cmd_rules(cur, cfg: dict, outdir: Path, now: datetime, dry_run: bool,
             exit_code = max(exit_code, 1)
             escalate_items.append({"name": name, "rule": rule, "result": result,
                                    "needs_ticket": True})
+        if action in ("alert", "recover"):
+            notify_items.append({"name": name, "action": action, "result": result,
+                                 "rule": rule})
     if not dry_run:
         _write_json(state_path, state)
+
+    # 投递：边缘触发的 alert / recover 各报一次（状态机保证不重复）。
+    # 这里之前什么都没有——"只落仓不推送"，等于规则越阈只有写报告的人知道。
+    receipt = deliver_notifications(notify_items, cfg, dry_run=dry_run, now=now)
+    if receipt.get("failed"):
+        # 4 = 有通知发送失败。不与 1（有规则越阈，预期语义）混用：
+        # 混在一起会让"邮件发不出去"看起来像"正常的越阈"。
+        exit_code = max(exit_code, 4)
+
     _write_json(outdir / f"rules-{now.date().isoformat()}.json",
                 {"at": now.isoformat(), "cooldown_hours": cooldown,
-                 "state_path": _display_path(state_path), "rules": reports})
+                 "state_path": _display_path(state_path), "rules": reports,
+                 "notify": receipt})
     if do_escalate and escalate_items:
         files = escalate(escalate_items, cfg, outdir, now, dry_run)
         print(f"工单：{len(files)} 张 → {outdir / 'tickets'}")
