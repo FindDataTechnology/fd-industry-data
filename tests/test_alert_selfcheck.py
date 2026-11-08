@@ -159,3 +159,33 @@ def test_dry_run_does_not_advance_state(smtp_env, tmp_path):
     r = selfcheck.deliver(selfcheck.evaluate(tmp_path, TODAY), state_path=state, dry_run=True)
     assert r["skipped"] == 1
     assert not state.exists()
+
+
+# ── 5. 已知问题不每天当新问题喊 ──────────────────────────────────────
+
+
+def test_known_ticket_issue_is_labelled_not_silenced(tmp_path):
+    """已知的走廊搬迁仍被检查到，但标成 ticket_auth:route_moved，不算新问题。"""
+    _write_last_run(tmp_path, [401, 401])
+    (tmp_path / "config").mkdir(exist_ok=True)
+    (tmp_path / "config/alert-selfcheck-known.json").write_text(
+        json.dumps({"ticket_auth": ["route_moved"]}), encoding="utf-8")
+    report = selfcheck.evaluate(tmp_path, TODAY)
+    assert "ticket_auth:route_moved" in report["findings"]
+    assert "ticket_auth" not in report["findings"]
+    assert report["ticket"]["broken"] is True  # 事实仍在，只是不再当新问题
+
+
+def test_unknown_ticket_failure_still_reported(tmp_path):
+    _write_last_run(tmp_path, [401, 401])
+    report = selfcheck.evaluate(tmp_path, TODAY)  # 没有 known 配置
+    assert "ticket_auth" in report["findings"]
+
+
+def test_unknown_issue_id_in_config_is_ignored(tmp_path):
+    _write_last_run(tmp_path, [401, 401])
+    (tmp_path / "config").mkdir(exist_ok=True)
+    (tmp_path / "config/alert-selfcheck-known.json").write_text(
+        json.dumps({"ticket_auth": ["made-up-id"]}), encoding="utf-8")
+    report = selfcheck.evaluate(tmp_path, TODAY)
+    assert "ticket_auth" in report["findings"]
