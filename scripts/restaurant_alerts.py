@@ -154,49 +154,84 @@ def _notify_targets(cfg: dict) -> list[str]:
     return [str(x).strip() for x in (delivery.get("to") or []) if str(x).strip()]
 
 
-def collect_fired(runs: list[dict]) -> list[dict]:
-    """把 ``--rules`` 的结果压成「当前处于 fired 的点」清单（去重键=规则+概念）。"""
+def collect_rule_states(runs: list[dict]) -> dict[str, dict]:
+    """把 ``--rules`` 的结果压成「每个 (规则, 概念) 的三态」：fired / quiet / unknown。
+
+    为什么要三态而不是"fired 与其余"：缺数（``n/a``：观测不足、真实缺测、结构性缺期）
+    **不是恢复**。若把 n/a 当成"不再越阈"，一次源断更就会发出一封假恢复——
+    这与 `alerts_core` 的第一条纪律「缺数 ≠ 恢复」直接冲突。
+    所以 unknown 只表示"本轮判不了"，差分时既不发告警也不发恢复，且状态原样保留。
+    """
     out: dict[str, dict] = {}
+    rank = {"unknown": 0, "quiet": 1, "fired": 2}
     for run in runs or []:
         for ev in run.get("evidence") or []:
-            if ev.get("verdict") != "fired":
-                continue
+            verdict = str(ev.get("verdict") or "n/a")
+            state = {"fired": "fired", "quiet": "quiet"}.get(verdict, "unknown")
             key = f"{run['rule']}|{ev.get('concept')}"
-            out[key] = {
-                "key": key,
-                "rule": run["rule"],
-                "concept": ev.get("concept"),
-                "trigger_date": ev.get("trigger_date"),
-                "trigger_value": ev.get("trigger_value"),
-                "threshold": ev.get("threshold"),
-                "comparator": ev.get("comparator"),
-            }
-    return list(out.values())
+            prev = out.get(key)
+            if prev is None or rank[state] > rank[prev["state"]]:
+                out[key] = {
+                    "key": key,
+                    "rule": run["rule"],
+                    "concept": ev.get("concept"),
+                    "state": state,
+                    "verdict": verdict,
+                    "trigger_date": ev.get("trigger_date"),
+                    "trigger_value": ev.get("trigger_value"),
+                    "threshold": ev.get("threshold"),
+                    "comparator": ev.get("comparator"),
+                    "reason": ev.get("reason"),
+                }
+    return out
 
 
-def deliver_fired(fired: list[dict], cfg: dict, *, dry_run: bool, now,
-                  state_path: Path, smtp_factory=None) -> dict:
-    """只在**越阈集合发生变化**时发信：新增发告警，消失发恢复。
+def collect_fired(runs: list[dict]) -> list[dict]:
+    """只取当前 fired 的点（保留给调用方做摘要；投递请用 ``collect_rule_states``）。"""
+    return [v for v in collect_rule_states(runs).values() if v["state"] == "fired"]
 
-    为什么需要边界判定：本脚本没有花卉那样的冷却状态机，``fired`` 是"每次跑都重算"。
-    直接每次发信 = 同一个越阈每天骚扰一遍。所以这里用「上一次的 fired 集合」做差分。
 
-    三条纪律与花卉一致：无通道=skipped 带原因；单条失败不阻塞同批；dry-run 不发。
+def deliver_transitions(states: dict[str, dict], cfg: dict, *, dry_run: bool, now,
+                        state_path: Path, smtp_factory=None) -> dict:
+    """只在**状态发生变化**时发信：进入 fired 发告警，回到 quiet 发恢复。
+
+    为什么需要边界判定：本脚本没有花卉那样的冷却状态机，判定是"每次跑都重算"。
+    直接每次发信 = 同一个越阈每天骚扰一遍。
+
+    **缺数不算恢复**（与 `alerts_core` 第一条纪律一致）：``unknown``（n/a：观测不足 /
+    真实缺测 / 结构性缺期）既不发告警也不发恢复，而且**状态原样保留**——
+    否则一次源断更就会发出一封假恢复，把"看不到"说成"好了"。
     """
     receipt: dict = {"sent": 0, "failed": 0, "skipped": 0, "alerts": [], "recovers": [],
-                     "messages": []}
+                     "unknown": [], "messages": []}
     prev_doc = _read_json(state_path) or {}
-    prev = {k: v for k, v in (prev_doc.get("fired") or {}).items()}
-    current = {item["key"]: item for item in fired}
+    # 兼容旧形状（只有 fired 字典）与现形状（rules 字典，含三态）。
+    if isinstance(prev_doc.get("rules"), dict):
+        prev = {k: v for k, v in prev_doc["rules"].items()}
+    else:
+        prev = {k: {**v, "state": "fired"} for k, v in (prev_doc.get("fired") or {}).items()}
 
-    alerts = [current[k] for k in current if k not in prev]
-    recovers = [prev[k] for k in prev if k not in current]
+    alerts, recovers, unknowns = [], [], []
+    next_state = dict(prev)
+    for key, item in states.items():
+        prev_state = (prev.get(key) or {}).get("state")
+        if item["state"] == "fired":
+            next_state[key] = item
+            if prev_state != "fired":
+                alerts.append(item)
+        elif item["state"] == "quiet":
+            next_state[key] = item
+            if prev_state == "fired":
+                recovers.append(item)
+        else:  # unknown：缺数，不判定、不改写、不通知
+            unknowns.append(key)
+            # next_state 保持 prev 里的条目（若本来没有就不写）
 
     if not dry_run:
-        _write_json(state_path, {"at": _now_iso(),
-                                 "fired": {k: current[k] for k in current}})
+        _write_json(state_path, {"at": _now_iso(), "rules": next_state})
     receipt["alerts"] = [a["key"] for a in alerts]
     receipt["recovers"] = [r["key"] for r in recovers]
+    receipt["unknown"] = unknowns
 
     pending = [("alert", a) for a in alerts] + [("recover", r) for r in recovers]
     if not pending:
@@ -1501,7 +1536,7 @@ def main() -> int:
 
     result: dict = {"at": _now_iso(), "asof": asof.isoformat(), "dry_run": args.dry_run}
 
-    fired_items: list[dict] = []
+    rule_states: dict[str, dict] = {}
     if args.rules or args.events:
         conn = connect(args.dsn)
         try:
@@ -1525,7 +1560,7 @@ def main() -> int:
                     }
                     for run in runs
                 ]
-                fired_items = collect_fired(runs)
+                rule_states = collect_rule_states(runs)
             if args.events:
                 result["events"] = cmd_events(cur, cfg, asof, outdir, args.dry_run)
         finally:
@@ -1534,8 +1569,8 @@ def main() -> int:
     # 投递：只在越阈集合变化时发（新增=告警，消失=恢复），避免每天重复骚扰。
     if args.rules:
         state_path = outdir / "state" / "last-fired.json"
-        result["notify"] = deliver_fired(fired_items, cfg, dry_run=args.dry_run,
-                                         now=asof, state_path=state_path)
+        result["notify"] = deliver_transitions(rule_states, cfg, dry_run=args.dry_run,
+                                               now=asof, state_path=state_path)
 
     if args.escalate:
         result["escalate"] = cmd_escalate(args, cfg, args.dry_run)

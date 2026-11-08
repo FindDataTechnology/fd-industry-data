@@ -74,17 +74,21 @@ def _cfg():
     return {"label": "餐饮线", "delivery": {"channel": "smtp", "to": ["ops@example.com"]}}
 
 
-def test_collect_fired_dedupes_by_rule_and_concept():
+def test_collect_states_dedupes_and_keeps_three_states():
     runs = [_run("r1", "c1"), _run("r1", "c1"), _run("r1", "c2"),
-            _run("r2", "c1", verdict="quiet")]
-    keys = sorted(x["key"] for x in restaurant.collect_fired(runs))
-    assert keys == ["r1|c1", "r1|c2"]
+            _run("r2", "c1", verdict="quiet"), _run("r3", "c1", verdict="n/a")]
+    states = restaurant.collect_rule_states(runs)
+    # 去重后仍保留三种状态：fired / quiet / unknown
+    assert sorted(states) == ["r1|c1", "r1|c2", "r2|c1", "r3|c1"]
+    assert states["r1|c1"]["state"] == "fired"
+    assert states["r2|c1"]["state"] == "quiet"
+    assert states["r3|c1"]["state"] == "unknown"
 
 
 def test_first_sighting_alerts_once(smtp_env, tmp_path):
     smtp = _OkSMTP("h", 465)
-    receipt = restaurant.deliver_fired(
-        restaurant.collect_fired([_run("r1", "c1")]), _cfg(), dry_run=False,
+    receipt = restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run("r1", "c1")]), _cfg(), dry_run=False,
         now=ASOF, state_path=tmp_path / "state.json",
         smtp_factory=lambda h, p: smtp)
     assert receipt["sent"] == 1 and receipt["alerts"] == ["r1|c1"]
@@ -95,11 +99,11 @@ def test_unchanged_set_sends_nothing(smtp_env, tmp_path):
     """同一条越阈第二天不该再发——这是本文件存在的理由。"""
     state = tmp_path / "state.json"
     smtp_a = _OkSMTP("h", 465)
-    restaurant.deliver_fired(restaurant.collect_fired([_run("r1", "c1")]), _cfg(),
+    restaurant.deliver_transitions(restaurant.collect_rule_states([_run("r1", "c1")]), _cfg(),
                              dry_run=False, now=ASOF, state_path=state,
                              smtp_factory=lambda h, p: smtp_a)
     smtp_b = _OkSMTP("h", 465)
-    receipt = restaurant.deliver_fired(restaurant.collect_fired([_run("r1", "c1")]), _cfg(),
+    receipt = restaurant.deliver_transitions(restaurant.collect_rule_states([_run("r1", "c1")]), _cfg(),
                                        dry_run=False, now=ASOF, state_path=state,
                                        smtp_factory=lambda h, p: smtp_b)
     assert receipt["sent"] == 0
@@ -108,22 +112,52 @@ def test_unchanged_set_sends_nothing(smtp_env, tmp_path):
 
 def test_clearing_a_firing_sends_a_recovery(smtp_env, tmp_path):
     state = tmp_path / "state.json"
-    restaurant.deliver_fired(restaurant.collect_fired([_run("r1", "c1")]), _cfg(),
+    restaurant.deliver_transitions(restaurant.collect_rule_states([_run("r1", "c1")]), _cfg(),
                              dry_run=False, now=ASOF, state_path=state,
                              smtp_factory=lambda h, p: _OkSMTP(h, p))
     smtp = _OkSMTP("h", 465)
-    receipt = restaurant.deliver_fired([], _cfg(), dry_run=False, now=ASOF,
-                                       state_path=state, smtp_factory=lambda h, p: smtp)
+    receipt = restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run("r1", "c1", verdict="quiet")]), _cfg(),
+        dry_run=False, now=ASOF, state_path=state, smtp_factory=lambda h, p: smtp)
     assert receipt["recovers"] == ["r1|c1"]
     assert receipt["sent"] == 1
     assert "恢复" in smtp.sent[0]["Subject"]
 
 
+def test_missing_data_is_not_a_recovery(smtp_env, tmp_path):
+    """缺数（n/a）不是恢复：不发恢复邮件，且旧状态原样保留。"""
+    state = tmp_path / "state.json"
+    restaurant.deliver_transitions(restaurant.collect_rule_states([_run("r1", "c1")]), _cfg(),
+                                   dry_run=False, now=ASOF, state_path=state,
+                                   smtp_factory=lambda h, p: _OkSMTP(h, p))
+    smtp = _OkSMTP("h", 465)
+    receipt = restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run("r1", "c1", verdict="n/a")]), _cfg(),
+        dry_run=False, now=ASOF, state_path=state, smtp_factory=lambda h, p: smtp)
+    assert receipt["recovers"] == []
+    assert receipt["sent"] == 0
+    assert receipt["unknown"] == ["r1|c1"]
+    # 状态仍是 fired，所以下一次真恢复还能发得出
+    assert json.loads(state.read_text())["rules"]["r1|c1"]["state"] == "fired"
+
+
+def test_empty_evidence_is_not_a_recovery(smtp_env, tmp_path):
+    """本轮什么都没评到，不能当成"全部恢复"。"""
+    state = tmp_path / "state.json"
+    restaurant.deliver_transitions(restaurant.collect_rule_states([_run("r1", "c1")]), _cfg(),
+                                   dry_run=False, now=ASOF, state_path=state,
+                                   smtp_factory=lambda h, p: _OkSMTP(h, p))
+    receipt = restaurant.deliver_transitions({}, _cfg(), dry_run=False, now=ASOF,
+                                             state_path=state,
+                                             smtp_factory=lambda h, p: _OkSMTP(h, p))
+    assert receipt["recovers"] == [] and receipt["sent"] == 0
+
+
 def test_no_smtp_config_skips_with_reason(monkeypatch, tmp_path):
     for k in ("FD_ALERT_SMTP_HOST", "FD_ALERT_SMTP_FROM", "FD_ALERT_SMTP_TO"):
         monkeypatch.delenv(k, raising=False)
-    receipt = restaurant.deliver_fired(
-        restaurant.collect_fired([_run("r1", "c1")]), _cfg(), dry_run=False,
+    receipt = restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run("r1", "c1")]), _cfg(), dry_run=False,
         now=ASOF, state_path=tmp_path / "s.json")
     assert receipt["sent"] == 0
     assert "no-smtp-config" in receipt["reason"]
@@ -131,8 +165,8 @@ def test_no_smtp_config_skips_with_reason(monkeypatch, tmp_path):
 
 def test_dry_run_sends_nothing_and_keeps_state_empty(smtp_env, tmp_path):
     state = tmp_path / "s.json"
-    receipt = restaurant.deliver_fired(
-        restaurant.collect_fired([_run("r1", "c1")]), _cfg(), dry_run=True,
+    receipt = restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run("r1", "c1")]), _cfg(), dry_run=True,
         now=ASOF, state_path=state)
     assert receipt["skipped"] == 1
     assert not state.exists()
@@ -145,15 +179,15 @@ def test_single_failure_does_not_block_batch(smtp_env, tmp_path):
         calls["n"] += 1
         return _BoomSMTP(h, p) if calls["n"] == 1 else _OkSMTP(h, p)
 
-    receipt = restaurant.deliver_fired(
-        restaurant.collect_fired([_run("r1", "c1"), _run("r1", "c2")]), _cfg(),
+    receipt = restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run("r1", "c1"), _run("r1", "c2")]), _cfg(),
         dry_run=False, now=ASOF, state_path=tmp_path / "s.json", smtp_factory=factory)
     assert receipt["failed"] == 1 and receipt["sent"] == 1
 
 
 def test_receipt_is_json_serialisable(smtp_env, tmp_path):
-    receipt = restaurant.deliver_fired(
-        restaurant.collect_fired([_run("r1", "c1")]), _cfg(), dry_run=False,
+    receipt = restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run("r1", "c1")]), _cfg(), dry_run=False,
         now=ASOF, state_path=tmp_path / "s.json",
         smtp_factory=lambda h, p: _OkSMTP(h, p))
     assert json.loads(json.dumps(receipt, default=str))["sent"] == 1
