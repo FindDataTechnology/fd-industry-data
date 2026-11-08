@@ -67,6 +67,13 @@ jobs:
           echo "hotel_alerts exit=$code"
           case "$code" in
             0) echo "结果：正常（无新增越阈 或 已投递）" ;;
+            6) echo "::warning title=该线覆盖度不足::所有规则都是 n/a（无可用历史），结构上不可能告警——不是代码问题，是数据面欠账"
+               {
+                 echo "### 该线预警：覆盖度不足（mute）"
+                 echo ""
+                 echo "全部规则判 n/a，因此这条线**不可能**产生告警。看运行产物 \`notify.coverage\` 的 \`unknown\` 清单。"
+               } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+               exit 0 ;;
             4) echo "::error title=酒店预警投递失败::有越阈但邮件未送出（看运行产物 notify 段）"
                exit 4 ;;
             3) echo "::warning title=酒店预警未执行::只读账号缺 semantic_observations 读权限"

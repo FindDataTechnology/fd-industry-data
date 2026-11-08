@@ -185,6 +185,25 @@ def test_single_failure_does_not_block_batch(smtp_env, tmp_path):
     assert receipt["failed"] == 1 and receipt["sent"] == 1
 
 
+def test_coverage_flags_a_mute_line(smtp_env, tmp_path):
+    """全部规则 n/a = 这条线结构上不可能告警，必须显性化（mute），而不是安静跑绿。"""
+    receipt = restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run("r1", "c1", verdict="n/a"),
+                                        _run("r2", "c2", verdict="n/a")]), _cfg(),
+        dry_run=True, now=ASOF, state_path=tmp_path / "s.json")
+    cov = receipt["coverage"]
+    assert cov == {"rules": 2, "evaluable": 0, "unknown": 2, "mute": True}
+
+
+def test_coverage_not_mute_when_any_rule_evaluates(smtp_env, tmp_path):
+    receipt = restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run("r1", "c1"),
+                                        _run("r2", "c2", verdict="n/a")]), _cfg(),
+        dry_run=True, now=ASOF, state_path=tmp_path / "s.json")
+    assert receipt["coverage"]["mute"] is False
+    assert receipt["coverage"]["evaluable"] == 1
+
+
 def test_receipt_is_json_serialisable(smtp_env, tmp_path):
     receipt = restaurant.deliver_transitions(
         restaurant.collect_rule_states([_run("r1", "c1")]), _cfg(), dry_run=False,
