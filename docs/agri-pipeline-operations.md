@@ -81,3 +81,30 @@
 **结论**：要让这 7 个源真正持续更新，需要 ① 提交这 7 个目录并推送（本仓默认不自动提交，
 须人工点头）；② 平台 reconciler 同步后首轮带 12 个月回补窗口。二者缺一不可。
 在此之前，农业线实际在跑的数据源只有 `moa-hog-price`、`usda-psd`、`dce`（规则源）。
+
+## 2026-11-08 · 首轮回补实跑结果：运行成功 ≠ 落数成功
+
+7 个源的首轮（`requested_by=manual-agri-backfill`，窗口 2025-11-01→2026-11-08）实跑结果：
+
+| 源 | 运行 | rows_written | 观测落地 | 说明 |
+|---|---|---|---|---|
+| agri-casde | success | 100（items） | ✅ 500 条，到 2026-10 | 已有抽取器 `agriculture_extractors/agri_casde.py` |
+| moa-fishery | success | 40 | ✅ 90 条，到 2026-09 | 已有抽取器 |
+| usda-wasde | success | 100 | ❌ **无抽取器** | 只落 `crawl_items` |
+| fert-cn | success | 100 | ❌ **无抽取器** | 同上 |
+| moa-machinery | success | 38 | ❌ **无抽取器** | 同上（年度源） |
+| moa-variety-approval | success | 74 | ❌ **无抽取器** | 同上（公告流，可能本就不该出观测） |
+| cncotton | **failed** | — | — | 窗口内零报告（上游 2025-08 停更）→ 已 `parked: true` |
+
+**架构事实（这次才看清）**：runner 只写 `crawl_items`（`writer.finish_run` 里
+`INSERT INTO crawl_items`），**items → `semantic_observations` 由
+`scripts/agriculture_extractors/<unit>.py` 完成**。没有抽取器 = 抓得到、看不见。
+
+**为什么没当场补四个抽取器**：模板里有硬门 `gate_periods(rows, 24)`——每条序列需
+≥24 期才登记（防「三期就出图」）。首轮回补窗只有 12 个整月，**新写抽取器大概率全被判期数不足**。
+补的正确顺序是：先让源按月累积（或手工带更大 `window_start` 回补），期数够了再写抽取器。
+`moa-variety-approval` 是公告流（notice_type/province/附件），与 `hkex-disclosure` 同类，
+**本就不该写观测**，只作事件面。
+
+**结论**：排期与抓取链路已经通了（6/7 成功、窗口参数进 metrics），
+**观测面目前只有 casde / fishery 两源在更新**；其余四源要等抽取器或更长回补。
