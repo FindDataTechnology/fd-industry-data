@@ -130,3 +130,40 @@
 **顺带完成**：`fert-cn` 走完全链——抽取器 + 命名门 → **473 条观测 / 28 条序列 / 2025-03…2026-08**，
 概念 28/28 verified（读面可见）。至此农业源观测面为：agri-casde 500、moa-fishery 90、fert-cn 473；
 usda-wasde/moa-machinery/moa-variety-approval 仍 items-only；cncotton 上游停更已 parked。
+
+## 2026-11-08 · NBS 农业年度（2.7）：数据在 cnstats，不在官网 API
+
+**结论先行**：NBS 农业年度序列**已经拿到**（15 条 / 847 个年度点），来源不是官网，而是
+windows-admin（100.64.0.5）的 **`cnstats`** 库——那才是「专门获取 NBS 的项目」的落地：
+
+| 表 | 量级 |
+|---|---|
+| `nbs_indicator` | 79,525 |
+| `nbs_observation` | 20,471,201 |
+| `nbs_region` | 63（含 49 个城市节点） |
+| `nbs_shard` / `nbs_crawl_runs` | 1,258 / 129,709 |
+
+**官网为什么拿不到**：`data.stats.gov.cn/easyquery.htm` 对本机出口**无条件 403**
+`reason:UrlACL`。实测被拦的四种方式：裸 urllib（IPv6 `2408:8256:…`）、强制 IPv4
+（`163.125.162.244`）、scrapling `impersonate=chrome`、**ego 真浏览器**。
+所以「换个库/换个 UA 就能过」不成立；也不去伪造指纹或搬 Cookie 绕 WAF。
+
+**两个真实踩坑**：
+1. `nbs_indicator.name` **带尾随空格**（`'粮食产量 (万吨) '`），精确等值匹配 0 命中 ——
+   必须 `rtrim(name)` 后再比。
+2. 指标名不是直觉写法：水产品是「水产品**总**产量」、化肥是「农用化肥施用**折纯量**」、
+   造林是「造林**总**面积」。按直觉名直接查会漏 3 条。
+
+**口径纪律**（写进 `scripts/load_nbs_agri_annual.py`）：
+* 只取 `region_id IS NULL`（**全国口径**）；分省序列混进来会让「全国产量」变成 31 省之和。
+* `value IS NULL` 的期（实测 2026 未发布）不写行、不补 0。
+* 期数门：≥24 期正式、12–23 期 `short_window(n)`、<12 不注册（只留档）。
+
+**产物**：`reports/agriculture-nbs/nbs-agri-annual-series.{json,md}`（15 条序列 / 847 点；
+正式 14 + 短窗 1）。同源一致性核对：主粮之和 ≤ 粮食产量（77 年，0 越界）、
+猪+牛+羊肉 ≤ 肉类产量（46 年，0 越界）。抽样：粮食 2025 = 71,487.59 万吨、
+2024 = 70,649.89 万吨；肉类 2024 = 9,779.90 万吨——与公开数字一致。
+
+**唯一未完成**：写 `fd_open_data` 失败 —— `FD_OPEN_DATA_DSN`（100.64.0.3:30432，用户 `fd`）
+报 `password authentication failed`（重试两次同样）。旁路 `100.64.0.5/fd_open_data` 是**旧库**
+（停更 2026-08-06、`max(id)` 1.54B、有同名但 `created_at=NULL` 的残留概念），**不能往那写**。
