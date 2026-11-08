@@ -76,27 +76,15 @@ def load_config(path: Path) -> dict:
 
 
 def connect(dsn: str | None = None):
-    """只读连接。优先 psycopg3，回退 psycopg2（与既有脚本同口径）。"""
-    value = dsn or os.environ.get("FD_OPEN_DATA_DSN", "")
-    if not value:
-        # 退出码 3 = 环境不满足（工作流按 warning 处理）。
-        # 不能 `raise SystemExit("字符串")`：那样退出码是 1，与「有规则越阈=1」撞车，
-        # 于是"连库都没连上"会被读成"有规则越阈（预期）"，job 反而报绿（2026-11-08 CI 实测）。
-        print(
-            "ERROR: FD_OPEN_DATA_DSN 未设置（先 `source ~/.config/finddata/dashboards.env`）",
-            file=sys.stderr,
-        )
-        raise SystemExit(3)
-    try:
-        import psycopg  # noqa: PLC0415
-        conn = psycopg.connect(value, connect_timeout=40)
-        conn.read_only = True
-        return conn
-    except ImportError:
-        import psycopg2  # noqa: PLC0415
-        conn = psycopg2.connect(value, connect_timeout=40)
-        conn.set_session(readonly=True, autocommit=True)
-        return conn
+    """只读连接：psycopg3 → psycopg2 → **psql 子进程**（CI runner 无驱动）。
+
+    第三段回落是必须的：self-hosted runner 上没有 psycopg/psycopg2（2026-11-08 CI
+    实测 `ModuleNotFoundError`），只实现前两段等于这条线永远连不上库。
+    环境不满足（缺 DSN / 缺 SELECT 权限）一律退出 3，与「有规则越阈=1」区分开。
+    """
+    from fd_industry_data.pg_fallback import connect_readonly  # noqa: PLC0415
+
+    return connect_readonly(dsn)
 
 
 def _write_json(path: Path, doc: dict) -> None:
