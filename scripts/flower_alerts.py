@@ -301,7 +301,28 @@ def _period_key(day: str, aggregate: str) -> str:
     raise ValueError(f"未知 aggregate: {aggregate!r}")
 
 
-def eval_change_rule(cur, rule: dict, notes: list[str]) -> dict:
+def _bucket_end_date(key: str, aggregate: str) -> date | None:
+    """把聚合桶的键换回"该桶覆盖到的最后一天"，用于期次时效计算。
+
+    周桶的键是周一 → 取当周周日；月桶 `YYYY-MM` → 取月末；年桶 `YYYY` → 取 12-31。
+    取"覆盖到的最后一天"而不是第一天，否则跨年周/跨月周会被多算几天，
+    在时效闸边界上造成误判。
+    """
+    try:
+        if aggregate in ("week_mean", "week_sum"):
+            return date.fromisoformat(key) + timedelta(days=6)
+        if aggregate in ("month_mean", "month_sum"):
+            year, month = int(key[:4]), int(key[5:7])
+            nxt = date(year + (month == 12), 1 if month == 12 else month + 1, 1)
+            return nxt - timedelta(days=1)
+        if aggregate in ("year_mean", "year_sum"):
+            return date(int(key[:4]), 12, 31)
+    except (ValueError, IndexError):
+        return None
+    return None
+
+
+def eval_change_rule(cur, rule: dict, notes: list[str], asof: date | None = None) -> dict:
     """把日/周频序列按 ``aggregate`` 聚合，再算相邻两期的百分比变化。
 
     为什么必须聚合：斗南是**日频现货价**，「环比」在日粒度上是噪声；规则要说的是
@@ -337,6 +358,23 @@ def eval_change_rule(cur, rule: dict, notes: list[str]) -> dict:
     is_sum = rule["aggregate"].endswith("_sum")
     agg = {k: (sum(v) if is_sum else sum(v) / len(v)) for k, v in buckets.items()}
     last_key, prev_key = keys[-1], keys[-2]
+
+    # 期次时效闸（与 kind=ratio 同一条纪律）：最新可用期次太旧时不判。
+    # 年频源"最新可用"可能是一年半前——读数算得出来，但回答的是另一个时期的问题。
+    # 不加闸的具体后果：`eu_flower_area_yoy_negative` 会拿 2024 年报的读数当当期信号。
+    max_age = rule.get("max_period_age_days")
+    if max_age and asof is not None:
+        last_date = _bucket_end_date(last_key, rule["aggregate"])
+        if last_date is not None:
+            age = (asof - last_date).days
+            if age > int(max_age):
+                notes.append(f"{rule['name']}: 最新期次 {last_key} 距今 {age} 天 > "
+                             f"max_period_age_days={max_age}，本轮不判（不是「没越阈」）")
+                return {"verdict": "insufficient_data",
+                        "detail": (f"最新可用期次 {last_key} 距今 {age} 天，"
+                                   f"超过 max_period_age_days={max_age}"),
+                        "period": last_key,
+                        "stale_days": age}
     prev = agg[prev_key]
     if prev == 0:
         return {"verdict": "insufficient_data", "detail": f"上期 {prev_key} 聚合值为 0，环比无定义"}
@@ -820,7 +858,7 @@ def cmd_rules(cur, cfg: dict, outdir: Path, now: datetime, dry_run: bool,
         if evaluator is None:
             raise _fatal(f"FATAL 未知 kind={rule['kind']!r}（规则 {name}）")
         result = (evaluator(cur, rule, notes, asof=now.date())
-                  if rule["kind"] == "ratio" else evaluator(cur, rule, notes))
+                  if rule["kind"] in ("ratio", "change") else evaluator(cur, rule, notes))
         prev = (state.get("rules") or {}).get(name, {})
         if result["verdict"] in ("crossed", "quiet"):
             action, new_state = apply_state(
