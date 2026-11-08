@@ -9,7 +9,9 @@
 | 用途 | 端点 | 说明 |
 |---|---|---|
 | 索引 | `GET https://usda.gov/oce/commodity/wasde/` | 302 到 `/about-usda/.../wasde-report`，HTML 内直接给出当期与下期的 `.pdf/.txt/.xls/.xml` 直链 |
-| 正文 | `GET https://www.usda.gov/oce/commodity/wasde/wasde{MM}{YY}.txt` | 定宽纯文本，实测 122KB |
+| 正文（当期/上一期） | `GET https://www.usda.gov/oce/commodity/wasde/wasde{MM}{YY}.txt` | 定宽纯文本，实测 122KB。**该路径只留最近两期**（实测 18 个月里仅 2 期可取，其余 403/404） |
+| **历史归档** | `GET https://usda.library.cornell.edu/concern/publications/3t945q76s` | USDA ESMIS 归档页，HTML 内直接给出 `/sites/default/release-files/{id}/wasde{MM}{YY}.txt` 直链 |
+| 历史正文 | `GET https://usda.library.cornell.edu/sites/default/release-files/{id}/wasde{MM}{YY}.txt` | **必须用 cornell 主机**：同一路径在 `www.usda.gov` 下 **403**，换主机后 200 且是正版正文 |
 
 **只取 `.txt`，不取 `.xls`**：定宽文本用标准库就能稳定解析，既不需要 xls 依赖，
 也不会把道歉页当工作簿打开。期号与发布月从首行
@@ -18,6 +20,14 @@
 入口：`run_usda_wasde(limit=200, window_start=None, window_end=None, months_back=6) -> list[dict]`
 （`spider.py`）。仅标准库 `urllib` + `re` + `datetime`，无新依赖、不 OCR。
 
+## 历史深度（2026-11-08 实测，写死结论免得下次重查）
+
+- 归档页当前只挂 **8 期**（2026-01…04、2026-07…10；05/06 那两期本就未发布）。
+- **翻页无效**：`?page=2`、`?view=all_releases_block` 仍是同样 8 个文件，`/releases` 直接 404。
+- 每期 480 行 = 3 个 season × 4 个 region；**一条干净序列（固定 season+region）只有 8 个点**，
+  低于抽取器 12 期下限 → 本轮**不写抽取器**，按月累积到 12 期再上（预计 2027-02 前后）。
+- 因此本单元目前是 **items-only**（`crawl_items` 有数、`semantic_observations` 无）。
+
 ## 鉴权与参数
 
 - 无 key / 无 cookie；带浏览器 UA 与 `Referer: https://usda.gov/oce/commodity/wasde/`。
@@ -25,6 +35,7 @@
   `https://www.usda.gov/oce/commodity/wasde/wasdeXXXX.txt` 形态。
 - **禁代理**：opener 显式挂空 `ProxyHandler({})`（本机代理不可用，海外直连反而通）。
 - `months_back`（默认 6）：按「最近 N 个自然月」构造候选 URL，遇 404 / 道歉页即跳过。
+  历史期由 `_archive_issues()` 从 ESMIS 归档页补齐，两者合并后按 `wasde_no` 去重。
 - `window_start`/`window_end`（`YYYY-MM`）按**发布月**过滤，先过滤后截断；不成对 → `ValueError`。
 
 ## 最关键坑：未发布期是 200 + 道歉页

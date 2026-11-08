@@ -44,6 +44,13 @@ from datetime import datetime, timezone
 SOURCE = "usda-wasde"
 BASE_URL = "https://www.usda.gov/oce/commodity/wasde/"
 INDEX_URL = "https://usda.gov/oce/commodity/wasde/"
+#: **历史期归档**（实测 2026-11-08）：`www.usda.gov/.../wasde{MM}{YY}.txt` 只留
+#: 当期+上一期（18 个月里只有 2 期能取到，其余 403/404）。历史期在 USDA ESMIS
+#: 归档页，且**同一 release-files 路径挂在 cornell 主机才 200、在 www.usda.gov 下 403**。
+ESMIS_URL = "https://usda.library.cornell.edu/concern/publications/3t945q76s"
+ESMIS_FILE_BASE = "https://usda.library.cornell.edu"
+_RELEASE_FILE_RE = re.compile(
+    r"/sites/default/release-files/\d+/wasde(\d{2})(\d{2})\.txt")
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -123,6 +130,38 @@ def _fetch(opener: urllib.request.OpenerDirector, url: str) -> str | None:
         logger.info("%s: no 'WASDE - <n>' header — not a report", url)
         return None
     return text
+
+
+def _archive_issues(opener: urllib.request.OpenerDirector) -> list[tuple[str, int]]:
+    """从 ESMIS 归档页取**历史期**的 .txt 直链（新→旧）。
+
+    返回 ``(url, YYYYMM)``；取不到就返回空表（调用方回落到当期+上一期路径），
+    不抛异常——归档页改版不该让整个单元挂掉，但要留日志。
+    """
+    req = urllib.request.Request(
+        ESMIS_URL, headers={"User-Agent": USER_AGENT, "Referer": ESMIS_URL})
+    try:
+        with opener.open(req, timeout=TIMEOUT) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+    except (urllib.error.URLError, OSError, TimeoutError) as exc:
+        logger.warning("usda-wasde: archive page fetch failed (%s) — fallback", exc)
+        return []
+
+    out: dict[int, str] = {}
+    for m in _RELEASE_FILE_RE.finditer(html):
+        mm, yy = int(m.group(1)), int(m.group(2))
+        ym = 2000 + yy, mm
+        if not (1 <= mm <= 12):
+            continue
+        url = ESMIS_FILE_BASE + m.group(0)
+        out[ym[0] * 100 + ym[1]] = url
+    if not out:
+        logger.warning("usda-wasde: archive page parsed 0 release files — fallback")
+        return []
+    issues = sorted(out.items(), key=lambda kv: kv[0], reverse=True)
+    logger.info("usda-wasde: archive lists %d historical issue(s): %s … %s",
+                len(issues), issues[-1][0], issues[0][0])
+    return [(url, ym) for ym, url in issues]
 
 
 def _candidate_urls(months_back: int, now: datetime) -> list[tuple[str, int]]:
@@ -335,7 +374,9 @@ def run_usda_wasde(
     collected: list[dict] = []
     seen_issues: set[int] = set()
     fetched = unpublished = 0
-    for url, _ in _candidate_urls(months_back, now):
+    # 先跑归档（历史期），再跑当期+上一期路径；同一期只取一次（seen_issues 去重）。
+    candidates = _archive_issues(opener) + _candidate_urls(months_back, now)
+    for url, _ in candidates:
         text = _fetch(opener, url)
         if text is None:
             unpublished += 1

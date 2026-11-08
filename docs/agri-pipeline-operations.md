@@ -108,3 +108,25 @@
 
 **结论**：排期与抓取链路已经通了（6/7 成功、窗口参数进 metrics），
 **观测面目前只有 casde / fishery 两源在更新**；其余四源要等抽取器或更长回补。
+
+## 2026-11-08 · usda-wasde 接上历史归档（期数仍不足，暂不出序列）
+
+**改了什么**：`spiders/usda-wasde/spider.py` 加 `_archive_issues()`，从 USDA ESMIS 归档页
+`usda.library.cornell.edu/concern/publications/3t945q76s` 解析
+`/sites/default/release-files/{id}/wasde{MM}{YY}.txt` 直链，与当期路径合并后按 `wasde_no` 去重。
+
+**两个实测坑（都写进代码注释与 README）**：
+1. `www.usda.gov/oce/commodity/wasde/wasde{MM}{YY}.txt` **只留当期+上一期**
+   （18 个月里只剩 2 期可取）——这才是之前「加窗口也只有 2 期」的真因，不是窗口问题。
+2. 同一 release-files 路径**在 cornell 主机 200、在 www.usda.gov 下 403**；不换主机永远取不到历史期。
+
+**结果**：从 2 期 → **8 期（2026-01…04、07…10，05/06 本就未发布）**，3,840 行 / 40 条 (商品×项) 序列。
+翻页无效（`?page=2`、`view=all_releases_block` 都是同样 8 个文件，`/releases` 404）。
+
+**为什么仍不写抽取器**：每期 480 行 = 3 season × 4 region，**一条干净序列只有 8 个点**，
+低于模板 12 期下限（连 short_window 的 12–23 档都够不上）。按月累积到 12 期约在 2027-02，
+届时报数自然能过门。本单元当前是 **items-only**。
+
+**顺带完成**：`fert-cn` 走完全链——抽取器 + 命名门 → **473 条观测 / 28 条序列 / 2025-03…2026-08**，
+概念 28/28 verified（读面可见）。至此农业源观测面为：agri-casde 500、moa-fishery 90、fert-cn 473；
+usda-wasde/moa-machinery/moa-variety-approval 仍 items-only；cncotton 上游停更已 parked。
