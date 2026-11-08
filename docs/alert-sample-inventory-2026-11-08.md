@@ -43,12 +43,17 @@
 
 - 4 条全部可判，2 条 crossed，但**两条的期次都很旧**：
 
-| 规则 | verdict | 期次 | 期次年龄 | action |
-|---|---|---|---|---|
-| `adjacent_operating_margin_below` | crossed | 2026-06-30 | ≈131 天 | suppress |
-| `eu_flower_area_yoy_negative` | crossed | 2024 | ≈677 天 | suppress |
-| `dounan_rose_avg_wow_drop` | quiet | 2026-11-02 | ≈6 天 | idle |
-| `hs0603_export_yoy_negative` | quiet | 2025 | ≈312 天 | idle |
+| 规则 | verdict（加闸后） | 期次 | 期次年龄 | 闸门 | action |
+|---|---|---|---|---|---|
+| `adjacent_operating_margin_below` | crossed | 2026-06-30 | ≈131 天 | 200 天，通过 | suppress |
+| `eu_flower_area_yoy_negative` | **insufficient_data** | 2024 | ≈677 天 | 500 天，**拦住** | suppress |
+| `dounan_rose_avg_wow_drop` | quiet | 2026-11-02 | ≈6 天 | 21 天，通过 | idle |
+| `hs0603_export_yoy_negative` | quiet | 2025 | ≈312 天 | 500 天，通过 | idle |
+
+> 2026-11-08 补了 `kind=change` 的期次时效闸（此前只有 `kind=ratio` 有）。
+> 加闸后 `eu_flower_area_yoy_negative` 由 crossed 变为 insufficient_data，
+> 日志明写「最新期次 2024 距今 677 天 > max_period_age_days=500，本轮不判（不是「没越阈」）」。
+> CI 实跑（`42463906453`）已复核。
 
 - 与餐饮不同，**花卉的判据本身是对的**：`eval_change_rule` 只比「最后两期」，
   所以 `crossed` 就是"最新可用期次"的判定，不存在餐饮那种 96 月窗口的旧点问题。
@@ -89,7 +94,16 @@
    - 花卉 2 条 crossed 的期次分别是 131 天与 677 天前，判据本身正确（只比最后两期），
      但读数只能说明那个期次。
    - 结论：**目前没有任何一条线存在"当期越阈"**。先前"花卉 2 条真实越阈"的说法
-     应改为"2 条历史越阈，期次已标注"。
+     应改为"2 条历史越阈，期次已标注"；加闸后花卉只剩 1 条 crossed（期次 131 天，
+     且处于 suppress），欧盟面积那条转为 insufficient_data。
+
+## 附：产物留存不一致（已知）
+
+- 农业/餐饮/酒店的 `rules-*.json` 会随工作流提交回仓（可作为事后对账证据）。
+- **花卉的 `rules-*.json` 被 `.gitignore` 排除**（`.gitignore:35`），只留在 CI 日志里。
+  因此本文件里花卉的读数来自**本地实跑**，不是仓库内产物。
+- 不影响判定正确性，但意味着"事后复核花卉"只能翻日志。要统一的话需改 `.gitignore`，
+  属跨线动作，未在此擅自改动。
 2. **酒店线短期不可能有样本**：4/5 规则的数据源已记为停更/字段缺位。这不是告警实现问题，
    是数据面欠账；`coverage.mute` 会在全哑时显性报出。
 3. **停用规则共 6 条**（银行 3、农业 2、酒店另有 1 条占位概念），全部带 `blocked_reason`，
