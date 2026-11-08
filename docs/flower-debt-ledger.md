@@ -15,7 +15,8 @@
 
 | F3 | ~~P1~~ → **已修（6.6）** | 「成功但查出 0 行」在健康面不可见 | 实证：`flower-auction` **4 次 success / rows_written 合计 0**。已加 manifest 可选字段 `min_rows_per_run` + 分诊**规则 1c**（先于健康短路；未声明即不生效=零回归）+ 10 条测试；真实巡检 `117 源 / 93 healthy` 且 AIPH 不误伤。**剩**：斗南只有一次回补样本（932 行），日常运行行数未测 → 故意不声明下限，等一个日常样本再定 | 验收：斗南日常运行样本到手后声明 `min_rows_per_run`，连续 N 轮低于下限能出单 |
 
-| F4 | ~~P1~~ → **已定（走柏讯产物通道）** | 公开板没有发布去处 | **平台已有工具，不必自造**：`fd-wire` 的 `artifacts` 服务支持 `dashboard` kind，带草稿→发布两步与版本链（`api/fd_wire_api/artifacts/service.py` 的 kind 白名单 + `schemas.py` 的建板入参），工具面是 `mcp__wire-build-mcp__wire_artifact_dashboard_create` / `wire_artifact_publish`（`wire-artifact-build` 技能）。`publish_flower_boards.py --stage` 产出的 HTML+manifest 正好是输入 | **决策：走柏讯产物通道发布，不改官网**（官网是 Astro 静态站 + EdgeOne，塞单文件 HTML 要新增路由/清单，属重复建设）。**执行前置**：本会话未接线 wire-build-mcp（当前只配了 ai-memory/context7/fd-daas-mcp），接线后按「建草稿 → 人工确认 → publish」两步走。验收：柏讯控制台能看到三块花卉板 |
+| F4 | ~~P1~~ → **草稿已落库，发布待确认** | 公开板没有发布去处 | **平台有现成通道（不必自造）**：`fd-wire` 的 `import_showcase.py` 就是「行业看板批量导入（平台自营）」，读的正是 `dashboards/*.spec.json` 形状（title/charts/kpi）。**执行结果**：在 `fd-wire-api` pod 内直连库，把三块板建为柏讯产物草稿 —— id **194 公司财务板 (v3)** / **195 价格与供给板 (v2)** / **196 全球贸易链板 (v2)**，均 `status=draft` / `visibility=private` / `customer_id=finddata-official`（194 是 `updated_draft`，说明历史上已有一版，本次是按 slug 幂等更新）。| **为什么停在草稿**：官方导入器把 create→publish→market 串成一步，而 publish 要过「缺证据的强断言」门（面板里有「4.28 亿元」这类金额，无 `evidence` 块即被拦：`InvalidArtifactSpec`）。草稿不过该门，且柏讯纪律本就是「写入落草稿、发布独立且需明确同意」。**下一步二选一**：①人工在柏讯控制台确认后点发布；②补 `evidence` 块（需 fd-info info-stream 可用，现未部署）后再自动发布。验收：控制台能看到三块花卉板草稿 |
+
 
 
 | F5 | **不做（复杂度判定）** | 美股分部维度抽不出来 | 调查结论：①平台内**没有**现成分部抽取工具——`companyfacts` 端点本身不含维度（这是抽取端刻意剥掉的），`fd-cn-report` 做的是中文财报 PDF 抽取，与本需求不同构；②开源有 `arelle-release 2.47.4`（专业级 XBRL 平台）与 `python-xbrl 1.1.1`（简陋），但真正的工作量不在解析器，而在**逐家人工映射分部轴成员名**（各公司自定义命名，禁止按名字相似度匹配）——属「很复杂」档 | **决策：不做**。已立项的 `awaken-flower-report-ingest` 保留为将来入口；分部图继续显示「无数据 · 待年报分部附注抽取落地」占位（不是空白、不补 0）。验收：结案 |
@@ -60,7 +61,7 @@
 
 | 项 | 平台是否已有 | 开源方案 | 复杂度 | 结论 |
 |---|---|---|---|---|
-| F4 板面发布 | **有**（fd-wire `artifacts`：dashboard kind + 草稿/发布 + 版本链；`wire-build-mcp` 工具面） | — | 低（接线即可） | **走柏讯产物通道**，不改官网 |
+| F4 板面发布 | **有**（fd-wire `import_showcase.py` 就是行业看板批量导入；`artifacts` 支持 dashboard + 版本链） | — | 低 | **已执行到草稿**（id 194/195/196），发布待人工确认或补 evidence |
 | F5 美股分部 | 无（companyfacts 已剥维度；fd-cn-report 是中文 PDF 路线） | arelle 2.47.4 / python-xbrl 1.1.1 | **高**（瓶颈是逐家人工映射分部轴成员） | **不做**，保留 `awaken-flower-report-ingest` |
 | F9 年鉴 OCR | 无 | tesseract（本机已有） | **高**（146 页统计表，需版面对齐 + 人工校对） | **不做** |
 | F14 年频 SLA | 有（规则 1c `min_rows_per_run` + `reconcile_absent`） | — | 低（已在用） | **不新增 publication**，既有机制覆盖 |
