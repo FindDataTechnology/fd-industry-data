@@ -148,5 +148,14 @@
       "种苗出口国政策": "无结构化源（荷兰 Naktuinbouw / 肯尼亚 KFC 均为 PDF/付费），未接",
       "检疫与病害公告": "海关总署与农业农村部公告为新闻稿形态，未接；接入后按 events 增加 source 即可"
     }
+  },
+  "delivery": {
+    "channel": "smtp",
+    "to": [
+      "1253774197@qq.com",
+      "aloadtree@gmail.com"
+    ],
+    "min_severity": "warning",
+    "_note": "收件人属配置（可版本化、非机密）；凭据走 Secrets/env。env FD_ALERT_SMTP_TO 非空时以 env 为准。通道未配置时记 skipped(原因)，绝不假装发过。"
   }
 }
