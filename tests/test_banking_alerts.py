@@ -191,20 +191,56 @@ def test_penalty_attribution_matches_alias():
     rows = [_pen("d1")]
     v, _, _ = ba.penalty_verdicts(rows, {}, now=NOW,
                                   aliases={"中国工商银行股份有限公司": "601398"})
-    assert v[0]["attribution"]["status"] == "matched"
-    assert v[0]["attribution"]["code"] == "601398"
+    att = v[0]["parties"][0]["attribution"]
+    assert att["status"] == "matched" and att["code"] == "601398"
+
+
+def test_penalty_attribution_matches_normalized_name():
+    """处罚原文常带「中国…股份有限公司」或「及相关责任人」，归一名要能对上。"""
+    rows = [{"doc_id": "d2", "party": "中国光大银行股份有限公司及相关责任人",
+             "office": "局", "penalty_no": "x", "penalty_content": "罚款"}]
+    v, _, _ = ba.penalty_verdicts(rows, {}, now=NOW,
+                                  aliases={"中国光大银行股份有限公司": "601818"})
+    assert v[0]["parties"][0]["attribution"]["code"] == "601818"
+
+
+def test_multiple_parties_in_one_document_are_all_kept():
+    """一份文书含多个主体时，事件按文书去重，但主体一个都不能丢。"""
+    rows = [{"doc_id": "d3", "party": "中国工商银行股份有限公司", "office": "局",
+             "penalty_no": "x", "penalty_content": "罚款"},
+            {"doc_id": "d3", "party": "某某村镇银行", "office": "局",
+             "penalty_no": "x", "penalty_content": "罚款"}]
+    v, _, counts = ba.penalty_verdicts(rows, {}, now=NOW,
+                                       aliases={"中国工商银行股份有限公司": "601398"})
+    assert counts["new"] == 1 and counts["documents"] == 1
+    assert len(v[0]["parties"]) == 2
 
 
 def test_penalty_unmatched_is_unattributed_not_forced():
     """匹配不上就标 unattributed 并保留原名，绝不硬塞给某家银行。"""
     v, _, _ = ba.penalty_verdicts([_pen("d9", party="某某村镇银行")], {}, now=NOW, aliases={})
-    assert v[0]["attribution"]["status"] == "unattributed"
-    assert v[0]["attribution"]["raw"] == "某某村镇银行"
+    att = v[0]["parties"][0]["attribution"]
+    assert att["status"] == "unattributed" and att["raw"] == "某某村镇银行"
+
+
+def test_non_bank_institution_is_not_attributed():
+    """保险主体/自然人不得归到银行名下（真实数据里确实混着）。"""
+    v, _, _ = ba.penalty_verdicts([_pen("d9", party="民生人寿保险股份有限公司及相关责任人")],
+                                  {}, now=NOW, aliases={})
+    assert v[0]["parties"][0]["attribution"]["reason"] == "not-a-bank"
+
+
+def test_individual_employee_is_unattributed():
+    """个人处罚不得记到银行头上——归一后是「交通银行」，必须被自然人识别拦住。"""
+    v, _, _ = ba.penalty_verdicts([_pen("d9", party="原交通银行股份有限公司员工仇征")],
+                                  {}, now=NOW, aliases={"中国交通银行股份有限公司": "601328"})
+    att = v[0]["parties"][0]["attribution"]
+    assert att["status"] == "unattributed" and att["reason"] == "individual"
 
 
 def test_penalty_empty_party_is_unattributed():
     v, _, _ = ba.penalty_verdicts([_pen("d9", party="")], {}, now=NOW, aliases={})
-    assert v[0]["attribution"]["reason"] == "empty-party"
+    assert v[0]["parties"][0]["attribution"]["reason"] == "empty-party"
 
 
 # --- 通知正文 -----------------------------------------------------------------

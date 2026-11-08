@@ -253,7 +253,9 @@ def disclosure_verdicts(rows: list[dict], states: dict, *, today: date,
 
 
 def penalty_verdicts(rows: list[dict], states: dict, *, now: datetime,
-                     aliases: dict | None = None) -> tuple[list[dict], dict, dict]:
+                     aliases: dict | None = None,
+                     index: dict[str, str | None] | None = None
+                     ) -> tuple[list[dict], dict, dict]:
     """处罚增量：按 ``doc_id`` 取增量，主体匹配不上标 ``unattributed``（不强归属）。"""
     aliases = aliases or {}
     keys = [str(r["doc_id"]) for r in rows if r.get("doc_id")]
@@ -261,30 +263,133 @@ def penalty_verdicts(rows: list[dict], states: dict, *, now: datetime,
     new, events, _ = evaluate_event(prev, new_keys=keys, at=now)
     new_states = dict(states)
     new_states["bank-penalty-new"] = new.to_dict()
-    by_doc = {str(r["doc_id"]): r for r in rows if r.get("doc_id")}
+    # 一份文书常含多个主体（实测 40 行只对应 15 个 doc_id），故按 doc_id 分组，
+    # 事件仍按文书去重，但把该文书下的**所有**主体都带出来，否则归属信息会丢。
+    by_doc: dict[str, list[dict]] = {}
+    for r in rows:
+        if r.get("doc_id"):
+            by_doc.setdefault(str(r["doc_id"]), []).append(r)
     out: list[dict] = []
     for e in attach_rule(events, "bank-penalty-new"):
-        row = by_doc.get(e["key"], {})
+        group = by_doc.get(e["key"], [])
+        first = group[0] if group else {}
         out.append({
             "rule_id": "bank-penalty-new", "key": e["key"],
-            "party": row.get("party"), "office": row.get("office"),
-            "penalty_no": row.get("penalty_no"),
-            "content": (row.get("penalty_content") or "")[:200],
-            "attribution": attribute(row.get("party"), aliases),
+            "office": first.get("office"),
+            "authority_level": first.get("authority_level"),
+            "penalty_no": first.get("penalty_no"),
+            "doc_date": first.get("doc_date"),
+            "content": (first.get("penalty_content") or "")[:200],
+            "parties": [{"party": g.get("party"),
+                         "attribution": attribute(g.get("party"), aliases, index)}
+                        for g in group],
             "verdict": FIRING,
             "events": [e],
         })
-    return out, new_states, {"total": len(rows), "new": len(out)}
+    return out, new_states, {"total": len(rows), "documents": len(by_doc),
+                             "new": len(out)}
 
 
-def attribute(party: str | None, aliases: dict[str, str]) -> dict:
-    """机构名 → 监控主体。匹配不上就是 ``unattributed``；**错归属比不归属更坏**。"""
+#: 非银行机构的粗分特征。处罚源是全机构口径（总局/省局/分局），实测 40 行里混着
+#: 保险主体与自然人（「民生人寿…及相关责任人」「原交通银行…员工仇征」），
+#: 故先分机构类型，再谈归属——个股员工不是银行的处罚。
+_NON_BANK = ("人寿", "财险", "保险", "再保险", "资产管理", "信托", "租赁", "消费金融",
+             "汽车金融", "财务有限公司", "理财")
+#: 自然人处罚的特征词。**必须单独判**：真实数据里有「原交通银行股份有限公司员工仇征」，
+#: 归一后是「交通银行」，不拦就会把个人的处罚记到银行头上——错归属比不归属更坏。
+_INDIVIDUAL = ("员工", "个人", "从业人员", "董事", "监事", "高级管理人员", "客户经理")
+
+
+def classify_institution(party: str | None) -> str:
+    name = (party or "").strip()
+    if not name:
+        return "unknown"
+    if any(k in name for k in _INDIVIDUAL):
+        return "individual"
+    if "银行" in name:
+        return "bank"
+    if any(k in name for k in _NON_BANK):
+        return "non-bank"
+    return "unknown"
+
+
+_SUFFIXES = ("股份有限公司", "有限责任公司", "有限公司", "及相关责任人", "（", "(")
+_PREFIXES = ("中国", "原", "中国银行保险监督管理委员会")
+
+
+def normalize_party(name: str) -> str:
+    """机构名归一，供全称/简称两种写法对齐。
+
+    步骤固定、顺序敏感（踩过：先切「及相关责任人」就不再切「股份有限公司」，
+    归一结果停在「光大银行股份有限公司」，永远匹配不上）：
+
+    1. 去掉「（…」「(…」附加语；
+    2. 去掉尾部「及相关责任人」；
+    3. 从**最早出现**的公司形式后缀处截断（股份有限公司 / 有限责任公司 / 有限公司）；
+    4. 去「中国」前缀，但要求截断后仍 ≥6 字——否则「中国银行」会被削成「银行」，
+       匹配上所有银行；
+    5. 去「原」前缀（处罚原文常写「原XX银行…员工」），同法保留最短长度。
+    """
+    s = (name or "").strip()
+    for cut in ("（", "("):
+        idx = s.find(cut)
+        if idx > 0:
+            s = s[:idx]
+    if s.endswith("及相关责任人"):
+        s = s[: -len("及相关责任人")]
+    positions = [s.find(cut) for cut in ("股份有限公司", "有限责任公司", "有限公司")]
+    positions = [i for i in positions if i > 0]
+    if positions:
+        s = s[: min(positions)]
+    if s.startswith("中国") and len(s) - 2 >= 4:
+        s = s[2:]
+    elif s.startswith("原") and len(s) - 1 >= 4:
+        s = s[1:]
+    return s.strip()
+
+
+def build_alias_index(aliases: dict[str, str]) -> dict[str, str | None]:
+    """构造 归一名 → 代码 的索引；一个归一名对上多个代码时置 None（歧义即不归）。"""
+    idx: dict[str, str | None] = {}
+    for full, code in (aliases or {}).items():
+        if str(full).startswith("_"):
+            continue
+        for form in {full, normalize_party(full)}:
+            if len(form) < 4:
+                continue
+            if form in idx and idx[form] != code:
+                idx[form] = None      # 歧义
+            else:
+                idx[form] = code
+    return idx
+
+
+def attribute(party: str | None, aliases: dict[str, str],
+              index: dict[str, str | None] | None = None) -> dict:
+    """机构名 → 监控主体。
+
+    顺序：空 → 非银行机构 → 别名精确匹配 → 否则 ``unattributed``。
+    **错归属比不归属更坏**：名不匹配就保留原名，绝不按相似度硬猜。
+    """
     name = (party or "").strip()
     if not name:
         return {"status": "unattributed", "reason": "empty-party", "raw": party}
-    if name in aliases:
-        return {"status": "matched", "code": aliases[name], "method": "alias", "raw": name}
-    return {"status": "unattributed", "reason": "no-match", "raw": name}
+    kind = classify_institution(name)
+    if kind == "individual":
+        return {"status": "unattributed", "reason": "individual", "raw": name}
+    if kind == "non-bank":
+        return {"status": "unattributed", "reason": "not-a-bank", "raw": name}
+    if name in aliases and not str(name).startswith("_"):
+        return {"status": "matched", "code": aliases[name], "method": "exact", "raw": name}
+    idx = index if index is not None else build_alias_index(aliases)
+    norm = normalize_party(name)
+    hit = idx.get(norm, "MISS")
+    if hit == "MISS" or hit is None:
+        return {"status": "unattributed",
+                "reason": "ambiguous" if hit is None else "no-match",
+                "normalized": norm, "raw": name, "institution_type": kind}
+    return {"status": "matched", "code": hit, "method": "normalized",
+            "normalized": norm, "raw": name}
 
 
 # ─── 输出 ─────────────────────────────────────────────────────────────────────
@@ -372,8 +477,8 @@ def main(argv: list[str] | None = None) -> int:
         raise
 
     d_verdicts, states, d_counts = disclosure_verdicts(disclosure, states, today=today, now=now)
-    p_verdicts, states, p_counts = penalty_verdicts(penalty, states, now=now,
-                                                   aliases=cfg.get("party_aliases"))
+    p_verdicts, states, p_counts = penalty_verdicts(
+        penalty, states, now=now, aliases=cfg.get("party_aliases"))
     t_verdicts, states, cov = threshold_verdicts(
         cfg, series, states, now=now,
         unhealthy_sources={h.source for h in unhealthy})
