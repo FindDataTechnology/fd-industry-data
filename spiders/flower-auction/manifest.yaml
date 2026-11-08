@@ -38,8 +38,17 @@ source_url: https://www.kifa.net
 #     复活=常驻 playwright + 跟随雷池版本维护，成本远高于只读 6 天日频数据的收益。
 #   * 数据增量有限：仅 3 个大类（玫瑰/康乃馨/非洲菊）的均价+最高价，6 天滚动；
 #     斗南日价已按 23 个品种逐日覆盖同类现货信息。
-# 复活方式（若将来要上）：playwright 常驻（chromium + 等挑战通过）+ 在**页面上下文内**
-#   调 getInfo 接口（不要另起 HTTP 客户端）+ 会话池 + 468/验证码双路反馈进健康巡检。
+# ⚠️ 自动化浏览器被点名拒绝（同日第三次实测，推翻了上一条「playwright 常驻」的设想）：
+#   playwright 三种配置全部失败——headless / headless=False / headless=False+channel="chrome"
+#   （含 ignore_default_args=["--enable-automation"]、webdriver 抹除、反节流参数、鼠标活动），
+#   60 秒后页面仍停在挑战页，正文明确写：
+#     「安全检测能力由 雷池 WAF 驱动 确认 客户端异常，请确认您是合法用户」
+#   而应用内真实 Chrome（带用户配置）约 15 秒即放行。
+#   → 结论：**它主动拒绝自动化客户端**，不是「跑不动 JS」。
+# 复活条件（收紧，成本 L→XL）：
+#   只接受**真实桌面浏览器会话**产出的数据（人工导出 / 浏览器扩展 / 半自动点击），
+#   或放弃该源。**不要再用 playwright 硬闯**——那是检测规避，违反本项目「不逆向反爬」红线，
+#   而且已经证明无效。
 # 状态：parked: true，`schedule` 故意不写——复活前不得被调度。
 scanner_mode: upstream-curated
 ranking_seed:
