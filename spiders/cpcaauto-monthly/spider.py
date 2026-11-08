@@ -51,11 +51,12 @@ from urllib.parse import urljoin
 from lxml import html as lxml_html
 from scrapling.fetchers import FetcherSession
 
+from fd_industry_data.http import throttle as _throttle
+
 logger = logging.getLogger("cpcaauto-monthly")
 
 # 同源礼貌间隔：实测无间隔连发时站点返回 **200 空壳**（正文 0 字），
 # 单条被跳过；加 0.4s 间隔后同批 id 全部可解析（仓内同约定见 cninfo-operating）。
-SAME_HOST_GAP_S = 0.4
 
 BASE = "https://www.cpcaauto.com/"
 LIST_URL = urljoin(BASE, "news.php?types=csjd")
@@ -254,13 +255,6 @@ async def _fetch(session: FetcherSession, url: str):
         return None
     return resp
 
-
-def _throttle(last_at: float) -> float:
-    """同源节流：保证两次请求间隔 >= SAME_HOST_GAP_S，返回新时间戳。"""
-    elapsed = time.monotonic() - last_at
-    if 0 <= elapsed < SAME_HOST_GAP_S:
-        time.sleep(SAME_HOST_GAP_S - elapsed)
-    return time.monotonic()
 
 
 async def _collect(limit: int, max_pages: int, category: str | None) -> list[dict]:

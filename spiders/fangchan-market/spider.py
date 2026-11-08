@@ -41,10 +41,11 @@ from datetime import datetime, timedelta, timezone
 from lxml import html as lxml_html
 from scrapling.fetchers import FetcherSession
 
+from fd_industry_data.http import throttle as _throttle
+
 logger = logging.getLogger("fangchan-market")
 
 # 同源礼貌间隔（仓内同约定见 cninfo-operating / cpcaauto-monthly）
-SAME_HOST_GAP_S = 0.4
 
 API_BASE = "http://news.fangchan.com/api/newslist.json"
 CHANNEL_URL = "http://www.fangchan.com/news/320/"
@@ -215,13 +216,6 @@ async def _fetch(session: FetcherSession, url: str):
         return None
     return resp
 
-
-def _throttle(last_at: float) -> float:
-    """同源节流：保证两次请求间隔 >= SAME_HOST_GAP_S，返回新时间戳。"""
-    elapsed = time.monotonic() - last_at
-    if 0 <= elapsed < SAME_HOST_GAP_S:
-        time.sleep(SAME_HOST_GAP_S - elapsed)
-    return time.monotonic()
 
 
 async def _collect(

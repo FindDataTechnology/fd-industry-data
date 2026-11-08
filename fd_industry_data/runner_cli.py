@@ -277,9 +277,16 @@ def main(argv: list[str] | None = None) -> int:
         if run_id is not None and (other := open_run_for(src)) not in (None, run_id):
             # lost the start race: another run opened between guard and start
             finish_run(run_id, status="skipped", finished_at=time.time(), rows_written=0,
-                       error_head=f"single-flight: run #{other} still open")
+                       error_head=f"single-flight: run #{other} still open",
+                       source=src)
             print(f"fd-runner: {src} skipped, run #{other} won the start race")
             return _EXIT_SKIPPED
+        if run_id is None:
+            # Never silent: no run row means no single-flight guard and no
+            # cancel poller for this execution (writer._SCHEMA / start_run).
+            print(f"fd-runner: WARNING: start_run failed for {src}; "
+                  "single-flight and cancel are DISABLED for this run",
+                  file=sys.stderr)
 
     status, rows, error_head, items = "success", 0, None, []
     extra, dropped = _split_params(fn, args.params)
@@ -346,6 +353,7 @@ def main(argv: list[str] | None = None) -> int:
             ok = finish_run(
                 run_id, status=status, finished_at=finished, rows_written=rows,
                 error_head=error_head, items=items, metrics=metrics,
+                source=src,
             )
         else:
             ok = report_run(

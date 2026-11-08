@@ -1,8 +1,13 @@
+# parked 2026-11-08 (audit-ponytail 05 §1): this unit is a copy of the
+# metadata template — its production entry only scrapes the homepage
+# title/meta description and reports it as source data. No real parser
+# exists, so it is off (parked + no schedule + enabled: false) rather
+# than producing healthy-looking empty shells. Re-enable only with a
+# real extractor.
 version: "2"
 name: bls
 label: U.S. Bureau of Labor Statistics
 source_url: https://www.bls.gov/data/
-schedule: "23 3 * * *"
 data_period: day
 memory_limit: "384Mi"
 cpu_limit: "300m"
@@ -48,3 +53,5 @@ entities:
     coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+parked: true
+enabled: false

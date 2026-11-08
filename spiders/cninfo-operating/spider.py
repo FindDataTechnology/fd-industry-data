@@ -68,6 +68,8 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
+from fd_industry_data.http import throttle as _sleep_gap
+
 logger = logging.getLogger("cninfo-operating")
 
 SOURCE = "cninfo-operating"
@@ -98,7 +100,6 @@ LIST_WINDOW_PAD_DAYS = 7  # 列表翻页下限相对 seDate 起点再往前留�
 WINDOW_DAYS = 45          # 未显式给 start_date 时的默认滚动窗口天数
 
 TIMEOUT_S = 25
-SAME_HOST_GAP_S = 0.4          # 礼貌间隔：同源请求之间的最小间隔
 MIN_CONTENT_CHARS = 50         # 正文过短 -> 视为取数失败，跳过
 CONTENT_TRUNCATE = 4000        # content 列硬上限（>60KB 的公告会撑爆下游）
 
@@ -115,9 +116,21 @@ KEYWORD_CATEGORIES: tuple[tuple[str, str], ...] = (
     ("经营简报", "经营简报"),
     ("经营情况简报", "经营简报"),
     ("生产经营数据", "经营简报"),
+    # 酒店线的真实载体（2026-11-08 实证）：锦江 2023 年发的
+    # 《有限服务型连锁酒店 ____ 年 _-_ 月部分经营数据简报》，正文含
+    # 平均房价/平均出租率/RevPAR 表。仅历史可得（2024 起停发），见
+    # openspec/changes/add-hotel-vertical/reports/3.5-ashare-disclosure-evidence.md
+    ("经营数据简报", "经营简报"),
+    ("客房运营数据", "经营简报"),
 )
 SEARCHKEYS: tuple[str, ...] = (
     "产销快报", "销售简报", "发电量", "主要运营数据", "经营简报",
+)
+# 扩展类目：**不进默认 SEARCHKEYS**，由调用方以 ``keywords`` 显式指定。
+# 保持默认 SEARCHKEYS 不动，是因为本单元在产（月度排期），默认词表变化会
+# 改变轮转交织后落在 limit 内的行构成——那是静默的行为变更。
+EXTENSION_SEARCHKEYS: tuple[str, ...] = (
+    "经营数据简报",
 )
 
 _EM_TAG_RE = re.compile(r"</?em>", re.IGNORECASE)
@@ -176,14 +189,6 @@ def _shift_days(iso_date: str, days: int) -> str:
     except (TypeError, ValueError):
         return iso_date
     return (d + timedelta(days=days)).strftime("%Y-%m-%d")
-
-
-def _sleep_gap(last_at: float) -> float:
-    """同源节流：保证两次请求间隔 >= SAME_HOST_GAP_S，返回新时间戳。"""
-    elapsed = time.monotonic() - last_at
-    if 0 <= elapsed < SAME_HOST_GAP_S:
-        time.sleep(SAME_HOST_GAP_S - elapsed)
-    return time.monotonic()
 
 
 def ms_to_iso(ms: int | float | None) -> str:
@@ -438,6 +443,25 @@ def _collect_rows(limit: int, category: str, searchkeys: tuple[str, ...],
     return rows
 
 
+def _normalize_keywords(keywords) -> tuple[str, ...]:
+    """接受 None（默认 5 词）/ 列表 / 逗号分隔串；空集合是硬失败。"""
+    if keywords is None:
+        return SEARCHKEYS
+    if isinstance(keywords, str):
+        parts = [p.strip() for p in keywords.split(",")]
+    elif isinstance(keywords, (list, tuple)):
+        parts = [str(p).strip() for p in keywords]
+    else:
+        raise ValueError(
+            f"cninfo-operating: keywords 必须是列表或逗号分隔字符串，"
+            f"得到 {type(keywords).__name__}"
+        )
+    out = [p for p in parts if p]
+    if not out:
+        raise ValueError("cninfo-operating: keywords 为空集合——不静默回落到默认词表")
+    return tuple(out)
+
+
 def run_cninfo_operating(
     limit: int = 100,
     category: str = "",
@@ -445,6 +469,7 @@ def run_cninfo_operating(
     start_date: str = "",
     end_date: str = "",
     page_size: int = 30,
+    keywords=None,
 ) -> list[dict]:
     """Entry point for fd-runner (spiders/cninfo-operating).
 
@@ -456,6 +481,9 @@ def run_cninfo_operating(
         start_date / end_date: 巨潮 ``seDate`` 窗口 ``YYYY-MM-DD``；空则由
             ``window_days`` 推导为一个滚动窗口（缺省近 45 天）。
         page_size: 每个搜索词向巨潮请求的公告数（注意-load 影响东财列表命中率）。
+        keywords: 覆盖默认词表（列表或逗号串）。缺省走 5 词默认（在产行为不变）；
+            酒店历史简报用 ``EXTENSION_SEARCHKEYS``（现为 ``("经营数据简报",)``）。
+            ``keyword``（单数）优先级更高；两者都给时以 ``keyword`` 为准。
 
     Returns:
         list of row dicts（schema = manifest columns）。
@@ -470,7 +498,7 @@ def run_cninfo_operating(
     end = end_date or today.strftime("%Y-%m-%d")
     start = start_date or (today - timedelta(days=WINDOW_DAYS)).strftime("%Y-%m-%d")
 
-    keys = (keyword,) if keyword else SEARCHKEYS
+    keys = (keyword,) if keyword else _normalize_keywords(keywords)
     rows = _collect_rows(
         max(int(limit), 0), category or "", tuple(keys),
         start, end, max(int(page_size), 1),
