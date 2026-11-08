@@ -48,7 +48,25 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-from fd_industry_data import universes
+try:
+    from fd_industry_data import universes
+except ImportError:  # 运行镜像早于该模块（实测 fd-industry-runner:sha-750da3f）
+    # 兜底：从**本次 checkout** 加载 universes.py。runner 会把内容仓克隆到 /content，
+    # 而 universes.py 的 registry_root() 是从自身位置向上找 universes/ 目录——所以
+    # 从 checkout 加载后正好落在 /content/universes，与仓库里的注册表一致。
+    # 镜像更新后上面的 try 会先命中，这段自动失效（不是长期分叉）。
+    import importlib.util as _ilu
+    import sys as _sys
+    from pathlib import Path as _Path
+
+    _mod_path = _Path(__file__).resolve().parents[2] / "fd_industry_data" / "universes.py"
+    if not _mod_path.is_file():
+        raise
+    _spec = _ilu.spec_from_file_location("fd_industry_data.universes", _mod_path)
+    _mod = _ilu.module_from_spec(_spec)
+    _sys.modules["fd_industry_data.universes"] = _mod
+    _spec.loader.exec_module(_mod)
+    universes = _mod
 
 SOURCE = "eastmoney-disclosure-plan"
 
