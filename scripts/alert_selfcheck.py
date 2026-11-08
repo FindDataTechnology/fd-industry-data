@@ -106,10 +106,38 @@ def evaluate(repo: Path, today: date) -> dict:
     silent = check_silence(repo, today)
     ticket = check_ticket_auth(repo)
     findings = [f"silent:{s['line']}" for s in silent]
-    if ticket.get("broken"):
+    findings += [f"ticket_auth:{s}" for s in _known_ticket_issues(repo)]
+    if ticket.get("broken") and "ticket_auth:route_moved" not in findings:
+        # 未知的整批鉴权失败（不是已知那条走廊搬迁）仍按新问题报出来。
         findings.append("ticket_auth")
     return {"at": datetime.now(timezone.utc).isoformat(), "silent": silent,
             "ticket": ticket, "findings": sorted(findings)}
+
+
+# ── 已知状态（不再每天当新问题喊）────────────────────────────────────────
+#
+# 工单链（health_inspect --submit-new → 萬星 spider-heal）在 2026-11-07 起整批 401。
+# 实测根因不是凭据：a2a 路由已从平台摘挂搬到 wanxing 门面，而 spider-heal
+# **不在门面的 18 个 public agent 里**（`GET /api/wangxing/v1/agents` 无任何
+# `spider`/`heal` 条目），原 slug 打门面直接 404 AGENT_NOT_FOUND。
+# 告警用途已由邮件通道完全覆盖，故把它记成「已知、不修复」，避免自检每天喊同一条。
+KNOWN_TICKET_ISSUES = {
+    "route_moved": (
+        "工单链 a2a 路由已搬迁至 wanxing 门面且 spider-heal 未上服务面；"
+        "告警用途已由邮件覆盖，代码保留不删（openspec wire-alert-delivery 5.1）"
+    ),
+}
+
+
+def _known_ticket_issues(repo: Path) -> list[str]:
+    """已归档的工单链问题：仍然检查，但只标记为已知状态。"""
+    path = repo / "config" / "alert-selfcheck-known.json"
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    issues = doc.get("ticket_auth") or []
+    return [str(x) for x in issues if str(x) in KNOWN_TICKET_ISSUES]
 
 
 def deliver(report: dict, *, state_path: Path, dry_run: bool,
@@ -179,9 +207,14 @@ def deliver(report: dict, *, state_path: Path, dry_run: bool,
         body_lines.append("")
     if report["ticket"].get("broken"):
         t = report["ticket"]
+        known = [f for f in report["findings"] if f.startswith("ticket_auth:")]
         body_lines.append("## 工单链")
         body_lines.append(f"- 整批 SUBMIT 鉴权失败（{t['auth_failed']}/{t['total']}，"
                           f"最近一轮 {t.get('at')}）——工单送不出去，等于没人收到")
+        for f in known:
+            reason = KNOWN_TICKET_ISSUES.get(f.split(":", 1)[1])
+            if reason:
+                body_lines.append(f"  - 已知状态（不视为新问题）：{reason}")
     try:
         notify.send_email(smtp, subject, "\n".join(body_lines), smtp_factory=smtp_factory)
         receipt["sent"] = 1

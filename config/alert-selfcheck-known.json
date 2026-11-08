@@ -1,0 +1,7 @@
+{
+  "_note": "已归档的『已知问题』：自检仍然检查，但列为已知状态而不是每日新问题。新增条目必须写明原因与裁决出处，不许只写一个 id。",
+  "ticket_auth": ["route_moved"],
+  "reasons": {
+    "route_moved": "工单链 a2a 路由已从平台摘挂搬到 wanxing 门面（paas gateway/index.js:860 注释），而 spider-heal 不在门面 18 个 public agent 中（2026-11-08 实测：原 slug → 404 AGENT_NOT_FOUND）。告警用途已由邮件通道覆盖，代码保留不删。裁决：openspec wire-alert-delivery 5.1。"
+  }
+}
