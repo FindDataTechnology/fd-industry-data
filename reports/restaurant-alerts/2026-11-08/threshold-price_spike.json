@@ -3,7 +3,7 @@
   "description": "高波动食品投入品价格尖峰：滚动 z-score（不含当前点）绝对值跨阈；窗口按观测条数计（非日历天）",
   "asof": "2026-11-08",
   "replay_from": "2024-11-01",
-  "generated_at": "2026-11-08T07:54:27.259495+00:00",
+  "generated_at": "2026-11-08T07:56:21.120424+00:00",
   "config": "config/restaurant-alerts.json",
   "evidence": [
     {

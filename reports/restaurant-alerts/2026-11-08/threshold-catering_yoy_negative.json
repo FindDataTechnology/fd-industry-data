@@ -3,7 +3,7 @@
   "description": "餐饮收入当月同比转负（< 0%）",
   "asof": "2026-11-08",
   "replay_from": "2018-11-01",
-  "generated_at": "2026-11-08T07:54:25.231886+00:00",
+  "generated_at": "2026-11-08T07:56:19.120464+00:00",
   "config": "config/restaurant-alerts.json",
   "evidence": [
     {
