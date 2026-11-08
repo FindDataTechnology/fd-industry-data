@@ -1,0 +1,89 @@
+# 酒店线预警（阈值级 + 事件级 + 发布节奏）· 每日排程
+#
+# 复用 `restaurant_alerts.py`，用 `--config config/hotel-alerts.json` 换规则集与输出目录
+# （两条线的 state 各自独立，投递边界也各自算）。
+# 口径与餐饮一致：只在越阈集合变化时发信。
+# 退出码：0=正常 / 2=崩溃 / 3=环境不满足 / 4=投递失败（判红）/ 5=escalate 被总闸拦停
+name: hotel-alerts
+
+on:
+  schedule:
+    # 每日 12:17 UTC = 20:17 CST（晚于餐饮的 11:47 UTC，错开 runner 的并发窗口）
+    - cron: "17 12 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只算不写状态/不发通知（演练）"
+        type: boolean
+        default: false
+
+concurrency:
+  group: hotel-alerts
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  alerts:
+    runs-on: [self-hosted, fd-health]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout (shell clone, retry)
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          rm -rf src
+          for i in 1 2 3 4 5; do
+            if git clone --depth=1 \
+                 "https://x-access-token:${{ github.token }}@github.com/FindDataTechnology/fd-industry-data.git" src; then
+              break
+            fi
+            echo "clone attempt $i failed; retrying in 8s"
+            rm -rf src
+            sleep 8
+          done
+          test -d src/.git
+
+      - name: Evaluate (阈值级 / 事件级)
+        working-directory: src
+        env:
+          FD_OPEN_DATA_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
+          FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
+          FD_ALERT_SMTP_HOST: ${{ secrets.FD_ALERT_SMTP_HOST }}
+          FD_ALERT_SMTP_PORT: ${{ secrets.FD_ALERT_SMTP_PORT }}
+          FD_ALERT_SMTP_USER: ${{ secrets.FD_ALERT_SMTP_USER }}
+          FD_ALERT_SMTP_PASS: ${{ secrets.FD_ALERT_SMTP_PASS }}
+          FD_ALERT_SMTP_FROM: ${{ secrets.FD_ALERT_SMTP_FROM }}
+          FD_ALERT_SMTP_TO: ${{ secrets.FD_ALERT_SMTP_TO }}
+          FD_ALERT_SMTP_SSL: "1"
+          FD_ALERT_SMTP_TLS: "0"
+        run: |
+          ARGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
+          set +e
+          python3 scripts/restaurant_alerts.py --config config/hotel-alerts.json --rules --events $ARGS
+          code=$?
+          set -e
+          echo "hotel_alerts exit=$code"
+          case "$code" in
+            0) echo "结果：正常（无新增越阈 或 已投递）" ;;
+            4) echo "::error title=酒店预警投递失败::有越阈但邮件未送出（看运行产物 notify 段）"
+               exit 4 ;;
+            3) echo "::warning title=酒店预警未执行::只读账号缺 semantic_observations 读权限"
+               exit 0 ;;
+            5) echo "结果：escalate 被总闸拦停（预期语义）" ;;
+            *) echo "结果：脚本自身失败（exit=$code）"; exit "$code" ;;
+          esac
+
+      - name: Commit reports + state
+        working-directory: src
+        run: |
+          git config user.name  "fd-health-bot"
+          git config user.email "fd-health-bot@finddatatech.cloud"
+          git add reports/hotel-alerts 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "无变更，跳过提交"
+          else
+            git commit -m "hotel-alerts: $(date -u +%F)"
+            for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 8; done
+          fi

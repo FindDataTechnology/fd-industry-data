@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "duty_log_title": "酒店监测舰",
+  "description": "酒店垂直线波5 阈值级预警规则（add-hotel-vertical 6.2）。每条规则的参数显式声明；评估器 scripts/restaurant_alerts.py 只读 semantic_observations（SELECT only），不做插值、不补零。机制与餐饮/花卉共用，不新建第二套。",
+  "defaults": {
+    "asof": null,
+    "replay_from": null,
+    "replay_months": 60,
+    "outdir": "reports/hotel-alerts",
+    "ledger": "reports/hotel-alerts/state/events.jsonl",
+    "escalations": "reports/hotel-alerts/state/escalations.jsonl",
+    "events_window_days": 730
+  },
+  "rules": [
+    {
+      "name": "star_hotel_occupancy_yoy_negative",
+      "enabled": true,
+      "kind": "threshold",
+      "description": "星级饭店平均出租率同比转负（< 0%）",
+      "concept": "hotel.cn.star_rated.occupancy_yoy.all.quarterly",
+      "source_used": "mct-star-hotel",
+      "entity_type": "region",
+      "periodicity": "quarterly",
+      "unit": "percent",
+      "comparator": "lt",
+      "threshold": 0.0,
+      "replay_months": 24,
+      "caliber": "星级旅游饭店口径（文旅部），与全行业 37.5 万家不同宇宙；系列最新期 2024Q3，其后无新期——命中只描述历史期次，不代表当期景气",
+      "note": "省级实体逐个评估（同一条规则对 32 个 region 各自成立/不成立），不聚合成全国单值"
+    },
+    {
+      "name": "star_hotel_adr_yoy_drop",
+      "enabled": true,
+      "kind": "threshold",
+      "description": "星级饭店平均房价同比下降超过 3%（用上游已发布的同比字段，不自算环比）",
+      "concept": "hotel.cn.star_rated.adr_yoy.all.quarterly",
+      "source_used": "mct-star-hotel",
+      "entity_type": "region",
+      "entity_id": 1,
+      "periodicity": "quarterly",
+      "unit": "percent",
+      "comparator": "lt",
+      "threshold": -3.0,
+      "replay_months": 24,
+      "caliber": "同比为上游发布值（快照同表），不是本脚本计算；季度同比天然避开季节性，不用环比",
+      "structural_gaps": {
+        "periods": [
+          "2023Q3",
+          "2023Q1",
+          "2022Q4"
+        ],
+        "reason": "2023Q3 详情页无 xlsx、2023Q1/2022Q4 解析表为空 —— gap_in_series，不插值不跨期补位"
+      }
+    },
+    {
+      "name": "star_hotel_revpar_yoy_negative",
+      "enabled": true,
+      "kind": "threshold",
+      "description": "星级饭店 RevPAR 同比转负（< 0%）——量价同时走弱的最直接读数",
+      "concept": "hotel.cn.star_rated.revpar_yoy.all.quarterly",
+      "source_used": "mct-star-hotel",
+      "entity_type": "region",
+      "entity_id": 1,
+      "periodicity": "quarterly",
+      "unit": "percent",
+      "comparator": "lt",
+      "threshold": 0.0,
+      "replay_months": 24,
+      "caliber": "RevPAR = ADR × 出租率（上游口径），同比为发布值"
+    },
+    {
+      "name": "hotel_revpar_yoy_decline_us",
+      "enabled": true,
+      "kind": "threshold",
+      "description": "美股酒店公司全系统 RevPAR 同比转负（逐家评估，不跨公司合并）",
+      "concept": "hotel_revpar_yoy_placeholder",
+      "source_used": "sec-edgar-8k-operating",
+      "entity_type": "stock",
+      "periodicity": "quarterly",
+      "unit": "percent",
+      "comparator": "lt",
+      "threshold": 0.0,
+      "replay_months": 24,
+      "caliber": "五家口径互不相同（可比口径/固定汇率/as-reported），逐家判定；期数 <12 的序列标 level_only 只作水平对照",
+      "note": "concept 占位：本线 8-K 通道只落了 RevPAR 水平值，未落同比字段 → 该规则待补字段后启用（enabled 会在评估器里因概念不存在而报 gap，不静默通过）"
+    },
+    {
+      "name": "eu_accommodation_turnover_yoy_negative",
+      "enabled": true,
+      "kind": "threshold",
+      "description": "欧盟住宿业营业额指数低于基期（< 100，2021=100）——欧盟腿的景气转弱读数",
+      "concept": "hotel.eu.turnover.accommodation.monthly",
+      "source_used": "eurostat-api",
+      "entity_type": "country",
+      "entity_id": 300990,
+      "periodicity": "monthly",
+      "unit": "index_2021_100",
+      "comparator": "lt",
+      "threshold": 100.0,
+      "replay_months": 36,
+      "caliber": "NACE I55（住宿业整体，非纯酒店 I551——I551 上游 0 值）；欧盟口径不与中国并列"
+    }
+  ],
+  "debt": {
+    "composite_rules_not_implemented": [
+      "ADR 环比跌幅：需要 qoq 派生（评估器无 qoq comparator，且跨年同季不可比）",
+      "出游人次连续两期下滑：需要 decline-streak comparator + 同 granularity 约束",
+      "供需缺口扩大：需要双侧（供给季度 × 需求累计期）配对评估器"
+    ],
+    "reason": "共享评估器 scripts/restaurant_alerts.py 只支持 lt/lte/gt/gte/abs_gte；不为此改动共享原语（会影响餐饮/花卉既有规则）",
+    "decision": "先用已发布字段的等价可评估形式覆盖同类风险；复合规则在波6 与评估器扩展一并做"
+  },
+  "events": {
+    "description": "事件级（6.3）：酒店宇宙三类事件 —— ①财报日历 = hkex-disclosure 的 ann_type=results + sec-edgar-facts 的 10-Q/10-K event 行；②盈警 = hkex-disclosure 的 ann_type ∈ {profit-warning, profit-alert}；③重大/监管事件 = hkex-disclosure 中标题命中「摘星/降星/行政处罚/安全事故/停业」类关键词（标题口径，不做正文推断）。幂等靠评估器磁盘台账（key = 源+主体+日期+类型+标题哈希），同一事件重复扫描仅首次上报。",
+    "financial_forms_sec": [
+      "10-Q",
+      "10-K"
+    ],
+    "hkex_results_types": [
+      "results"
+    ],
+    "hkex_profit_warning_types": [
+      "profit-warning",
+      "profit-alert"
+    ],
+    "community": {
+      "note": "摘星降星/行政处罚/重大安全事件：只按公告标题命中，不解析正文（港股公告正文是 PDF，未结构化）；命中即上报，标题原文进 ref 供人工复核"
+    },
+    "caliber": "事件面只报公告元数据，不反推营收/利润；欧股（AC.PA / WTB.L，无车道）与日股（无 key）不产生事件，缺失侧在 duty-log 里显式列出，不以空数组伪装"
+  },
+  "label": "酒店线",
+  "delivery": {
+    "channel": "smtp",
+    "to": [
+      "1253774197@qq.com",
+      "aloadtree@gmail.com"
+    ],
+    "min_severity": "warning",
+    "_note": "收件人属配置（可版本化、非机密）；凭据走 Secrets/env。env FD_ALERT_SMTP_TO 非空时以 env 为准。投递只在越阈集合变化时发生（新增=告警，消失=恢复）。"
+  }
+}
