@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-08T08:19:49.904086+00:00",
+  "at": "2026-11-08T16:42:10.077384+00:00",
   "base_date": "2026-11-08",
   "scanned": 0,
   "new": 0,
@@ -9,8 +9,40 @@
       "label": "业绩预告",
       "verdict": "no_sample",
       "status_text": "暂无样本",
-      "no_sample_reason": "农业宇宙未解锁（8.1 segment 无真源、8.2/8.3 未完成），且业绩预告属财报车道；库内无农业公司业绩预告/快报事件源。",
-      "unlock": "完成农业宇宙注册（8.1–8.3）并接入公司公告车道（SEC 8-K / 交易所业绩预告）后，按 monitored universe 过滤并置 enabled=true。"
+      "no_sample_reason": "A股**业绩预告**仍无在册事件源（巨潮「业绩预告」类目未接入本线）——8.1–8.3 已完成、定期报告车道已通，但业绩预告属另一类公告，仍未接。",
+      "unlock": "接入巨潮 `category_yjyg_szsh`（业绩预告）后置 enabled=true；只按监测宇宙（白名单 101 家）过滤，不以全市场公告充数。"
+    },
+    {
+      "name": "hk_profit_alert_event",
+      "label": "港股盈利预告（正面）",
+      "verdict": "scanned",
+      "scanned": 0,
+      "new": 0,
+      "already_logged": 0
+    },
+    {
+      "name": "hk_profit_warning_event",
+      "label": "港股盈警（负面）",
+      "verdict": "scanned",
+      "scanned": 0,
+      "new": 0,
+      "already_logged": 0
+    },
+    {
+      "name": "us_earnings_release_8k",
+      "label": "美股业绩发布 8-K（item 2.02）",
+      "verdict": "no_sample",
+      "status_text": "暂无样本",
+      "no_sample_reason": "`crawl_items` 里的 `sec-edgar-8k-operating` 目前**只有大盘/餐饮类发行人**（实测 40 条全是 MAR 等），事件面 3 家农业发行人（BRID/CALM/HRL）一条都没有——他们的 8-K 是本线 `scripts/agri_overseas_events.py` 直连 EDGAR submissions 取的，没有回写 `crawl_items`。",
+      "unlock": "把 `agri_overseas_events.py` 的事件行回写 `crawl_items`（同源同字段）后，按 CIK 宇宙（0000014177/0000016160/0000048465）置 enabled=true；不以全市场 8-K 充数。"
+    },
+    {
+      "name": "a_share_periodic_report_disclosed",
+      "label": "A股定期报告已披露（业绩类事件面）",
+      "verdict": "no_sample",
+      "status_text": "暂无样本",
+      "no_sample_reason": "定期报告披露事件落在 `daas.db.report_documents`（本线 ingest 产物），不在本评估器只读的 `semantic_observations`／`crawl_runs`／`crawl_items` 三表内。本轮不为了「有事件」去跨库扩读面。",
+      "unlock": "若要把「某家该披露未披露」做成事件级预警，需在 daas.db 侧加披露日历对账（应披露期 vs parse_status），另立 change。"
     },
     {
       "name": "animal_disease_event",
