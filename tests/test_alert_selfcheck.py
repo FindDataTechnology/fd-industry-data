@@ -211,3 +211,23 @@ def test_flat_stale_file_is_still_silent(tmp_path):
     (d / f"rules-{old}.json").write_text("{}", encoding="utf-8")
     silent = selfcheck.check_silence(tmp_path, TODAY, {"agriculture": ("reports/agriculture-alerts", 2)})
     assert silent and silent[0]["kind"] == "stale" and silent[0]["days"] == 9
+
+
+# ── 7. 农业线收件人来自配置（四线口径统一）──────────────────────────
+
+
+def test_agriculture_recipients_come_from_config(monkeypatch):
+    """env 优先、配置兜底——两边都没有才算"没配收件人"。"""
+    import importlib.util as _u
+
+    spec = _u.spec_from_file_location("ag", REPO / "scripts" / "agriculture_alerts.py")
+    ag = _u.module_from_spec(spec)
+    spec.loader.exec_module(ag)
+
+    monkeypatch.delenv("FD_ALERT_SMTP_TO", raising=False)
+    monkeypatch.setenv("FD_ALERT_SMTP_HOST", "smtp.example.com")
+    assert ag._smtp_config()["to"], "配置里应有收件人"
+    assert "1253774197@qq.com" in ag._smtp_config()["to"]
+
+    monkeypatch.setenv("FD_ALERT_SMTP_TO", "override@example.com")
+    assert ag._smtp_config()["to"] == ["override@example.com"]

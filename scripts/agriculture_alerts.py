@@ -607,12 +607,28 @@ def check_source_guard(rule: dict, points: list[tuple[str, float]],
 
 # ── 通知（stdlib smtplib） ────────────────────────────────────────────────
 
+def _config_recipients() -> list[str]:
+    """线路配置里的收件人（`delivery.to`）。
+
+    收件人属**可版本化、非机密**信息，应当住在配置里；env 只作运维临时改投。
+    与餐饮/花卉/酒店同一口径（`config/<line>-alerts.json` 的 `delivery.to`）。
+    """
+    try:
+        doc = json.loads(DEFAULT_CONFIG.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    delivery = (doc.get("delivery") or {}) if isinstance(doc, dict) else {}
+    return [str(x).strip() for x in (delivery.get("to") or []) if str(x).strip()]
+
+
 def _smtp_config(timeout_default: float = 15.0) -> dict:
     tls = os.environ.get("FD_ALERT_SMTP_TLS", "starttls").strip().lower()
     if tls not in ("starttls", "ssl", "none"):
         tls = "starttls"
-    recipients = [part.strip() for part in re.split(r"[,;]", os.environ.get("FD_ALERT_SMTP_TO", ""))
-                  if part.strip()]
+    # env 优先（临时改投），否则读配置——两边都没有才算"未配置"。
+    env_to = [part.strip() for part in re.split(r"[,;]", os.environ.get("FD_ALERT_SMTP_TO", ""))
+              if part.strip()]
+    recipients = env_to or _config_recipients()
     return {
         "host": os.environ.get("FD_ALERT_SMTP_HOST", "").strip(),
         "port": int(os.environ.get("FD_ALERT_SMTP_PORT", "25") or 25),
@@ -639,7 +655,8 @@ def send_email(subject: str, body: str, timeout_default: float = 15.0) -> dict:
                 "error": "SMTP 未配置：FD_ALERT_SMTP_HOST 为空（已留记录，不阻塞其它通知）"}
     if not cfg["to"]:
         return {"channel": "email", "status": "error",
-                "error": "SMTP 未配置：FD_ALERT_SMTP_TO 为空（已留记录，不阻塞其它通知）"}
+                "error": ("没有收件人：env FD_ALERT_SMTP_TO 与 config 的 delivery.to "
+                          "都为空（已留记录，不阻塞其它通知）")}
     message = EmailMessage()
     message["Subject"] = subject
     message["From"] = cfg["from"]
