@@ -65,6 +65,10 @@ jobs:
           FD_ALERT_SMTP_PASS: ${{ secrets.FD_ALERT_SMTP_PASS }}
           FD_ALERT_SMTP_FROM: ${{ secrets.FD_ALERT_SMTP_FROM }}
           FD_ALERT_SMTP_TO: ${{ secrets.FD_ALERT_SMTP_TO }}
+          # 阿里云 DirectMail（本舰队 Logto 用的同一条邮件通道）走 465 隐式 TLS，
+          # 必须 SMTP_SSL；只实现 STARTTLS 会连不上。
+          FD_ALERT_SMTP_SSL: "1"
+          FD_ALERT_SMTP_TLS: "0"
         run: |
           ARGS="--run"
           if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi

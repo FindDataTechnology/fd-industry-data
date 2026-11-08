@@ -12,11 +12,19 @@ from email.message import EmailMessage
 
 ENV_KEYS = ("FD_ALERT_SMTP_HOST", "FD_ALERT_SMTP_PORT", "FD_ALERT_SMTP_USER",
             "FD_ALERT_SMTP_PASS", "FD_ALERT_SMTP_FROM", "FD_ALERT_SMTP_TO",
-            "FD_ALERT_SMTP_TLS")
+            "FD_ALERT_SMTP_TLS", "FD_ALERT_SMTP_SSL")
 
 
 @dataclass
 class SmtpConfig:
+    """SMTP 连接参数。
+
+    ``use_ssl`` 与 ``use_tls`` 是**互斥的两条路**：465 端口是隐式 TLS
+    （``smtplib.SMTP_SSL``），587 端口才是 STARTTLS。阿里云 DirectMail
+    （本舰队 Logto 用的邮件通道）走 465/SSL，只实现 STARTTLS 会连不上——
+    实测配置为 ``smtpdm.aliyun.com:465``。
+    """
+
     host: str
     port: int
     user: str
@@ -24,6 +32,7 @@ class SmtpConfig:
     sender: str
     recipients: list[str]
     use_tls: bool = True
+    use_ssl: bool = False
 
 
 def smtp_config_from_env(env=None) -> SmtpConfig | None:
@@ -42,6 +51,7 @@ def smtp_config_from_env(env=None) -> SmtpConfig | None:
         sender=sender,
         recipients=to,
         use_tls=(e.get("FD_ALERT_SMTP_TLS") or "1") not in ("0", "false", "False"),
+        use_ssl=(e.get("FD_ALERT_SMTP_SSL") or "0") not in ("0", "false", "False"),
     )
 
 
@@ -53,10 +63,15 @@ def send_email(cfg: SmtpConfig, subject: str, body: str, *, smtp_factory=None) -
     msg["Subject"] = subject
     msg.set_content(body)
 
-    factory = smtp_factory or (lambda host, port: smtplib.SMTP(host, port, timeout=20))
+    if smtp_factory is not None:
+        factory = smtp_factory
+    elif cfg.use_ssl:
+        factory = lambda host, port: smtplib.SMTP_SSL(host, port, timeout=20)  # noqa: E731
+    else:
+        factory = lambda host, port: smtplib.SMTP(host, port, timeout=20)  # noqa: E731
     smtp = factory(cfg.host, cfg.port)
     try:
-        if cfg.use_tls:
+        if cfg.use_tls and not cfg.use_ssl:
             smtp.starttls()
         if cfg.user:
             smtp.login(cfg.user, cfg.password)

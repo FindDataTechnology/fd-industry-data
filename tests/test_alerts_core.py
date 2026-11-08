@@ -129,6 +129,14 @@ def test_smtp_config_absent_without_required_env():
     assert smtp_config_from_env({"FD_ALERT_SMTP_HOST": "h"}) is None
 
 
+def test_smtp_config_ssl_flag_for_465():
+    """465 是隐式 TLS（SMTP_SSL），不是 STARTTLS——阿里云 DirectMail 就是这种。"""
+    cfg = smtp_config_from_env({"FD_ALERT_SMTP_HOST": "smtpdm.aliyun.com",
+                                "FD_ALERT_SMTP_FROM": "a@b", "FD_ALERT_SMTP_TO": "x@y",
+                                "FD_ALERT_SMTP_PORT": "465", "FD_ALERT_SMTP_SSL": "1"})
+    assert cfg.use_ssl is True and cfg.port == 465
+
+
 def test_smtp_config_parses_recipients():
     cfg = smtp_config_from_env({"FD_ALERT_SMTP_HOST": "h", "FD_ALERT_SMTP_FROM": "a@b",
                                 "FD_ALERT_SMTP_TO": "x@y, z@w", "FD_ALERT_SMTP_PORT": "465"})
