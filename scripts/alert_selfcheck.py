@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -44,19 +45,26 @@ STATE_PATH = "reports/alert-selfcheck/state.json"
 DATE_PREFIX = 10  # "YYYY-MM-DD"
 
 
+_DATE_IN_NAME = re.compile(r"(\d{4}-\d{2}-\d{2})")
+
+
 def _date_dirs(path: Path) -> list[date]:
-    """该线产物目录下的日期目录（容忍 `2026-11-08-e2e` 这类后缀）。"""
+    """该线产物里出现过的日期——**目录与文件都算**。
+
+    两条线的落物形状不同：餐饮/酒店写日期目录（`<date>/threshold-*.json`），
+    农业/花卉写扁平文件（`rules-<date>.json`）。只认目录会让"文件型"的线
+    永远被判成"从未报告"——这是个会永久误报的坑（2026-11-08 实测）。
+    """
     out: list[date] = []
     if not path.is_dir():
         return out
-    for child in path.iterdir():
-        if not child.is_dir():
-            continue
-        head = child.name[:DATE_PREFIX]
-        try:
-            out.append(date.fromisoformat(head))
-        except ValueError:
-            continue
+    for name in path.iterdir():
+        for token in _DATE_IN_NAME.findall(name.name[:32]):
+            try:
+                out.append(date.fromisoformat(token))
+            except ValueError:
+                continue
+            break
     return sorted(out)
 
 
