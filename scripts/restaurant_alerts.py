@@ -232,6 +232,16 @@ def deliver_transitions(states: dict[str, dict], cfg: dict, *, dry_run: bool, no
     receipt["alerts"] = [a["key"] for a in alerts]
     receipt["recovers"] = [r["key"] for r in recovers]
     receipt["unknown"] = unknowns
+    # 覆盖度信号：一条线"配好了"不等于"能响"。全部规则都判不了（n/a）时，
+    # 这条线每天都会安静地跑绿——那是最危险的假信号，必须显性化（退出码 6）。
+    total = len(states)
+    evaluable = sum(1 for v in states.values() if v["state"] in ("fired", "quiet"))
+    receipt["coverage"] = {
+        "rules": total,
+        "evaluable": evaluable,
+        "unknown": len(unknowns),
+        "mute": total > 0 and evaluable == 0,
+    }
 
     pending = [("alert", a) for a in alerts] + [("recover", r) for r in recovers]
     if not pending:
@@ -1583,6 +1593,10 @@ def main() -> int:
     if result.get("notify", {}).get("failed"):
         # 4 = 有告警但邮件没送出去：不能让"有人该被通知却没收到"看起来像正常。
         return 4
+    if (result.get("notify", {}).get("coverage") or {}).get("mute"):
+        # 6 = 覆盖度不足：所有规则都判 n/a，这条线结构上不可能告警。
+        # 不判红（是数据面欠账，不是代码坏），但必须显性化，不许每天安静跑绿。
+        return 6
     if result.get("escalate", {}).get("status") == "blocked":
         # 5 = 被总闸拦停（原为 2；2 已让给"脚本崩溃"，两者不能共用一个码）。
         return 5
