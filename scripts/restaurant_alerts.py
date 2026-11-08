@@ -163,20 +163,26 @@ def collect_rule_states(runs: list[dict]) -> dict[str, dict]:
     所以 unknown 只表示"本轮判不了"，差分时既不发告警也不发恢复，且状态原样保留。
     """
     out: dict[str, dict] = {}
-    rank = {"unknown": 0, "quiet": 1, "fired": 2}
+    rank = {"unknown": 0, "quiet": 1, "stale": 1, "fired": 2}
     for run in runs or []:
         for ev in run.get("evidence") or []:
             verdict = str(ev.get("verdict") or "n/a")
             state = {"fired": "fired", "quiet": "quiet"}.get(verdict, "unknown")
             key = f"{run['rule']}|{ev.get('concept')}"
             prev = out.get(key)
-            if prev is None or rank[state] > rank[prev["state"]]:
+            # 「窗口内曾越阈」但**最新一期没有越阈** = 历史越阈：不进 fired。
+            # 否则 96 个月的回放窗会让两年前的旧越阈永远处于告警态、永不恢复。
+            if state == "fired" and ev.get("current_fired") is False:
+                state = "stale"
+            if prev is None or rank.get(state, 0) > rank.get(prev["state"], 0):
                 out[key] = {
                     "key": key,
                     "rule": run["rule"],
                     "concept": ev.get("concept"),
                     "state": state,
                     "verdict": verdict,
+                    "latest_period": ev.get("latest_period"),
+                    "current_fired": ev.get("current_fired"),
                     "trigger_date": ev.get("trigger_date"),
                     "trigger_value": ev.get("trigger_value"),
                     "threshold": ev.get("threshold"),
@@ -219,7 +225,8 @@ def deliver_transitions(states: dict[str, dict], cfg: dict, *, dry_run: bool, no
             next_state[key] = item
             if prev_state != "fired":
                 alerts.append(item)
-        elif item["state"] == "quiet":
+        elif item["state"] in ("quiet", "stale"):
+            # stale = 窗口内曾经越阈、但最新一期没有 → 与 quiet 同样算"已回落"。
             next_state[key] = item
             if prev_state == "fired":
                 recovers.append(item)
@@ -232,6 +239,7 @@ def deliver_transitions(states: dict[str, dict], cfg: dict, *, dry_run: bool, no
     receipt["alerts"] = [a["key"] for a in alerts]
     receipt["recovers"] = [r["key"] for r in recovers]
     receipt["unknown"] = unknowns
+    receipt["stale"] = sorted(k for k, v in states.items() if v["state"] == "stale")
     # 覆盖度信号：一条线"配好了"不等于"能响"。全部规则都判不了（n/a）时，
     # 这条线每天都会安静地跑绿——那是最危险的假信号，必须显性化（退出码 6）。
     total = len(states)
@@ -517,6 +525,10 @@ def eval_threshold_rule(rule: dict, points: list[tuple[str, float]], rejected: l
         return evidence
 
     triggers = [(d, v) for d, v in in_window if _crossed(comparator, v, threshold)]
+    # 最新一期是否越阈——"窗口内曾经越阈"不等于"现在越阈"。
+    # replay 窗可以长达 96 个月，只看"窗口内存在越阈点"会把两年前的旧越阈当成当期告警。
+    evidence["latest_period"] = in_window[-1][0]
+    evidence["current_fired"] = bool(triggers) and triggers[-1][0] == in_window[-1][0]
     if triggers:
         trigger_date, trigger_value = triggers[-1]
         evidence.update({
@@ -682,6 +694,8 @@ def eval_yoy_diff_rule(rule: dict, comps: dict[str, list[tuple[str, float]]],
         return evidence
 
     triggers = [row for row in in_window if _crossed(comparator, row["value"], threshold)]
+    evidence["latest_period"] = in_window[-1]["date"]
+    evidence["current_fired"] = bool(triggers) and triggers[-1]["date"] == in_window[-1]["date"]
     if triggers:
         last_trig = triggers[-1]
         evidence.update({
@@ -809,6 +823,8 @@ def eval_zscore_series(rule: dict, series: dict, points: list[tuple[str, float]]
         return evidence
 
     triggers = [row for row in in_win_zs if comparator == "abs_gte" and abs(row["z"]) >= threshold]
+    evidence["latest_period"] = in_win_zs[-1]["date"]
+    evidence["current_fired"] = bool(triggers) and triggers[-1]["date"] == in_win_zs[-1]["date"]
     if triggers:
         last_trig = triggers[-1]
         evidence.update({

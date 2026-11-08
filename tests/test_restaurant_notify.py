@@ -210,3 +210,52 @@ def test_receipt_is_json_serialisable(smtp_env, tmp_path):
         now=ASOF, state_path=tmp_path / "s.json",
         smtp_factory=lambda h, p: _OkSMTP(h, p))
     assert json.loads(json.dumps(receipt, default=str))["sent"] == 1
+
+
+# ── 5. 历史越阈不是当期告警 ──────────────────────────────────────────
+
+
+def _run_ev(rule, concept, verdict="fired", current=None, latest="2026-10"):
+    ev = {"concept": concept, "verdict": verdict, "trigger_date": "2022-12",
+          "trigger_value": -14.1, "threshold": 0.0, "comparator": "lt",
+          "latest_period": latest}
+    if current is not None:
+        ev["current_fired"] = current
+    return {"rule": rule, "path": f"threshold-{rule}.json", "evidence": [ev]}
+
+
+def test_historical_crossing_is_stale_not_fired():
+    """96 个月回放窗里"曾经越阈"不等于"现在越阈"——否则旧越阈永不恢复。"""
+    states = restaurant.collect_rule_states([_run_ev("r1", "c1", current=False)])
+    assert states["r1|c1"]["state"] == "stale"
+
+
+def test_current_crossing_stays_fired():
+    states = restaurant.collect_rule_states([_run_ev("r1", "c1", current=True)])
+    assert states["r1|c1"]["state"] == "fired"
+
+
+def test_stale_does_not_alert_and_recovers_a_previous_fired(smtp_env, tmp_path):
+    state = tmp_path / "s.json"
+    # 先让它处于 fired
+    restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run_ev("r1", "c1", current=True)]), _cfg(),
+        dry_run=False, now=ASOF, state_path=state,
+        smtp_factory=lambda h, p: _OkSMTP(h, p))
+    # 下一轮变成历史越阈：应发"恢复"，不发新告警
+    smtp = _OkSMTP("h", 465)
+    receipt = restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run_ev("r1", "c1", current=False)]), _cfg(),
+        dry_run=False, now=ASOF, state_path=state, smtp_factory=lambda h, p: smtp)
+    assert receipt["alerts"] == []
+    assert receipt["recovers"] == ["r1|c1"]
+    assert "恢复" in smtp.sent[0]["Subject"]
+
+
+def test_stale_alone_sends_nothing(smtp_env, tmp_path):
+    """从未告知过的旧越阈，不该在首次接线时被当成新告警发出去。"""
+    receipt = restaurant.deliver_transitions(
+        restaurant.collect_rule_states([_run_ev("r1", "c1", current=False)]), _cfg(),
+        dry_run=False, now=ASOF, state_path=tmp_path / "s.json",
+        smtp_factory=lambda h, p: _OkSMTP(h, p))
+    assert receipt["sent"] == 0
