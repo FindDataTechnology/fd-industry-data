@@ -7,14 +7,40 @@
 
 | 规则 | 真实样本 | 证据 |
 |---|---|---|
-| `bank-penalty-new`（新增行政处罚） | **有** | cheap1 出口实跑 `nfra-penalty` → 40 行 / **15 份文书**，9 份归属到 9 家监控银行 |
-| `bank-disclosure-overdue`（披露逾期） | **无**（0 条逾期） | 实跑披露日历 → 2080 行**全部已披露**；逾期 0 |
+| `bank-penalty-new`（新增行政处罚） | **有（已上产）** | 集群 CronJob 实跑 → `crawl_runs` success / 100 行 / **39 份文书**；首次运行留痕 39 条，复跑 **0 新增** |
+| `bank-disclosure-overdue`（披露逾期） | **无**（0 条逾期） | 集群 CronJob 实跑 → 100 行**全部已披露**；逾期 0 |
 | 阈值 6 条（资本/一级/核心一级/杠杆/LCR/NSFR） | **无越线** | 5 家 × 6 条 = 30 条判定全部合规（quiet） |
 
 机制本身由 **48 条离线单测**证明（`tests/test_alerts_core.py` 16 + `tests/test_banking_alerts.py` 32），
 断言的是引擎行为；上表说的是**业务侧有没有真的触发过**，两者不混。
 
-## 2. 处罚源：为什么本机跑不了，cheap1 跑得通
+## 2. 上产状态（2026-11-08 13:0x 收口）
+
+两源**已进平台排期并跑通**（此前从未被调度，根因见 §2.6）：
+
+| 源 | CronJob | 首次运行 |
+|---|---|---|
+| `fd-industry-eastmoney-disclosure-plan` | `15 10 * * *` | success / 100 行 |
+| `fd-industry-nfra-penalty` | `15 13 * * *` | success / 100 行 |
+
+`crawl_sources` 两行已自动登记（`site=tencent`、`enabled=t`、排期一致）。
+**首次运行已把历史事件一次性入账**（处罚 39 份文书），之后只报新增——
+这样等 SMTP 配好时不会补发历史轰炸。
+
+### 2.6 为什么此前从未被调度（三个叠加原因）
+
+1. **两个 spider 目录从未入库**：`spiders/nfra-penalty`、`spiders/eastmoney-disclosure-plan`
+   在本地是未跟踪状态，gitee main 上没有，ApplicationSet 的 git 生成器看不到 ⇒
+   没有 Application ⇒ 没有 CronJob ⇒ `crawl_runs` 零记录。（提交 `3ed7321`）
+2. **`fd_industry_data/universes.py` 也未入库**：披露源在模块作用域 `from fd_industry_data
+   import universes`，运行镜像 `sha-750da3f` 早于该模块 ⇒ ImportError。（提交 `d279643` + `8c65624`）
+3. **chart 的 sparse-checkout 只检 `spiders/`**：`/content` 里没有 `fd_industry_data/`
+   与 `universes/`，兜底导入也无处可取 ⇒ 仍 ImportError。改为
+   `spiders/ fd_industry_data/ universes/` 后通过。（提交 `4650204`）
+
+教训：**「代码写了、测过、验收过」不等于「上产」**——它可能只是躺在工作树里没提交。
+
+## 2.5 处罚源：为什么本机跑不了，cheap1 跑得通
 
 - 本机（Mac）：`https://www.nfra.gov.cn/cbircweb/DocInfo/SelectDocByItemIdAndChild` → **403**（IP 级 WAF）
 - cheap1（`103.236.89.212`）：同 URL → **200**
