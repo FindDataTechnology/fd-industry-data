@@ -27,6 +27,14 @@
 **首次运行已把历史事件一次性入账**（处罚 39 份文书），之后只报新增——
 这样等 SMTP 配好时不会补发历史轰炸。
 
+### 2.55 通知去重（为什么不会日刷）
+
+- 阈值：同一 `(规则, 主体, 报告期)` 只发一次 firing；恢复发一次 resolved。
+- 事件：按幂等键（披露 `代码:报告类型:年度`、处罚 `doc_id`）去重，每份文书只报一次。
+- 首次 `--run` 已把历史处罚入账（39 份），故后续日巡检只报**新增**。
+- 演练语义：`--dry-run` **读状态、只不写回**，与真跑结论一致
+  （早先从空状态起算，演练每次报「新增 39 条」——演练不反映现实比没有演练更糟）。
+
 ### 2.6 为什么此前从未被调度（三个叠加原因）
 
 1. **两个 spider 目录从未入库**：`spiders/nfra-penalty`、`spiders/eastmoney-disclosure-plan`
@@ -120,8 +128,13 @@ export FD_CENTRAL_PG_DSN="postgresql://fd:<pwd>@100.64.0.3:30432/fd_open_data"
   通知模块原先只实现 `starttls()`，对这条真实通道根本连不上。已补 `use_ssl`
   （环境变量 `FD_ALERT_SMTP_SSL`），工作流置 `SSL=1 / TLS=0`。
 - 实弹：`dispatch(...)` 返回 `sent=1 failed=0`，收件人=发件人（不打扰第三方）
-- 当前状态：通道可用，但**默认仍不订阅**——`FD_ALERT_SMTP_TO` 配谁由业务方定，
-  未配置时一律记 `skipped`（不假装发过）
+- **收件人（2026-11-08 定）**：`1253774197@qq.com`、`aloadtree@gmail.com`，
+  写在 `config/banking-alerts.json` 的 `notify.recipients`——收件人属配置（可版本化），
+  凭据仍只走 env/Secrets。已实发验证 `sent=1 failed=0`。
+- **踩到的第二个坑**：`smtp_config_from_env()` 缺收件人时直接返回 `None`，所以「事后补
+  cfg.recipients」是徒劳——配置里的收件人形同虚设，且通知会被记成 `skipped`（看起来像
+  「没配通道」而不是「配了没用上」）。已改为**在构造 SmtpConfig 之前把配置收件人注入 env**。
+- 未配置凭据时仍一律 `skipped`，绝不假装发过
 
 ## 7. 未决
 

@@ -507,7 +507,15 @@ def main(argv: list[str] | None = None) -> int:
     written = append_events(EVENTS, events)
     save_state(STATE, states)
 
-    cfg_smtp: SmtpConfig | None = smtp_config_from_env()
+    # 收件人：env（FD_ALERT_SMTP_TO）优先，否则用配置里的名单。
+    # **必须在构造 SmtpConfig 之前注入**：smtp_config_from_env() 缺收件人会直接返回
+    # None，事后再改 cfg.recipients 是徒劳——踩过，配置里的收件人在流水线里形同虚设。
+    # 收件人是配置不是机密（可版本化），凭据仍只走 env/Secrets。
+    smtp_env = dict(os.environ)
+    configured_to = (cfg.get("notify") or {}).get("recipients") or []
+    if configured_to and not smtp_env.get("FD_ALERT_SMTP_TO"):
+        smtp_env["FD_ALERT_SMTP_TO"] = ",".join(configured_to)
+    cfg_smtp: SmtpConfig | None = smtp_config_from_env(smtp_env)
     result = dispatch(msgs, cfg_smtp)
     if result.get("failed"):
         append_events(EVENTS, [{"rule_id": f["rule_id"], "kind": "notify_failed",

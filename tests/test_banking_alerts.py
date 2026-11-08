@@ -268,6 +268,27 @@ def test_verdict_without_events_produces_no_message():
     assert msgs == []
 
 
+def test_config_recipients_injected_before_smtp_config_is_built():
+    """收件人兜底必须在构造 SmtpConfig **之前**注入。
+
+    踩过：smtp_config_from_env() 缺收件人直接返回 None，事后再改 cfg.recipients
+    是徒劳——配置里的收件人在流水线里形同虚设，而通知会被记成 skipped（看起来
+    「没配通道」而非「配了没用上」）。
+    """
+    import inspect
+    src = inspect.getsource(ba.main)
+    assert 'smtp_env["FD_ALERT_SMTP_TO"]' in src
+    assert "smtp_config_from_env(smtp_env)" in src
+    assert src.index('smtp_env["FD_ALERT_SMTP_TO"]') < src.index("smtp_config_from_env(smtp_env)")
+
+
+def test_repo_config_declares_notify_recipients():
+    """收件人是配置（可版本化），凭据才是机密——两者不能混在一处。"""
+    cfg = ba.load_config()
+    rec = (cfg.get("notify") or {}).get("recipients") or []
+    assert rec and all("@" in r for r in rec)
+
+
 # --- 配置纪律 -----------------------------------------------------------------
 
 def _write_cfg(tmp_path, **override):
