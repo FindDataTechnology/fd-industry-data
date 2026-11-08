@@ -104,7 +104,8 @@ def fetch_ratio_series(dsn: str, concepts: list[str]) -> dict:
     try:
         cur = conn.cursor()
         cur.execute(
-            "select c.code, e.code, coalesce(e.name_zh, e.code), o.date, o.value "
+            "select c.code, e.code, coalesce(e.name_zh, e.code), o.date, o.value, "
+            "       coalesce(o.source_used, 'unknown') "
             "from semantic_observations o "
             "join concepts c on c.id = o.concept_id "
             "join entities e on e.id = o.entity_id "
@@ -113,13 +114,15 @@ def fetch_ratio_series(dsn: str, concepts: list[str]) -> dict:
         rows = cur.fetchall()
     finally:
         conn.close()
-    for concept, entity, name, dt, raw in rows:
+    for concept, entity, name, dt, raw, src in rows:
         try:
             val = float(str(raw).replace(",", ""))
         except (TypeError, ValueError):
             continue
-        slot = out.setdefault((concept, entity), {"name": name or entity, "points": []})
+        slot = out.setdefault((concept, entity),
+                              {"name": name or entity, "points": [], "source_used": src})
         slot["points"].append((str(dt)[:10], val))
+        slot["source_used"] = src      # rows 按日期升序，最后一条即最新来源
     return out
 
 
@@ -182,6 +185,37 @@ def judge_health(source: str, runs: list[Run], now: datetime) -> SourceHealth:
     healthy = verdict.category is None and not verdict.needs_human
     return SourceHealth(source=source, healthy=healthy, category=verdict.category,
                         detail=verdict.rule_trace or verdict.suggested_action)
+
+
+def stale_ratio_sources(series: dict, *, today: date, max_lag_years: int = 1) -> set[str]:
+    """判断阈值数据源是否「够新」——按**财年**，不按日历天数。
+
+    为什么需要它：阈值规则的 ``depends_on`` 写的是 ``cn-report`` / ``eastmoney-f10``，
+    但健康级只检查 ``health.event_sources``（两个 crawl 源），两个集合交集为空 ⇒
+    降级逻辑**一次都不会触发**（2026-11-08 实测）。而这两个源没有 ``crawl_runs`` 可查
+    （它们由本机流水线/直连接口写入本体库），只能看「库里最新观测期」。
+
+    为什么不用天数：比率是**年频**，最新合法期就是上一个财年。用「30 天」会把当前
+    数据判成陈旧（实测：11-08 跑、最新期 2025-12-31 ⇒ 直接被误判）。
+    ``max_lag_years=1`` 表示：最新观测期不得早于「去年」——即 2026 年跑时最新期至少要是
+    2025 年。再旧就说明该源停更了。
+
+    某源整体没有观测时不算陈旧（那是「未覆盖」，由覆盖率口径表达），避免误降级。
+    """
+    if max_lag_years <= 0:
+        return set()
+    floor_year = today.year - max_lag_years
+    latest_by_source: dict[str, int] = {}
+    for slot in series.values():
+        src = slot.get("source_used") or "unknown"
+        for dt, _val in slot.get("points") or []:
+            try:
+                y = int(str(dt)[:4])
+            except ValueError:
+                continue
+            if y > latest_by_source.get(src, 0):
+                latest_by_source[src] = y
+    return {src for src, y in latest_by_source.items() if y < floor_year}
 
 
 def threshold_verdicts(cfg: dict, series: dict, states: dict, *, now: datetime,
@@ -516,9 +550,21 @@ def main(argv: list[str] | None = None) -> int:
     d_verdicts, states, d_counts = disclosure_verdicts(disclosure, states, today=today, now=now)
     p_verdicts, states, p_counts = penalty_verdicts(
         penalty, states, now=now, aliases=cfg.get("party_aliases"))
+    # 把两类「不健康」并起来：
+    #   ① 健康级判出的 crawl 源故障（事件源用）；
+    #   ② 阈值数据源**停更**（按财年判，见 stale_ratio_sources 的注释）。
+    # 少了②的话，depends_on 指向 cn-report/eastmoney-f10 的 6 条规则永远降不了级。
+    stale = stale_ratio_sources(series, today=today,
+                                max_lag_years=int((cfg.get("thresholds") or {})
+                                                  .get("max_lag_years", 1)))
+    if stale:
+        # 注意：降级只作用在「本会 firing」的判定上（没越阈就不该报），所以数据陈旧
+        # 且未越阈时你只会看到这行提示、判定仍是 quiet——那是**对的**，不是没生效。
+        print(f"阈值数据源停更（按财年判）：{sorted(stale)} —— 本次阈值判定基于陈旧数据，"
+              f"若越阈将降级为 pending 而非 firing")
     t_verdicts, states, cov = threshold_verdicts(
         cfg, series, states, now=now,
-        unhealthy_sources={h.source for h in unhealthy})
+        unhealthy_sources={h.source for h in unhealthy} | stale)
 
     all_verdicts = t_verdicts + d_verdicts + p_verdicts
     events = [e for v in all_verdicts for e in v.get("events") or []]
