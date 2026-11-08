@@ -35,9 +35,28 @@ HTML_DATA_MARKERS = ["<table", "<tbody", "<li", "<tr class", "datagrid", "data-t
 SPA_MARKERS = ['id="root"', 'id="app"', "window.__nuxt", "__next_data__", "ng-app",
                'id="___gatsby"', "window.__initial_state__"]
 
-# retest egress pool (design D1): name -> creds-file port
-EGRESS_PORTS = {"gost@30080": 30080, "fx01@30081": 30081,
-                "fx04@30084": 30084, "fx11@30091": 30091}
+# retest egress pool (design D1): name -> (host, port).
+# 2026-11-08: the mihomo fleet moved from xinru-server2 (100.64.0.7:3008x) to
+# windows-laptop (100.64.0.10:31081-31115); the three probes the L3 retest plan
+# used are remapped by position (31081=us01, 31084=us04, 31091=us11). gost@30080
+# is a different provider and stays on the mesh node.
+MIHOMO_HOST = os.environ.get("FD_MIHOMO_HOST", "100.64.0.10")
+GOST_HOST = os.environ.get("FD_GOST_HOST", "100.64.0.7")
+EGRESS_PORTS: dict[str, tuple[str, int]] = {
+    "gost@30080": (GOST_HOST, 30080),
+    "us01@31081": (MIHOMO_HOST, 31081),
+    "us04@31084": (MIHOMO_HOST, 31084),
+    "us11@31091": (MIHOMO_HOST, 31091),
+}
+# The current pool's credentials and the gost egress live in different files, so
+# the loader merges by port. Override with an os.pathsep-separated FD_PROXY_CREDS.
+CREDS_PATHS = [Path(p) for p in os.environ.get(
+    "FD_PROXY_CREDS",
+    os.pathsep.join([
+        str(Path.home() / ".finddata" / "mihomo-win-creds.json"),
+        str(Path.home() / ".finddata" / "proxy-creds.json"),
+    ]),
+).split(os.pathsep)]
 RETEST_VERDICTS = {"unreachable", "degraded"}   # pinned units for the retest
 
 
@@ -195,7 +214,8 @@ def probe_url(url: str, cred: dict | None = None, egress: str | None = None) -> 
               "error": None, "attempts": 1, "egress": egress}
     opener = urllib.request.build_opener()
     if cred:
-        proxy = f"http://{cred['user']}:{cred['pass']}@100.64.0.7:{cred['port']}"
+        host = cred.get("host") or MIHOMO_HOST
+        proxy = f"http://{cred['user']}:{cred['pass']}@{host}:{cred['port']}"
         opener = urllib.request.build_opener(
             urllib.request.ProxyHandler({"http": proxy, "https": proxy}))
     for attempt in (1, 2):
@@ -239,13 +259,27 @@ def cmd_probe_url(url: str) -> int:
 
 # --- retest (revision-2) -------------------------------------------------------
 def load_egress_pool() -> dict:
-    creds = json.loads(CREDS_PATH.read_text(encoding="utf-8"))
-    by_port = {c["port"]: c for c in creds}
-    pool = {name: by_port.get(port) for name, port in EGRESS_PORTS.items()}
+    """name -> {user, pass, port, host} merged across CREDS_PATHS by port.
+
+    Two files because the mihomo listeners (31081+) and the gost egress (30080)
+    are separate credentials assets; a missing file is skipped, and only a name
+    whose port appears in *none* of them is an error.
+    """
+    by_port: dict[int, dict] = {}
+    for path in CREDS_PATHS:
+        if not path.is_file():
+            continue
+        for c in json.loads(path.read_text(encoding="utf-8")):
+            if "port" in c and "user" in c:
+                by_port.setdefault(c["port"], c)
+    pool = {}
+    for name, (host, port) in EGRESS_PORTS.items():
+        if port in by_port:
+            pool[name] = {**by_port[port], "host": host}
     missing = [k for k, v in pool.items() if not v]
     if missing:
-        raise SystemExit(f"missing credentials for {missing} in {CREDS_PATH} "
-                         f"(or set FD_PROXY_CREDS)")
+        raise SystemExit(f"missing credentials for {missing} in "
+                         f"{[str(p) for p in CREDS_PATHS]} (or set FD_PROXY_CREDS)")
     return pool
 
 
@@ -257,11 +291,11 @@ def is_fred_family(domains: list[str], urls: list[str]) -> bool:
 def retest_egresses(domains: list[str], urls: list[str]) -> list[str]:
     """Ordered egress list per design D1/D3 routing rules."""
     if is_fred_family(domains, urls):
-        return ["fx01@30081", "fx04@30084"]          # egress-independent suspect: cap 2
+        return ["us01@31081", "us04@31084"]          # egress-independent suspect: cap 2
     cn = any(d.endswith(".cn") for d in domains)
     if cn:
-        return ["gost@30080", "fx01@30081"]          # CN-hosted: CN egress first
-    return ["fx01@30081", "fx04@30084", "fx11@30091", "gost@30080"]
+        return ["gost@30080", "us01@31081"]          # CN-hosted: CN egress first
+    return ["us01@31081", "us04@31084", "us11@31091", "gost@30080"]
 
 
 def cmd_retest_plan(n_shards: int) -> int:
