@@ -5,7 +5,139 @@
     "seen": [],
     "state": "quiet"
   },
+  "bank-capital-adequacy:001227": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:002142": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:002807": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:002839": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:002936": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:002948": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:002958": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:002966": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:600000": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:600015": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:600016": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
   "bank-capital-adequacy:600036": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:600908": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:600919": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:600926": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:600928": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601009": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601077": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601128": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601166": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601169": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601187": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601229": {
     "episode": 0,
     "last_key": "2025-12-31",
     "seen": [],
@@ -17,13 +149,103 @@
     "seen": [],
     "state": "quiet"
   },
+  "bank-capital-adequacy:601328": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
   "bank-capital-adequacy:601398": {
     "episode": 0,
     "last_key": "2025-12-31",
     "seen": [],
     "state": "quiet"
   },
+  "bank-capital-adequacy:601528": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601577": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601658": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601665": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601818": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601825": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601838": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601860": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601916": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
   "bank-capital-adequacy:601939": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601963": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601988": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601997": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:601998": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-capital-adequacy:603323": {
     "episode": 0,
     "last_key": "2025-12-31",
     "seen": [],
@@ -801,7 +1023,139 @@
     "seen": [],
     "state": "quiet"
   },
+  "bank-tier1-adequacy:001227": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:002142": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:002807": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:002839": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:002936": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:002948": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:002958": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:002966": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:600000": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:600015": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:600016": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
   "bank-tier1-adequacy:600036": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:600908": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:600919": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:600926": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:600928": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601009": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601077": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601128": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601166": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601169": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601187": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601229": {
     "episode": 0,
     "last_key": "2025-12-31",
     "seen": [],
@@ -813,13 +1167,103 @@
     "seen": [],
     "state": "quiet"
   },
+  "bank-tier1-adequacy:601328": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
   "bank-tier1-adequacy:601398": {
     "episode": 0,
     "last_key": "2025-12-31",
     "seen": [],
     "state": "quiet"
   },
+  "bank-tier1-adequacy:601528": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601577": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601658": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601665": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601818": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601825": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601838": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601860": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601916": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
   "bank-tier1-adequacy:601939": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601963": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601988": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601997": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:601998": {
+    "episode": 0,
+    "last_key": "2025-12-31",
+    "seen": [],
+    "state": "quiet"
+  },
+  "bank-tier1-adequacy:603323": {
     "episode": 0,
     "last_key": "2025-12-31",
     "seen": [],
