@@ -3,7 +3,7 @@
   "description": "美股酒店公司全系统 RevPAR 同比转负（逐家评估，不跨公司合并）",
   "asof": "2026-11-08",
   "replay_from": "2024-11-01",
-  "generated_at": "2026-11-08T08:06:31.132711+00:00",
+  "generated_at": "2026-11-08T17:55:58.169410+00:00",
   "config": "config/restaurant-alerts.json",
   "evidence": [
     {
