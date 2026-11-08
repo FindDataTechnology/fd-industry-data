@@ -855,6 +855,11 @@ def cmd_rules(cur, cfg: dict, outdir: Path, now: datetime, dry_run: bool,
 
     # 投递：边缘触发的 alert / recover 各报一次（状态机保证不重复）。
     # 这里之前什么都没有——"只落仓不推送"，等于规则越阈只有写报告的人知道。
+    # 已知取舍（刻意写在这里，免得后来人以为没想过）：
+    # 状态机在上面已经前进了，若本轮投递失败，下一轮不会为同一次越阈重发——
+    # 「不重复打扰」优先于「保证送达」。补偿是 exit 4 判红 + 报告 notify 段记录失败原因，
+    # 人可以重跑。若将来要求"未送达自动重发"，需要把状态推进改成按条成功才推进
+    # （见 openspec change wire-alert-delivery 的 3.5）。
     receipt = deliver_notifications(notify_items, cfg, dry_run=dry_run, now=now)
     if receipt.get("failed"):
         # 4 = 有通知发送失败。不与 1（有规则越阈，预期语义）混用：
