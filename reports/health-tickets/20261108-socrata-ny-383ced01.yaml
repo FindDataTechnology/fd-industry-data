@@ -1,0 +1,50 @@
+ticket_id: 20261108-socrata-ny-383ced01
+source: socrata-ny
+unit: spiders/socrata-ny/
+kind: repair
+created_at: '2026-11-08T22:52:25.169742+00:00'
+category: contract
+needs_human: false
+suspected_anti_bot: true
+suggested_action: 更换数据表面（官方 API/替代入口）或退役；禁止逆向
+evidence:
+  window:
+    from: '2026-10-10 21:03:05.948763+00'
+    to: '2026-11-06 10:04:04.941486+00'
+  failing_runs:
+  - started_at: '2026-11-06 07:27:01.781061+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: socrata-ny: 请求失败 https://data.ny.gov/resource/k7gz-mn77.json?%24limit=900&%24order=date+DESC:
+      HTTPError: HTTP Error 403: Forbidden'
+    http_status: null
+  - started_at: '2026-11-06 07:27:17.061567+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: socrata-ny: 请求失败 https://data.ny.gov/resource/k7gz-mn77.json?%24limit=900&%24order=date+DESC:
+      HTTPError: HTTP Error 403: Forbidden'
+    http_status: null
+  - started_at: '2026-11-06 10:04:04.941486+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: socrata-ny: 请求失败 https://data.ny.gov/resource/k7gz-mn77.json?%24limit=20&%24order=date+DESC:
+      HTTPError: HTTP Error 403: Forbidden'
+    http_status: null
+  last_success:
+    started_at: '2026-11-02 21:03:04.97908+00'
+    rows: 100
+  watermark:
+    latest: null
+    basis: unknown（遥测未提供数据期；最近成功时间见 evidence.last_success）
+  notes: 'rule3:anti-bot run#1/3 http_status=None error=''RuntimeError: socrata-ny:
+    请求失败 https://data.ny.gov/resource/k7gz-mn77.json?%24limit=900&%24order=date+DESC:
+    HTTPError: …'''
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261108-socrata-ny-383ced01.yaml
+golden:
+- spiders/socrata-ny/golden/001-socrata-ny.json
+lifecycle:
+- at: '2026-11-08T22:52:25.169742+00:00'
+  event: created
+terminal: null
