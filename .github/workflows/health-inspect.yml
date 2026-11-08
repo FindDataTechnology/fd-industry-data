@@ -67,6 +67,40 @@ jobs:
           python3 scripts/adjudicate.py summary >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
           python3 scripts/adjudicate.py list
 
+      # 看门狗：告警系统自己停了，没人会知道——沉默与「没有事件」长得一样。
+      # 为什么放这里：health-inspect 与 banking-alerts 是两个独立工作流，前者坏不会
+      # 连累后者；反过来 banking-alerts 停摆时，这一步仍在跑，于是能发现它。
+      # 只看「最近一次报告日期」这一个可复核事实，不推测原因。
+      # continue-on-error：看门狗红了不该拖垮巡检主流程（它只是信号源）。
+      - name: Watchdog — 银行告警是否还在按期出报告
+        working-directory: src
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          LIMIT_DAYS="${FD_ALERT_STALE_DAYS:-3}"
+          latest=$(ls -1d reports/banking-alerts/*/ 2>/dev/null \
+                   | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | sort | tail -1)
+          if [ -z "$latest" ]; then
+            echo "::error title=银行告警从未产出::reports/banking-alerts/ 下没有任何日期目录"
+            echo "### 银行告警：从未产出报告" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+            exit 1
+          fi
+          age=$(( ( $(date -u +%s) - $(date -u -d "$latest" +%s) ) / 86400 ))
+          echo "最近一次银行告警报告：$latest（$age 天前，阈值 ${LIMIT_DAYS} 天）"
+          if [ "$age" -gt "$LIMIT_DAYS" ]; then
+            echo "::error title=银行告警已停摆::$latest 距今 $age 天（阈值 ${LIMIT_DAYS}）"
+            {
+              echo "### 银行告警：已 $age 天没有报告（阈值 ${LIMIT_DAYS} 天）"
+              echo ""
+              echo "沉默**不等于**没有事件。按序排查："
+              echo "1. \`gh run list --workflow banking-alerts.yml\` 最近几次的结论；"
+              echo "2. 结论 success 但没写报告 ⇒ 看日志里有没有 exit 3（缺 DSN 或缺 SELECT 权限）；"
+              echo "3. 工作流根本没被调度 ⇒ GitHub 会因长期无活动停用 schedule 工作流，重启用即可。"
+            } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+            exit 1
+          fi
+          echo "看门狗：正常"
+
       - name: Inspector (emit) — 只落单不投递
         working-directory: src
         env:
