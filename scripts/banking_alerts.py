@@ -528,6 +528,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"阈值级: {len(t_verdicts)} 条判定 | 覆盖 {cov['covered']} 家"
           f" / 宇宙 {(cfg.get('monitored_universe') or {}).get('size')}")
     print(f"事件级: 披露 {d_counts} | 处罚 {p_counts}")
+    # 把「状态里已记账多少」打到日志里：状态文件跨运行持久，一旦被回退/换机，
+    # 历史事件会被当成新增重新推一遍（配了 SMTP 就是补发历史）。数字摆在输出里，
+    # 才能在动状态之前看出它是不是比预期小。
+    seen_penalty = len((states.get("bank-penalty-new") or {}).get("seen") or [])
+    seen_disc = sum(1 for k in states if k.startswith("bank-disclosure-overdue:"))
+    print(f"状态快照: 处罚已记账 {seen_penalty} 份文书 | 披露已记账 {seen_disc} 个报告期")
     print(f"事件 {len(events)} 条 | 待发通知 {len(msgs)} 条")
 
     if args.dry_run:
