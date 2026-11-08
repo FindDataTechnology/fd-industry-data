@@ -3,7 +3,7 @@
   "description": "星级饭店 RevPAR 同比转负（< 0%）——量价同时走弱的最直接读数",
   "asof": "2026-11-08",
   "replay_from": "2024-11-01",
-  "generated_at": "2026-11-08T08:02:39.629996+00:00",
+  "generated_at": "2026-11-08T08:06:30.799856+00:00",
   "config": "config/restaurant-alerts.json",
   "evidence": [
     {
