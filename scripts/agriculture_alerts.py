@@ -79,7 +79,14 @@ def connect(dsn: str | None = None):
     """只读连接。优先 psycopg3，回退 psycopg2（与既有脚本同口径）。"""
     value = dsn or os.environ.get("FD_OPEN_DATA_DSN", "")
     if not value:
-        raise SystemExit("ERROR: FD_OPEN_DATA_DSN 未设置（先 `source ~/.config/finddata/dashboards.env`）")
+        # 退出码 3 = 环境不满足（工作流按 warning 处理）。
+        # 不能 `raise SystemExit("字符串")`：那样退出码是 1，与「有规则越阈=1」撞车，
+        # 于是"连库都没连上"会被读成"有规则越阈（预期）"，job 反而报绿（2026-11-08 CI 实测）。
+        print(
+            "ERROR: FD_OPEN_DATA_DSN 未设置（先 `source ~/.config/finddata/dashboards.env`）",
+            file=sys.stderr,
+        )
+        raise SystemExit(3)
     try:
         import psycopg  # noqa: PLC0415
         conn = psycopg.connect(value, connect_timeout=40)

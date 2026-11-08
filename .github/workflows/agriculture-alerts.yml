@@ -54,6 +54,9 @@ jobs:
       - name: Evaluate (阈值级 / 事件级)
         working-directory: src
         env:
+          # 脚本读的是 FD_OPEN_DATA_DSN（不是 FD_CENTRAL_PG_DSN）。两个都注入：
+          # 只给 CENTRAL 会让脚本在 connect() 处因「未设置」退出 3（CI 实测 2026-11-08）。
+          FD_OPEN_DATA_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
           FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
           FD_ALERT_SMTP_HOST: ${{ secrets.FD_ALERT_SMTP_HOST }}
           FD_ALERT_SMTP_PORT: ${{ secrets.FD_ALERT_SMTP_PORT }}
