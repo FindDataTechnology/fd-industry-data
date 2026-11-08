@@ -110,10 +110,23 @@ export FD_CENTRAL_PG_DSN="postgresql://fd:<pwd>@100.64.0.3:30432/fd_open_data"
 .venv/bin/python -m pytest tests/test_alerts_core.py tests/test_banking_alerts.py -q
 ```
 
+## 6.5 邮件通道（已用真实通道验过）
+
+- 通道 = 本舰队既有的阿里云 DirectMail（**与 Logto 发验证码同一条**）：
+  `smtpdm.aliyun.com:465`、发件人 `support@finddatatech.cloud`
+- 凭据来源：`fd-prod/wire-mail-secrets`（`smtp_host` / `smtp_user` / `smtp_password`），
+  运行时注入，**不落盘**
+- **踩到的坑**：465 是**隐式 TLS**（`smtplib.SMTP_SSL`），不是 STARTTLS。
+  通知模块原先只实现 `starttls()`，对这条真实通道根本连不上。已补 `use_ssl`
+  （环境变量 `FD_ALERT_SMTP_SSL`），工作流置 `SSL=1 / TLS=0`。
+- 实弹：`dispatch(...)` 返回 `sent=1 failed=0`，收件人=发件人（不打扰第三方）
+- 当前状态：通道可用，但**默认仍不订阅**——`FD_ALERT_SMTP_TO` 配谁由业务方定，
+  未配置时一律记 `skipped`（不假装发过）
+
 ## 7. 未决
 
-- 处罚源**尚未纳入平台排期**（`crawl_runs` 里仍无该源的运行记录）；目前只能手工从 cheap1 跑。
-  要让它自动跑，需在调度侧允许 cheap1 出口（或加节点亲和）——属基建面，未动。
+- ~~处罚源尚未纳入平台排期~~ **已解决**：两个源均已进排期并成功运行（见 §2）。
+  本机 403 的问题不影响上产——集群 tencent 出口对两个端点均 200。
 - `party_aliases` 现覆盖 15 家大行/股份行全称；城商行/农商行（如 600919 江苏、002142 宁波）
   只在部分文书出现，遇新主体应**补别名表**而不是放宽匹配规则。
 - 阈值层 5/42 的覆盖要扩，属 B 线「比率抽取扩面」议题，不在本线。
