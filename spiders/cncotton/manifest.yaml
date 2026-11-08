@@ -7,7 +7,7 @@ source_url: http://www.chinacotton.org/articleList.aspx?sort=6
 # 非政府统计部门、非行业协会、非商业报价聚合商）。报告内数值为转述 USDA 官方预测 +
 # 自有进口统计，故只作参考序列，不作阈值预警判据。
 authority: industry
-# 不写 schedule：先静默合入（点亮时才补 cron）
+# 2026-11-08 点亮：月更。上游列表页最新一期 2025-08（已停更），5 号继续探，恢复即接上
 schedule: 25 6 5 * *
 data_period: month
 scanner_mode: upstream-curated

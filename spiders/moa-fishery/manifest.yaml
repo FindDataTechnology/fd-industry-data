@@ -4,6 +4,7 @@ label: 农业农村部渔业渔政管理局水产品产量（月度累计 + 年�
 source_url: https://yyj.moa.gov.cn/gzdt/
 # authority: official —— 农业农村部渔业渔政管理局本级发布
 authority: official
+# 2026-11-08 点亮：月更
 schedule: 40 6 7 * *
 data_period: month
 scanner_mode: upstream-curated

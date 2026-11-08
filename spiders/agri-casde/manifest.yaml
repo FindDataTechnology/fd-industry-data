@@ -5,7 +5,8 @@ source_url: https://www.agri.cn/sj/gxxs/
 # authority: official —— 农业农村部市场预警专家委员会（CASDE）本级发布
 authority: official
 # site: tencent  （缺省即 tencent；国内站，脚本内自行禁用代理）
-# 不写 schedule：先静默合入（点亮时才补 cron）。月更，每月 9—12 日发布。
+# 月更，每月 9–12 日发布；排期 3 号留出发布滞后余量（2026-11-08 点亮）
+# 2026-11-08 点亮：月更，3 号抓（源每月 9–12 日发布，留滞后余量）
 schedule: 10 6 3 * *
 data_period: month
 scanner_mode: upstream-curated

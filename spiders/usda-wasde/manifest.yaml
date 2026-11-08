@@ -5,7 +5,8 @@ source_url: https://usda.gov/oce/commodity/wasde/
 # authority: official —— 美国农业部（USDA）本级发布
 authority: official
 # site: 不写（海外直连；spider 内显式空代理表）
-# 不写 schedule：先静默合入（点亮时才补 cron）。月更，每月 9—12 日发布。
+# 月更，每月 9–12 日发布；排期 9 号（2026-11-08 点亮）
+# 2026-11-08 点亮：月更，9 号抓
 schedule: 55 6 9 * *
 data_period: month
 scanner_mode: upstream-curated

@@ -5,7 +5,8 @@ source_url: https://njhs.moa.gov.cn/nyjxhqk/
 # authority: official —— 农业农村部农业机械化管理司本级发布
 authority: official
 # site: tencent              # 缺省 tencent；国内源直连，spider 显式禁用代理（ProxyHandler({})）
-# schedule: 不写——年度源，静默合入，cron 待后续单独决策
+# 年度源；2026-11-08 点亮，每年 4 月 15 日抓（年报季）
+# 2026-11-08 点亮：年度源，4 月 15 日抓年报季
 schedule: 25 7 15 4 *
 data_period: year            # 年度：每年一期统计公报（可见 2022–2025 四期）
 scanner_mode: upstream-curated

@@ -5,7 +5,8 @@ source_url: https://www.fert.cn/10005/
 # authority: industry —— 中肥网是商业门户/产业媒体，不是行业协会；绝不标 association。
 # 口径红线：本单元产出只作成本链参考序列，不得作为预警判据。
 authority: industry
-# 不写 schedule：先静默合入（点亮时才补 cron），遵循 unified-source-onboarding 契约。
+# 月更；2026-11-08 点亮，遵循 unified-source-onboarding 契约
+# 2026-11-08 点亮：月更
 schedule: 10 7 11 * *
 data_period: month
 scanner_mode: upstream-curated
