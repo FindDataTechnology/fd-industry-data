@@ -1,9 +1,9 @@
 {
-  "at": "2026-11-07T22:43:31.676477+00:00",
+  "at": "2026-11-08T22:52:38.412604+00:00",
   "source": "psql",
   "config_source": "file:config/health-scope.json",
-  "sources_seen": 117,
-  "healthy": 84,
+  "sources_seen": 125,
+  "healthy": 92,
   "written": [],
   "deferred": [],
   "skipped_unknown_period": [
@@ -27,7 +27,7 @@
       "ticket": "20261107-amis-market-0b865e05.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 2,
+      "attempt": 3,
       "http_status": 401,
       "response": "\"Authentication required\""
     },
@@ -35,7 +35,7 @@
       "ticket": "20261107-gdacs-1457bc7b.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 2,
+      "attempt": 3,
       "http_status": 401,
       "response": "\"Authentication required\""
     },
@@ -43,7 +43,7 @@
       "ticket": "20261107-iea-ev-037aca88.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 2,
+      "attempt": 3,
       "http_status": 401,
       "response": "\"Authentication required\""
     },
@@ -51,7 +51,7 @@
       "ticket": "20261107-nasa-firms-bd40ec7f.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 2,
+      "attempt": 3,
       "http_status": 401,
       "response": "\"Authentication required\""
     },
@@ -59,12 +59,42 @@
       "ticket": "20261107-socrata-chicago-a563e620.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 2,
+      "attempt": 3,
+      "http_status": 401,
+      "response": "\"Authentication required\""
+    },
+    {
+      "ticket": "20261108-socrata-ny-383ced01.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 401,
+      "response": "\"Authentication required\""
+    },
+    {
+      "ticket": "20261108-steam-ccu-a38fd184.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
       "http_status": 401,
       "response": "\"Authentication required\""
     }
   ],
   "status": [
+    {
+      "ticket": "20261108-socrata-ny-383ced01.yaml",
+      "http_status": 401,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261108-steam-ccu-a38fd184.yaml",
+      "http_status": 401,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
     {
       "ticket": "20261107-amis-market-0b865e05.yaml",
       "http_status": 401,
