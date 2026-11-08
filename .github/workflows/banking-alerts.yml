@@ -64,6 +64,8 @@ jobs:
           FD_ALERT_SMTP_USER: ${{ secrets.FD_ALERT_SMTP_USER }}
           FD_ALERT_SMTP_PASS: ${{ secrets.FD_ALERT_SMTP_PASS }}
           FD_ALERT_SMTP_FROM: ${{ secrets.FD_ALERT_SMTP_FROM }}
+          # 收件人默认取 config/banking-alerts.json 的 notify.recipients；
+          # 只有在需要临时改投时才设这个 secret 覆盖。
           FD_ALERT_SMTP_TO: ${{ secrets.FD_ALERT_SMTP_TO }}
           # 阿里云 DirectMail（本舰队 Logto 用的同一条邮件通道）走 465 隐式 TLS，
           # 必须 SMTP_SSL；只实现 STARTTLS 会连不上。
