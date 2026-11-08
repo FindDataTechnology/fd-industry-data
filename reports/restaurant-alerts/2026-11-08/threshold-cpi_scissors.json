@@ -3,7 +3,7 @@
   "description": "美国外食 CPI 同比 − 在家食品 CPI 同比 的剪刀差（百分点），绝对值跨阈",
   "asof": "2026-11-08",
   "replay_from": "2018-11-01",
-  "generated_at": "2026-11-08T08:33:41.898165+00:00",
+  "generated_at": "2026-11-08T17:15:04.690171+00:00",
   "config": "config/restaurant-alerts.json",
   "evidence": [
     {
