@@ -1,0 +1,40 @@
+{
+  "at": "2026-11-08T08:19:49.904086+00:00",
+  "base_date": "2026-11-08",
+  "scanned": 0,
+  "new": 0,
+  "rules": [
+    {
+      "name": "earnings_forecast",
+      "label": "业绩预告",
+      "verdict": "no_sample",
+      "status_text": "暂无样本",
+      "no_sample_reason": "农业宇宙未解锁（8.1 segment 无真源、8.2/8.3 未完成），且业绩预告属财报车道；库内无农业公司业绩预告/快报事件源。",
+      "unlock": "完成农业宇宙注册（8.1–8.3）并接入公司公告车道（SEC 8-K / 交易所业绩预告）后，按 monitored universe 过滤并置 enabled=true。"
+    },
+    {
+      "name": "animal_disease_event",
+      "label": "动物疫病事件",
+      "verdict": "no_sample",
+      "status_text": "暂无样本",
+      "no_sample_reason": "库内无在册动物疫病事件源；FAO EMPRES-i 未接，看板已显式标注不可得。",
+      "unlock": "接入农业农村部兽医局疫情通报（或 FAO EMPRES-i 结构化事件面）后置 enabled=true；只登记真实通报，不以构造样本验证。"
+    },
+    {
+      "name": "production_region_disaster",
+      "label": "产区灾害",
+      "verdict": "no_sample",
+      "status_text": "暂无样本",
+      "no_sample_reason": "库内无在册产区灾害事件源；GDACS 灾害/火点未接，看板已显式标注不可得。",
+      "unlock": "接入农业农村部灾情调度或 GDACS 灾害/火点事件面，并叠加国内主产区边界后置 enabled=true；只有落在主产区才升级，其他记观察级。"
+    },
+    {
+      "name": "reserve_and_quota_policy",
+      "label": "收储与进口配额政策",
+      "verdict": "no_sample",
+      "status_text": "暂无样本",
+      "no_sample_reason": "库内无在册政策公告源（发改委收储公告、商务部/海关进口配额与关税调整公告均未接）。",
+      "unlock": "接入发改委收储公告与商务部/海关进口配额、关税调整公告的结构化事件面后置 enabled=true；政策原文为准，不做二手转述。"
+    }
+  ]
+}
