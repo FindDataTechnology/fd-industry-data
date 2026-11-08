@@ -757,7 +757,12 @@ def deliver_notifications(items: list[dict], cfg: dict, *, dry_run: bool,
         receipt["reason"] = "dry-run（不发送）"
         return receipt
 
-    cfg_smtp = alert_notify.smtp_config_from_env()
+    # 收件人来自配置（版本化），所以不能用"要求 env 带 TO"的构造函数：
+    # 那会让"配置里写了收件人、env 没设 TO"被判成无通道（2026-11-08 踩到）。
+    recipients = _notify_targets(cfg)
+    from fd_industry_data.alerts_core.delivery import smtp_from_env  # noqa: PLC0415
+
+    cfg_smtp = smtp_from_env(recipients=recipients)
     if cfg_smtp is None:
         receipt["skipped"] = len(items)
         receipt["reason"] = ("no-smtp-config：缺 FD_ALERT_SMTP_HOST/FROM/TO；"
@@ -765,7 +770,6 @@ def deliver_notifications(items: list[dict], cfg: dict, *, dry_run: bool,
         print(f"通知：跳过 {len(items)} 条 —— {receipt['reason']}")
         return receipt
 
-    recipients = _notify_targets(cfg) or cfg_smtp.recipients
     cfg_smtp.recipients = recipients
     for item in items:
         res = item["result"]

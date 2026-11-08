@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "description": "餐饮垂直线波4 阈值级预警规则（add-restaurant-vertical 5.2）。每条规则的参数显式声明；评估器 scripts/restaurant_alerts.py 只读 semantic_observations（SELECT only），不做插值、不补零。",
+  "defaults": {
+    "asof": null,
+    "replay_from": null,
+    "replay_months": 36,
+    "outdir": "reports/restaurant-alerts",
+    "ledger": "reports/restaurant-alerts/state/events.jsonl",
+    "escalations": "reports/restaurant-alerts/state/escalations.jsonl",
+    "events_window_days": 730
+  },
+  "events": {
+    "description": "事件级（5.3）：财报日历 = sec-edgar-facts 的 10-Q/10-K event 行 + hkex-disclosure 的 ann_type=results；盈警 = hkex-disclosure 的 ann_type ∈ {profit-warning, profit-alert}；抽检不合格 = samr-food-inspection 的 result_category=unqualified AND restaurant_related=true。",
+    "financial_forms_sec": [
+      "10-Q",
+      "10-K"
+    ],
+    "hkex_results_types": [
+      "results"
+    ],
+    "hkex_profit_warning_types": [
+      "profit-warning",
+      "profit-alert"
+    ],
+    "samr_result_category": "unqualified"
+  },
+  "rules": [
+    {
+      "name": "catering_yoy_negative",
+      "enabled": true,
+      "kind": "threshold",
+      "description": "餐饮收入当月同比转负（< 0%）",
+      "concept": "retail.cn.catering.yoy",
+      "source_used": "nbs-stats",
+      "entity_type": "country",
+      "entity_id": 1,
+      "periodicity": "monthly",
+      "unit": "percent",
+      "comparator": "lt",
+      "threshold": 0.0,
+      "replay_months": 96,
+      "structural_gaps": {
+        "months": [
+          "01",
+          "02"
+        ],
+        "reason": "NBS 不单独发布 1/2 月分月社零/餐饮（两月合并公布），属 not_applicable，不插值"
+      }
+    },
+    {
+      "name": "cpi_scissors",
+      "enabled": true,
+      "kind": "yoy_diff",
+      "description": "美国外食 CPI 同比 − 在家食品 CPI 同比 的剪刀差（百分点），绝对值跨阈",
+      "concept": "price.cpi.us.food_away_from_home - price.cpi.us.food_at_home",
+      "source_used": "fred-cpi",
+      "periodicity": "monthly",
+      "unit": "percentage_points",
+      "comparator": "abs_gte",
+      "threshold": 2.0,
+      "yoy_lag_months": 12,
+      "replay_months": 96,
+      "min_history": 13,
+      "components": [
+        {
+          "key": "food_away_from_home",
+          "concept": "price.cpi.us.food_away_from_home",
+          "source_used": "fred-cpi",
+          "entity_type": "country",
+          "entity_id": 2
+        },
+        {
+          "key": "food_at_home",
+          "concept": "price.cpi.us.food_at_home",
+          "source_used": "fred-cpi",
+          "entity_type": "country",
+          "entity_id": 2
+        }
+      ]
+    },
+    {
+      "name": "price_spike",
+      "enabled": true,
+      "kind": "rolling_zscore",
+      "description": "高波动食品投入品价格尖峰：滚动 z-score（不含当前点）绝对值跨阈；窗口按观测条数计（非日历天）",
+      "unit": "zscore",
+      "comparator": "abs_gte",
+      "threshold": 2.5,
+      "replay_months": 24,
+      "min_history": 24,
+      "series": [
+        {
+          "key": "coffee_icip",
+          "concept": "price.coffee.icip.daily",
+          "source_used": "ico-coffee-price",
+          "entity_type": "country",
+          "entity_id": 300932,
+          "periodicity": "daily",
+          "z_window": 30,
+          "min_history": 24,
+          "gap_note": "ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录"
+        },
+        {
+          "key": "palm_oil_imf",
+          "concept": "price.palm_oil.imf.monthly",
+          "source_used": "imf-pcps",
+          "entity_type": "country",
+          "entity_id": 300932,
+          "periodicity": "monthly",
+          "z_window": 12,
+          "min_history": 24
+        },
+        {
+          "key": "pork_wholesale",
+          "concept": "agri.pork.price.wholesale",
+          "source_used": "moa-hog-price",
+          "entity_type": "country",
+          "entity_id": 1,
+          "periodicity": "weekly",
+          "z_window": 12,
+          "min_history": 24,
+          "gap_note": "周序列按 7 天步长核对连续周；当前库内仅 15 周（2026-07-20 起），未达 min_history=24，判 n/a 而非编造阈值"
+        }
+      ]
+    }
+  ],
+  "label": "餐饮线",
+  "delivery": {
+    "channel": "smtp",
+    "to": [
+      "1253774197@qq.com",
+      "aloadtree@gmail.com"
+    ],
+    "min_severity": "warning",
+    "_note": "收件人属配置（可版本化、非机密）；凭据走 Secrets/env。env FD_ALERT_SMTP_TO 非空时以 env 为准。投递只在越阈集合变化时发生（新增=告警，消失=恢复）。"
+  }
+}
