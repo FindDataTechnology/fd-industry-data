@@ -52,7 +52,13 @@ def load_runs_from_snapshot(path: str | Path) -> list[dict]:
 #: 遥测行的合法状态。用作"这行是不是一条遥测"的判据——比列数更硬：
 #: psql 的 `-At` 输出里混进任何非表格文本（驱动告警、连接池报错、Node 调用栈），
 #: 列数补齐后都能伪装成一条记录，但它的第 2 列不会是这四个词之一。
-_KNOWN_STATUS = frozenset({"success", "failed", "cancelled", "partial"})
+_KNOWN_STATUS = frozenset({"success", "failed", "cancelled", "partial",
+                           # `running` 也是合法遥测：这条 run 已经开了但还没结束。
+                           # 不认它会把"正在跑"误报成"非遥测输出"——2026-11-09 实测
+                           # 真实库里就有一条（education_podcast，开了 10 小时尚未收尾）。
+                           # 认了不等于判它：`triage.REACHED` 不含 running，
+                           # `_trailing_failed` 只认 failed，所以它只作为记录存在、不参与判词。
+                           "running"})
 
 
 def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql") -> list[dict]:

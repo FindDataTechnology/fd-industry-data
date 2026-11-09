@@ -183,3 +183,16 @@ def test_partial_truncated_by_limit_is_also_skipped():
             _run(2, status="partial", rows=20, limit=20)]
     v = triage.classify("src", "spiders/src/", DAY, runs, NOW, min_rows_per_run=25)
     assert v.category is None, v.rule_trace
+
+
+def test_running_is_valid_telemetry_but_never_judged():
+    """`running` 是"开了还没收尾"，不是非遥测，也不是失败。
+
+    实证（2026-11-09）：真实库里 `education_podcast` 有一条 running（开了约 10 小时）。
+    把状态校验写成只认四种会把它当"非遥测输出"丢弃——那是在撒谎；
+    但认了它也不能让它顶替"最近一次成功"，否则一个卡住的 run 会让源看起来健康。
+    """
+    runs = [_run(30, rows=100), _run(1, status="running", rows=0)]
+    v = triage.classify("src", "spiders/src/", DAY, runs, NOW)
+    assert v.category is None
+    assert "last_success_age=30.00h" in v.rule_trace, "running 不该顶替 last_success"

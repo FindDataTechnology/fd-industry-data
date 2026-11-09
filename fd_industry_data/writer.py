@@ -182,7 +182,8 @@ def finish_run(run_id: int, *, status, finished_at, rows_written,
                        SET status=%s, finished_at=to_timestamp(%s),
                            rows_written=%s, error_head=%s, metrics=%s
                        WHERE id=%s""",
-                    (status, finished_at, rows_written, error_head,
+                    (status, finished_at, rows_written,
+                     sanitize_error_head(error_head),
                      json.dumps(metrics, ensure_ascii=False) if metrics else None,
                      run_id),
                 )
@@ -358,7 +359,8 @@ def report_run(*, source, kind, status, started_at, finished_at, rows_written,
                        VALUES (%s,%s,%s,to_timestamp(%s),to_timestamp(%s),%s,%s,%s,%s,%s)
                        RETURNING id""",
                     (source, kind, status, started_at, finished_at,
-                     rows_written, error_head, commit_sha, image_tag,
+                     rows_written, sanitize_error_head(error_head),
+                     commit_sha, image_tag,
                      json.dumps(metrics, ensure_ascii=False) if metrics else None),
                 )
                 run_id = cur.fetchone()[0]
@@ -377,8 +379,31 @@ def report_run(*, source, kind, status, started_at, finished_at, rows_written,
                     conn.close()
                 except Exception:
                     pass
-    _fallback(source, kind, status, rows_written, error_head, payload)
+    _fallback(source, kind, status, rows_written, sanitize_error_head(error_head),
+              payload)
     return False
+
+
+#: 单行错误摘要的最大长度。`error_head` 是**一行**摘要（列名如此），也是巡检读遥测时的 TSV 分隔协议的
+#: 前提：字段里出现换行会把一条记录撑成多条物理行。2026-11-09 实测真实库里
+#: 11 条记录因此被旧解析器读成"源名是一段 Node 调用栈"的假记录。
+ERROR_HEAD_MAX = 500
+
+
+def sanitize_error_head(value: object) -> str | None:
+    """把错误摘要压成单行。
+
+    换行必须消掉，不能留：psql `-At -F '\t'` 的输出是按物理行切的，一个带换行的
+    字段会把一条遥测拆成三条——第二条的源名列取到 `    at TCPConnectWrap…`。
+    换行折成空格而不是丢掉，因为多行错误的第一行往往是 `ECONNREFUSED…`，
+    第二行才是真正的原因，直接截断会把后者扔掉。
+    """
+    if value is None:
+        return None
+    text = " ".join(str(value).split())          # 折叠所有空白（含 \r\n、制表符）
+    if not text:
+        return None
+    return text[:ERROR_HEAD_MAX]
 
 
 def _fallback(source, kind, status, rows_written, error_head, items,

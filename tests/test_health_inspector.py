@@ -806,6 +806,18 @@ class TestTelemetryLineValidation:
         assert [r["status"] for r in records] == ["success", "failed"]
         assert records[0]["rows"] == 12
 
+    def test_running_row_is_accepted_not_discarded(self, monkeypatch):
+        """`running` 是合法遥测（开了还没收尾），不能被当成"非遥测输出"丢掉。
+
+        实证（2026-11-09 真实库）：`education_podcast` 有一条 running，开了约 10 小时。
+        丢掉它等于对存量的真实记录撒谎；至于它不参与判词，由 triage 侧保证
+        （`REACHED` 不含 running），两件事分开测。
+        """
+        records = self._run_with_stdout(
+            monkeypatch,
+            "education_podcast\trunning\t2026-11-09T12:47:26+00:00\t0\t\t\t\t\n")
+        assert [r["status"] for r in records] == ["running"]
+
     def test_short_row_without_status_is_not_padded_into_a_record(self, monkeypatch):
         """补列本身合法（运维 SQL 可能少给 watermark 列），但补之前必须状态合法。"""
         records = self._run_with_stdout(
@@ -881,3 +893,29 @@ class TestEvidenceOnlyCallsFailuresFailures:
         verdict = triage.Verdict("structure", False, False, "核对", "rule1c:x")
         ev = inspector.build_evidence(runs, verdict)
         assert ev["last_success"] == {"started_at": "2026-11-02T00:00:00+00:00", "rows": 7}
+
+
+class TestErrorHeadMustBeOneLine:
+    """`error_head` 带换行会把一条遥测撑成多条 TSV 物理行。
+
+    实证（2026-11-09，真实库）：`legal-sources-report` 的 error_head 是
+    `exit=1 | [...] FATAL: Error: connect ECONNREFUSED 127.0.0.1:5432\\n    at
+    TCPConnectWrap.afterConnect ...` —— psql 按物理行切，于是第二行被旧解析器
+    补成一条假记录，源名取到那段调用栈。全库共 11 条这样的记录。
+    """
+
+    def test_newlines_are_folded_into_spaces_not_truncated(self):
+        from fd_industry_data.writer import sanitize_error_head, ERROR_HEAD_MAX
+        raw = ("exit=1 | FATAL: Error: connect ECONNREFUSED 127.0.0.1:5432\n"
+               "    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)")
+        out = sanitize_error_head(raw)
+        assert "\n" not in out and "\t" not in out and "\r" not in out
+        assert "ECONNREFUSED" in out, "第一行是现象，不能丢"
+        assert "TCPConnectWrap" in out, "第二行才是真因，折叠不能截掉它"
+        assert out == " ".join(raw.split())
+        assert len(sanitize_error_head("x" * 900)) == ERROR_HEAD_MAX
+
+    def test_none_and_blank_stay_none(self):
+        from fd_industry_data.writer import sanitize_error_head
+        assert sanitize_error_head(None) is None
+        assert sanitize_error_head("   \n\t ") is None
