@@ -214,6 +214,27 @@ python3 scripts/health_new_generation_ticket.py --slug nmc-weather \
 新增健康级缺口（排期在册却整窗零运行、跨源缺席对账）见 `inspector.reconcile_absent()` 与
 `absent_source_policy`（默认 `report` = 零回归）。
 
+### 三读者三来源：改动"生效"到什么程度，取决于谁在读（2026-11-09 实测）
+
+同一份 manifest，三个消费者从**三个不同的地方**读，所以"改完就生效"这句话必须拆开说：
+
+| 读者 | 代码来源 | manifest 来源 | 备注 |
+|---|---|---|---|
+| 巡检器（GHA，每晚 03:17） | 每次 `git clone` **GitHub** `main` | 同左（仓库内 `spiders/`） | 推到 GitHub 即生效 |
+| 爬虫 runner（每条源的 k8s Job） | **镜像**（`ENTRYPOINT fd-runner` 是 `pip install .` 装的 console script；实测 `os.getcwd() in sys.path` 为 **False**，所以 `/content` 下克隆的那份不会被 import） | initContainer 每 Job `git clone` **gitee**，`sparse-checkout spiders/ fd_industry_data/ universes/`，`FD_CONTENT_DIR=/content/spiders` | manifest 走 gitee；**代码要重建镜像** |
+| 本地人工 | 工作树 | 工作树 | — |
+
+判据（2026-11-09 核对 `k8s/cronjob-template/templates/cronjob.yaml`）：
+
+* `_manifest_of()` / `_accept_block()` 的 `roots` 里 **`FD_CONTENT_DIR` 排第一**，
+  所以爬虫读的是 Job 启动时从 gitee 克隆的那份 → 声明类改动**推到 gitee 即对爬虫生效**；
+* 但 `fd_industry_data` 的**行为**（runner 代码）来自镜像 → 代码类改动必须重建 runner 镜像；
+  `/content/fd_industry_data` 存在只是为了少数单元在模块作用域 `import fd_industry_data.universes`
+  时能解析到 `universes/`，不是让整体代码走克隆。
+
+据此，"某个改动生效了没有"要分别回答：**巡检视角**（GitHub）、**爬虫数据视角**（gitee）、
+**爬虫行为视角**（镜像）。三者可以同时不同步。
+
 ### 巡检摘要 `last-run.json` 的字段契约（2026-11-09 扩充）
 
 下游读者（`scripts/alert_selfcheck.py`、人）只看几项，扩字段是安全的，但要知道现在有哪些：
