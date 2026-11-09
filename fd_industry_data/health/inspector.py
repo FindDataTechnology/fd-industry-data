@@ -85,9 +85,10 @@ def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql") ->
         if len(cols) < 2 or cols[1].strip() not in _KNOWN_STATUS:
             rejected += 1
             continue
-        # 第 7 列为可选 watermark（数据水位/最新数据期）。telemetry_sql 默认只取
-        # 6 列（中央库 crawl_runs 无数据期列）；运维扩展 SQL 后自动并入工单证据。
-        cols += [""] * (7 - len(cols))
+        # 第 7 列为可选 watermark（数据水位/最新数据期），第 8 列为本轮生效的
+        # 行数上限（`metrics.limit`）。两条都是"运维扩展 SQL 才有的列"：缺列时补空，
+        # 语义是"没记录"，绝不能当成 0——0 会意味着"这轮一行都不许写"。
+        cols += [""] * (8 - len(cols))
         source, status, started_at, rows, error, http_status = cols[:6]
         out.append({
             "source": source.strip(),
@@ -97,6 +98,7 @@ def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql") ->
             "error": error.strip(),
             "http_status": int(http_status) if http_status.strip().isdigit() else None,
             "watermark": cols[6].strip() or None,
+            "limit": int(cols[7]) if cols[7].strip().isdigit() else None,
         })
     if rejected:
         print(f"fd-health: 丢弃 {rejected} 行非遥测输出（状态列不是 "
@@ -114,6 +116,7 @@ def group_runs(records: list[dict]) -> dict[str, list[triage.Run]]:
             error=str(r.get("error") or ""),
             http_status=r.get("http_status"),
             watermark=(str(r["watermark"]) if r.get("watermark") else None),
+            limit=(int(r["limit"]) if isinstance(r.get("limit"), int) else None),
         )
         grouped.setdefault(str(r.get("source", "")), []).append(run)
     for runs in grouped.values():

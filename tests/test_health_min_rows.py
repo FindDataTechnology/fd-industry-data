@@ -24,9 +24,10 @@ NOW = datetime(2026, 11, 8, 12, 0, tzinfo=timezone.utc)
 DAY = 24.0
 
 
-def _run(hours_ago: float, status: str = "success", rows: int | None = 100) -> triage.Run:
+def _run(hours_ago: float, status: str = "success", rows: int | None = 100,
+         limit: int | None = None) -> triage.Run:
     return triage.Run(started_at=(NOW - timedelta(hours=hours_ago)).isoformat(),
-                      status=status, rows=rows)
+                      status=status, rows=rows, limit=limit)
 
 
 def test_undeclared_source_is_untouched():
@@ -119,3 +120,38 @@ def test_malformed_floor_is_ignored_not_guessed(tmp_path: Path, bad):
         yaml.safe_dump({"name": "src", "schedule": "0 1 * * *", "min_rows_per_run": bad}),
         encoding="utf-8")
     assert inspector.min_rows_floor(tmp_path, "src") is None
+
+
+def test_run_truncated_by_a_smaller_limit_is_not_judged_as_low_output():
+    """上限 < 下限的运行物理上写不满，不能拿它判低产。
+
+    实证（2026-11-06）：48 个源各跑一次、每次恰好 20 行（全部 `image_tag=unknown`，
+    未走 k8s 调度）。若不看 limit，3 个周频源（boxofficemojo/cisa/gb-standards）的
+    最近一次就会永久判"产出不足"，直到下一次正常调度。
+    """
+    runs = [_run(60 * 24, rows=100, limit=100), _run(2, rows=20, limit=20)]
+    v = triage.classify("src", "spiders/src/", DAY, runs, NOW, min_rows_per_run=25)
+    assert v.category is None, v.rule_trace
+
+
+def test_truncated_run_does_not_mask_a_real_low_output():
+    """跳过被截断的运行，不等于放弃判定：要退回到上一次可比的运行。"""
+    runs = [_run(60 * 24, rows=5, limit=100), _run(2, rows=20, limit=20)]
+    v = triage.classify("src", "spiders/src/", DAY, runs, NOW, min_rows_per_run=25)
+    assert v.category == "structure"
+    assert "最近一次可比成功 rows=5" in v.rule_trace
+    assert "已跳过 1 次上限低于下限的运行" in v.rule_trace
+
+
+def test_unrecorded_limit_is_judged_as_before():
+    """历史 run 没有 limit = "不知道"，不是"不可比"：照旧判，零回归。"""
+    v = triage.classify("src", "spiders/src/", DAY, [_run(2, rows=5)], NOW,
+                        min_rows_per_run=25)
+    assert v.category == "structure"
+
+
+def test_all_runs_truncated_falls_back_instead_of_silently_passing():
+    """全被上限压住时不能就此判健康——退回原判据，保持既有行为。"""
+    runs = [_run(2, rows=20, limit=20), _run(1, rows=20, limit=20)]
+    v = triage.classify("src", "spiders/src/", DAY, runs, NOW, min_rows_per_run=25)
+    assert v.category == "structure"

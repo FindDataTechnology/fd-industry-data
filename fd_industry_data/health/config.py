@@ -67,7 +67,8 @@ class HealthConfig:
     # error_head 为错误摘要列，无独立 http_status 列——http 状态从 error 文本判定）
     telemetry_sql: str = (
         "SELECT source, status, started_at, COALESCE(rows_written,0), "
-        "COALESCE(error_head,''), '' "
+        "COALESCE(error_head,''), '', '', "
+        "COALESCE(metrics->>'limit','') "
         "FROM crawl_runs WHERE started_at >= now() - interval '30 days' "
         "ORDER BY source, started_at"
     )

@@ -124,6 +124,10 @@ class Run:
     error: str = ""
     http_status: int | None = None
     watermark: str | None = None
+    # 本次运行生效的行数上限（`crawl_runs.metrics.limit`）。None = 未记录，
+    # 历史 run 全是 None。它决定了 `rows` 能不能跟"全量应有的行数"比：
+    # 用 limit=20 跑出来 20 行，不是低产，是跑满了。
+    limit: int | None = None
 
 
 @dataclass(frozen=True)
@@ -282,19 +286,34 @@ def classify(
     # 与实际行为对不上。按最近一次判：坏的那次出单，下一次正常即自动消解。
     if min_rows_per_run is not None and last_success is not None:
         floor = int(min_rows_per_run)
-        latest_rows = last_success.rows if last_success.rows is not None else 0
+        # 只跟"跑得动 floor"的运行比：本轮上限 < floor 的运行**物理上**写不满，
+        # 拿它判低产是错的（2026-11-06 那批 48 个源各写 20 行就是这么被误读的）。
+        # 上限未记录（历史 run）时照旧判——那是"不知道"，不是"不可比"。
+        comparable = [
+            run for run in ordered
+            if run.status == "success"
+            and (run.limit is None or run.limit >= floor)
+        ]
+        last_comparable = comparable[-1] if comparable else None
+        if last_comparable is None:
+            last_comparable = last_success   # 全被上限压住：退回原判据，不动行为
+        latest_rows = last_comparable.rows if last_comparable.rows is not None else 0
         if latest_rows < floor:
             # 历史低位只作诊断信息，不参与判定：它解释"这个源一向如此"还是"这次突然掉"。
             historical = [
-                run for run in ordered
-                if run.status == "success" and run is not last_success
+                run for run in comparable
+                if run is not last_comparable
                 and (run.rows if run.rows is not None else 0) < floor
             ]
+            skipped_by_limit = sum(1 for run in ordered
+                                   if run.status == "success" and run.limit is not None
+                                   and run.limit < floor)
             trace = (
                 "rule1c:success-but-too-few-rows "
-                f"最近一次成功 rows={latest_rows}"
-                f" < min_rows_per_run={floor}（{last_success.started_at}）"
+                f"最近一次可比成功 rows={latest_rows}"
+                f" < min_rows_per_run={floor}（{last_comparable.started_at}）"
                 + (f"；窗口内另有 {len(historical)} 次低于下限" if historical else "")
+                + (f"；已跳过 {skipped_by_limit} 次上限低于下限的运行" if skipped_by_limit else "")
             )
             return Verdict("structure", False, False, EMPTY_SUCCESS_ACTION, trace)
 
