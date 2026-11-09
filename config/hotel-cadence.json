@@ -1,0 +1,53 @@
+{
+ "version": 1,
+ "description": "酒店垂直线波5 · 发布节奏画像与判定（add-hotel-vertical 6.4/6.5）。复用 fd_industry_data.publication 引擎（不新建机制）：published / awaiting_publication / stream_broken / window_learning 四态，逾期与抓取失败严格分流。",
+ "engine": "fd_industry_data.publication.classify",
+ "sources": {
+  "mct-star-hotel": {
+   "label": "文旅部 全国星级旅游饭店统计调查报告（季度）",
+   "period_days": 91,
+   "grace_hours": 240,
+   "min_samples": 3,
+   "lag_percentile": 0.95,
+   "lag_trim": 0.2,
+   "expected_cadence": "quarterly",
+   "discontinued": true,
+   "published_anchors": {
+    "2024Q2": {"published": "2024-08-30", "lag_days": 64},
+    "2024Q3": {"published": "2024-12-26", "lag_days": 85}
+   },
+   "anchor_source": "data-source-scouting/hotel/mct-star-hotel-scouting.md（实测发布日）+ 2026-11-08 复核栏目无新条目",
+   "note": "系列已停更：最新期 2024Q3（2024-12-26）。画像照常算，但『逾期』在此源的正确解读是『确认停更』而不是『等下一期』——判定必须带 discontinued 标记，避免每天出一条注定不会消失的逾期预警"
+  },
+  "mct-tourism-demand": {
+   "label": "文旅部 国内居民出游数据与年度统计公报",
+   "period_days": 91,
+   "grace_hours": 240,
+   "min_samples": 3,
+   "lag_percentile": 0.95,
+   "lag_trim": 0.2,
+   "expected_cadence": "quarterly-irregular",
+   "discontinued": false,
+   "published_anchors": {
+    "2026Q1": {"published": "2026-04", "lag_days": null},
+    "2026H1": {"published": "2026-07", "lag_days": null},
+    "2026Q1-Q3": {"published": "2026-10", "lag_days": null}
+   },
+   "anchor_source": "data-source-scouting/hotel/tourism-demand-scouting.md（四期实测，栏目录得）",
+   "note": "四种累计期长度不同（Q1/H1/9M/FY），period_days 只作粗窗；真正的『该来没来』以同口径期次为准"
+  },
+  "eurostat-api": {
+   "label": "Eurostat 住宿业与旅游住宿夜数（月度）",
+   "period_days": 35,
+   "grace_hours": 96,
+   "min_samples": 3,
+   "lag_percentile": 0.95,
+   "lag_trim": 0.2,
+   "expected_cadence": "monthly",
+   "discontinued": false,
+   "published_anchors": {},
+   "anchor_source": "上游 T+1 月发布；本线实测窗口 2015-01→2026-07 / 2011-01→2026-08",
+   "note": "欧盟腿是唯一稳定的月频发布节奏，可作为『节奏判定真的能分辨 upstream-late 与 our-broken』的正样本"
+  }
+ }
+}

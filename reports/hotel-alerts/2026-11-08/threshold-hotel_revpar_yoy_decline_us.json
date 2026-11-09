@@ -1,0 +1,40 @@
+{
+  "rule": "hotel_revpar_yoy_decline_us",
+  "description": "美股酒店公司全系统 RevPAR 同比转负（逐家评估，不跨公司合并）",
+  "asof": "2026-11-08",
+  "replay_from": "2023-01-01",
+  "generated_at": "2026-11-07T21:52:19.912281+00:00",
+  "config": "config/restaurant-alerts.json",
+  "evidence": [
+    {
+      "rule": "hotel_revpar_yoy_decline_us",
+      "concept": "hotel_revpar_yoy_placeholder",
+      "source_used": "sec-edgar-8k-operating",
+      "entity_type": "stock",
+      "entity_id": null,
+      "window": [
+        null,
+        null
+      ],
+      "observed": [],
+      "trigger_date": null,
+      "trigger_value": null,
+      "threshold": 0.0,
+      "comparator": "lt",
+      "verdict": "n/a",
+      "unit": "percent",
+      "gaps": [],
+      "gap_counts": {
+        "never_held": 0,
+        "gap_in_series": 0,
+        "not_applicable": 0
+      },
+      "never_held": null,
+      "closest": null,
+      "evaluated_points": 0,
+      "provenance": "semantic_observations; concept=hotel_revpar_yoy_placeholder; source_used=sec-edgar-8k-operating; entity_id=None",
+      "rejected_values": [],
+      "reason": "insufficient_history: 观测 0 期 < min_history=1（判 n/a，不编阈值）"
+    }
+  ]
+}
