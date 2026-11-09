@@ -452,6 +452,13 @@ samr-food-inspection / sec-edgar-8k-operating / sec-edgar-facts / tpex-monthly-r
 共同点：我都是拿**推导的算术**（差几个、除一下）当测量结果，而没有把那个东西本身跑一遍。
 三条纪律，写下来给自己（2026-11-10 补第 4 条）：
 
+5. **在共享工作树里跑测试，读到别人半写完的中间态会产出假红**（2026-11-10 实测）。
+   我第一次跑健康套件时 2 条测试失败（`test_all_terminals_accepted[closed]`、
+   `test_single_manual_and_other_terminals_do_not_escalate`），15 分钟后再跑同样组合
+   连跑 3 次全绿。查因：`ticket.py` 当时正被另一会话写入（后来留下 28 行未提交改动），
+   我读到的是"`closed` 需要 human=True 校验"这条规则加到一半的状态。
+   **判据：红的两条若都指向同一个刚被修改的文件，先看 mtime 再怀疑代码。**
+
 0. **提交前必须看 `git diff --cached --stat`，而且要和"我打算提交什么"逐项对账**。
    我这次看见 stat 是 18 文件，是在**推送之后**。`git add -A` / `git add <目录>`
    在共享工作树里等于放弃归属——一律写显式路径，或用 `--pathspec-from-file`。
