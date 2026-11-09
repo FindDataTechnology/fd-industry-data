@@ -61,12 +61,17 @@ pinned=$(kubectl --context "$KUBECTL_CTX" -n "$APPSET_NS" get applicationset "$A
 # 候选集：有 gh 就用构建记录；没有 gh（如 cheap3）就直接列 ccr 上的 tag。
 # 两条路都只产出"sha-XXXXXXX"这一种形态，后面对齐。
 # 注意：macOS 自带 bash 3.2 没有 mapfile，故用 while-read 填数组（可移植）。
+#
+# 2026-11-09 改动：workflow 现在有内容闸门（digest 变了才铸 sha- tag），所以
+# 「每个成功构建都有一个 sha- tag」不再成立——只改文档/CI 的提交没有 tag。
+# 因此候选上限从 25 提到 100：一次文档密集期可能连续几十个提交都不产片。
+# probe 失败会自动跳到下一个候选，逻辑本身兼容，只是要多退几格。
 CANDIDATES=()
 while IFS= read -r line; do
   [ -n "$line" ] && CANDIDATES+=("$line")
 done < <(
   if command -v gh >/dev/null 2>&1; then
-    gh run list --repo "$REPO" --workflow "$WORKFLOW" --limit 25 \
+    gh run list --repo "$REPO" --workflow "$WORKFLOW" --limit 100 \
       --json headSha,conclusion --jq '.[]|select(.conclusion=="success")|.headSha[0:7]' 2>/dev/null
   elif command -v skopeo >/dev/null 2>&1 && [ -r /etc/tcr-relay/env ]; then
     . /etc/tcr-relay/env
