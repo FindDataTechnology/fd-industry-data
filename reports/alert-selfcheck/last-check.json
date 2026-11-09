@@ -1,0 +1,20 @@
+{
+  "at": "2026-11-08T08:21:49.638836+00:00",
+  "silent": [],
+  "ticket": {
+    "checked": true,
+    "at": "2026-11-07T22:43:31.676477+00:00",
+    "total": 5,
+    "auth_failed": 5,
+    "broken": true
+  },
+  "findings": [
+    "ticket_auth:route_moved"
+  ],
+  "notify": {
+    "sent": 0,
+    "failed": 0,
+    "skipped": 1,
+    "reason": "dry-run（不发送）"
+  }
+}

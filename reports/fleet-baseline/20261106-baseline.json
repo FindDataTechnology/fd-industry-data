@@ -1,0 +1,680 @@
+{
+  "date": "20261106",
+  "generated_at": "2026-11-06T10:07:06.767756+00:00",
+  "runner": "python3 -m fd_industry_data.runner_cli <src> --limit N",
+  "report_db": true,
+  "summary": {
+    "total": 83,
+    "success": 59,
+    "failed": 24,
+    "success_rate": 0.7108,
+    "total_seconds": 872.64,
+    "limit": 20
+  },
+  "sources": [
+    {
+      "source": "abs-sdmx",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.09,
+      "error": ""
+    },
+    {
+      "source": "afdc",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 2.4,
+      "error": ""
+    },
+    {
+      "source": "amis-market",
+      "status": "timeout",
+      "exit_code": null,
+      "rows": null,
+      "seconds": 120.02,
+      "error": "timeout after 120s"
+    },
+    {
+      "source": "bls",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 1,
+      "seconds": 3.09,
+      "error": ""
+    },
+    {
+      "source": "boxofficemojo",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 23.77,
+      "error": ""
+    },
+    {
+      "source": "carbon-monitor",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 119.58,
+      "error": ""
+    },
+    {
+      "source": "census-eits",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 0.68,
+      "error": "RuntimeError: census-eits: 缺少环境变量 CENSUS_API_KEY（key= 查询参数传递；拒绝无 key 通道裸跑——上游会 302 到 HTML Missing Key 页）"
+    },
+    {
+      "source": "census-m3",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 0.47,
+      "error": "RuntimeError: census-m3: 缺少环境变量 CENSUS_API_KEY（key= 查询参数传递；拒绝无 key 通道裸跑——上游会 302 到 HTML Missing Key 页）"
+    },
+    {
+      "source": "chinawuliu-logistics",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 17.35,
+      "error": ""
+    },
+    {
+      "source": "cisa",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 1.6,
+      "error": ""
+    },
+    {
+      "source": "clinicaltrials",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 17.56,
+      "error": ""
+    },
+    {
+      "source": "cninfo-operating",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 19.12,
+      "error": ""
+    },
+    {
+      "source": "cpcaauto-monthly",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 16.28,
+      "error": ""
+    },
+    {
+      "source": "dbnomics-api",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.53,
+      "error": ""
+    },
+    {
+      "source": "eastmoney-data",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 0,
+      "seconds": 16.74,
+      "error": ""
+    },
+    {
+      "source": "eastmoney-futures",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 0,
+      "seconds": 8.8,
+      "error": ""
+    },
+    {
+      "source": "ecb-exr",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.42,
+      "error": ""
+    },
+    {
+      "source": "edgar-emissions",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 6.23,
+      "error": ""
+    },
+    {
+      "source": "education_cc_courses",
+      "status": "no-entry",
+      "exit_code": 4,
+      "rows": 0,
+      "seconds": 0.1,
+      "error": "fd-runner: no run_education_cc_courses in spiders/education_cc_courses/spider.py (candidates: run_ocw_catalog, run_openedx_catalog)"
+    },
+    {
+      "source": "education_oa_fulltext",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.47,
+      "error": ""
+    },
+    {
+      "source": "education_oer_aggregators",
+      "status": "no-entry",
+      "exit_code": 4,
+      "rows": 0,
+      "seconds": 0.11,
+      "error": "fd-runner: no run_education_oer_aggregators in spiders/education_oer_aggregators/spider.py (candidates: run_doab_oai_harvest, run_gutendex_catalog, run_wikibooks_catalog)"
+    },
+    {
+      "source": "education_openalex",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.4,
+      "error": ""
+    },
+    {
+      "source": "education_podcast",
+      "status": "no-entry",
+      "exit_code": 4,
+      "rows": 0,
+      "seconds": 0.08,
+      "error": "fd-runner: no run_education_podcast in spiders/education_podcast/spider.py (candidates: run_podcast_poller, run_podcast_seed)"
+    },
+    {
+      "source": "eia-v2",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 0.46,
+      "error": "RuntimeError: eia-v2: 缺少 API key —— 未注入环境变量 EIA_API_KEY（运行时由 fd-industry-source-keys envFrom 注入；本地需 source secrets/env 后再跑）"
+    },
+    {
+      "source": "elexon-bmrs",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 2.4,
+      "error": "RuntimeError: elexon-bmrs: 请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json: HTTPError: HTTP Error 403: Forbidden"
+    },
+    {
+      "source": "ember",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 0.47,
+      "error": "RuntimeError: ember: 缺少 API key —— 未注入环境变量 EMBER_API_KEY（运行时由 fd-industry-source-keys envFrom 注入；本地需 source secrets/env 后再跑）"
+    },
+    {
+      "source": "entsoe-e",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 0.47,
+      "error": "RuntimeError: entsoe-e: 缺少 ENTSOE_SECURITY_TOKEN 环境变量——ENTSO-E 为人工审批源，token 未注入时禁止运行（平台对无 token 请求返 401+code999）"
+    },
+    {
+      "source": "eurostat-api",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 10.57,
+      "error": ""
+    },
+    {
+      "source": "fangchan-market",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 9.64,
+      "error": ""
+    },
+    {
+      "source": "fao-empres",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 9.59,
+      "error": ""
+    },
+    {
+      "source": "fao-food-price",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.28,
+      "error": ""
+    },
+    {
+      "source": "gb-standards",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 0.98,
+      "error": ""
+    },
+    {
+      "source": "gdacs",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 1.73,
+      "error": "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)"
+    },
+    {
+      "source": "gleif-lei",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 21.55,
+      "error": ""
+    },
+    {
+      "source": "hf-datasets",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 62.3,
+      "error": "RuntimeError: hf-datasets: 全部主机取数失败 — huggingface.co: URLError: <urlopen error [Errno 61] Connection refused>; hf-mirror.com: URLError: <urlopen error [Errno 61] Connection refused>"
+    },
+    {
+      "source": "iea-ev",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 1.94,
+      "error": "RuntimeError: iea-ev: 数据口取数失败 https://api.iea.org/evs?region=World&category=Historical&parameter=EV+sales&mode=Cars&powertrain=BEV: HTTPError: HTTP Error 404: Not Found"
+    },
+    {
+      "source": "imf-pcps",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 2.67,
+      "error": ""
+    },
+    {
+      "source": "jodi-gas",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 7.92,
+      "error": ""
+    },
+    {
+      "source": "jodi-oil",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 4.93,
+      "error": ""
+    },
+    {
+      "source": "jp-estat",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 0.59,
+      "error": "RuntimeError: jp-estat: env ESTAT_APP_ID 未设置（secrets/fd-industry-source-keys.env 注入），拒绝裸跑"
+    },
+    {
+      "source": "kitco",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 1,
+      "seconds": 2.01,
+      "error": ""
+    },
+    {
+      "source": "mem-disaster",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 12,
+      "seconds": 4.26,
+      "error": ""
+    },
+    {
+      "source": "miit-gxsj",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 1.43,
+      "error": ""
+    },
+    {
+      "source": "moa-hog-price",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 5.23,
+      "error": ""
+    },
+    {
+      "source": "mofcom-data",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 1.96,
+      "error": ""
+    },
+    {
+      "source": "mohurd-yearbook",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 5.07,
+      "error": ""
+    },
+    {
+      "source": "nasa-firms",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 1.96,
+      "error": "RuntimeError: nasa-firms: 快照无可用数据行（上游空窗或布局变更，转人工）"
+    },
+    {
+      "source": "nasa-power",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 2.43,
+      "error": ""
+    },
+    {
+      "source": "nbs-housing",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 9.34,
+      "error": ""
+    },
+    {
+      "source": "nbs-stats",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 25.71,
+      "error": ""
+    },
+    {
+      "source": "nifdc-batchcert",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.99,
+      "error": ""
+    },
+    {
+      "source": "nmc-weather",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 19.64,
+      "error": ""
+    },
+    {
+      "source": "noaa-ncei",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 2.99,
+      "error": ""
+    },
+    {
+      "source": "noaa-swpc",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 8,
+      "seconds": 1.25,
+      "error": ""
+    },
+    {
+      "source": "oecd-cli",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.06,
+      "error": ""
+    },
+    {
+      "source": "open-meteo",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 1.48,
+      "error": ""
+    },
+    {
+      "source": "openalex-works",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 26.96,
+      "error": ""
+    },
+    {
+      "source": "openchargemap",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 0.66,
+      "error": "RuntimeError: openchargemap: env OCM_API_KEY 未设置（secrets/fd-industry-source-keys.env 注入），拒绝裸跑"
+    },
+    {
+      "source": "openfda",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 24.48,
+      "error": ""
+    },
+    {
+      "source": "ourairports",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 7,
+      "seconds": 2.51,
+      "error": ""
+    },
+    {
+      "source": "pboc-inclusive",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 1.86,
+      "error": ""
+    },
+    {
+      "source": "pboc-monetary",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 1.88,
+      "error": ""
+    },
+    {
+      "source": "portwatch-imf",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 0,
+      "seconds": 2.82,
+      "error": ""
+    },
+    {
+      "source": "sc-gd-stats",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 2.53,
+      "error": ""
+    },
+    {
+      "source": "socrata-chicago",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 2.64,
+      "error": "RuntimeError: socrata-chicago: 请求失败 https://data.cityofchicago.org/resource/bynn-gwxy.json?%24select=month_beginning%2Csum%28monthtotal%29&%24group=month_beginning&%24order=month_beginning+DESC&%24limit=20: HTTPError: HTTP Error 403: Forbidden"
+    },
+    {
+      "source": "socrata-ny",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 1.96,
+      "error": "RuntimeError: socrata-ny: 请求失败 https://data.ny.gov/resource/k7gz-mn77.json?%24limit=20&%24order=date+DESC: HTTPError: HTTP Error 403: Forbidden"
+    },
+    {
+      "source": "spb-express",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 7.59,
+      "error": ""
+    },
+    {
+      "source": "statcan-bulk",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.91,
+      "error": ""
+    },
+    {
+      "source": "steam-ccu",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 63.34,
+      "error": "RuntimeError: steam-ccu: 全部种子 app 取数失败 — 730: ValueError: response is not JSON (JSONDecodeError); 570: ValueError: response is not JSON (JSONDecodeError); 578080: ValueError: response is not JSON (JSONDecodeError); 271590: ValueError: response is not JSON (JSONDecodeError); 1172470: ValueError: resp"
+    },
+    {
+      "source": "ted-notices",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.62,
+      "error": ""
+    },
+    {
+      "source": "twse-monthly-revenue",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 62.15,
+      "error": "urllib.error.URLError: <urlopen error timed out>"
+    },
+    {
+      "source": "uk-hpi",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.97,
+      "error": ""
+    },
+    {
+      "source": "un-comtrade",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 0.49,
+      "error": "RuntimeError: un-comtrade: env COMTRADE_API_KEY 未设置（secrets/fd-industry-source-keys.env 注入），拒绝裸跑"
+    },
+    {
+      "source": "unido-sdmx",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 3.84,
+      "error": ""
+    },
+    {
+      "source": "usda-psd",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 0.49,
+      "error": "RuntimeError: usda-psd: 缺少环境变量 DATA_GOV_API_KEY（api.data.gov key；集群由 secret fd-industry-source-keys 注入，本地自验先 source secrets 文件）"
+    },
+    {
+      "source": "usda-quickstats",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 0.48,
+      "error": "RuntimeError: usda-quickstats: 缺少环境变量 QUICKSTATS_API_KEY（集群由 secret fd-industry-source-keys 注入；本地自验先 source secrets 文件）"
+    },
+    {
+      "source": "usgs-nwis",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 2.99,
+      "error": ""
+    },
+    {
+      "source": "wfp-food-price",
+      "status": "failed",
+      "exit_code": 3,
+      "rows": 0,
+      "seconds": 2.81,
+      "error": "RuntimeError: wfp-food-price: 资源表头异常（无 adm0_name 列）：None"
+    },
+    {
+      "source": "wire-finddatatech-cloud",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 1,
+      "seconds": 0.95,
+      "error": ""
+    },
+    {
+      "source": "worldbank-procnotices",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 1.64,
+      "error": ""
+    },
+    {
+      "source": "worldsteel",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 0,
+      "seconds": 16.82,
+      "error": ""
+    },
+    {
+      "source": "wto-eping",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 10,
+      "seconds": 2.63,
+      "error": ""
+    },
+    {
+      "source": "zgdypf-boxoffice",
+      "status": "success",
+      "exit_code": 0,
+      "rows": 20,
+      "seconds": 2.43,
+      "error": ""
+    }
+  ]
+}
