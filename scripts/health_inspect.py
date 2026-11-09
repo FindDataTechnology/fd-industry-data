@@ -90,7 +90,9 @@ def main() -> int:
         records = inspector.load_runs_from_snapshot(args.snapshot)
         source_kind = f"snapshot:{args.snapshot}"
     else:
-        records = inspector.load_runs_from_psql(config, os.environ.get("FD_CENTRAL_PG_DSN", ""))
+        _parse_errors: list[str] = []
+        records = inspector.load_runs_from_psql(
+            config, os.environ.get("FD_CENTRAL_PG_DSN", ""), parse_errors=_parse_errors)
         source_kind = "psql"
 
     runs_by_source = inspector.group_runs(records)
@@ -128,6 +130,9 @@ def main() -> int:
         "absent_sources": getattr(plan, "absent", []),
         # 自愈收口的工单（2.9）：连续 N 次成功后自动 recovered，可复盘。
         "recovered": stats.get("recovered") or [],
+        # 遥测解析异常（2.10）：非遥测行/非 slug 源名单列，不再混进
+        # skipped_unknown_period。空列表 = 本轮输入干净。
+        "parse_errors": (stats.get("parse_errors") or []) + (locals().get("_parse_errors") or []),
         "master_switch": config.master_switch,
     }
 

@@ -67,8 +67,13 @@ _KNOWN_STATUS = frozenset({"success", "failed", "cancelled", "partial",
                            # `_trailing_failed` 只认 failed，所以它只作为记录存在、不参与判词。
                            "running"})
 
+#: 源名形状（slug）。状态列合法但源名是报错文本时，这一行仍不是遥测：
+#: 2026-11-07 实测的一段 Node 调用栈就是先落到源名列、再流进 skipped_unknown_period。
+_SOURCE_RE = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
-def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql") -> list[dict]:
+
+def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql",
+                        parse_errors: list[str] | None = None) -> list[dict]:
     """经 psql 子进程读中央库；TSV 输出解析（-A -F '\\t'）。
 
     只认状态列合法的行。实测（2026-11-07 生产巡检的 `last-run.json`）：
@@ -97,6 +102,17 @@ def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql") ->
         cols = line.split("\t")
         if len(cols) < 2 or cols[1].strip() not in _KNOWN_STATUS:
             rejected += 1
+            if parse_errors is not None:
+                parse_errors.append(f"non-telemetry line dropped: {line.strip()[:120]}")
+            continue
+        # 源名必须是 slug：状态列合法但源名是一段报错文本时，这一行仍然不是遥测。
+        # 只校验状态列会漏掉「合法状态 + 垃圾源名」这一形态（2026-11-07 实测的
+        # Node 调用栈就是先落到源名列、再流进 skipped_unknown_period 的）。
+        if not _SOURCE_RE.match(cols[0].strip()):
+            rejected += 1
+            if parse_errors is not None:
+                parse_errors.append(
+                    f"non-slug source dropped: {cols[0].strip()[:80]!r}")
             continue
         # 第 7 列为可选 watermark（数据水位/最新数据期），第 8 列为本轮生效的
         # 行数上限（`metrics.limit`）。两条都是"运维扩展 SQL 才有的列"：缺列时补空，
@@ -242,6 +258,9 @@ class Plan:
     # flk-law-backfill/polygon，30 天口径变成 example-stock/yfinance —— 名单会漂，
     # 说明"静默跳过"不是稳定状态。这里把它变成可见的一行字。
     unregistered: list[str] = field(default_factory=list)
+    # 遥测解析异常（harden-crawl-delivery 2.10）：非遥测行/非 slug 源名不再混进
+    # skipped_unknown_period，单独成列。空列表 = 本轮输入干净。
+    parse_errors: list[str] = field(default_factory=list)
     # 影子模式产出（harden-crawl-delivery 1.8）：新新鲜度判据（按各自 cron 数
     # 「应触发但未成功的周期数」）与旧判据并行运行，**只留痕不出单**。
     # 每项形如 {source, cycles, alerting, first_fire, last_fire, note}。
@@ -378,6 +397,7 @@ def reconcile_absent(runs_by_source: dict, repo: Path, config: HealthConfig) -> 
 def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config: HealthConfig,
                  now: datetime) -> Plan:
     emit, deferred, healthy, unknown, unregistered = [], [], 0, [], []
+    plan_parse_errors: list[str] = []
     absent = reconcile_absent(runs_by_source, repo, config)
     # 遥测里没有的源补成空列表再走同一条分诊链，避免「巡检面 = 遥测里出现过的源」
     # 这个隐性口径（year 频源一过回看窗就静默消失，add-flower-vertical 6.1）。
@@ -393,6 +413,14 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
             merged.setdefault(entry["source"], [])
     for source in sorted(merged):
         if source in config.excluded_sources:
+            continue
+        # 源名不是 slug = 这行输入本身坏了，不是「没登记」：2026-11-07 实测的
+        # Node 调用栈先落到源名列，再以「周期解析不出来」的名义流进
+        # skipped_unknown_period，读起来像「有个源判不了」。必须在 manifest
+        # 存在性判断之前拦下，否则它会先被记成 unregistered。
+        if not _SOURCE_RE.match(source):
+            plan_parse_errors.append(
+                f"non-source identifier dropped: {source[:80]!r}")
             continue
         runs = merged[source]
         # 目录都没有 = 没登记过的源，和"有 manifest 但定不出周期"是两件事，
@@ -413,7 +441,8 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
         emit.append(Emit(source=source, unit=f"spiders/{source}/", verdict=verdict, runs=runs))
     return Plan(emit=emit, deferred=deferred, healthy=healthy,
                 skipped_unknown_period=unknown, absent=absent, unregistered=unregistered,
-                freshness_shadow=shadow_freshness(runs_by_source, repo, now))
+                freshness_shadow=shadow_freshness(runs_by_source, repo, now),
+                parse_errors=plan_parse_errors)
 
 
 def shadow_freshness(runs_by_source: dict, repo: Path, now: datetime) -> list[dict]:
@@ -663,6 +692,7 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
             "unregistered_sources": plan.unregistered,
             "absent_sources": plan.absent,
             # 影子模式（1.8）：新判据的逐源结果只落在这里，不进工单队列。
+            "parse_errors": plan.parse_errors,
             "freshness_shadow": plan.freshness_shadow,
             "freshness_shadow_alerting": [e["source"] for e in plan.freshness_shadow
                                           if e.get("alerting")]}
