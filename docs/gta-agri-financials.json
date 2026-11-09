@@ -1,0 +1,54 @@
+{
+  "indicators": [
+    {
+      "concept": "financials.revenue",
+      "gta_name": "b001101000",
+      "label": "营业收入",
+      "unit": "元"
+    },
+    {
+      "concept": "financials.net_income",
+      "gta_name": "b002000000",
+      "label": "净利润",
+      "unit": "元"
+    },
+    {
+      "concept": "financials.total_assets",
+      "gta_name": "a001000000",
+      "label": "资产总计",
+      "unit": "元"
+    },
+    {
+      "concept": "financials.equity",
+      "gta_name": "a003000000",
+      "label": "所有者权益合计",
+      "unit": "元"
+    },
+    {
+      "concept": "financials.operating_profit",
+      "gta_name": "b001300000",
+      "label": "营业利润",
+      "unit": "元"
+    },
+    {
+      "concept": "financials.total_liabilities",
+      "gta_name": "a002000000",
+      "label": "负债合计",
+      "unit": "元"
+    },
+    {
+      "concept": "financials.operating_cash_flow",
+      "gta_name": "c001000000",
+      "label": "经营活动产生的现金流量净额",
+      "unit": "元"
+    }
+  ],
+  "years": [
+    2020,
+    2021,
+    2022,
+    2023,
+    2024
+  ],
+  "rows": 3409
+}
