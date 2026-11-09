@@ -214,6 +214,39 @@ python3 scripts/health_new_generation_ticket.py --slug nmc-weather \
 新增健康级缺口（排期在册却整窗零运行、跨源缺席对账）见 `inspector.reconcile_absent()` 与
 `absent_source_policy`（默认 `report` = 零回归）。
 
+### 同一事实的三处信号：`rows < min_rows_per_run` 会发生什么
+
+一个源写了行数低于声明的下限，会同时惊动三层。**它们不是重复机制，但关系一直没人写下来**——
+新接手的人看到 dispatcher 说 `done`、巡检却出 `structure` 单，很容易以为中间有 bug。
+
+```
+crawl 写出 rows=20，manifest 声明 min_rows_per_run: 25
+                    │
+     ┌──────────────┼──────────────────────────┐
+     ▼              ▼                          ▼
+① runner       ② dispatcher               ③ 巡检器
+   status=        pending=done            rule1c → structure 工单
+   partial        （不罚身份租借）          "核对解析是否只读到表头/空表"
+   metrics.accept.ok=false
+```
+
+三者的语义各不相同，合起来不矛盾：
+
+| 层 | 它在回答什么 | 结论 |
+|---|---|---|
+| runner | 这次爬取是否兑现了源自己声明的承诺 | 没兑现 → `partial` |
+| dispatcher | 这个任务执行完了吗、这个账号还能用吗 | 执行完了（`done`）、账号没问题 |
+| 巡检器 | 这条源现在还能不能出数 | 不能 → 要人看 |
+
+**为什么要三处都留**：runner 侧让"承诺"在**提交状态前**就生效（否则只是事后记账）；
+dispatcher 侧避免因一次数据不足就判任务失败、连带罚掉共享账号；巡检侧是**事后审计**——
+它能看见那些没有经过 runner 预检的历史记录，以及其他产品写进同一张表的行。
+
+**唯一需要守的纪律**：三处必须读同一个键、同一个口径。历史上正是这里漂过——
+`accept.min_rows` 一度与 `min_rows_per_run` 并存，两边可以给出不同结论。
+现在 runner 的 `_min_rows_per_run()` 与巡检的 `min_rows_floor()` 有测试
+（`test_same_value_as_the_inspector`）逐字比对 8 种 manifest 写法。
+
 ### 三读者三来源：改动"生效"到什么程度，取决于谁在读（2026-11-09 实测）
 
 同一份 manifest，三个消费者从**三个不同的地方**读，所以"改完就生效"这句话必须拆开说：
