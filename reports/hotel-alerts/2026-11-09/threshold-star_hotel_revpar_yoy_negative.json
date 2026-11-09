@@ -1,0 +1,40 @@
+{
+  "rule": "star_hotel_revpar_yoy_negative",
+  "description": "星级饭店 RevPAR 同比转负（< 0%）——量价同时走弱的最直接读数",
+  "asof": "2026-11-09",
+  "replay_from": "2024-11-01",
+  "generated_at": "2026-11-09T22:21:59.873404+00:00",
+  "config": "config/restaurant-alerts.json",
+  "evidence": [
+    {
+      "rule": "star_hotel_revpar_yoy_negative",
+      "concept": "hotel.cn.star_rated.revpar_yoy.all.quarterly",
+      "source_used": "mct-star-hotel",
+      "entity_type": "region",
+      "entity_id": 1,
+      "window": [
+        null,
+        null
+      ],
+      "observed": [],
+      "trigger_date": null,
+      "trigger_value": null,
+      "threshold": 0.0,
+      "comparator": "lt",
+      "verdict": "n/a",
+      "unit": "percent",
+      "gaps": [],
+      "gap_counts": {
+        "never_held": 0,
+        "gap_in_series": 0,
+        "not_applicable": 0
+      },
+      "never_held": null,
+      "closest": null,
+      "evaluated_points": 0,
+      "provenance": "semantic_observations; concept=hotel.cn.star_rated.revpar_yoy.all.quarterly; source_used=mct-star-hotel; entity_id=1",
+      "rejected_values": [],
+      "reason": "窗口内无观测（replay_from/asof 与序列不重叠）"
+    }
+  ]
+}
