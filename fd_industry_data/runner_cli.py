@@ -37,6 +37,7 @@ import importlib
 import inspect
 import json
 import os
+from pathlib import Path
 import sys
 import threading
 import time
@@ -208,6 +209,234 @@ def _load_entry(src: str, content_dir: str):
     return fn
 
 
+#: `source_url:` at the start of a line in a manifest. Deliberately not a YAML
+#: parse: `yaml` is not installed in every environment this runs in (measured —
+#: importing it here raised ModuleNotFoundError on the dev box), and a missing
+#: optional dependency must not turn "could not read" into "reads nothing". One
+#: top-level scalar needs one pattern, not a parser.
+_SOURCE_URL_RE = __import__("re").compile(
+    r"^source_url:\s*[\"']?([^\"'\r\n#]+)", __import__("re").MULTILINE
+)
+
+
+def _upstreams_of(source: str) -> list[str] | str:
+    """The upstream URL(s) a source reads, or "unknown" when it cannot be read.
+
+    "unknown" rather than [] on purpose: an empty list is a claim ("reads
+    nothing"), and a caller cannot tell it apart from a failed read.
+    """
+    if not source or "/" in source or "\\" in source or source.startswith("."):
+        return "unknown"
+    # Resolve the manifest the same way the runner resolves the source: through
+    # FD_CONTENT_DIR when it is set, else next to this package. Looking only at the
+    # package directory was wrong — a dispatcher runs with FD_CONTENT_DIR pointing
+    # at a checkout, and a test fixture lives in a temp dir, so the lookup silently
+    # returned "unknown" for every source outside the package.
+    roots: list[Path] = []
+    content_dir = os.environ.get("FD_CONTENT_DIR")
+    if content_dir:
+        roots.append(Path(content_dir))
+    roots.append(Path(__file__).resolve().parent.parent / "spiders")
+    text = None
+    for root in roots:
+        candidate = root / source / "manifest.yaml"
+        try:
+            text = candidate.read_text(encoding="utf-8")
+            break
+        except OSError:
+            continue
+    if text is None:
+        return "unknown"
+    match = _SOURCE_URL_RE.search(text)
+    if not match:
+        return "unknown"
+    url = match.group(1).strip()
+    return [url] if url else "unknown"
+
+
+#: The manifest already had a way to say "one successful run must write at least N
+#: rows": `min_rows_per_run`, read by `health.inspector.min_rows_floor`.
+
+#: An earlier version of this file invented `accept.min_rows` for the same concept.
+#: That was a duplicate of a mechanism that already existed and was already declared
+#: by one source — two spellings of one promise, which is the defect this whole
+#: workspace keeps rediscovering. This reader now consumes the EXISTING field and
+#: adds only what was missing: **the evaluation happens before the status is
+#: committed**, instead of only after the fact in the inspector.
+
+#: `accept:` may additionally declare bounds the inspector cannot express. Kept as
+#: a separate, optional block so it never shadows `min_rows_per_run`.
+_ACCEPT_MAX_AGE_DAYS = "max_age_days"
+
+
+def _manifest_of(source: str):
+    """Locate and read a source's manifest text, or None. Never raises."""
+    if not source or "/" in source or "\\" in source or source.startswith("."):
+        return None
+    roots: list[Path] = []
+    content_dir = os.environ.get("FD_CONTENT_DIR")
+    if content_dir:
+        roots.append(Path(content_dir))
+    roots.append(Path(__file__).resolve().parent.parent / "spiders")
+    for root in roots:
+        try:
+            return (root / source / "manifest.yaml").read_text(encoding="utf-8")
+        except OSError:
+            continue
+    return None
+
+
+def _min_rows_per_run(source: str) -> int | None:
+    """The manifest's `min_rows_per_run`, or None when unset.
+
+    Same rules as `health.inspector.min_rows_floor`: a positive int, anything else
+    means "not declared". Duplicated logic would eventually disagree; this reads the
+    same key with the same interpretation, only at a different moment.
+    """
+    text = _manifest_of(source)
+    if text is None:
+        return None
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].rstrip()
+        if not line.startswith("min_rows_per_run:"):
+            continue
+        value = line.split(":", 1)[1].strip()
+        # A QUOTED value is a string in YAML, and the inspector's `min_rows_floor`
+        # rejects it (`isinstance(raw, int)` is False). Matching that here matters
+        # more than being lenient: two readers that disagree on the same manifest
+        # mean the run and the ticket can reach different conclusions about one
+        # source. Strictness is the shared answer.
+        if value[:1] in ("'", '"'):
+            return None
+        try:
+            number = int(value)
+        except ValueError:
+            return None
+        return number if number > 0 else None
+    return None
+
+
+def _accept_block(source: str) -> dict | None:
+    """The manifest's optional `accept:` block as a flat dict, or None when absent.
+
+    Parsed with a line scanner rather than a YAML load: `yaml` is not installed in
+    every environment this runs in, and an acceptance rule must never be the reason
+    a crawl fails. The block is a flat mapping of scalars, which is all a line
+    scanner needs to handle.
+    """
+    text = _manifest_of(source)
+    if text is None:
+        return None
+    out: dict = {}
+    inside = False
+    for raw in text.splitlines():
+        line = raw.rstrip()
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not line.startswith((" ", "\t")):
+            inside = line.strip() == "accept:"
+            continue
+        if not inside:
+            continue
+        key, _, value = line.strip().partition(":")
+        key = key.strip()
+        value = value.split("#", 1)[0].strip().strip("'\"")
+        if not key or not value:
+            continue
+        try:
+            out[key] = int(value)
+        except ValueError:
+            try:
+                out[key] = float(value)
+            except ValueError:
+                out[key] = value
+    return out or None
+
+
+def _evaluate_accept(source: str, *, status: str, rows: int, env) -> dict | None:
+    """Evaluate a source's declared accept-conditions. None means "not declared".
+
+    Returning None matters: a source with no `accept:` block must produce the exact
+    same metrics it produced before this existed. Writing `{"ok": true}` for sources
+    that declared nothing would turn "not asked" into "passed", which is the
+    confusion the whole fact layer exists to prevent.
+    """
+    try:
+        block = _accept_block(source)
+    except Exception:  # noqa: BLE001 - never break a crawl for a rule
+        return None
+    if not block and _min_rows_per_run(source) is None:
+        return None
+
+    checks: list[dict] = []
+    floor = _min_rows_per_run(source)
+    if floor is not None:
+        checks.append({"name": "min_rows_per_run", "ok": rows >= floor,
+                       "actual": rows, "expected": floor})
+
+    # `block` can be None while `min_rows_per_run` is set — the two declarations are
+    # independent, and only one of them is required.
+    if block and _ACCEPT_MAX_AGE_DAYS in block and isinstance(
+        block[_ACCEPT_MAX_AGE_DAYS], (int, float)
+    ):
+        # The runner does not know the data's age — that is the payload's business.
+        # Recording the declared bound without judging it is the honest option:
+        # claiming a pass we did not verify would be worse than not checking.
+        checks.append({"name": _ACCEPT_MAX_AGE_DAYS, "ok": None,
+                       "actual": "unknown", "expected": block[_ACCEPT_MAX_AGE_DAYS]})
+
+    unknown_keys = sorted(set(block or {}) - {_ACCEPT_MAX_AGE_DAYS})
+    if unknown_keys:
+        checks.append({"name": "unknown-keys", "ok": False,
+                       "actual": unknown_keys,
+                       "expected": "only max_age_days (min_rows_per_run is a top-level key)"})
+
+    if not checks:
+        return None
+    # A check whose `ok` is None is unjudged, not failed: an unverifiable condition
+    # must not silently pass, but it must not fail a crawl either.
+    judged = [c for c in checks if c["ok"] is not None]
+    ok = all(c["ok"] for c in judged) and not any(c["ok"] is False for c in checks)
+    return {"ok": ok, "checks": checks, "statusAtEvaluation": status}
+
+
+def _attribution(source: str, env) -> dict:
+    """Who holds this run, and what upstream it reads. Never raises.
+
+    Both are best-effort by design: a run must not fail because attribution could
+    not be collected. The failure mode this avoids is the one measured in
+    `fd-agent-run/docs/FACT-LAYER-TRANSLATION.md`: when a field is required and
+    unavailable, implementations invent a plausible value, and the invention is
+    indistinguishable from a fact downstream.
+    """
+    out: dict = {}
+
+    # The holder: a pod name under the dispatcher, a job/host name otherwise.
+    # `HOSTNAME` is only a shell variable on some platforms (macOS zsh does not
+    # export it), so the real hostname is the fallback — measured: on the dev box
+    # all three env vars were empty and every run recorded "unknown".
+    holder = (
+        env.get("FD_RUN_OWNER")
+        or env.get("HOSTNAME")
+        or env.get("COMPUTERNAME")
+        or ""
+    ).strip()
+    if not holder:
+        try:
+            import socket
+
+            holder = socket.gethostname().strip()
+        except Exception:  # noqa: BLE001 - attribution must never break a run
+            holder = ""
+    out["owner"] = holder or "unknown"
+
+    # The upstream: the manifest already declares `source_url`. Read it directly
+    # rather than through the dispatcher so the runner stays usable standalone.
+    out["upstreams"] = _upstreams_of(source)
+
+    return out
+
+
 def _commit_sha() -> str:
     p = os.environ.get("FD_CONTENT_COMMIT")
     if p and os.path.isfile(p):
@@ -329,12 +558,58 @@ def main(argv: list[str] | None = None) -> int:
         traceback.print_exc()
     finished = time.time()
 
+    # Accept-conditions: the completion predicate, evaluated at the moment the run
+    # would otherwise be declared a success.
+    #
+    # Why here and not in the inspector: the inspector judges a run *after* the fact
+    # and can only write down a verdict. Evaluating before the status is committed
+    # is what lets a source say "0 rows is not a success" and have that be true
+    # rather than recorded later. This is the difference between a report and a gate.
+    #
+    # Strictly opt-in: a manifest with no `accept:` block takes the same path it
+    # always did, byte for byte. Every failure mode here is non-fatal by design —
+    # an acceptance rule that breaks a crawl would be worse than no rule.
+    accept_failures = _evaluate_accept(src, status=status, rows=rows, env=os.environ)
+
     # Auditability: the effective window travels in crawl_runs.metrics next
     # to dropped_params — the run record is the only surface that survives
     # the pod (the dispatcher runs this as a subprocess and keeps no stderr).
     metrics = {"dropped_params": dropped} if dropped else None
     if window:
         metrics = {**(metrics or {}), **window}
+
+    # Two facts every run already has but never recorded: WHO ran it and WHAT it
+    # read from. Without them a row says "something wrote 133 rows" and nothing
+    # about attribution or the upstream that failed. Both go into the existing
+    # `metrics` jsonb so no schema change is needed on 160 sources.
+    #
+    # Missing information is recorded as the literal string "unknown", never as an
+    # empty value: `owner: ""` and `upstreams: []` read downstream as "nobody" and
+    # "reads nothing", which are different claims from "we did not look".
+    attribution = _attribution(src, os.environ)
+    if attribution:
+        metrics = {**(metrics or {}), **attribution}
+
+    # WHAT the run was allowed to return. Without this, `rows_written=20` means
+    # either "the upstream only had 20" or "we asked for at most 20", and no
+    # downstream reader can tell them apart — measured 2026-11-09: a bulk batch on
+    # 2026-11-06 ran 48 sources once each, untagged, all producing exactly 20 rows,
+    # and the only way to see it was that all 48 matched to the digit.
+    #
+    # The health inspector's `min_rows_per_run` floor is a statement about a *full*
+    # run; comparing it against a deliberately truncated run is what makes a
+    # threshold look wrong when it isn't. Recording the effective limit is the
+    # enabling step for that comparison — no schema change, same jsonb.
+    metrics = {**(metrics or {}), "limit": args.limit}
+
+    if accept_failures is not None:
+        metrics = {**(metrics or {}), "accept": accept_failures}
+        # A run that met no crawl error but missed its own declared condition is
+        # `partial`, not `success`: the data is there, but the source's own promise
+        # was not kept. Leaving it as `success` is exactly the "green but empty"
+        # failure this rule exists to end.
+        if status == "success" and not accept_failures["ok"]:
+            status = "partial"
 
     if status == "failed" and account and _looks_like_auth_failure(error_head):
         # dual-path feedback, runner side: return the identity to the pool

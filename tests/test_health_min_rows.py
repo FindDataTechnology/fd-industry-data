@@ -50,6 +50,46 @@ def test_thin_run_above_threshold_is_healthy():
     assert v.category is None
 
 
+def test_old_thin_run_does_not_keep_a_healthy_source_ticketed():
+    """一次陈年低产不得让源永久挂单——判据是最近一次成功，不是窗口里任意一次。
+
+    实证（2026-11-09）：给 38 个 A 桶源声明下限后按真实 crawl_runs 复算，有 10 个
+    （gdacs/open-meteo/cisa/… ）历史上各存在一次低于下限的成功，而它们最近一次都正常。
+    旧实现扫全窗口，这 10 个会在上线当天各出一张工单，且直到那条陈年 run 滑出回看窗
+    之前天天重出。规格 source-output-floor 要的是「成功但 0 行」和「上游少给几条不得误报」。
+    """
+    runs = [_run(60 * 24, rows=2), _run(3, rows=100)]  # 两个月前一次 2 行，最近正常
+    v = triage.classify("src", "spiders/src/", DAY, runs, NOW, min_rows_per_run=20)
+    assert v.category is None, v.rule_trace
+
+
+def test_latest_thin_run_still_tickets_even_if_older_runs_were_fine():
+    """反向：最近一次才是坏的，必须出单——否则改宽了就变成永远不出单。"""
+    runs = [_run(60 * 24, rows=100), _run(2, rows=5)]
+    v = triage.classify("src", "spiders/src/", DAY, runs, NOW, min_rows_per_run=20)
+    assert v.category == "structure"
+    assert "rule1c" in v.rule_trace
+    assert "rows=5" in v.rule_trace
+
+
+def test_ticket_clears_after_the_next_good_run():
+    """出单不是终局：下一次正常即恢复健康，工单可自然消解。"""
+    bad = [_run(60 * 24, rows=100), _run(2, rows=5)]
+    assert triage.classify("src", "spiders/src/", DAY, bad, NOW,
+                           min_rows_per_run=20).category == "structure"
+    healed = bad + [_run(1, rows=100)]
+    assert triage.classify("src", "spiders/src/", DAY, healed, NOW,
+                           min_rows_per_run=20).category is None
+
+
+def test_historical_lows_are_reported_as_context_not_verdict():
+    """陈年低位要出现在 trace 里（便于判断"一向如此"还是"这次突然掉"），但不参与判定。"""
+    runs = [_run(60 * 24, rows=1), _run(30 * 24, rows=1), _run(1, rows=3)]
+    v = triage.classify("src", "spiders/src/", DAY, runs, NOW, min_rows_per_run=20)
+    assert v.category == "structure"
+    assert "另有 2 次低于下限" in v.rule_trace
+
+
 def test_failed_runs_keep_their_own_category():
     """失败运行不该被本规则抢走：仍然是网络/结构那几条规则判。"""
     v = triage.classify("src", "spiders/src/", DAY,

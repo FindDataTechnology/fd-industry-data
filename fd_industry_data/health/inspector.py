@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import sys
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -48,8 +49,25 @@ def load_runs_from_snapshot(path: str | Path) -> list[dict]:
     return doc
 
 
+#: 遥测行的合法状态。用作"这行是不是一条遥测"的判据——比列数更硬：
+#: psql 的 `-At` 输出里混进任何非表格文本（驱动告警、连接池报错、Node 调用栈），
+#: 列数补齐后都能伪装成一条记录，但它的第 2 列不会是这四个词之一。
+_KNOWN_STATUS = frozenset({"success", "failed", "cancelled", "partial"})
+
+
 def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql") -> list[dict]:
-    """经 psql 子进程读中央库；TSV 输出解析（-A -F '\\t'）。"""
+    """经 psql 子进程读中央库；TSV 输出解析（-A -F '\\t'）。
+
+    只认状态列合法的行。实测（2026-11-07 生产巡检的 `last-run.json`）：
+    `skipped_unknown_period` 的第一项是
+
+        'at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)'
+
+    —— 一段 Node 调用栈被当成了源名。原因是下面把短行补成 7 列，于是任何非表格
+    文本都能变成一条"记录"，源名取到整行、状态为空。补列本身是对的（运维的 SQL
+    可能少给 watermark 列），但**补列之前必须先确认这行的状态合法**，否则补列就是
+    在伪造数据。丢掉的行记在返回值里不方便，就从 stderr 念一句，别静默。
+    """
     if not dsn:
         raise ValueError("FD_CENTRAL_PG_DSN is required for --from-pg")
     proc = subprocess.run(
@@ -59,10 +77,14 @@ def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql") ->
     if proc.returncode != 0:
         raise RuntimeError(f"psql failed ({proc.returncode}): {proc.stderr.strip()[:400]}")
     out: list[dict] = []
+    rejected = 0
     for line in proc.stdout.splitlines():
         if not line.strip():
             continue
         cols = line.split("\t")
+        if len(cols) < 2 or cols[1].strip() not in _KNOWN_STATUS:
+            rejected += 1
+            continue
         # 第 7 列为可选 watermark（数据水位/最新数据期）。telemetry_sql 默认只取
         # 6 列（中央库 crawl_runs 无数据期列）；运维扩展 SQL 后自动并入工单证据。
         cols += [""] * (7 - len(cols))
@@ -76,6 +98,9 @@ def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql") ->
             "http_status": int(http_status) if http_status.strip().isdigit() else None,
             "watermark": cols[6].strip() or None,
         })
+    if rejected:
+        print(f"fd-health: 丢弃 {rejected} 行非遥测输出（状态列不是 "
+              f"{'/'.join(sorted(_KNOWN_STATUS))}）", file=sys.stderr)
     return out
 
 
@@ -191,6 +216,16 @@ class Plan:
     # 这些源以前**完全不可见**（巡检面 = 遥测里出现过的源），年频源一过 30 天
     # 遥测窗就静默消失——add-flower-vertical 6.1 实测确认的缺口。
     absent: list[dict] = field(default_factory=list)   # {source, reason, data_period}
+    # 遥测里有运行、但 `spiders/<source>/manifest.yaml` 根本不存在、也不在
+    # `excluded_sources` 里的源。以前它们和"有 manifest 但定不出周期"混在
+    # `skipped_unknown_period` 里，区别在于：**后者是本仓的源、前者是没登记的新面孔**。
+    #
+    # 为什么单列：`excluded_sources` 是手工维护的反向白名单（跨仓特殊 Job 走
+    # report_special_run 兜底面），新源冒出来时既没有 manifest 也没进排除表，
+    # 就会被静默跳过、谁也不知道。实证 2026-11-09：90 天口径残余是
+    # flk-law-backfill/polygon，30 天口径变成 example-stock/yfinance —— 名单会漂，
+    # 说明"静默跳过"不是稳定状态。这里把它变成可见的一行字。
+    unregistered: list[str] = field(default_factory=list)
 
 
 def _last_success(runs: list[triage.Run]) -> dict | None:
@@ -312,7 +347,7 @@ def reconcile_absent(runs_by_source: dict, repo: Path, config: HealthConfig) -> 
 
 def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config: HealthConfig,
                  now: datetime) -> Plan:
-    emit, deferred, healthy, unknown = [], [], 0, []
+    emit, deferred, healthy, unknown, unregistered = [], [], 0, [], []
     absent = reconcile_absent(runs_by_source, repo, config)
     # 遥测里没有的源补成空列表再走同一条分诊链，避免「巡检面 = 遥测里出现过的源」
     # 这个隐性口径（year 频源一过回看窗就静默消失，add-flower-vertical 6.1）。
@@ -330,6 +365,11 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
         if source in config.excluded_sources:
             continue
         runs = merged[source]
+        # 目录都没有 = 没登记过的源，和"有 manifest 但定不出周期"是两件事，
+        # 分开记：前者要人去登记（或排除），后者是本仓 manifest 缺 data_period。
+        if not (repo / "spiders" / source / "manifest.yaml").is_file():
+            unregistered.append(source)
+            continue
         period = expected_period_hours(repo, source, config)
         if period is None:
             unknown.append(source)
@@ -342,7 +382,7 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
             continue
         emit.append(Emit(source=source, unit=f"spiders/{source}/", verdict=verdict, runs=runs))
     return Plan(emit=emit, deferred=deferred, healthy=healthy,
-                skipped_unknown_period=unknown, absent=absent)
+                skipped_unknown_period=unknown, absent=absent, unregistered=unregistered)
 
 
 def _golden_paths(repo: Path, unit: str) -> list[str]:
@@ -412,6 +452,7 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
         remaining -= 1
     return {"written": written, "deferred": plan.deferred, "healthy": plan.healthy,
             "skipped_unknown_period": plan.skipped_unknown_period,
+            "unregistered_sources": plan.unregistered,
             "absent_sources": plan.absent}
 
 

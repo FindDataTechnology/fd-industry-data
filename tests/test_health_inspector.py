@@ -721,3 +721,94 @@ def test_status_budget_cap_prefers_stalest(tmp_path):
     seen.clear()
     inspector.sync_status(outdir, "https://x", "k", fetcher=fetcher, max_reads=2)
     assert "b" in seen, seen
+
+
+class TestUnregisteredSources:
+    """遥测里有运行、但本仓没有 manifest 的源必须单列，不能混进 skipped_unknown_period。
+
+    实证（2026-11-09）：`config/health-scope.json` 手工排除了 17 个跨仓特殊 Job，
+    但新源冒出来时既没 manifest 也没进排除表，就被静默跳过。
+    而且残余名单会漂——90 天口径是 flk-law-backfill/polygon，30 天口径变成
+    example-stock/yfinance——说明"静默跳过"不是稳定状态，得让它在摘要里可见。
+    """
+
+    def test_source_without_manifest_is_reported_as_unregistered(self, tmp_path):
+        from fd_industry_data.health import inspector, triage
+        from fd_industry_data.health.config import HealthConfig
+        repo = tmp_path
+        (repo / "spiders").mkdir()
+        runs = {"ghost-source": [triage.Run(started_at="2026-11-08T00:00:00+00:00",
+                                           status="success", rows=10)]}
+        plan = inspector.plan_tickets(runs, repo, HealthConfig(), NOW)
+        assert plan.unregistered == ["ghost-source"]
+        assert plan.skipped_unknown_period == []
+
+    def test_excluded_source_is_not_reported_at_all(self, tmp_path):
+        from fd_industry_data.health import inspector, triage
+        from fd_industry_data.health.config import HealthConfig
+        repo = tmp_path
+        (repo / "spiders").mkdir()
+        runs = {"law-job": [triage.Run(started_at="2026-11-08T00:00:00+00:00",
+                                       status="success", rows=10)]}
+        plan = inspector.plan_tickets(runs, repo, HealthConfig(excluded_sources=("law-job",)), NOW)
+        assert plan.unregistered == []
+
+    def test_manifest_without_period_stays_in_skipped_unknown_period(self, tmp_path):
+        """有 manifest 但定不出周期 ≠ 没登记：前者是本仓的源，后者是没登记的新面孔。"""
+        from fd_industry_data.health import inspector, triage
+        from fd_industry_data.health.config import HealthConfig
+        repo = tmp_path
+        unit = repo / "spiders" / "known"
+        unit.mkdir(parents=True)
+        (unit / "manifest.yaml").write_text("name: known\n", encoding="utf-8")
+        runs = {"known": [triage.Run(started_at="2026-11-08T00:00:00+00:00",
+                                     status="success", rows=10)]}
+        plan = inspector.plan_tickets(runs, repo, HealthConfig(), NOW)
+        assert plan.unregistered == []
+        assert plan.skipped_unknown_period == ["known"]
+
+
+class TestTelemetryLineValidation:
+    """psql 输出里混进非表格文本时，不能把它当成一条遥测。
+
+    实证（2026-11-07 生产巡检 `last-run.json`）：`skipped_unknown_period` 第一项是
+    `'at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)'` ——
+    一段 Node 调用栈被当成了源名。原实现把短行补成 7 列，于是任何文本都能变成记录。
+    """
+
+    def _run_with_stdout(self, monkeypatch, stdout):
+        from fd_industry_data.health import inspector
+        from fd_industry_data.health.config import HealthConfig
+        text_holder = stdout
+
+        class P:
+            returncode = 0
+            stderr = ""
+            stdout = text_holder  # 真实 psql 结果在 .stdout，不是 .text
+
+        monkeypatch.setattr(inspector.subprocess, "run", lambda *a, **k: P())
+        return inspector.load_runs_from_psql(HealthConfig(), "postgres://x")
+
+    def test_stack_trace_line_is_dropped_not_parsed_as_a_source(self, monkeypatch, capsys):
+        records = self._run_with_stdout(
+            monkeypatch,
+            "at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)\n")
+        assert records == []
+        assert "丢弃 1 行非遥测输出" in capsys.readouterr().err
+
+    def test_legitimate_rows_survive_alongside_junk(self, monkeypatch):
+        records = self._run_with_stdout(
+            monkeypatch,
+            "some driver warning\n"
+            "bls\tsuccess\t2026-11-08T00:00:00+00:00\t12\t\t\n"
+            "cisa\tfailed\t2026-11-08T01:00:00+00:00\t0\tboom\t\n")
+        assert [r["source"] for r in records] == ["bls", "cisa"]
+        assert [r["status"] for r in records] == ["success", "failed"]
+        assert records[0]["rows"] == 12
+
+    def test_short_row_without_status_is_not_padded_into_a_record(self, monkeypatch):
+        """补列本身合法（运维 SQL 可能少给 watermark 列），但补之前必须状态合法。"""
+        records = self._run_with_stdout(
+            monkeypatch,
+            "bls\tsuccess\t2026-11-08T00:00:00+00:00\t12\t\n")   # 5 列 = 无 http_status
+        assert len(records) == 1 and records[0]["source"] == "bls"

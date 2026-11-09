@@ -182,13 +182,21 @@ python3 scripts/health_new_generation_ticket.py --slug nmc-weather \
 ### 规则 1c：成功但写入行数低于声明下限
 
 - **判据**：源在 `spiders/<slug>/manifest.yaml` 里**显式声明** `min_rows_per_run: N` 时，
-  任何 `status=success` 且 `rows_written < N` 的运行 → `structure` 类工单，
+  **最近一次** `status=success` 的 `rows_written < N` → `structure` 类工单，
   action=「核对解析是否只读到表头/空表」。**先于规则 1 的健康短路**判（否则「跑成功、
   时间新鲜、只是没写出来」会被判健康）。
+- **只看最近一次**（2026-11-09 修，`declare-health-min-rows`）。原实现扫回看窗内**任意一次**
+  成功，于是历史上一次低产会让该源天天重出单，直到那条 run 滑出窗口——给 38 个 A 桶源
+  声明下限时实测有 10 个会因此上线当天就误报，而它们最近一次都正常。历史低位现在只进
+  trace 当诊断信息（"窗口内另有 N 次低于下限"），工单会在下一次正常运行时自然消解。
 - **未声明 = 不生效**（零回归）。理由：0 行的含义因源而异——节假日无新增、幂等 upsert
   无改动都可能合法，只有源自己知道「一次至少该写出几行」。
 - **实证动机**：`flower-auction` 有 4 次 `success` / `rows_written` 合计 0，健康级此前
   完全无信号（零行成功只在错误文本命中结构异常时才被看见）——板上一直空、巡检全绿。
+- **运行上限要记下来**（2026-11-09，任务 7.1）：`runner_cli` 把本轮 `--limit` 写进
+  `crawl_runs.metrics.limit`。否则 `rows_written=20` 分不清是"上游只有 20"还是"我们只要了 20"——
+  2026-11-06 有 48 个源各跑一次、每次恰好 20 行（全部 `image_tag='unknown'`，即未走 k8s 调度），
+  就是靠这个才看清是批量小 limit 而不是数据塌陷。判定侧尚未使用该字段（历史 run 没有）。
 - **声明前必须先有该源的日常运行行数样本**。花卉线只给 `aiph-stats` 声明了 20
   （2025 版年鉴实测 81 行）；斗南只有一次回补样本（932 行），日常运行写多少行未测，故不声明。
 
@@ -205,6 +213,23 @@ python3 scripts/health_new_generation_ticket.py --slug nmc-weather \
 
 新增健康级缺口（排期在册却整窗零运行、跨源缺席对账）见 `inspector.reconcile_absent()` 与
 `absent_source_policy`（默认 `report` = 零回归）。
+
+### 巡检面 ≠ 交付面（2026-11-09 实测，务必记住）
+
+巡检每晚 `git clone --depth=1` **GitHub** 的 `main`（`36d5836`，127 个 `spiders/` 目录）；
+而本仓的交付落在 **gitee**（`7d94f1b`，163 个目录）。GitHub 是目录子集，差 36 个，
+其中 34 个来自单个提交 `c1daa91`「批次六交付（34 个新单元）」——**从未推上 GitHub**。
+
+后果与判据：
+
+- 只在 gitee 的源在巡检眼里**没有 manifest** → 归入 `unregistered_sources`（以前混在
+  `skipped_unknown_period` 里静默跳过，谁也不知道）。实测 11 个，逐个算 verdict 后**今天全部健康**，
+  所以代价是覆盖率而不是信号。
+- 以 manifest 为载体的声明（`min_rows_per_run`、`data_period`）**只有在 GitHub 上才生效**。
+  同一窗口对照：GitHub 面 healthy=84、gitee 面 healthy=89，84 与生产 `last-run.json` 完全一致。
+- `config/health-scope.json` 另外手工排除了 17 个跨仓特殊 Job（law 线/适配器/observer），
+  它们走 `report_special_run` 兜底面——**那是有意识的边界，不是漏配**。
+  新源若既无 manifest 又未排除，会出现在 `unregistered_sources` 里，需要人登记或排除。
 
 ## 已知限制
 

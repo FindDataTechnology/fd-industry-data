@@ -273,18 +273,28 @@ def classify(
 
     # 规则 1c（6.6）：成功但行数低于声明下限。必须**先于**规则 1 的健康短路——
     # 否则「跑成功、时间新鲜、只是什么都没写出来」会被判健康，正是要抓的那种静默。
+    #
+    # 判据是**最近一次成功**，不是窗口内任意一次成功（2026-11-09 修）。原来的实现扫全窗口，
+    # 于是历史上一次异常低产会让该源一直挂单，直到那条 run 滑出回看窗——给 38 个源声明下限时
+    # 实测有 10 个会因此上线即出单，而它们最近一次都正常。规格
+    # （source-output-floor）承诺的是「成功但写出 0 行要点单」和「上游少给几条不得误报」，
+    # 都不支持让一次陈年异常永久生效；而且本规则的 trace 文案一直写的是"最近成功"，
+    # 与实际行为对不上。按最近一次判：坏的那次出单，下一次正常即自动消解。
     if min_rows_per_run is not None and last_success is not None:
         floor = int(min_rows_per_run)
-        thin = [
-            run for run in ordered
-            if run.status == "success" and (run.rows if run.rows is not None else 0) < floor
-        ]
-        if thin:
-            worst = min(thin, key=lambda run: run.rows if run.rows is not None else 0)
+        latest_rows = last_success.rows if last_success.rows is not None else 0
+        if latest_rows < floor:
+            # 历史低位只作诊断信息，不参与判定：它解释"这个源一向如此"还是"这次突然掉"。
+            historical = [
+                run for run in ordered
+                if run.status == "success" and run is not last_success
+                and (run.rows if run.rows is not None else 0) < floor
+            ]
             trace = (
                 "rule1c:success-but-too-few-rows "
-                f"最近成功 {len(thin)} 次中最低 rows={worst.rows}"
-                f" < min_rows_per_run={floor}（首次 {worst.started_at}）"
+                f"最近一次成功 rows={latest_rows}"
+                f" < min_rows_per_run={floor}（{last_success.started_at}）"
+                + (f"；窗口内另有 {len(historical)} 次低于下限" if historical else "")
             )
             return Verdict("structure", False, False, EMPTY_SUCCESS_ACTION, trace)
 

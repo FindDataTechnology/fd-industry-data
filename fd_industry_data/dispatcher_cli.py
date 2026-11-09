@@ -473,7 +473,13 @@ def execute_k8s(conn, row: dict, src: str, decl: dict, ns: str, *,
             state, head = job_state(get_job(ns, name))
             if state != "active":
                 run_id, run_status = _lookup_run(conn, row["id"])
-                if run_status == "success":
+                # `partial` means the crawl itself succeeded but the source's own
+                # declared accept-condition was not met (e.g. wrote 8 rows against
+                # min_rows: 10). The data is incomplete, not the run: treating it as
+                # a job failure would also fail the auth identity and eventually
+                # disable the source, which is a far bigger consequence than "the
+                # payload fell short this round".
+                if run_status in ("success", "partial"):
                     pending_status = "done"
                 elif run_status == "cancelled":
                     pending_status = "cancelled"
@@ -686,13 +692,16 @@ def main() -> int:
         try:
             proc = subprocess.run(cmd, env=env)
             run_id, run_status = _lookup_run(conn, row["id"])
-            pending_status = {"success": "done", "cancelled": "cancelled"}.get(
-                run_status, "failed")
+            pending_status = {"success": "done", "partial": "done",
+                              "cancelled": "cancelled"}.get(run_status, "failed")
             dispatch.finish_pending(conn, row["id"], run_id=run_id, status=pending_status,
-                           error_head=None if run_status in ("success", "cancelled")
+                           error_head=None if run_status in ("success", "partial", "cancelled")
                            else f"runner exit {proc.returncode}")
             if ident is not None:
-                ok = run_status == "success"
+                # The identity did its job if the crawl ran; an unmet accept-condition
+                # is a data problem, and blaming the account for it would poison the
+                # pool for every other source sharing it.
+                ok = run_status in ("success", "partial")
                 _auth.release_identity(conn, ident["id"], ident["lease_token"],
                                        success=ok)
                 if run_id is not None:

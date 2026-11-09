@@ -421,8 +421,12 @@ class TestRunnerEndToEnd:
         assert recs[0]["env_end"] == "2026-11-06"
         assert len(reports) == 1
         assert reports[0]["status"] == "success"
-        assert reports[0]["metrics"] == {"window_start": "2025-11-01",
-                                         "window_end": "2026-11-06"}
+        # The window values must be exact; attribution rides alongside (see the
+        # note in test_no_window_keeps_legacy_context).
+        metrics = reports[0]["metrics"]
+        assert metrics["window_start"] == "2025-11-01"
+        assert metrics["window_end"] == "2026-11-06"
+        assert set(metrics) - {"window_start", "window_end"} == {"owner", "upstreams", "limit"}
 
     def test_no_window_keeps_legacy_context(self, runner_env):
         from fd_industry_data import runner_cli
@@ -433,7 +437,15 @@ class TestRunnerEndToEnd:
         recs = self._read_records(out)
         assert recs[0]["window_start"] is None
         assert recs[0]["env_start"] is None
-        assert reports[0]["metrics"] is None
+        # SEMANTICS CHANGED (2026-11-09): `metrics` is no longer "the window, or
+        # nothing". It now always carries run attribution — who held the run and
+        # which upstream it read — because those are facts every run has and the
+        # central DB is the only place that survives the pod. The window part is
+        # still absent here, which is what this test is actually about.
+        metrics = reports[0]["metrics"] or {}
+        assert "window_start" not in metrics and "window_end" not in metrics
+        assert metrics.get("owner"), "every run records its holder"
+        assert "upstreams" in metrics
 
     def test_platform_window_wins_over_params_channel(self, runner_env):
         """窗口若同时出现在 --params，平台 flag 优先且不炸重复关键字。"""
@@ -460,9 +472,13 @@ class TestRunnerEndToEnd:
              "--params", json.dumps({"nope": 1}),
              "--window-start", "2025-11-01", "--window-end", "2026-11-06"])
         assert rc == 0
-        assert reports[0]["metrics"] == {
-            "dropped_params": ["nope"],
-            "window_start": "2025-11-01", "window_end": "2026-11-06"}
+        # The window and dropped-param facts must still be exactly right; the
+        # attribution keys ride alongside them without changing those values.
+        metrics = reports[0]["metrics"]
+        assert metrics["dropped_params"] == ["nope"]
+        assert metrics["window_start"] == "2025-11-01"
+        assert metrics["window_end"] == "2026-11-06"
+        assert set(metrics) - {"dropped_params", "window_start", "window_end"} == {"owner", "upstreams", "limit"}
 
     def test_plain_spider_ignores_window_without_typeerror(self, runner_env):
         """未声明窗口的 spider：零改动、零失败（kwargs 未注入）。"""
