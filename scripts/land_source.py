@@ -137,6 +137,28 @@ def smoke_fetch(unit: Path, src: str, manifest: dict,
     return []
 
 
+def suggest_slot(repo_root: Path, data_period: str | None) -> tuple[int, int] | None:
+    """Suggested (hour, minute) that fits the existing fleet (task 4.3).
+
+    Advisory only: landing never writes a schedule (that is the separate
+    light-up commit). It exists so the human picking the light-up minute does
+    not have to run the overlap simulator by hand.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        import schedule_overlap_check as soc
+    except Exception:  # noqa: BLE001 - advisory; never block a landing
+        return None
+    try:
+        units = soc.load_schedules()
+        grid = soc.occupancy(units)
+        dur = soc.DEFAULT_DURATION_MIN.get(str(data_period or ""),
+                                           soc.FALLBACK_DURATION_MIN)
+        return soc.suggest_time_of_day(grid, dur)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def run_local_checks(repo_root: Path) -> list[str]:
     """The three local admission checks; returns violation lines (empty = green)."""
     violations: list[str] = []
@@ -150,6 +172,11 @@ def run_local_checks(repo_root: Path) -> list[str]:
             out = (proc.stderr or proc.stdout).strip()
             violations.append(f"[{name}] failed:\n{out}")
     return violations
+
+
+def _scheduled_count(repo_root: Path) -> list[str]:
+    return [m.parent.name for m in sorted((repo_root / "spiders").glob("*/manifest.yaml"))
+            if "schedule:" in m.read_text()]
 
 
 def land(manifest_path: Path, spider_path: Path, repo_root: Path,
@@ -195,6 +222,11 @@ def land(manifest_path: Path, spider_path: Path, repo_root: Path,
             raise LandError(f"git commit failed: {proc.stderr.strip()}")
         note = (f" (stripped {', '.join(stripped)})" if stripped else "")
         print(f"land_source: {src} landed and committed{note}")
+        slot = suggest_slot(repo_root, data.get("data_period"))
+        if slot:
+            print(f"land_source: 建议点亮时点 {slot[0]:02d}:{slot[1]:02d}"
+                  f"（与既有 {len(_scheduled_count(repo_root))} 条调度零窗口相交；"
+                  f"日集合仍按该源发布节奏定）")
         print(f"next steps: 1) trigger a test run: MCP platform_trigger "
               f"(source='{src}')  2) light it up: add `schedule:` to "
               f"spiders/{src}/manifest.yaml in a separate commit")

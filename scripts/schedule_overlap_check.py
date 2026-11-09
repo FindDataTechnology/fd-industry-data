@@ -85,6 +85,69 @@ def _cron_matches(expr: str, dt: datetime) -> bool:
     )
 
 
+def occupancy(units: list[dict], overrides: dict[str, int] | None = None) -> list[list[bool]]:
+    """60 天 × 1440 分钟的占用网格（含运行时长窗口）。"""
+    overrides = overrides or {}
+    days = 60  # 与 CLI 的 --days 默认一致；窗口判定只需要覆盖一个调度周期
+    grid = [[False] * 1440 for _ in range(days)]
+    for unit in units:
+        dur = max(1, int(overrides.get(unit["slug"],
+                                       DEFAULT_DURATION_MIN.get(unit.get("data_period"),
+                                                                FALLBACK_DURATION_MIN))))
+        minute, hour, dom, month, dow = unit["expr"].split()
+        probe = f"0 0 {dom} {month} {dow}"
+        minutes = _expand_field(minute, 0, 59)
+        hours = _expand_field(hour, 0, 23)
+        for day in range(days):
+            base = datetime(2026, 11, 8, tzinfo=timezone.utc).replace(tzinfo=None) + timedelta(days=day)
+            if not _cron_matches(probe, base):
+                continue
+            row = grid[day]
+            for h in hours:
+                for m in minutes:
+                    start = h * 60 + m
+                    for k in range(dur):
+                        row[(start + k) % 1440] = True
+    return grid
+
+
+def _fits_day(grid: list[list[bool]], expr: str, dur: int) -> bool:
+    """该 cron 在网格上是否与既有窗口零相交。"""
+    minute, hour, dom, month, dow = expr.split()
+    probe = f"0 0 {dom} {month} {dow}"
+    minutes = _expand_field(minute, 0, 59)
+    hours = _expand_field(hour, 0, 23)
+    for day in range(60):
+        if not _cron_matches(probe, datetime(2026, 11, 8) + timedelta(days=day)):
+            continue
+        row = grid[day]
+        for h in hours:
+            for m in minutes:
+                start = h * 60 + m
+                for k in range(dur):
+                    if row[(start + k) % 1440]:
+                        return False
+    return True
+
+
+def suggest_time_of_day(grid: list[list[bool]], duration: int,
+                        preferred_hours: tuple[int, ...] = ()) -> tuple[int, int] | None:
+    """First (hour, minute) whose daily window is free on every matching day.
+
+    Change harden-crawl-delivery 4.3: the landing path asks this instead of
+    letting a human pick a minute that lands inside someone's runtime window.
+    Only the time-of-day is suggested — the day set (dom/month/dow) belongs to
+    the source's publishing rhythm, which the landing cannot know.
+    """
+    hours = list(preferred_hours) + [h for h in range(24) if h not in preferred_hours]
+    for hour in hours:
+        for minute in range(60):
+            expr = f"{minute} {hour} * * *"
+            if _fits_day(grid, expr, max(1, duration)):
+                return hour, minute
+    return None
+
+
 def load_schedules() -> list[dict]:
     units: list[dict] = []
     for mp in sorted((REPO / "spiders").glob("*/manifest.yaml")):
