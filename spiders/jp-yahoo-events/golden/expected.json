@@ -1,0 +1,37 @@
+{
+  "sample_id": "001-jp-yahoo-events",
+  "created": "2026-11-09",
+  "target": "run_jp_yahoo_events",
+  "params": {
+    "fixture": "spiders/jp-yahoo-events/fixtures/001-quotesummary.json",
+    "limit": 20
+  },
+  "expect": {
+    "min_rows": 3,
+    "rows_contains": [
+      {
+        "field": "ticker",
+        "equals": "7550.T"
+      },
+      {
+        "field": "event_kind",
+        "equals": "earnings_result"
+      },
+      {
+        "field": "event_kind",
+        "equals": "earnings_date"
+      },
+      {
+        "field": "source",
+        "equals": "jp-yahoo-events"
+      }
+    ]
+  },
+  "whitelist_fields": [
+    "period",
+    "eps_actual",
+    "surprise_pct",
+    "date_is_estimate",
+    "scraped_at"
+  ]
+}

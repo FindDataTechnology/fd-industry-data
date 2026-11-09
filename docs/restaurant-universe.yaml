@@ -1,0 +1,330 @@
+# 餐饮行业监控宇宙（首批 35 家）— task 3.1 真源
+#
+# entity_type 一律 `stock`（fd-open-data-protocol/vocabulary/entity_types.yaml:
+# "Listed equity issues, keyed by exchange-suffixed ticker"）。
+#
+# 代码约定（本文件定义，注册脚本按此解析；已存在的实体**复用不重建**）：
+#   * A股：沿用库里既有惯例 = 裸 6 位数字（002186），不带 .SZ/.SH 后缀；
+#   * 港股：5 位数字 + `.HK`（06862.HK），与库里 0700.HK / 9988.HK 同形；
+#   * 台股：4 位数字 + `.TW`（2727.TW）；
+#   * 日股：4 位数字 + `.T`（7550.T，TSE 通用后缀）；
+#   * 美股：裸 ticker（MCD）。
+#
+# segment 口径（四类，互斥，不模糊归类）：
+#   full-service    正餐（有服务到桌/翻台率口径的公司）
+#   limited-service 快休闲/快餐（含披萨外卖、火锅快取、盖饭快餐）
+#   cafe-teahouse   咖啡/茶饮/烘焙门店（现制饮品为主）
+#   prepared-food   预制/卤味/速冻（工厂生产 + 零售渠道，非门店现制）
+#
+# lanes = 该公司的数据车道（波2 分层结果，见 change 提案）：
+#   cninfo-operating      交易所经营公告（既有单元，零新建）
+#   fd-cn-report          A股财报（既有车道，仅引用）
+#   twse-monthly-revenue  台股月营收（既有单元，当前上游不可达 → 见 tasks 1.4）
+#   hkex-disclosure       港股披露易（本波新建）
+#   sec-edgar-facts       美股 XBRL company facts（本波新建）
+#   jp-tdnet              日股 TDNet 適時開示（本波新建，公开无键；替代需 key 的 EDINET API v2）
+#
+# SEC 边界注记（2026-10-07 侦察簿裁决）：A股/台股车道为**既有车道引用**，
+# 本能力不新建解析 A股财报全文的爬虫单元；港股/美股/日股在平台此前无车道，
+# 新建不构成与既有财报线的重叠（裁决理由=防重叠）。
+
+version: "2026-11-07"
+change: add-restaurant-vertical
+task: "3.1"
+
+segments:
+  full-service: 正餐
+  limited-service: 快休闲/快餐
+  cafe-teahouse: 咖啡茶饮烘焙
+  prepared-food: 预制卤味速冻
+
+companies:
+  # ── 港股 10 ────────────────────────────────────────────────────────────
+  - code: "06862.HK"
+    name_zh: 海底捞
+    name_en: Haidilao International Holding Ltd.
+    region: HK
+    exchange: HKEX
+    segment: full-service
+    lanes: [hkex-disclosure]
+    notes: 翻台率/同店为细分面一期首要标的（波2 3.5）
+  - code: "09922.HK"
+    name_zh: 九毛九
+    name_en: Jiumaojiu International Holdings Ltd.
+    region: HK
+    exchange: HKEX
+    segment: full-service
+    lanes: [hkex-disclosure]
+    notes: 太二/怂火锅多品牌，同店口径按品牌分部
+  - code: "00520.HK"
+    name_zh: 呷哺呷哺
+    name_en: Xiabuxiabu Catering Management (China) Holdings Co., Ltd.
+    region: HK
+    exchange: HKEX
+    segment: limited-service
+    lanes: [hkex-disclosure]
+    notes: 呷哺+湊湊双品牌；火锅快取口径
+  - code: "01405.HK"
+    name_zh: 达势股份
+    name_en: DPC Dash Ltd. (Domino's Pizza China)
+    region: HK
+    exchange: HKEX
+    segment: limited-service
+    lanes: [hkex-disclosure]
+    notes: 达美乐中国独家运营商
+  - code: "00965.HK"
+    name_zh: 特海国际
+    name_en: Super Hi International Holding Ltd.
+    region: HK
+    exchange: HKEX
+    segment: full-service
+    lanes: [hkex-disclosure]
+    notes: 海底捞海外业务分拆主体
+  - code: "09987.HK"
+    name_zh: 百胜中国
+    name_en: Yum China Holdings, Inc.
+    region: HK
+    exchange: HKEX
+    segment: limited-service
+    lanes: [hkex-disclosure]
+    notes: 港美双重上市（NYSE YUMC）；本线只走港股车道，避免双源重复
+  - code: "00341.HK"
+    name_zh: 大家乐集团
+    name_en: Cafe de Coral Holdings Ltd.
+    region: HK
+    exchange: HKEX
+    segment: limited-service
+    lanes: [hkex-disclosure]
+    notes: 香港本地快餐（含内地/海外分部）
+  - code: "00052.HK"
+    name_zh: 大快活集团
+    name_en: Fairwood Holdings Ltd.
+    region: HK
+    exchange: HKEX
+    segment: limited-service
+    lanes: [hkex-disclosure]
+    notes: 香港本地快餐
+  - code: "02150.HK"
+    name_zh: 奈雪的茶
+    name_en: Nayuki Holdings Ltd.
+    region: HK
+    exchange: HKEX
+    segment: cafe-teahouse
+    lanes: [hkex-disclosure]
+    notes: 高端现制茶饮；门店数/单店日销为披露重点
+  - code: "01458.HK"
+    name_zh: 周黑鸭
+    name_en: Zhou Hei Ya International Holdings Co., Ltd.
+    region: HK
+    exchange: HKEX
+    segment: prepared-food
+    lanes: [hkex-disclosure]
+    notes: 卤味预制，非门店现制（与紫燕/绝味/巴比同段）
+
+  # ── A股 6（既有实体，零新建爬虫） ──────────────────────────────────────
+  - code: "002186"
+    name_zh: 全聚德
+    name_en: China Quanjude (Group) Co., Ltd.
+    region: CN
+    exchange: SZSE
+    segment: full-service
+    lanes: [cninfo-operating, fd-cn-report]
+    notes: 正餐老字号
+  - code: "603043"
+    name_zh: 广州酒家
+    name_en: Guangzhou Restaurant Group Co., Ltd.
+    region: CN
+    exchange: SSE
+    segment: full-service
+    lanes: [cninfo-operating, fd-cn-report]
+    notes: 餐饮+食品制造双主业，主口径归正餐（月饼业务为食品分部）
+  - code: "000721"
+    name_zh: 西安饮食
+    name_en: Xi'an Catering Co., Ltd.
+    region: CN
+    exchange: SZSE
+    segment: full-service
+    lanes: [cninfo-operating, fd-cn-report]
+    notes: 正餐+老字号门店
+  - code: "603517"
+    name_zh: 绝味食品
+    name_en: Juewei Food Co., Ltd.
+    region: CN
+    exchange: SSE
+    segment: prepared-food
+    lanes: [cninfo-operating, fd-cn-report]
+    notes: 卤味预制（加盟门店销售，生产口径）
+  - code: "603057"
+    name_zh: 紫燕食品
+    name_en: Ziyan Foods Co., Ltd.
+    region: CN
+    exchange: SSE
+    segment: prepared-food
+    lanes: [cninfo-operating, fd-cn-report]
+    notes: 提案点名：归 prepared-food，不进正餐段
+  - code: "605338"
+    name_zh: 巴比食品
+    name_en: Babi Food Co., Ltd.
+    region: CN
+    exchange: SSE
+    segment: prepared-food
+    lanes: [cninfo-operating, fd-cn-report]
+    notes: 提案点名：速冻面点生产，归 prepared-food
+
+  # ── 美股 12（SEC EDGAR XBRL） ──────────────────────────────────────────
+  - code: "MCD"
+    name_zh: 麦当劳
+    name_en: McDonald's Corporation
+    region: US
+    exchange: NYSE
+    segment: limited-service
+    lanes: [sec-edgar-facts]
+    notes: 加盟为主（收入含租金/特许权），分部口径以 10-Q 披露为准
+  - code: "SBUX"
+    name_zh: 星巴克
+    name_en: Starbucks Corporation
+    region: US
+    exchange: NASDAQ
+    segment: cafe-teahouse
+    lanes: [sec-edgar-facts]
+    notes: 自营+授权双模式；同店销售为披露重点
+  - code: "YUM"
+    name_zh: 百胜餐饮集团
+    name_en: Yum! Brands, Inc.
+    region: US
+    exchange: NYSE
+    segment: limited-service
+    lanes: [sec-edgar-facts]
+    notes: 与港股百胜中国（09987.HK）为不同主体，勿混
+  - code: "CMG"
+    name_zh: 墨式烧烤
+    name_en: Chipotle Mexican Grill, Inc.
+    region: US
+    exchange: NYSE
+    segment: limited-service
+    lanes: [sec-edgar-facts]
+    notes: 全自营
+  - code: "QSR"
+    name_zh: 餐饮品牌国际
+    name_en: Restaurant Brands International Inc.
+    region: US
+    exchange: NYSE
+    segment: limited-service
+    lanes: [sec-edgar-facts]
+    notes: 汉堡王/天好咖啡/Popeyes 多品牌
+  - code: "DRI"
+    name_zh: 达登餐饮
+    name_en: Darden Restaurants, Inc.
+    region: US
+    exchange: NYSE
+    segment: full-service
+    lanes: [sec-edgar-facts]
+    notes: 正餐多品牌（Olive Garden 等），FY 为 5 月结束
+  - code: "DPZ"
+    name_zh: 达美乐披萨
+    name_en: Domino's Pizza, Inc.
+    region: US
+    exchange: NYSE
+    segment: limited-service
+    lanes: [sec-edgar-facts]
+    notes: 加盟为主；与达势股份（01405.HK，中国独家）区分
+  - code: "WEN"
+    name_zh: 温蒂汉堡
+    name_en: The Wendy's Company
+    region: US
+    exchange: NASDAQ
+    segment: limited-service
+    lanes: [sec-edgar-facts]
+    notes: 加盟+自营混合
+  - code: "TXRH"
+    name_zh: 德州客栈
+    name_en: Texas Roadhouse, Inc.
+    region: US
+    exchange: NASDAQ
+    segment: full-service
+    lanes: [sec-edgar-facts]
+    notes: 正餐连锁
+  - code: "BROS"
+    name_zh: Dutch Bros
+    name_en: Dutch Bros Inc.
+    region: US
+    exchange: NYSE
+    segment: cafe-teahouse
+    lanes: [sec-edgar-facts]
+    notes: 免下车咖啡连锁；库里无既有实体，本波新建
+  - code: "WING"
+    name_zh: Wingstop
+    name_en: Wingstop Inc.
+    region: US
+    exchange: NASDAQ
+    segment: limited-service
+    lanes: [sec-edgar-facts]
+    notes: 几乎全加盟；库里无既有实体，本波新建
+  - code: "EAT"
+    name_zh: 布林克国际
+    name_en: Brinker International, Inc.
+    region: US
+    exchange: NYSE
+    segment: full-service
+    lanes: [sec-edgar-facts]
+    notes: Chili's / Maggiano's
+
+  # ── 台股 3（既有单元 twse-monthly-revenue，当前上游不可达） ──────────────
+  - code: "2727.TW"
+    name_zh: 王品
+    name_en: Wowprime Corp.
+    region: TW
+    exchange: TWSE
+    segment: full-service
+    lanes: [twse-monthly-revenue]
+    notes: 多品牌正餐；月营收为台股披露惯例（每月 10 日前）
+  - code: "2729.TW"
+    name_zh: 瓦城泰统
+    name_en: TTFB Company Ltd. (Thai Town Cuisine)
+    region: TW
+    exchange: TWSE
+    segment: full-service
+    lanes: [twse-monthly-revenue]
+    notes: 正餐连锁；上游 TWSE 当前不可达（tasks 1.4 阻塞记录在案）
+  - code: "2723.TW"
+    name_zh: 美食-KY
+    name_en: Gourmet Master Co., Ltd. (85°C)
+    region: TW
+    exchange: TWSE
+    segment: cafe-teahouse
+    lanes: [twse-monthly-revenue]
+    notes: 85°C 烘焙咖啡；KY 为境外注册台股
+
+  # ── 日股 4（TDNet 適時開示，公开无键；EDINET key 不再需要） ──────────
+  - code: "7550.T"
+    name_zh: 泉盛控股
+    name_en: Zensho Holdings Co., Ltd.
+    region: JP
+    exchange: TSE
+    segment: limited-service
+    lanes: [jp-tdnet]
+    notes: 食其家/滨寿司等；年次有価証券報告書事件面
+  - code: "7581.T"
+    name_zh: 萨莉亚
+    name_en: Saizeriya Co., Ltd.
+    region: JP
+    exchange: TSE
+    segment: full-service
+    lanes: [jp-tdnet]
+    notes: 意式正餐连锁，FY 8 月结束
+  - code: "2702.T"
+    name_zh: 日本麦当劳控股
+    name_en: McDonald's Holdings Company (Japan), Ltd.
+    region: JP
+    exchange: TSE
+    segment: limited-service
+    lanes: [jp-tdnet]
+    notes: 与美股 MCD 为不同上市主体（MCD 为大股东），勿混
+  - code: "3197.T"
+    name_zh: 云雀控股
+    name_en: Skylark Holdings Co., Ltd.
+    region: JP
+    exchange: TSE
+    segment: full-service
+    lanes: [jp-tdnet]
+    notes: 家庭餐厅连锁；日本月次披露一期不接（见 restaurant-mcp-surface 不可得口径）

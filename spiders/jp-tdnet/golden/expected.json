@@ -1,0 +1,43 @@
+{
+  "sample_id": "001-jp-tdnet",
+  "created": "2026-11-09",
+  "target": "run_jp_tdnet",
+  "params": {
+    "fixture": "spiders/jp-tdnet/golden/001-tdnet-list.html",
+    "codes": "4272",
+    "limit": 10
+  },
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {
+        "field": "tdnet_code",
+        "equals": "42720"
+      },
+      {
+        "field": "ticker",
+        "equals": "4272"
+      },
+      {
+        "field": "disclose_time",
+        "equals": "10:30"
+      },
+      {
+        "field": "company",
+        "equals": "日化薬"
+      },
+      {
+        "field": "source",
+        "equals": "jp-tdnet"
+      }
+    ]
+  },
+  "whitelist_fields": [
+    "scraped_at",
+    "trade_date",
+    "source_url",
+    "doc_url",
+    "title",
+    "exchange"
+  ]
+}

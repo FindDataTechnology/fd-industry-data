@@ -1,0 +1,56 @@
+version: "2"
+name: jp-yahoo-events          # = spiders/jp-yahoo-events/ 目录名，运行时标识符，合入后不可改名
+label: 日本个股定期披露事件（Yahoo Finance 公开端点，无键；与 yfinance 同源）
+source_url: https://finance.yahoo.com/quote/7550.T
+# site: tencent              # 缺省 tencent；本单元只访问 finance.yahoo.com / query1.finance.yahoo.com 公开端点
+# schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
+data_period: irregular
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_jp_yahoo_events
+    description: 取日股餐饮宇宙（7550.T 泉盛 / 7581.T 萨莉亚 / 2702.T 日本麦当劳 / 3197.T 云雀）的定期披露事件——已披露各期实际 EPS（earningsHistory）与下次決算発表日（calendarEvents.earnings）。补 TDNet 日次列表只留 31 天、覆盖不到"最新年度披露"的缺口；不需要 EDINET Subscription-Key。会话为 cookie+crumb 握手（首页 seed 偶发 401，内部重试 4 次）。
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: 最多返回行数（默认 50）
+      - name: tickers
+        type: string
+        required: false
+        description: "逗号分隔的 Yahoo 代码（默认 7550.T,7581.T,2702.T,3197.T）"
+      - name: fixture
+        type: string
+        required: false
+        description: "直供一份 quoteSummary JSON 响应（golden 重放路径，零网络）"
+    columns:
+      - name: ticker
+        type: string
+        description: Yahoo 代码（含 .T 后缀）
+      - name: event_kind
+        type: string
+        description: "earnings_result（已披露业绩）或 earnings_date（下次決算発表日）"
+      - name: period
+        type: string
+        description: earnings_result 为报告期（YYYY-MM-DD，Yahoo quarter.fmt）；earnings_date 为披露日期（YYYY-MM-DD）
+      - name: eps_actual
+        type: float
+        description: 该期实际 EPS（earnings_result 行；上游缺该字段时为 null，不补零）
+      - name: surprise_pct
+        type: float
+        description: 相对一致预期的偏离比例（上游缺则为 null）
+      - name: date_is_estimate
+        type: bool
+        description: 仅 earnings_date 行有意义——true 表示上游标注为**预估**日期
+      - name: source
+        type: string
+        description: 数据源标识（jp-yahoo-events）
+      - name: scraped_at
+        type: string
+        description: 抓取时刻（ISO8601）
+entities:
+  - entity_type: stock
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

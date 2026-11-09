@@ -1,0 +1,78 @@
+{
+  "quoteSummary": {
+    "result": [
+      {
+        "calendarEvents": {
+          "maxAge": 1,
+          "earnings": {
+            "earningsDate": [
+              {
+                "raw": 1794465000,
+                "fmt": "2026-11-12"
+              }
+            ],
+            "earningsCallDate": [],
+            "isEarningsDateEstimate": false,
+            "earningsAverage": {},
+            "earningsLow": {},
+            "earningsHigh": {},
+            "revenueAverage": {
+              "raw": 347745500000,
+              "fmt": "347.75B",
+              "longFmt": "347,745,500,000"
+            },
+            "revenueLow": {
+              "raw": 326392000000,
+              "fmt": "326.39B",
+              "longFmt": "326,392,000,000"
+            },
+            "revenueHigh": {
+              "raw": 362890000000,
+              "fmt": "362.89B",
+              "longFmt": "362,890,000,000"
+            }
+          },
+          "exDividendDate": {
+            "raw": 1806364800,
+            "fmt": "2027-03-30"
+          },
+          "dividendDate": {}
+        },
+        "earningsHistory": {
+          "history": [
+            {
+              "maxAge": 1,
+              "epsActual": {
+                "raw": 72.42,
+                "fmt": "72.42"
+              },
+              "quarter": {
+                "raw": 1767139200,
+                "fmt": "2025-12-31"
+              },
+              "currency": "JPY",
+              "period": "-3q"
+            },
+            {
+              "maxAge": 1,
+              "epsActual": {
+                "raw": 91.2,
+                "fmt": "91.2"
+              },
+              "quarter": {
+                "raw": 1782777600,
+                "fmt": "2026-06-30"
+              },
+              "currency": "JPY",
+              "period": "-1q"
+            }
+          ],
+          "defaultMethodology": "nongaap",
+          "maxAge": 86400
+        }
+      }
+    ],
+    "error": null
+  },
+  "_ticker": "7550.T"
+}

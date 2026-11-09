@@ -1,0 +1,69 @@
+version: "2"
+name: jp-tdnet                # = spiders/jp-tdnet/ 目录名，运行时标识符，合入后不可改名
+label: TDNet 適時開示 (Japan timely disclosure, keyless HTML)
+source_url: https://www.release.tdnet.info/inbs/I_list_001_20261109.html
+# site: tencent              # 缺省 tencent；本单元只访问 www.release.tdnet.info 公开日次列表页，无需换执行位
+# schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
+data_period: day
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_jp_tdnet
+    description: Fetch TDNet 適時開示 daily listing pages (東証 I_list_001_YYYYMMDD.html) and keep the disclosures of the restaurant universe tickers; each row carries disclose time / 5-digit TDNet code / company / title / exchange / PDF url. Replaces the EDINET API lane (which needs a Subscription-Key) for the event surface — TDNet is keyless public HTML and covers 決算短信 / 業績予想の修正 (the JP analogue of a profit alert).
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return after filtering (default 200)
+      - name: days
+        type: int
+        required: false
+        description: How many calendar days back to walk, newest first (default 7); TDNet retains roughly 31 days
+      - name: codes
+        type: string
+        required: false
+        description: "Comma-separated 4-digit TSE codes to keep (default 7550,7581,2702,3197 = the JP restaurant universe). Matching uses the FIRST FOUR digits of TDNet's 5-digit code (the 5th is a check digit)."
+      - name: fixture
+        type: string
+        required: false
+        description: "Path to a saved listing HTML — parses it instead of hitting the network (golden replay path)."
+    columns:
+      - name: trade_date
+        type: string
+        description: Listing date of the page the row came from (YYYY-MM-DD)
+      - name: disclose_time
+        type: string
+        description: 時刻 cell, HH:MM as published
+      - name: tdnet_code
+        type: string
+        description: コード cell verbatim — 5 digits (4-digit TSE code + 1 check digit)
+      - name: ticker
+        type: string
+        description: First four digits of tdnet_code, i.e. the TSE code joined to the universe (7550 etc.)
+      - name: company
+        type: string
+        description: 会社名 cell, whitespace-normalised
+      - name: title
+        type: string
+        description: 表題 cell (anchor text), whitespace-normalised — e.g. 決算短信 / 業績予想の修正
+      - name: exchange
+        type: string
+        description: 上場取引所 cell (東 = Tokyo)
+      - name: doc_url
+        type: string
+        description: Absolute PDF url resolved from the anchor href against the listing page
+      - name: source
+        type: string
+        description: Data source identifier (jp-tdnet)
+      - name: source_url
+        type: string
+        description: The listing page URL the row was parsed from
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+entities:
+  - entity_type: stock
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
