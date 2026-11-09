@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-fred-cpi",
+  "created": "2026-11-07",
+  "target": "run_fred_cpi",
+  "params": {"limit": 20},
+  "expect": {
+    "min_rows": 2,
+    "rows_contains": [
+      {"field": "source", "equals": "fred-cpi"},
+      {"field": "series_id", "equals": "CUSR0000SEFV"},
+      {"field": "series_id", "equals": "CUSR0000SAF11"},
+      {"field": "date", "equals": "2026-09-01"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "value", "url"]
+}

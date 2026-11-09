@@ -1,0 +1,57 @@
+version: "2"
+name: pboc-loan-usage          # = spiders/pboc-loan-usage/ 目录名，运行时标识符，合入后不可改名
+label: PBOC Loan-Usage Statistics (Quarterly Loan Flow by Sector)
+source_url: https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/index.html
+# site: 缺省 —— 本机直连 www.pbc.gov.cn 公开静态页实测 200（2026-11-07，见 README 证据表）
+schedule: "0 11 15 1,4,7,10 *"   # 季度：报告季后次月发布（Q3=10-28），季度首月 15 日巡查补录
+data_period: irregular            # 季度源：month 容忍窗仅 35d 会在两个季度窗之间假超期，year(370d) 过宽；按 irregular 登记，断档由 gap_in_series 兜底（见 README）
+scanner_mode: upstream-curated
+functions:
+  - command: run_pboc_loan_usage
+    description: Fetch PBOC quarterly 金融机构贷款投向统计报告 — loan balances and YoY growth for 各项贷款 / 企事业单位 / 普惠小微 / 涉农 / 房地产 / 绿色 / 工业与基础设施中长期贷款 (growth carries sign; 下降 recorded negative)
+    frequency: quarterly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of indicator rows to return (periods newest-first, 18 indicators per report)
+    columns:
+      - name: indicator
+        type: string
+        description: Indicator name, e.g. 人民币各项贷款余额 / 普惠小微贷款余额 / 涉农贷款余额 / 房地产贷款同比增速
+      - name: period
+        type: string
+        description: Observation period as YYYYQn, YYYYH1 or YYYY (parsed from the report title)
+      - name: value
+        type: float
+        description: Published value — balances in 万亿元, growth rates in percent (下降 negative, 持平 zero)
+      - name: unit
+        type: string
+        description: Unit as published (万亿元 / %)
+      - name: report_title
+        type: string
+        description: Source report title as published
+      - name: report_url
+        type: string
+        description: Source report URL
+      - name: published_at
+        type: string
+        description: Publication date from the page meta PubDate (YYYY-MM-DD); never parsed from the URL
+      - name: source
+        type: string
+        description: Data source identifier (constant "pboc-loan-usage")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: banking.loan_usage
+    entity_type: country
+    measure: value
+    unit: cny_trillion
+    frequency: quarterly
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

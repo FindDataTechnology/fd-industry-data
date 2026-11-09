@@ -1,0 +1,64 @@
+version: "2"
+name: chinawealth-reports    # = spiders/chinawealth-reports/ 目录名，运行时标识符，合入后不可改名
+label: 中国理财网 银行业理财市场报告（列表 + 详情页 PDF 直链）
+source_url: https://www.chinawealth.com.cn/lc_lcsj/lcbg/
+# site: 缺省 —— 本机直连 www.chinawealth.com.cn 实测 200（2026-11-08，见 README 证据表）
+schedule: "15 14 * * 2"      # 逐字按批次六排期（周频巡检，报告按季度/半年/年度发布）
+data_period: month
+scanner_mode: upstream-curated
+functions:
+  - command: run_chinawealth_reports
+    description: Fetch the China Wealth (银行业理财登记托管中心) wealth-management market report catalog — one row per report announcement with title, issue label, report type, publish date, publisher, detail-page URL and the PDF direct link read from the detail page's `data-recurl` attribute. The list is static HTML paging (index.html / index_2.html / index_1.html; suffix derived from the page's own pageCount each run, never hardcoded); detail pages are fetched once per report for the attachment metadata; PDFs are NOT downloaded or parsed by this unit
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned, newest published_at first (default 60; current full catalog is 28 rows)
+      - name: pages
+        type: int
+        required: false
+        description: List paging depth, 1-based (default 3 = every page as of 2026-11-08); clamped to the pageCount read from index.html, <=0 returns no rows
+    columns:
+      - name: title
+        type: string
+        description: Report title as published (e.g. 中国银行业理财市场季度报告（2026年三季度）); detail-page title wins over the list title when they drift (drift is traced)
+      - name: issue
+        type: string
+        description: Report-period label taken verbatim from the title's parentheses (e.g. 2026年三季度 / 2026年上 / 2016 / 2017上半年); multiple labels joined with 、 for a combined announcement; null when the title has no parentheses
+      - name: doc_type
+        type: string
+        description: Local classification from title literals — quarterly (contains 季度) | half_year (contains 半年/上半年) | annual (年度报告/年报/报告（YYYY年）) | mixed (a 、-joined announcement covering both an annual and a half-year report); rule order in README
+      - name: published_at
+        type: string
+        description: Publish date YYYY-MM-DD from the detail page 发布时间 line, falling back to the list item's news_date when the detail page fails
+      - name: publisher
+        type: string
+        description: Publishing organization from the detail page 文章来源 line (银行理财登记中心 / 中央结算公司 / 全国银行业理财信息登记系统); null when upstream omits it (实测 2013 年报页)
+      - name: report_url
+        type: string
+        description: Absolute URL of the detail page (article), the stable per-report identity
+      - name: pdf_url
+        type: string
+        description: Absolute PDF direct link resolved from the detail page's data-recurl attribute against the detail-page directory; null for the one narrative-only announcement with no attachment (实测 2013年报+2014上半年合并公告)
+      - name: pdf_filename
+        type: string
+        description: Download filename from data-download (as published; some early issues wrap it in 《》); null when there is no attachment
+      - name: source
+        type: string
+        description: Data source identifier (constant "chinawealth-reports")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the run's extraction start
+concepts:
+  - column: title
+    concept: industry.report_title
+    entity_type: industry
+    measure: value
+    unit: string
+    frequency: monthly
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

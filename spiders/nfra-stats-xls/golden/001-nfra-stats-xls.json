@@ -1,0 +1,25 @@
+{
+  "sample_id": "001-nfra-stats-xls",
+  "created": "2026-11-07",
+  "target": "run_nfra_stats_xls",
+  "params": {"limit": 800},
+  "expect": {
+    "min_rows": 300,
+    "rows_contains": [
+      {"field": "source", "equals": "nfra-stats-xls"},
+      {"field": "table_kind", "equals": "regulatory_metrics"},
+      {"field": "table_kind", "equals": "by_institution"},
+      {"field": "table_kind", "equals": "balance_sheet"},
+      {"field": "table_kind", "equals": "inclusive_small"},
+      {"field": "indicator", "equals": "不良贷款率"},
+      {"field": "period", "equals": "2026Q2"},
+      {"field": "value", "equals": 1.518},
+      {"field": "indicator", "equals": "资本充足率"},
+      {"field": "value", "equals": 15.256},
+      {"field": "indicator", "equals": "不良贷款余额"},
+      {"field": "value", "equals": 37248.816429047},
+      {"field": "unit", "equals": "%"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

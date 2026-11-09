@@ -1,0 +1,23 @@
+{
+  "sample_id": "001-xsj-ratings",
+  "created": "2026-11-08",
+  "target": "run_xsj_ratings",
+  "params": {"limit": 200, "pages": 3, "period": "2026-07"},
+  "expect": {
+    "min_rows": 10,
+    "rows_contains": [
+      {"field": "source", "equals": "xsj-ratings"},
+      {"field": "rank_type", "equals": "跟踪评级"},
+      {"field": "doc_id", "equals": 36877},
+      {"field": "bank_name", "equals": "浙江义乌农村商业银行"},
+      {"field": "issuer_rating", "equals": "AA+"},
+      {"field": "bond_rating", "equals": "AA+"},
+      {"field": "outlook", "equals": "稳定"},
+      {"field": "rating_date", "equals": "2026-07-29"},
+      {"field": "nav_path", "equals": "评级公告/跟踪评级/金融债券"},
+      {"field": "category", "equals": "金融债券"},
+      {"field": "pdf_name", "equals": "跟踪评级报告"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

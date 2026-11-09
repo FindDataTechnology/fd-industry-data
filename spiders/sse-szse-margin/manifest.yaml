@@ -1,0 +1,68 @@
+version: "2"
+name: sse-szse-margin            # = spiders/sse-szse-margin/ 目录名，运行时标识符，合入后不可改名
+label: 沪深交易所两融余额（融资融券交易总量）
+source_url: https://www.sse.com.cn/market/othersdata/margin/sum/   # SSE 落地页；SZSE 落地页 https://www.szse.cn/disclosure/margin/margin/index.html，两所 JSON 通道与鉴权头见 README
+# site: 缺省 —— 本机直连两所官方接口实测 200（2026-11-07，见 README 证据表），无需代理出口
+# schedule: 点亮（add-securities-industry-line 3.6）：18:50 UTC 错峰（与既有 82 条调度零重叠，实证见 change reports）
+schedule: "50 18 * * 1-5"   # 两融余额日频，交易日夜间更新（含 T+1 时滞容忍）
+data_period: day
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_sse_szse_margin
+    description: Fetch latest daily margin-trading totals (融资余额/融券余额/两融余额) for SSE and SZSE from their official JSON channels (SSE queryMargin.do + SZSE ShowReport 1837_xxpl, values normalized to CNY yuan)
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of most-recent trading-day rows kept per exchange (SSE and SZSE each; total at most 2*limit rows)
+    columns:
+      - name: source
+        type: string
+        description: Data source identifier (constant "sse-szse-margin")
+      - name: exchange
+        type: string
+        description: Exchange of the row ("SSE" or "SZSE")
+      - name: trade_date
+        type: string
+        description: Trading day of the totals (YYYY-MM-DD; SSE opDate / SZSE queried txtDate)
+      - name: rzye
+        type: float
+        description: 融资余额 (margin financing outstanding balance) in CNY yuan (SSE native yuan; SZSE 亿元 parsed from column title and scaled by 1e8)
+      - name: rqye
+        type: float
+        description: 融券余额 (securities lending outstanding balance) in CNY yuan (SSE rqylje; SZSE jrrjye scaled per column-title unit)
+      - name: rzrqye
+        type: float
+        description: 融资融券余额 (margin financing + securities lending total balance) in CNY yuan (SSE rzrqjyzl; SZSE jrrzrjye scaled per column-title unit)
+      - name: source_url
+        type: string
+        description: Exact request URL the row was fetched from (per-exchange endpoint, SZSE carries its txtDate)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: rzye
+    concept: market.margin_rz_balance
+    entity_type: market
+    measure: balance
+    unit: currency_cny
+    frequency: daily
+  - column: rqye
+    concept: market.margin_rq_balance
+    entity_type: market
+    measure: balance
+    unit: currency_cny
+    frequency: daily
+  - column: rzrqye
+    concept: market.margin_total
+    entity_type: market
+    measure: balance
+    unit: currency_cny
+    frequency: daily
+entities:
+  - entity_type: market
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

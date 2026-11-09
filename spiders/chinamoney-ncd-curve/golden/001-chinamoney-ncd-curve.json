@@ -1,0 +1,21 @@
+{
+  "sample_id": "001-chinamoney-ncd-curve",
+  "created": "2026-11-07",
+  "target": "run_chinamoney_ncd_curve",
+  "params": {"limit": 400, "days": 10},
+  "expect": {
+    "min_rows": 80,
+    "rows_contains": [
+      {"field": "source", "equals": "chinamoney-ncd-curve"},
+      {"field": "curve", "equals": "NCD_AAA"},
+      {"field": "curve_name", "equals": "同业存单(AAA)"},
+      {"field": "reference", "equals": "maturity"},
+      {"field": "tenor_years", "equals": 1.0},
+      {"field": "tenor_days", "equals": 365},
+      {"field": "tenor_years", "equals": 0.019},
+      {"field": "tenor_years", "equals": 0.083},
+      {"field": "unit", "equals": "%"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

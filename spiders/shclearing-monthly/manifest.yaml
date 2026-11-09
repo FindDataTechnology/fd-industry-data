@@ -1,0 +1,68 @@
+version: "2"
+name: shclearing-monthly      # = spiders/shclearing-monthly/ 目录名，运行时标识符，合入后不可改名
+label: Shanghai Clearing House monthly bond statistics (Table 4 custody, Table 5 investor holdings, 2014-12-present)
+source_url: https://www.shclearing.com.cn/cpyyw/ywsj/tjyb/
+# site: 缺省 —— 本机直连 www.shclearing.com.cn 实测 200（2026-11-08，见 README 证据表）
+schedule: "18 13 5,20 * *"   # 月报发布窗巡检：次月中下旬发布（实测 202609 期于 10-20 发布）；每月 5/20 日 15:12 兜一圈
+data_period: month
+scanner_mode: upstream-curated
+functions:
+  - command: run_shclearing_monthly
+    description: Fetch the Shanghai Clearing House monthly bond statistics — Table 4 (end-period custody by bond type, including NCDs) and Table 5 (major-instrument investor holdings) — via sdocClient/monthListPage (JSESSIONID + Referer gate, channelId fixed to the statistics-monthly-report node) plus sattaClient/download attachments; PDFs are magic-verified (%PDF-) and text-extracted, while the same-release xlsx aggregate is parsed through the shared tabular layer, emitted as a long table of one row per (period, table, row label, metric); period pins a historical month for backfill and golden stable replay
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned (default 800 ≈ 3 periods at ~267 rows per period)
+      - name: months
+        type: int
+        required: false
+        description: Number of published periods to walk back from the start period (default 1 = latest only)
+      - name: period
+        type: string
+        required: false
+        description: Start period as YYYY-MM or YYYYMM; empty = getMaxDate's latest published month, a given value = backfill from that month (2014-12-present) and pins golden month
+    columns:
+      - name: period
+        type: string
+        description: Statistical month as YYYY-MM (upstream 统计月份 2026-09 normalized)
+      - name: table_code
+        type: string
+        description: Report table number 04 / 05 (upstream title prefix 表四 / 表五; stable key)
+      - name: table_name
+        type: string
+        description: Table name as published (表四 债券期末托管情况 / 表五 主要券种投资者持有结构)
+      - name: row_dimension
+        type: string
+        description: What the row axis enumerates — bond_type (04) or investor_type (05)
+      - name: row_label
+        type: string
+        description: Row label as published (2.2 商业银行金融债 / 2.存款类金融机构 / 2.1 国有大型商业银行 / 合计 …), hierarchy prefix kept
+      - name: metric
+        type: string
+        description: Column metric as published; Table 4 = 本月末/本月净增/本年净增, Table 5 = instrument name (公司信用类债券·超短期融资券 … 标准化票据)
+      - name: value
+        type: float
+        description: Cell value in 亿元 (千分位逗号剥离；空/上游 "-" 视为缺测不出行)
+      - name: unit
+        type: string
+        description: Unit resolved from the 单位 line (both tables publish 单位：亿元)
+      - name: source
+        type: string
+        description: Data source identifier (constant "shclearing-monthly")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: bond.custody_and_investor_holdings
+    entity_type: bond_aggregate
+    measure: amount
+    unit: hundred_million_cny
+    frequency: monthly
+entities:
+  - entity_type: bond_aggregate
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

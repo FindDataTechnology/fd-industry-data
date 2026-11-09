@@ -1,0 +1,21 @@
+{
+  "sample_id": "001-jp-foodservice-trend",
+  "created": "2026-11-08",
+  "target": "run_jp_foodservice_trend",
+  "params": {"limit": 14, "since": "2025-01"},
+  "expect": {
+    "min_rows": 14,
+    "rows_contains": [
+      {"field": "source", "equals": "jp-foodservice-trend"},
+      {"field": "month", "equals": "2025-01"},
+      {"field": "segment", "equals": "全体"},
+      {"field": "edition", "equals": "2026-01"},
+      {"field": "sales_yoy", "equals": 1.0765190538017952},
+      {"field": "store_count_yoy", "equals": 1.0041919991116293},
+      {"field": "customer_count_yoy", "equals": 1.0339080179902553},
+      {"field": "spend_per_customer_yoy", "equals": 1.0412135654914143}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"],
+  "note": "锚 2025-01／全体 的四个前年同月比（值取自 2026-01 版 workbooks/2026/02/data_c_m2026_1.xls 的「全店」表；2026-11-08 真实运行逐字读出）。选 since=2025-01 而非缺省：缺省只取索引第 1 页，窗口最早已是 2025-01，新版报告每月推进会把该月挤出窗口；给 since 后索引逐页回溯到 2025-01 版，2025-01 是历史定稿值（无更新版覆盖），锚点长期稳定。最新月（2026-09）不入锚——下版报告可能修订滚动窗末月。"
+}

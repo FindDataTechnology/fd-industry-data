@@ -1,0 +1,19 @@
+{
+  "sample_id": "001-hkex-disclosure",
+  "created": "2026-11-07",
+  "target": "run_hkex_disclosure",
+  "params": {
+    "limit": 200,
+    "days_back": 365,
+    "stocks": [["06862", "海底捞"]]
+  },
+  "expect": {
+    "min_rows": 10,
+    "rows_contains": [
+      {"field": "source", "equals": "hkex-disclosure"},
+      {"field": "ann_type", "equals": "results"},
+      {"field": "release_date", "equals": "2026-08-25"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

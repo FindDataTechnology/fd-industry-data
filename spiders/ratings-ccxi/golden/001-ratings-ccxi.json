@@ -1,0 +1,27 @@
+{
+  "sample_id": "001-ratings-ccxi",
+  "created": "2026-11-08",
+  "target": "run_ratings_ccxi",
+  "params": {"limit": 200, "keyword": "银行", "since": "2026-09-01", "until": "2026-09-30"},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "source", "equals": "ratings-ccxi"},
+      {"field": "report_type", "equals": "dqgz"},
+      {"field": "issuer", "equals": "贵阳农村商业银行股份有限公司"},
+      {"field": "report_title", "equals": "2022年贵阳农村商业银行股份有限公司二级资本债券跟踪评级"},
+      {"field": "subject_rating", "equals": "AA-"},
+      {"field": "debt_rating", "equals": "A+"},
+      {"field": "outlook", "equals": "稳定"},
+      {"field": "rating_date", "equals": "2026-09-29"},
+      {"field": "pdf_url", "equals": "https://website-oss.ccxi.com.cn/zhongchengxin//file/20260930-1790734209798-Eq6639-[[originalname]]-贵阳农村商业银行股份有限公司2026年度跟踪评级报告.pdf"},
+      {"field": "bond_count", "equals": 2},
+      {"field": "report_type", "equals": "cspj"},
+      {"field": "issuer", "equals": "南洋商业银行(中国)有限公司"},
+      {"field": "report_type", "equals": "bdqgz"},
+      {"field": "rating_date", "equals": "2026-09-18"},
+      {"field": "report_title", "equals": "中诚信国际关于延迟披露河南新郑农村商业银行股份有限公司2024年度、2025年度和2026年度跟踪评级报告的公告"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

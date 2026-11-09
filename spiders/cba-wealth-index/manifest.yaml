@@ -1,0 +1,68 @@
+version: "2"
+name: cba-wealth-index        # = spiders/cba-wealth-index/ 目录名，运行时标识符，合入后不可改名
+label: China Banking Association wealth-management market index (monthly return indices, 2022-present)
+source_url: https://www.china-cba.net/Index/lists/catid/279.html
+# site: 缺省 —— 本机直连 www.china-cba.net 实测 200（2026-11-08，见 README 证据表）
+schedule: "15 14 12 * *"       # 月更：协会在次月中下旬把上月报告挂到年度聚合页（实测 2026-09 于 2026-10-19 上传）
+data_period: month
+scanner_mode: upstream-curated
+functions:
+  - command: run_cba_wealth_index
+    description: Fetch the China Banking Association wealth-management market index from the four annual aggregate detail pages (2022-2023 / 2024 / 2025 / 2026) — the attachment href directory is an upload batch date, never the report period, so the period comes from the anchor text and duplicate periods are deduped by latest batch — then parse 2026 PDFs via pdftotext -layout and 2022-2025 docx via zipfile word/document.xml into a long table of one row per (period, methodology, series, metric); emits the 2024-01+ return-index methodology and the 2022-02..2023-12 selected-60 price-index methodology under a separate methodology value
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned (default 60 ≈ one new-methodology period at 32 rows)
+      - name: months
+        type: int
+        required: false
+        description: Number of published periods to walk back from the start period (default 1 = latest only)
+      - name: period
+        type: string
+        required: false
+        description: Start period as YYYY-MM; empty = latest published period on the site, a given value = backfill from that month (2022-02 onward, used by golden to pin 2026-09)
+    columns:
+      - name: period
+        type: string
+        description: Report month as YYYY-MM (parsed from the listing anchor text, e.g. 中国银行业理财市场指数报告（2026年9月） — never from the URL batch directory)
+      - name: methodology
+        type: string
+        description: Index methodology family — fixed_income_return_index (2024-01 onward, base 2021-12-31=100) or selected60_price_index (2022-02..2023-12, the old 精选60 weekly/monthly template); the two are NOT comparable and must not be merged into one series
+      - name: series
+        type: string
+        description: Series identifier — cash_management / fixed_income / fixed_income_short / fixed_income_medium / fixed_income_long for the new methodology; selected60_cash / selected60_price_6m / selected60_price_1y for the old one
+      - name: series_name
+        type: string
+        description: Published Chinese series name as it appears in the report
+      - name: metric
+        type: string
+        description: Metric — index_point (点), mom_change_point (点), mom_change_pct (%), base_change_point (点), base_change_pct (%), return_3m_pct / return_6m_pct (%), seven_day_annualized_pct (%), mom_change_bp / base_change_bp (BP, old template only)
+      - name: value
+        type: float
+        description: Metric value; changes carry sign (up/growth positive, down/decline negative) and are emitted exactly as published (2-decimal upstream precision)
+      - name: unit
+        type: string
+        description: Unit of value — 点 / % / BP
+      - name: file_format
+        type: string
+        description: Source attachment format branch — pdf (2024-01 onward, pdftext -layout) or docx (2022-02..2023-12, zipfile + word/document.xml)
+      - name: source
+        type: string
+        description: Data source identifier (constant "cba-wealth-index")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: asset_management.wealth_return_index
+    entity_type: market
+    measure: index
+    unit: point
+    frequency: monthly
+entities:
+  - entity_type: market
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

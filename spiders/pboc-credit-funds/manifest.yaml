@@ -1,0 +1,69 @@
+version: "2"
+name: pboc-credit-funds        # = spiders/pboc-credit-funds/ 目录名，运行时标识符，合入后不可改名
+label: PBoC Sources & Uses of Credit Funds (nine monthly balance tables)
+source_url: https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html
+# site: 缺省 —— 本机直连 www.pbc.gov.cn 实测 200（2026-11-07，见 README 证据表）
+schedule: "15 11 16 * *"       # 逐字按批次六排期；央行月表月中发布（实测 2026-10-14 发 9 月表），16 日巡检
+data_period: month
+scanner_mode: upstream-curated
+functions:
+  - command: run_pboc_credit_funds
+    description: Fetch the nine PBoC Sources & Uses of Credit Funds monthly tables (本外币/外汇/人民币 × 全部金融机构/存款类/中资全国性大型/four-large/small-medium) from the latest-year column page — column page carries only the current month's nine tables (replaced in place), each item × month becomes one observation in 亿元; the month header's truncated-decimal trap (2026.1 = October) is decoded by decimal width
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of observations to return, tables interleaved round-robin so truncation still covers all nine (default 4000; the full current-month set is ~3000 rows)
+    columns:
+      - name: table_key
+        type: string
+        description: Table identity — financial_institutions_fx / depository_institutions_fx / financial_institutions_fx_only / depository_institutions_fx_only / financial_institutions_rmb / depository_institutions_rmb / large_national_banks_rmb / four_large_state_banks_rmb / small_medium_national_banks_rmb
+      - name: table_title
+        type: string
+        description: Published Chinese table title (e.g. 金融机构人民币信贷收支表)
+      - name: currency
+        type: string
+        description: Currency scope published by the table — 本外币 / 外汇 / 人民币
+      - name: institution_scope
+        type: string
+        description: Institution scope published by the table — 全部金融机构 / 存款类金融机构 / 中资全国性大型银行 / 中资全国性四家大型银行 / 中资全国性中小型银行
+      - name: side
+        type: string
+        description: Balance-sheet side derived from the section rows — source (来源方项目 / funds sources) or use (运用方项目 / funds uses); empty for rows before either section header
+      - name: indicator
+        type: string
+        description: Chinese item label as published, including its numbering (e.g. 一、各项存款 / （一）境内存款 / 1.住户存款) and excluding the English half
+      - name: indicator_level
+        type: int
+        description: Nesting depth derived from the item numbering — 1 for 一、, 2 for （一）, 3 for 1., 4 for （1）, 0 for unnumbered totals
+      - name: period
+        type: string
+        description: Observation month (YYYY-MM); decoded from the header label, where a single-decimal label means the trailing-zero month (2026.1 → 2026-10)
+      - name: value
+        type: float
+        description: Balance as published in 亿元; empty cells are never emitted (no zero filling)
+      - name: unit
+        type: string
+        description: Unit after normalization (亿元 — the sheet's own 单位：亿元人民币)
+      - name: published_at
+        type: string
+        description: Publication date of the column page (YYYY-MM-DD, upstream createDate); the xlsx itself carries no date field
+      - name: source
+        type: string
+        description: Data source identifier (constant "pboc-credit-funds")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: banking.credit_funds_balance
+    entity_type: institution_category
+    measure: value
+    unit: 亿元
+    frequency: monthly
+entities:
+  - entity_type: institution_category
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

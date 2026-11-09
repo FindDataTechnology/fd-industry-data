@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-tpex-monthly-revenue",
+  "created": "2026-11-08",
+  "target": "run_tpex_monthly_revenue",
+  "params": {"limit": 200, "industry": "觀光餐旅"},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "industry", "equals": "觀光餐旅"},
+      {"field": "code", "equals": "2729"},
+      {"field": "source", "equals": "tpex-monthly-revenue"},
+      {"field": "url", "equals": "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap05_O"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}

@@ -1,0 +1,15 @@
+{
+  "sample_id": "001-stock-zygc",
+  "created": "2026-11-07",
+  "target": "run_stock_zygc",
+  "params": {"symbols": "SH600000", "limit": 50},
+  "expect": {
+    "min_rows": 3,
+    "rows_contains": [
+      {"field": "source", "equals": "stock-zygc"},
+      {"field": "segment_type", "equals": "product"},
+      {"field": "symbol", "equals": "SH600000"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "upstream_updated"]
+}

@@ -1,0 +1,64 @@
+version: "2"
+name: chinamoney-ncd-curve        # = spiders/chinamoney-ncd-curve/ 目录名，运行时标识符，合入后不可改名
+label: ChinaMoney NCD (AAA) closing yield curve — daily points
+source_url: https://www.chinamoney.com.cn/chinese/bkcurvclosedy/
+# site: 缺省 —— 本机直连 chinamoney.com.cn AGS 实测 200（2026-11-07，见 README 证据表）
+schedule: "15 12 * * 1-6"         # 日频曲线（交易日收盘后发布），错峰既有排期
+data_period: day
+scanner_mode: upstream-curated
+functions:
+  - command: run_chinamoney_ncd_curve
+    description: Fetch the NCD AAA closing yield curve (bondType CYCC41B, maturity reference) from the ChinaMoney AGS ClsYldCurvHis endpoint one trading day at a time — the endpoint accepts only startDate==endDate (a date range silently returns zero records) — emitting one row per tenor point; the upstream keeps only a rolling ~2-month window, so this unit accumulates its own series from activation and never backfills history
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of curve points returned, newest date first (default 600 ≈ 35 trading days at 17 tenors each)
+      - name: days
+        type: int
+        required: false
+        description: Calendar-day lookback for the per-trading-day walk (default 45 ≈ 30 trading days); the walk stops early after 3 consecutive empty trading days, i.e. once it passes the rolling-window start
+    columns:
+      - name: date
+        type: string
+        description: Curve date (YYYY-MM-DD; upstream newDateValueCN)
+      - name: curve
+        type: string
+        description: Curve identifier (constant "NCD_AAA" — 同业存单 AAA)
+      - name: curve_name
+        type: string
+        description: Published Chinese curve name as listed in the upstream curve code table (同业存单(AAA), bondType CYCC41B)
+      - name: reference
+        type: string
+        description: Curve reference type (constant "maturity" — 到期收盘; 即期/远期 not requested)
+      - name: tenor_years
+        type: float
+        description: Tenor in years as published (upstream yearTermStr; 0.019 = 1W, 0.083 = 1M, 1.0 = 1Y)
+      - name: tenor_days
+        type: int
+        description: Tenor converted to days (round(tenor_years × 365)) for downstream bucketing
+      - name: yield_pct
+        type: float
+        description: Closing yield at that tenor in percent (upstream maturityYieldStr)
+      - name: unit
+        type: string
+        description: Unit of yield (constant "%")
+      - name: source
+        type: string
+        description: Data source identifier (constant "chinamoney-ncd-curve")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: yield_pct
+    concept: money_market.ncd_yield_curve
+    entity_type: market
+    measure: rate
+    unit: percent
+    frequency: daily
+entities:
+  - entity_type: market
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

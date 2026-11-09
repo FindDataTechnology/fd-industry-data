@@ -1,0 +1,30 @@
+{
+  "sample_id": "001-shclearing-capital-notes",
+  "created": "2026-11-08",
+  "target": "run_shclearing_capital_notes",
+  "params": {"limit": 10, "keyword": "无锡农村商业银行"},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "source", "equals": "shclearing-capital-notes"},
+      {"field": "channel", "equals": "circulation"},
+      {"field": "channel_label", "equals": "交易流通要素公告"},
+      {"field": "bond_short_name", "equals": "26无锡农商行二级资本债01"},
+      {"field": "bond_code", "equals": "232680049"},
+      {"field": "issue_amount", "equals": 5.0},
+      {"field": "amount_unit", "equals": "亿元"},
+      {"field": "term", "equals": "10年"},
+      {"field": "term_years", "equals": 10.0},
+      {"field": "coupon_rate", "equals": 1.72},
+      {"field": "coupon_unit", "equals": "%"},
+      {"field": "product_rating", "equals": "AA"},
+      {"field": "issuer_rating", "equals": "AA+"},
+      {"field": "rating_agency", "equals": "联合资信"},
+      {"field": "issue_date", "equals": "2026-10-22"},
+      {"field": "circulation_date", "equals": "2026-10-27"},
+      {"field": "circulation_end_date", "equals": "2036-10-24"},
+      {"field": "maturity_date", "equals": "2036-10-26"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "detail_url", "publish_date", "bond_name", "interest_method"]
+}

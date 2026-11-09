@@ -1,0 +1,17 @@
+{
+  "sample_id": "001-sec-edgar-facts",
+  "created": "2026-11-07",
+  "target": "run_sec_edgar_facts",
+  "params": {"limit": 200, "quarters_back": 8},
+  "expect": {
+    "min_rows": 20,
+    "rows_contains": [
+      {"field": "source", "equals": "sec-edgar-facts"},
+      {"field": "kind", "equals": "fact"},
+      {"field": "kind", "equals": "event"},
+      {"field": "tag", "equals": "Revenues"},
+      {"field": "form", "equals": "10-Q"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "value", "accession", "primary_doc_url", "filed"]
+}

@@ -1,0 +1,115 @@
+version: "2"
+name: sec-edgar-facts         # = spiders/sec-edgar-facts/ 目录名，运行时标识符，合入后不可改名
+label: SEC EDGAR XBRL company facts + filings 事件面（注册表驱动宇宙 universes/us.yaml）
+source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json
+# site: 缺省 —— 本机直连 data.sec.gov / www.sec.gov 实测可用（2026-11-07；首次 CIK 映射握手超时一次，重试即通），
+#       SEC 只要求 User-Agent 带应用名+联系邮箱（本单元常量 USER_AGENT 已带），无需代理出口
+#
+# 本车道属性：金融车道扩展。**2026-10-07 侦察簿边界注记**：裁决理由 = 防重叠；美股（SEC EDGAR）在平台此前**无既有财报车道**，本扩展不构成与既有财报线的重叠。本单元只取 XBRL 事实与 filings 元数据（事件面 + 白名单字段），不解析 10-Q/10-K 正文全文。
+#
+# schedule: 故意不写 —— 生成流要求先静默合入、试跑通过后再点亮。
+data_period: irregular        # 季度源：事实面为 10-Q/10-K 期间（约 91 天），事件面 filing 不规则；data_period 词表无 quarter，
+                              # 而 month(35d 容忍窗) 会在两个季度窗之间假超期、year(370d) 过宽 —— 故按 irregular 登记，
+                              # 断档由 series_state 的 gap_in_series 兜底（同既有季度源先例）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_sec_edgar_facts
+    description: Fetch SEC EDGAR company facts for an exact us-gaap tag whitelist (Revenues / RevenueFromContractWithCustomerExcludingAssessedTax / SalesRevenueNet / OperatingIncomeLoss / NetIncomeLoss / RestaurantRevenue) plus 10-Q/10-K/8-K filing events, for the US registry universe (universes/us.yaml, cross-vertical); CIK resolved from company_tickers.json, restatements resolved latest-filed-wins, no fuzzy tag matching
+    frequency: daily          # 8-K 事件时效强；事实面随每次申报更新
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned (facts and events share the budget; emitted per ticker — its facts, then its events). Default 100 truncates the universe; pass e.g. 20000 for the full 12-company × 8-quarter window
+      - name: tickers
+        type: array
+        required: false
+        description: Universe override — entries "MCD" or ["MCD","McDonald's"]; default = every entity in universes/us.yaml, in registry order (an empty list is a hard failure, never a silent fall-back to the registry)
+      - name: forms
+        type: array
+        required: false
+        description: Form types kept on the EVENT face (default ["10-Q","10-K","8-K"]); the fact face is always restricted to 10-Q/10-K
+      - name: quarters_back
+        type: int
+        required: false
+        description: Rolling window of distinct fiscal period ends used for facts, and the filing lookback cutoff for events (default 8)
+    columns:
+      - name: kind
+        type: string
+        description: Row class — "fact" (XBRL value) or "event" (filing metadata)
+      - name: ticker
+        type: string
+        description: US ticker of the monitored company (e.g. MCD)
+      - name: cik
+        type: string
+        description: SEC CIK, zero-padded to 10 digits (companyfacts/submissions require this form)
+      - name: form
+        type: string
+        description: Filing form type — facts only from 10-Q/10-K; events from 10-Q/10-K/8-K
+      - name: fy
+        type: int
+        description: Fiscal year of the period (fact rows; null on event rows)
+      - name: fp
+        type: string
+        description: Fiscal period "Q1".."Q4"/"FY" (fact rows; null on event rows)
+      - name: start
+        type: string
+        description: Period start date YYYY-MM-DD (null for instantaneous facts such as balance-sheet items)
+      - name: end
+        type: string
+        description: Period end date YYYY-MM-DD
+      - name: filed
+        type: string
+        description: Filing date YYYY-MM-DD — the cross-check anchor against the original 10-Q/10-K
+      - name: tag
+        type: string
+        description: Exact us-gaap whitelist tag (never prefix/fuzzy-matched); null on event rows
+      - name: label
+        type: string
+        description: Locally curated us-gaap display label for the tag (companyfacts carries no labels)
+      - name: unit
+        type: string
+        description: XBRL unit (e.g. USD, USD/shares, shares)
+      - name: value
+        type: float
+        description: XBRL fact value in `unit`; null on event rows
+      - name: accession
+        type: string
+        description: SEC accession number (event rows) — with cik it builds the原件 URL
+      - name: report_date
+        type: string
+        description: Period of report as filed (event rows)
+      - name: primary_doc_url
+        type: string
+        description: Full https://www.sec.gov/Archives/... URL of the primary document (event rows)
+      - name: source
+        type: string
+        description: Constant "sec-edgar-facts"
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: financials.revenue
+    entity_type: stock
+    measure: value
+    unit: usd
+    frequency: quarterly
+  - column: value
+    concept: financials.operating_profit
+    entity_type: stock
+    measure: value
+    unit: usd
+    frequency: quarterly
+  - column: value
+    concept: financials.net_income
+    entity_type: stock
+    measure: value
+    unit: usd
+    frequency: quarterly
+entities:
+  - entity_type: stock
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

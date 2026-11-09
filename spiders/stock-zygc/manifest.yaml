@@ -1,0 +1,74 @@
+version: "2"
+name: stock-zygc                   # = spiders/stock-zygc/ 目录名，运行时标识符，合入后不可改名
+label: A-share Main Business Composition (by industry/product/region, Eastmoney F10)
+source_url: https://emweb.securities.eastmoney.com/PC_HSF10/BusinessAnalysis/PageAjax
+# site: 缺省（tencent）——直连 emweb.securities.eastmoney.com 实测可达（本机 200，
+# 2026-11-07），无需代理出口；旧 PC_F10 前缀 302 软拦截，现役为 PC_HSF10（见 README）
+# schedule: 点亮（add-securities-industry-line 3.6）：22:50 UTC 每月 1 日季检（披露季滞后 ~15-30 天，1/4/8/10 月披露期后首轮+日常巡检），错峰零重叠
+schedule: "50 22 1 * *"     # 主营构成季频巡检（东财 F10 聚合端点，白名单批量走采集调度层）
+data_period: irregular
+functions:
+  - command: run_stock_zygc
+    description: Fetch quarterly main-business-composition segments (industry/product/region, income/ratio/profit/gross margin) per stock from Eastmoney F10 zygcfx JSON (no key required)
+    frequency: quarterly
+    parameters:
+      - name: symbols
+        type: str
+        required: true
+        description: 逗号分隔个股代码 SH600000,SZ000001（沪深 F10 代码形态；单股/少股查询入口，批量白名单采集属调度层）
+      - name: limit
+        type: int
+        required: false
+        description: Per-stock max rows kept (default 200, aligned with upstream per-stock 200-row cap; deterministic order, most recent kept)
+    columns:
+      - name: source
+        type: string
+        description: Data source identifier ("stock-zygc")
+      - name: symbol
+        type: string
+        description: Stock code as requested (SH600000/SZ000001 form)
+      - name: report_date
+        type: string
+        description: Report period date YYYY-MM-DD (upstream REPORT_DATE "2026-06-30 00:00:00" date part)
+      - name: segment_type
+        type: string
+        description: Segment classification (industry|product|region; upstream MAINOP_TYPE 1/2/3, mapping evidence in README §2)
+      - name: segment_name
+        type: string
+        description: Segment name as upstream ITEM_NAME verbatim (e.g. 茅台酒 / 国内 / 酒类)
+      - name: main_income
+        type: float
+        description: Main business income in CNY (upstream MAIN_BUSINESS_INCOME; null when undisclosed)
+      - name: income_ratio
+        type: float
+        description: Income share in percent 0-100 (upstream MBI_RATIO decimal fraction x100; null when undisclosed)
+      - name: main_profit
+        type: float
+        description: Main business profit in CNY (upstream MAIN_BUSINESS_RPOFIT — upstream typo preserved; null when undisclosed)
+      - name: gross_margin
+        type: float
+        description: Gross profit margin in percent 0-100 (upstream GROSS_RPOFIT_RATIO — upstream typo preserved — decimal fraction x100; null when undisclosed)
+      - name: source_url
+        type: string
+        description: Source request URL for the rows (per-symbol PageAjax endpoint)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: main_income
+    concept: financials.main_business_income
+    entity_type: stock
+    measure: amount
+    unit: currency_cny
+    frequency: quarterly
+  - column: income_ratio
+    concept: financials.main_income_ratio
+    entity_type: stock
+    measure: ratio
+    unit: percent
+    frequency: quarterly
+entities:
+  - entity_type: stock
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

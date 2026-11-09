@@ -1,0 +1,87 @@
+version: "2"
+name: sec-edgar-8k-operating   # = spiders/sec-edgar-8k-operating/ 目录名，运行时标识符，合入后不可改名
+label: SEC EDGAR 8-K 业绩新闻稿（exhibit 99.1）定位 — 美股酒店宇宙（docs/hotel-universe.yaml）
+source_url: https://data.sec.gov/submissions/CIK##########.json
+# site: 缺省 —— 本机直连 data.sec.gov / www.sec.gov 实测可用（2026-11-08；1.27 MB exhibit
+#       走 curl --compressed 1.3 秒，python urllib 不带 gzip 会卡死，单元已强制 gzip）。
+#       SEC 只要求 User-Agent 带应用名 + 联系邮箱（常量 USER_AGENT 已带），无需代理出口。
+#
+# 车道属性：金融车道扩展（与 sec-edgar-facts 同一裁决，2026-10-07 侦察簿边界注记）。
+# 本单元只定位 8-K 的 exhibit 99.1 并给出可追溯 URL 与选件证据，不解析正文；
+# 正文抽取在 scripts/hotel_extractors/sec_8k_operating.py（逐家 mapping，无 mapping 即显式不可得）。
+# 与 sec-edgar-facts 的分工：后者取 XBRL 无维度事实 + 申报事件面；本单元补「业绩新闻稿里
+# 的分地区/分品牌营运指标」这一 companyfacts 不覆盖的面。两者不重叠，不互相补齐。
+#
+# schedule: 故意不写 —— 生成流要求先静默合入、试跑通过后再点亮。
+data_period: irregular        # 8-K 业绩申报按季发布但日期不规则（各家 4 周内错开）；
+                              # 词表无 quarter，month 会在两季之间假超期，故 irregular
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_sec_edgar_8k_operating
+    description: Locate the earnings press release (exhibit 99.1) of each 8-K Item 2.02 filing for the US hotel universe, emitting the exhibit URL plus the selection evidence (explicit "Exhibit 99.1" text, press-release context, or an explicit no/ambiguous-link status); never parses the exhibit body, never guesses a filename
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned (one row = one 8-K Item 2.02 filing with its exhibit pointer). Default 80 covers the default universe (5 issuers x 4 quarters) with headroom
+      - name: tickers
+        type: array
+        required: false
+        description: Universe override — entries "MAR" or ["MAR","HLT"]; default = every hotel-universe entity whose lanes include sec-edgar-8k-operating (an empty list is a hard failure, never a silent fall-back)
+      - name: filings_back
+        type: int
+        required: false
+        description: How many 8-K Item 2.02 filings to look back per issuer (default 4, about one year of quarterlies)
+    columns:
+      - name: ticker
+        type: string
+        description: US ticker of the hotel company (e.g. MAR)
+      - name: cik
+        type: string
+        description: SEC CIK zero-padded to 10 digits (submissions/Archives require this form)
+      - name: accession
+        type: string
+        description: SEC accession number of the 8-K (dashes kept) — with cik it addresses the filing directory
+      - name: filed
+        type: string
+        description: Filing date YYYY-MM-DD
+      - name: period_end
+        type: string
+        description: Fiscal quarter end the release covers, parsed from the 8-K body ("quarter ended September 30, 2026"); null when the body does not state it — never taken from submissions.reportDate, which is the earliest event date (measured 2026-11-02 for MAR's 2026Q3 filing)
+      - name: event_date
+        type: string
+        description: submissions.reportDate of the 8-K (earliest event date; usually the filing date, NOT the fiscal period end)
+      - name: items
+        type: string
+        description: 8-K item codes as filed (always contains 2.02 for a row of this unit)
+      - name: primary_doc_url
+        type: string
+        description: Full https://www.sec.gov/Archives/... URL of the 8-K body (the exhibit index lives here)
+      - name: exhibit_filename
+        type: string
+        description: File name of the selected earnings press release inside the filing directory; null when no unique candidate exists
+      - name: exhibit_url
+        type: string
+        description: Full URL of the selected exhibit 99.1; null when status is not ok
+      - name: exhibit_bytes
+        type: int
+        description: Size of the exhibit as listed in the filing index (null when not selected)
+      - name: status
+        type: string
+        description: Exhibit selection outcome — ok / no-exhibit-link / ambiguous-exhibit-link / ambiguous-explicit-99.1 / exhibit-missing-from-index / no-primary-document
+      - name: pick_evidence
+        type: string
+        description: Which rule selected the exhibit (explicit-exhibit-99.1 / press-release-context / no-candidates / ...) — auditable, never a filename guess
+      - name: source
+        type: string
+        description: Constant "sec-edgar-8k-operating"
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+entities:
+  - entity_type: stock
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,78 @@
+version: "2"
+name: dfjc-ratings            # = spiders/dfjc-ratings/ 目录名，运行时标识符，合入后不可改名
+label: 东方金诚 定期跟踪评级公告（Periodic-tracking，wd=银行）
+source_url: https://www.dfratings.com/Periodic-tracking.html
+# site: 缺省 —— 本机直连 www.dfratings.com 实测 200（2026-11-08，见 README 证据表）
+schedule: "57 9 * * 4"       # 逐字按批次六排期（每周四巡检；评级公告为事件驱动发布）
+data_period: irregular        # 跟踪评级报告/信息公告按机构年报季与临时事件发布，无固定周期
+scanner_mode: upstream-curated
+functions:
+  - command: run_dfjc_ratings
+    description: Fetch Oriental Jincheng (东方金诚) periodic tracking rating announcements from the server-rendered Periodic-tracking list — `wd` is a server-side full-text keyword (default 银行), `page` is 1-based pagination (10 rows per page), `year` is a server-side 4-digit announcement-year filter; each row carries project name, issuer rating, bond rating, outlook, announcement date and the direct PDF URL, with no detail page to follow
+    frequency: irregular
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned, newest announcement first (default 200 ≈ 20 pages; each page is 10 rows)
+      - name: keyword
+        type: string
+        required: false
+        description: Server-side full-text keyword sent as `wd` (default 银行); empty = no keyword filter, i.e. all periodic-tracking announcements (实测共1239页 vs 银行共99页)
+      - name: pages
+        type: int
+        required: false
+        description: Number of consecutive list pages to walk from page 1 (default 3 = up to 30 rows); walking stops early on an empty/overflow page or when limit is reached
+      - name: year
+        type: string
+        required: false
+        description: 4-digit announcement year sent as `year` (e.g. "2024" for backfill / a frozen golden slice); empty = all years. Invalid values raise ValueError; a valid year with no announcements yields zero rows
+    columns:
+      - name: project_name
+        type: string
+        description: Project/bond name as published (项目名称), e.g. 浙江乐清农村商业银行股份有限公司2023年绿色金融债券(第一期); the issuer's full name is its leading part
+      - name: subject_rating
+        type: string
+        description: Issuer rating as published (主体等级), e.g. AA+ / AAA; empty on 信息公告 rows that carry no grade
+      - name: bond_rating
+        type: string
+        description: Bond/debt rating as published (债项等级); empty on 信息公告 rows; upstream typos are preserved verbatim (实测 AA_ )
+      - name: outlook
+        type: string
+        description: Rating outlook as published (评级展望), e.g. 稳定 / 正面 / 负面; empty when not disclosed
+      - name: announce_date
+        type: string
+        description: Announcement date as published (公告时间, YYYY-MM-DD); the list is sorted descending by this field
+      - name: pdf_url
+        type: string
+        description: Absolute URL of the announcement PDF (no detail page; /uploads/files/YYYY/MMDD/<token>.pdf)
+      - name: pdf_filename
+        type: string
+        description: Report filename from the download link's `download` attribute (e.g. …2025年度跟踪评级报告.pdf); empty if absent
+      - name: keyword
+        type: string
+        description: The `wd` keyword actually used for this request (constant per run)
+      - name: year
+        type: string
+        description: The `year` filter actually used (empty string = all years)
+      - name: page
+        type: int
+        description: 1-based list page the row was parsed from (10 rows per page)
+      - name: source
+        type: string
+        description: Data source identifier (constant "dfjc-ratings")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: subject_rating
+    concept: banking.credit_rating
+    entity_type: organization
+    measure: text
+    unit: string
+    frequency: irregular
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

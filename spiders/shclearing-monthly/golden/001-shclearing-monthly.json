@@ -1,0 +1,27 @@
+{
+  "sample_id": "001-shclearing-monthly",
+  "created": "2026-11-08",
+  "target": "run_shclearing_monthly",
+  "params": {"limit": 400, "months": 1, "period": "2026-09"},
+  "expect": {
+    "min_rows": 150,
+    "rows_contains": [
+      {"field": "source", "equals": "shclearing-monthly"},
+      {"field": "period", "equals": "2026-09"},
+      {"field": "table_code", "equals": "04"},
+      {"field": "table_code", "equals": "05"},
+      {"field": "table_name", "equals": "表四 债券期末托管情况"},
+      {"field": "row_dimension", "equals": "bond_type"},
+      {"field": "row_dimension", "equals": "investor_type"},
+      {"field": "row_label", "equals": "2.2 商业银行金融债"},
+      {"field": "metric", "equals": "本月末"},
+      {"field": "value", "equals": 99189.83},
+      {"field": "row_label", "equals": "2.存款类金融机构"},
+      {"field": "metric", "equals": "金融债券"},
+      {"field": "value", "equals": 51463.824572},
+      {"field": "row_label", "equals": "合计"},
+      {"field": "unit", "equals": "亿元"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

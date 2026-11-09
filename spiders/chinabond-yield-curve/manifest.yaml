@@ -1,0 +1,61 @@
+version: "2"
+name: chinabond-yield-curve      # = spiders/chinabond-yield-curve/ 目录名，运行时标识符，合入后不可改名
+label: ChinaBond bank capital-instrument yield curves (Tier-2 / TLAC non-capital)
+source_url: https://yield.chinabond.com.cn/
+# site: 缺省 —— 本机直连 yield.chinabond.com.cn 实测 200（2026-11-07，见 README 证据表）
+schedule: "20 13 * * 1-6"        # 日频曲线（交易日收盘后更新），错峰既有排期
+data_period: day
+scanner_mode: upstream-curated
+functions:
+  - command: run_chinabond_yield_curve
+    description: Fetch ChinaBond year packages for bank capital-instrument yield curves (二级资本债 AAA-/AA+/AA/AA-/A+/A plus 总损失吸收能力非资本债 AAA-) from downYearBzqx, one row per curve × date × tenor; curve ids come from the live queryTree code table, the package is an xlsx with inline sheet strings parsed through the shared tabular layer, and a Referer header is mandatory
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of curve points returned, newest date first (default 1200 ≈ 2 trading days across all seven curves at ~16 tenors each)
+      - name: days
+        type: int
+        required: false
+        description: Only return points within the last N calendar days (default 0 = the whole current-year package, i.e. the backfill mode)
+    columns:
+      - name: date
+        type: string
+        description: Curve date (YYYY-MM-DD; upstream 日期 normalized from YYYY/MM/DD)
+      - name: curve_id
+        type: string
+        description: ChinaBond curve definition id (upstream ycDefId from queryTree)
+      - name: curve_name
+        type: string
+        description: Curve name — 二级资本债(AAA-/AA＋/AA/AA-/A＋/A) or 总损失吸收能力非资本债(AAA-); rating brackets kept as published
+      - name: tenor_label
+        type: string
+        description: Standard tenor label as published (0d / 1m / 3m / 6m / 9m / 1y / 2y … 15y)
+      - name: tenor_years
+        type: float
+        description: Standard tenor in years as published (upstream 标准期限(年))
+      - name: yield_pct
+        type: float
+        description: Yield to maturity at that tenor in percent (upstream 收益率(%))
+      - name: unit
+        type: string
+        description: Unit of yield (constant "%")
+      - name: source
+        type: string
+        description: Data source identifier (constant "chinabond-yield-curve")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: yield_pct
+    concept: bond.capital_instrument_yield_curve
+    entity_type: bond_rating_bucket
+    measure: rate
+    unit: percent
+    frequency: daily
+entities:
+  - entity_type: bond_rating_bucket
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

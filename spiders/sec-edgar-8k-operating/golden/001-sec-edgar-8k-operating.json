@@ -1,0 +1,17 @@
+{
+  "sample_id": "001-sec-edgar-8k-operating",
+  "created": "2026-11-08",
+  "target": "run_sec_edgar_8k_operating",
+  "params": {"limit": 20, "filings_back": 2},
+  "expect": {
+    "min_rows": 5,
+    "rows_contains": [
+      {"field": "source", "equals": "sec-edgar-8k-operating"},
+      {"field": "status", "equals": "ok"},
+      {"field": "ticker", "equals": "MAR"},
+      {"field": "ticker", "equals": "CHH"},
+      {"field": "items", "equals": "2.02,9.01"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "exhibit_url", "accession", "period_end", "exhibit_bytes"]
+}

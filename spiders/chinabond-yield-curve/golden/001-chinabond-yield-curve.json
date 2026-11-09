@@ -1,0 +1,22 @@
+{
+  "sample_id": "001-chinabond-yield-curve",
+  "created": "2026-11-07",
+  "target": "run_chinabond_yield_curve",
+  "params": {"limit": 1200, "days": 3},
+  "expect": {
+    "min_rows": 150,
+    "rows_contains": [
+      {"field": "source", "equals": "chinabond-yield-curve"},
+      {"field": "curve_name", "equals": "二级资本债(AAA-)"},
+      {"field": "curve_name", "equals": "二级资本债(AA＋)"},
+      {"field": "curve_name", "equals": "二级资本债(A)"},
+      {"field": "curve_name", "equals": "总损失吸收能力非资本债(AAA-)"},
+      {"field": "tenor_label", "equals": "0d"},
+      {"field": "tenor_label", "equals": "1y"},
+      {"field": "tenor_label", "equals": "10y"},
+      {"field": "tenor_years", "equals": 10.0},
+      {"field": "unit", "equals": "%"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

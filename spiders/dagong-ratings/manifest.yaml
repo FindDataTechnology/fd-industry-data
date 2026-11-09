@@ -1,0 +1,78 @@
+version: "2"
+name: dagong-ratings        # = spiders/dagong-ratings/ 目录名，运行时标识符，合入后不可改名
+label: Dagong Global — bank regular-tracking rating notices
+source_url: https://www.dagongcredit.com/dggj/ratingNotice/regularTracking/A009003002index_1.htm
+# site: 缺省 —— 本机直连 www.dagongcredit.com 实测 200（2026-11-08，见 README 证据表）
+schedule: "57 9 * * 2"     # 每周二 10:21 巡检评级公告列表；银行跟踪评级按年批量发布（实测集中在 6-8 月），周巡检足够
+data_period: irregular      # 银行跟踪评级按年批量发布（实测 94 条集中于 2014-2026 的 6-8 月），无固定日历周期
+scanner_mode: upstream-curated
+functions:
+  - command: run_dagong_ratings
+    description: Fetch Dagong Global's bank regular-tracking rating notices via the unauthenticated openApi getContentInfoPageList (channelCode=A009003002, topic=商业银行), one row per report with issuer, subject rating, debt rating, outlook, rating date and the PDF direct link
+    frequency: irregular
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned (default 200; the whole bank tracking list is 94 rows = 10 pages of 10)
+      - name: topic
+        type: string
+        required: false
+        description: Report-name keyword passed to the openApi `topic` field (default 商业银行; measured 94 rows on the regular-tracking channel)
+      - name: pages
+        type: int
+        required: false
+        description: Number of pages to walk forward from the start page (10 records per page; default 3 = newest 30 rows)
+      - name: page
+        type: int
+        required: false
+        description: 1-based start page (default 1 = newest); pinned by the golden sample so an older, stable notice can be replayed
+    columns:
+      - name: issuer
+        type: string
+        description: Issuer name cut out of the report title (through 股份有限公司 / 有限责任公司 / 有限公司)
+      - name: report_title
+        type: string
+        description: Report title as published (upstream `topic`)
+      - name: subject_rating
+        type: string
+        description: Issuer credit rating (upstream `a8`; empty for entries published in 2018 and earlier, where upstream leaves it blank)
+      - name: debt_rating
+        type: string
+        description: Debt instrument rating (upstream `a9`; may be empty or carry several grades such as "AA+,AA")
+      - name: outlook
+        type: string
+        description: Rating outlook (upstream `a12`; may be empty — measured on 浙江温州龙湾农商行 2026-07-29)
+      - name: rating_date
+        type: string
+        description: Rating date as YYYY-MM-DD (date part of upstream `pubTime`)
+      - name: pdf_url
+        type: string
+        description: Direct PDF link (upstream relative `a1` resolved against https://www.dagongcredit.com)
+      - name: detail_url
+        type: string
+        description: Announcement detail page (upstream relative `filePath` resolved against the same host)
+      - name: report_type
+        type: string
+        description: Notice type constant "regular_tracking" (channelCode A009003002)
+      - name: info_id
+        type: string
+        description: Upstream content primary key (`infoId`)
+      - name: source
+        type: string
+        description: Data source identifier (constant "dagong-ratings")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: subject_rating
+    concept: banking.issuer_credit_rating
+    entity_type: bank
+    measure: rating
+    unit: grade
+    frequency: irregular
+entities:
+  - entity_type: bank
+    coverage: partial
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

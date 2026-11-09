@@ -1,0 +1,22 @@
+{
+  "sample_id": "001-dagong-ratings",
+  "created": "2026-11-08",
+  "target": "run_dagong_ratings",
+  "params": {"limit": 20, "topic": "商业银行", "pages": 1, "page": 5},
+  "expect": {
+    "min_rows": 10,
+    "rows_contains": [
+      {"field": "source", "equals": "dagong-ratings"},
+      {"field": "report_type", "equals": "regular_tracking"},
+      {"field": "issuer", "equals": "南洋商业银行（中国）有限公司"},
+      {"field": "report_title", "equals": "南洋商业银行（中国）有限公司主体与相关债项2020年度跟踪评级报告"},
+      {"field": "subject_rating", "equals": "AAA"},
+      {"field": "debt_rating", "equals": "AAA"},
+      {"field": "outlook", "equals": "稳定"},
+      {"field": "rating_date", "equals": "2020-06-11"},
+      {"field": "pdf_url", "equals": "https://www.dagongcredit.com/dggj/uploads/M00/uploadfile/2020/0616/20200616040005123.pdf"},
+      {"field": "info_id", "equals": "1511068284726804480"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

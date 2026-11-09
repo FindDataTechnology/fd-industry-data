@@ -1,0 +1,81 @@
+version: "2"
+name: hsgt-northbound                  # = spiders/hsgt-northbound/ 目录名，运行时标识符，合入后不可改名
+label: 沪深港通北向资金（沪深股通每日成交概况，交易所官方口径）
+source_url: http://www.sse.com.cn/services/hkexsc/hgtscsj/hgtcjgk/
+# site: tencent 缺省——SSE/SZSE 官方端点直连实测可达（2026-11-07，见 README 证据表），无需代理出口
+# schedule: 点亮（add-securities-industry-line 3.6）：19:50 UTC 错峰（与既有 82 条调度零重叠）
+schedule: "50 19 * * 1-5"   # 北向成交概况日频（净买入已停披露，总额口径）
+data_period: day
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_hsgt_northbound
+    description: >
+      Fetch daily northbound (SSE 沪股通 + SZSE 深股通) aggregate turnover from
+      exchange official endpoints. Post-2024-08-16 disclosure regime: aggregate
+      buy+sell turnover only; buy/sell split and net buy are no longer published
+      (emitted as null). Values converted from upstream 亿元 to 元.
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: >
+          Max number of most-recent trading days PER CHANNEL (rows total up to
+          2*limit; deterministic order sorted by trade_date then channel)
+    columns:
+      - name: source
+        type: string
+        description: Constant "hsgt-northbound"
+      - name: channel
+        type: string
+        description: "沪股通 (SSE) or 深股通 (SZSE)"
+      - name: trade_date
+        type: string
+        description: Trading day (YYYY-MM-DD, Beijing time), as labelled by upstream
+      - name: buy_turnover
+        type: float
+        description: >
+          Northbound buy turnover in CNY yuan; null since the 2024-08-16
+          disclosure change (upstream publishes aggregate only; auto-populated
+          if upstream ever restores the split)
+      - name: sell_turnover
+        type: float
+        description: >
+          Northbound sell turnover in CNY yuan; null since the 2024-08-16
+          disclosure change (same regime note as buy_turnover)
+      - name: total_turnover
+        type: float
+        description: >
+          Aggregate (buy+sell) turnover in CNY yuan; upstream 亿元 multiplied
+          by 1e8 (e.g. 1,283.68 亿 -> 128368000000.0)
+      - name: source_url
+        type: string
+        description: Exact request URL (per channel per trading day) that produced the row
+      - name: scraped_at
+        type: string
+        description: ISO UTC timestamp of the fetch (same for all rows of one run)
+concepts:
+  - column: total_turnover
+    concept: market.hsgt_turnover
+    entity_type: market
+    measure: amount
+    unit: currency_cny
+    frequency: daily
+  - column: buy_turnover
+    concept: market.hsgt_buy_turnover
+    entity_type: market
+    measure: amount
+    unit: currency_cny
+    frequency: daily
+  - column: sell_turnover
+    concept: market.hsgt_sell_turnover
+    entity_type: market
+    measure: amount
+    unit: currency_cny
+    frequency: daily
+entities:
+  - entity_type: market
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

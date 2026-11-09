@@ -1,0 +1,63 @@
+version: "2"
+name: fred-cpi               # = spiders/fred-cpi/ 目录名，运行时标识符，合入后不可改名
+label: US CPI Food Away From Home & Food At Home (BLS CPI-U, SA, FRED CSV)
+source_url: https://fred.stlouisfed.org/graph/fredgraph.csv
+egress_secret: fd-industry-egress-fx01   # 生产出口兜底（census-eits 先例）；2026-11-07 本机直连实测可用，spider 直连优先、网络级失败才走注入代理
+# site: tencent              # 缺省 tencent；本单元只访问 fred.stlouisfed.org 公开 CSV
+# schedule: 不写——静默合入，试跑验证后由人工门点亮
+data_period: month           # 月度指数（BLS CPI 月度发布）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_fred_cpi
+    description: Fetch US CPI-U Food Away From Home (CUSR0000SEFV) and Food At Home (CUSR0000SAF11) seasonally adjusted monthly index (1982-84=100) from the FRED CSV endpoint; FRED "." missing-value rows are skipped, never zero-filled
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return, trimmed at whole-month granularity keeping the newest months (never a one-sided pair); default 100 truncates history — pass e.g. 3000 for the full ~1780-row history
+      - name: series
+        type: array<string>
+        required: false
+        description: Series ids to fetch, entries "SID" or ["SID", "Name"]; default ["CUSR0000SEFV", "CUSR0000SAF11"] (seasonally adjusted, index 1982-84=100). Swapping in NSA CUUR* ids would mix calibers — do not
+    columns:
+      - name: series_id
+        type: string
+        description: FRED/BLS series id (CUSR0000SEFV = food away from home SA, CUSR0000SAF11 = food at home SA)
+      - name: series_name
+        type: string
+        description: Human-readable series label (e.g. CPI-U Food Away From Home (seasonally adjusted))
+      - name: date
+        type: string
+        description: Observation date as published by FRED (YYYY-MM-DD; first day of the month for these monthly series)
+      - name: value
+        type: float
+        description: CPI index level (1982-84=100, seasonally adjusted); upstream "." missing cells produce no row
+      - name: source
+        type: string
+        description: Data source identifier (fred-cpi)
+      - name: url
+        type: string
+        description: Exact FRED CSV URL the series was fetched from
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: price.cpi.us.food_away_from_home
+    entity_type: country
+    measure: value
+    unit: index_1982_84_100
+    frequency: monthly
+  - column: value
+    concept: price.cpi.us.food_at_home
+    entity_type: country
+    measure: value
+    unit: index_1982_84_100
+    frequency: monthly
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

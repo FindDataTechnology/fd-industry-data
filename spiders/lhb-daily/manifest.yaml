@@ -1,0 +1,80 @@
+version: "2"
+name: lhb-daily                    # = spiders/lhb-daily/ 目录名，运行时标识符，合入后不可改名
+label: 沪深龙虎榜
+source_url: https://data.eastmoney.com/stock/lhb.html
+# site: tencent 缺省——直连 datacenter-web.eastmoney.com 实测可达（免 key 免鉴权，2026-11-07，见 README）
+# schedule: 点亮（add-securities-industry-line 3.6）：23:50 UTC 错峰（与既有 87 条调度零重叠）
+schedule: "50 23 * * 1-5"   # 龙虎榜日频（收盘后披露）
+data_period: day
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_lhb_daily
+    description: Fetch latest LHB (Dragon-Tiger List) day from EastMoney aggregate (RPT_DAILYBILLBOARD_DETAILSNEW, same source as akshare stock_lhb_detail_em, no key required); one row per listed stock x listing reason
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (deterministic order by trade_date/symbol/reason, cap is defensive against unusually large boards)
+    columns:
+      - name: source
+        type: string
+        description: Data source identifier (constant "lhb-daily")
+      - name: symbol
+        type: string
+        description: Stock code as 6-digit string (upstream SECURITY_CODE; SH/SZ only, BJ excluded by unit scope)
+      - name: name
+        type: string
+        description: Security short name (upstream SECURITY_NAME_ABBR)
+      - name: trade_date
+        type: string
+        description: Listing day in YYYY-MM-DD (latest LHB day; spider walks back over no-listing days, cap 7)
+      - name: reason
+        type: string
+        description: Listing reason (upstream EXPLANATION); one stock may list under several reasons, one row each
+      - name: close
+        type: float
+        description: Close price in CNY (upstream CLOSE_PRICE); null when missing upstream
+      - name: change_pct
+        type: float
+        description: Daily change in percent (upstream CHANGE_RATE); null when missing upstream
+      - name: lhb_net_buy
+        type: float
+        description: LHB net buy amount in CNY (upstream BILLBOARD_NET_AMT, equals buy - sell); null when missing upstream
+      - name: lhb_buy
+        type: float
+        description: LHB buy amount in CNY (upstream BILLBOARD_BUY_AMT); null when missing upstream
+      - name: lhb_sell
+        type: float
+        description: LHB sell amount in CNY (upstream BILLBOARD_SELL_AMT); null when missing upstream
+      - name: source_url
+        type: string
+        description: Source request URL for the rows (single-day filter query)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: lhb_net_buy
+    concept: market.lhb_net_buy
+    entity_type: stock
+    measure: amount
+    unit: currency_cny
+    frequency: daily
+  - column: lhb_buy
+    concept: market.lhb_buy
+    entity_type: stock
+    measure: amount
+    unit: currency_cny
+    frequency: daily
+  - column: lhb_sell
+    concept: market.lhb_sell
+    entity_type: stock
+    measure: amount
+    unit: currency_cny
+    frequency: daily
+entities:
+  - entity_type: stock
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

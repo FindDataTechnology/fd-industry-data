@@ -1,0 +1,121 @@
+version: "2"
+name: yindeng-npl-transfer   # = spiders/yindeng-npl-transfer/ 目录名，运行时标识符，合入后不可改名
+label: Yindeng (银行业信贷资产登记流转中心) NPL transfer disclosures — listing (zrgg) and result (zrjggg) announcements
+source_url: https://www.yindeng.com.cn/ywzq/ywzq_bldkzr/bldkzr_xxpl/bldkzr_xxpl_zrgg/
+# site: 缺省 —— 本机直连 www.yindeng.com.cn 实测 200（2026-11-08，见 README 证据表）
+schedule: "55 8 * * *"   # 日更：两路列表首页 + 静态页向旧翻，PDF 文本层抽字段
+data_period: day
+scanner_mode: upstream-curated
+functions:
+  - command: run_yindeng_npl_transfer
+    description: >
+      Fetch Yindeng NPL transfer disclosure announcements from the two public
+      static-CMS lists — listing/挂牌 bldkzr_xxpl_zrgg (616 static pages × 10 ≈
+      6,155 announcements since the 2021 pilot) and result/成交
+      bldkzr_xxpl_zrjggg (303 pages × 10 ≈ 3,030) — by walking index.html
+      (newest) then index_<n>.html (n = page ordinal from the oldest page), then
+      opening each detail page for its PDF attachment and extracting the text
+      layer with fd_industry_data.pdftext (pdftotext -layout): project number
+      (NPL…) / transferor / transferee / signing date from result notices and
+      transaction base date / loan count / borrower count / unpaid principal,
+      interest and total / weighted average overdue days / five-category mix
+      from listing notices. The vertical 「未经许可不得转载」 watermark is removed
+      at token and line level before parsing; scanned PDFs without a text layer
+      yield list metadata only (numeric fields null, text_layer=false) rather
+      than fabricated values.
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Row cap per list (default 100); with both lists the call returns at most 2×limit rows
+      - name: kinds
+        type: string
+        required: false
+        description: Comma-separated list selection — "zrgg" (挂牌), "zrjggg" (成交结果); empty = both lists
+      - name: start_page
+        type: int
+        required: false
+        description: Static list page to start from — 0 = newest index.html (scheduled path, walks toward older pages); N>0 = index_N.html (page ordinal counted from the oldest page, frozen at generation), walking toward newer pages and finishing at index.html (backfill and golden pinning)
+    columns:
+      - name: notice_kind
+        type: string
+        description: Which list the row came from — zrgg (转让/挂牌公告) or zrjggg (转让结果/成交公告)
+      - name: announcement_title
+        type: string
+        description: Announcement title as published in the list (also the fallback transferor source for zrgg)
+      - name: publish_date
+        type: string
+        description: Publish date YYYY-MM-DD read from the detail page 发布时间 field (falls back to the list date); the 2024-12 site migration left 发布时间 and the /YYYYMM/ URL folder out of sync, so the page field wins
+      - name: notice_url
+        type: string
+        description: Detail page URL (.../YYYYMM/tYYYYMMDD_<id>.html) — the announcement's stable identity
+      - name: pdf_url
+        type: string
+        description: PDF attachment URL resolved from the detail page (.../YYYYMM/P0202....pdf); null when the detail page carries no attachment
+      - name: project_no
+        type: string
+        description: Upstream project number NPL<10 digits> (e.g. NPL2025003780), present in result (zrjggg) notices; null when the announcement does not disclose it
+      - name: transferor
+        type: string
+        description: Transferor — 出让方全称 from the PDF when present, otherwise the title prefix before 关于 (listing notices carry no 出让方 field in the PDF)
+      - name: transferee
+        type: string
+        description: Transferee (受让方全称) — only result (zrjggg) notices; null for listing notices (not yet sold)
+      - name: signing_date
+        type: string
+        description: Transfer agreement signing date (转让协议签署日期) normalized to YYYY-MM-DD; result notices only
+      - name: base_date
+        type: string
+        description: Transaction base date (交易基准日) normalized from YYYYMMDD to YYYY-MM-DD; listing notices only
+      - name: loan_count
+        type: int
+        description: Number of loans in the pool (资产笔数（笔）); listing notices only
+      - name: borrower_count
+        type: int
+        description: Number of borrower accounts (借款人户数（户）); listing notices only
+      - name: overdue_days
+        type: float
+        description: Weighted average overdue days (加权平均逾期天数); listing notices only
+      - name: unpaid_principal
+        type: float
+        description: Unpaid principal in CNY (未偿本金总额（元）); listing notices only
+      - name: unpaid_interest
+        type: float
+        description: Unpaid interest in CNY (未偿利息总额（元）); listing notices only
+      - name: unpaid_total
+        type: float
+        description: Unpaid principal plus interest in CNY (未偿本息总额（元）); listing notices only
+      - name: five_category
+        type: string
+        description: Five-category loan classification as published (五级分类情况, e.g. "损失 38215 笔"); listing notices only
+      - name: transfer_method
+        type: string
+        description: Transfer method as published (转让方式, e.g. 线上公开竞价); listing notices only
+      - name: text_layer
+        type: bool
+        description: True when the PDF yielded a usable text layer and the fields above were parsed; false = scanned/image PDF, list metadata only (numeric fields null, never fabricated)
+      - name: source
+        type: string
+        description: Data source identifier (constant "yindeng-npl-transfer")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: overdue_days
+    concept: npl_transfer.weighted_overdue_days
+    entity_type: npl_transfer
+    measure: days
+    unit: day
+    frequency: daily
+  - column: unpaid_principal
+    concept: npl_transfer.unpaid_principal
+    entity_type: npl_transfer
+    measure: amount
+    unit: cny
+    frequency: daily
+entities:
+  - entity_type: npl_transfer
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

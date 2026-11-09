@@ -1,0 +1,79 @@
+version: "2"
+name: lh-ratings             # = spiders/lh-ratings/ 目录名，运行时标识符，合入后不可改名
+label: Lianhe Ratings bank tracking-rating reports (定期跟踪评级栏目 + title=银行 服务端过滤)
+source_url: https://www.lhratings.com/lists/111.html
+# site: 缺省 —— 本机直连 www.lhratings.com 实测 200（2026-11-08，见 README 证据表）
+schedule: "57 9 * * 3"      # 逐字按批次六排期（每周三 UTC 09:57 巡检（错峰由 batch6_schedule_fit 选槽）；上游跟踪评级不定期发布）
+data_period: irregular       # 跟踪评级按发行人年度/事件驱动发布，无固定自然周期；调度只是滚动巡检前 N 页
+scanner_mode: upstream-curated
+functions:
+  - command: run_lh_ratings
+    description: Fetch Lianhe Ratings (联合资信) periodical tracking-rating list from the static HTML column 定期跟踪评级 (/lists/111.html), paginated with ?p=N (12 items/page, 2927 pages unfiltered, 7 pages under the server-side ?title=银行 filter), one row per disclosure PDF; issuer/rating/outlook are read from the two h2 titles and three dqright labels, exact duplicate PDF URLs are collapsed, and only the first max_pages pages are swept (incremental patrol, no full-history rescan)
+    frequency: irregular
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned after URL de-duplication, newest first (default 200)
+      - name: keyword
+        type: string
+        required: false
+        description: Server-side title filter passed as ?title=<keyword> (default 银行; empty string = no filter, which exposes all 2927 pages)
+      - name: max_pages
+        type: int
+        required: false
+        description: How many leading list pages to sweep (default 5 ≈ the latest 60 list entries); raise explicitly for historical backfill — the default never rescans the 2927-page archive
+    columns:
+      - name: issuer
+        type: string
+        description: Issuer extracted from the report title's legal-name suffix (股份有限公司/有限责任公司/有限公司); agency-prefixed announcements skip 联合资信 and the 关于/上调/将… verbs, and the first company after that is kept (a multi-issuer notice anchors on its first issuer)
+      - name: bond_name
+        type: string
+        description: Bond or instrument name as published (first h2), verbatim
+      - name: report_title
+        type: string
+        description: Report title as published (second h2), verbatim — the string the upstream ?title= filter matches against
+      - name: report_year
+        type: int
+        description: Report year parsed from "YYYY年" in the report title, falling back to the rating date's year; null when neither is present
+      - name: report_kind
+        type: string
+        description: Locally derived document kind — 公告 (title carries 公告, e.g. upgrade/downgrade or watch-list notices) / 跟踪评级报告 / 其他
+      - name: rating_date
+        type: string
+        description: Publish date as listed (YYYY-MM-DD)
+      - name: entity_rating
+        type: string
+        description: Entity (issuer) credit rating as published (主体级别), e.g. AAA / AA+ / AA- / A+
+      - name: outlook
+        type: string
+        description: Rating outlook as published (展望), e.g. 稳定 / 列入负面观察名单
+      - name: debt_rating
+        type: string
+        description: Debt/instrument credit rating as published (债项级别)
+      - name: url
+        type: string
+        description: Absolute URL of the disclosure PDF (upstream relative /uploads/... or absolute https://www.lhratings.com/reports/...)
+      - name: doc_type
+        type: string
+        description: Upstream column label (constant "定期跟踪评级" — the 评级结果 → 定期跟踪评级 navigation entry this list belongs to)
+      - name: keyword
+        type: string
+        description: The ?title= filter actually used for this run (constant per run; empty when no filter)
+      - name: source
+        type: string
+        description: Data source identifier (constant "lh-ratings")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: entity_rating
+    concept: banking.issuer_credit_rating
+    entity_type: organization
+    measure: rating
+    frequency: irregular
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

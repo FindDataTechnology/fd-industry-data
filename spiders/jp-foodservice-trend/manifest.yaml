@@ -1,0 +1,85 @@
+version: "2"
+name: jp-foodservice-trend    # = spiders/jp-foodservice-trend/ 目录名，运行时标识符，合入后不可改名
+label: 日本フードサービス協会 外食産業市場動向調査 (JF Foodservice Market Trend Survey, 全店 monthly)
+source_url: https://www.jfnet.or.jp/industry_report/
+# site: tencent              # 缺省 tencent；本单元只访问 www.jfnet.or.jp 公开索引页与 Excel，无需换执行位
+schedule: "12 7 8 * *"       # 每月 8 日 07:12（UTC+8）；JF 月次报告在次月月初上传（2026-09 版落在 uploads/2026/10），8 日取最新已发布版，13 个月滚动窗足以覆盖上月
+data_period: month
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_jp_foodservice_trend
+    description: Fetch 外食産業市場動向調査 monthly 全店 data — sales / store count / customer count / spend per customer, each as 前年同月比 (ratio to the same month of the previous year; 1.0 = flat) per segment (全体 plus six formats), parsed from the monthly Excel workbooks linked on the report index (13-month rolling window per edition; index pagination can reach back to ~2020)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (month × segment, earliest month first, source output order; default 500 = one 13-month window × 7 segments)
+      - name: since
+        type: str
+        required: false
+        description: "Earliest month to output, YYYY-MM (inclusive). When given, walks the index archive page by page and downloads every monthly report needed to cover that month onward (rolling windows merged, newest edition wins); omitted = page 1 only (latest 9 reports, ~21 months of merged window)."
+    columns:
+      - name: month
+        type: string
+        description: Data month (YYYY-MM), read from the workbook's 月 column labels on the 全店 sheet
+      - name: segment
+        type: string
+        description: 业态 (upstream 全店 row label, whitespace-normalised) — 全体 / ファーストフード / ファミリーレストラン / パブレストラン/居酒屋 / ディナーレストラン / 喫茶 / その他
+      - name: sales_yoy
+        type: float
+        description: ａ．売上高前年同月比 — sales in the data month ÷ sales in the same month of the previous year (ratio, 1.0 = flat; not converted to percent)
+      - name: store_count_yoy
+        type: float
+        description: ｂ．店舗数前年同月比 — store count ratio to the same month of the previous year (全店 basis, includes new openings)
+      - name: customer_count_yoy
+        type: float
+        description: ｃ．利用客数前年同月比 — customer count ratio to the same month of the previous year
+      - name: spend_per_customer_yoy
+        type: float
+        description: ｄ．客単価前年同月比 — spend per customer ratio to the same month of the previous year
+      - name: edition
+        type: string
+        description: Report edition that supplied the row (YYYY-MM, e.g. 2026-09). Overlapping months are deduped to the newest edition; lets a row be traced to the workbook revision that won
+      - name: url
+        type: string
+        description: Source monthly Excel URL the row was parsed from
+      - name: source
+        type: string
+        description: Data source identifier (fixed jp-foodservice-trend)
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch (UTC)
+concepts:
+  - column: sales_yoy
+    concept: restaurant.foodservice_jp.sales_yoy
+    entity_type: industry
+    measure: index
+    unit: ratio_yoy
+    frequency: monthly
+  - column: store_count_yoy
+    concept: restaurant.foodservice_jp.store_count_yoy
+    entity_type: industry
+    measure: index
+    unit: ratio_yoy
+    frequency: monthly
+  - column: customer_count_yoy
+    concept: restaurant.foodservice_jp.customer_count_yoy
+    entity_type: industry
+    measure: index
+    unit: ratio_yoy
+    frequency: monthly
+  - column: spend_per_customer_yoy
+    concept: restaurant.foodservice_jp.spend_per_customer_yoy
+    entity_type: industry
+    measure: index
+    unit: ratio_yoy
+    frequency: monthly
+entities:
+  - entity_type: country
+    coverage: universe
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

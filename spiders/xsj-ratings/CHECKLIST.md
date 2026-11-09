@@ -1,0 +1,24 @@
+# xsj-ratings 接入检查清单（批次六，2026-11-08）
+
+- [x] 目录名 = manifest `name`（`xsj-ratings`；入口 `run_xsj_ratings`）
+- [x] `spider.py` 提供 `run_xsj_ratings(limit=, keyword=, pages=, rank_type=, cid=, page=, period=, pdf_text=) -> list[dict]`，仅标准库 + 仓内共享层
+- [x] **HTTP-only 实测留痕**：`https://www.shxsj.com:443` 拒连（curl exit 7）/ `http://www.shxsj.com/` 200；BASE 固定 http
+- [x] **API 端点实读**：`POST /serve/api/article_api/get_cid_article`（form-urlencoded，Referer 必带）
+- [x] **`cid=50` 生效**：评级公告根栏目，实测 `total=29993`
+- [x] **`keyword=银行` 生效**：服务端过滤 29993 → 1081
+- [x] **`rank_type=跟踪评级` 生效**：1081 → 824（原文只给 cid/keyword，本单元补此参数以对齐「跟踪评级」口径）
+- [x] **分页坑留痕**：每页固定 15 条，`per_page`/`limit` 上游不认；用 `pages`/`page` 控制
+- [x] **`pdf[]` 对象数组实读**：`[{name, url}]`，`url` 为 `/uploadfile/…` 相对路径，拼接 BASE 成绝对直链
+- [x] **PDF 直链实测**：5,421,110 B / `application/pdf` / 21 页 / HTTP 200 / 1.59s
+- [x] **字间空格清理**：`贵 阳农村商业 银行 股份有 限公 司` → `贵阳农村商业银行股份有限公司`；规则（CJK↔CJK、CJK↔中文标点删空白，其余折叠单空格）与实测样例见 README
+- [x] **PDF 丢字限制留痕**：内嵌字体缺 ToUnicode 会丢数字/字母，等级一律取 API `project` 字段
+- [x] **字段抽取规则**：`bank_name` 去前导 `YYYY年` 后截到「银行/信用社/农商行」；`rating_date` 取 `rank_time`（≠`add_time`）
+- [x] **脏值提醒**：doc_id 36880 的 `bond_rating="AA+sti"` 原样保留，golden 避开该行
+- [x] `golden/001-xsj-ratings.json` 锚实抓条目 36877（浙江义乌农商行 AA+/AA+/稳定/2026-07-29），`rows_contains` 仅 `{field,equals}`，未锚中文 pdf_url
+- [x] golden 用 `period=2026-07` + `pages=3` 钉月份（列表滚动不漂锚），README 留痕口径理由
+- [x] manifest 字段齐全；columns 17 键与输出行一一对应；8 个声明参数均真实生效
+- [x] 失败策略：单页 3 次重试后跳过、全失败 `RuntimeError`、无匹配 `RuntimeError`、`doc_id` 去重、`--` 原样保留
+- [x] 网络礼节：请求间隔 1.2s（≥1s）
+- [x] 本地自检：golden schema `[]` + replay `ok=True rows=35 diffs=[]`；`validate_manifests` / `conformance_gate` 结果见回报
+- [ ] push 后 CI gate 绿——合入前由人工/CI 确认
+- [ ] 点亮后试跑：验证 crawl_runs 记录与落库（首跑对标 README 35 行/3 页）

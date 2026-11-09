@@ -1,0 +1,19 @@
+{
+  "sample_id": "001-pboc-loan-usage",
+  "created": "2026-11-07",
+  "target": "run_pboc_loan_usage",
+  "params": {"limit": 40},
+  "expect": {
+    "min_rows": 6,
+    "rows_contains": [
+      {"field": "source", "equals": "pboc-loan-usage"},
+      {"field": "indicator", "equals": "人民币各项贷款余额"},
+      {"field": "value", "equals": 283.44},
+      {"field": "indicator", "equals": "普惠小微贷款余额"},
+      {"field": "value", "equals": 38.5},
+      {"field": "indicator", "equals": "涉农贷款余额"},
+      {"field": "value", "equals": 54.29}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

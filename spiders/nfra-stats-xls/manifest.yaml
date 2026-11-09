@@ -1,0 +1,66 @@
+version: "2"
+name: nfra-stats-xls          # = spiders/nfra-stats-xls/ 目录名，运行时标识符，合入后不可改名
+label: NFRA Banking Regulatory Statistics (Excel attachment channel)
+source_url: https://www.nfra.gov.cn/cbircweb/DocInfo/SelectDocByItemIdAndChild?itemId=954
+# site: 缺省 —— 本机直连 www.nfra.gov.cn 实测 200（2026-11-07，见 README 证据表）
+schedule: "21 2 5,15,25 * *"  # 发布窗巡检：季度表 2/8 月发、月度表月中下旬发，每月 5/15/25 日 UTC 02:21（北京 10:21）兜一圈；错峰既有排期由 batch6_schedule_fit 选槽
+data_period: month            # 含月度总资产负债（同 docId 原位更新），故按月登记；季度表按发布日程自然落入
+scanner_mode: upstream-curated
+functions:
+  - command: run_nfra_stats_xls
+    description: Fetch NFRA banking regulatory statistics via the Excel attachment channel — 商业银行主要监管指标情况表 / 分机构类情况表（大型·股份·城商·民营·农商分列）/ 银行业金融机构总资产·总负债（月度+季度）/ 普惠型小微与涉农贷款情况表; ratio cells (Excel percent-form) normalized to percent, amounts in 亿元
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of rows to return (docs newest-first, interleaved across the five table families; ~1,600 rows covers 2024-2026)
+    columns:
+      - name: table_kind
+        type: string
+        description: Table family key — regulatory_metrics / by_institution / balance_sheet / inclusive_small / inclusive_agri
+      - name: table_category
+        type: string
+        description: Section inside the workbook, e.g. 信用风险指标 / 流动性指标 / 资本充足指标 (empty for single-section tables)
+      - name: org_category
+        type: string
+        description: Institution breakdown (大型商业银行/股份制商业银行/城市商业银行/民营银行/农村商业银行…) or 合计 for whole-industry rows
+      - name: indicator
+        type: string
+        description: Indicator name as published, e.g. 不良贷款率 / 资本充足率 / 总资产 / 银行业金融机构合计
+      - name: period
+        type: string
+        description: Observation period — YYYYQn for quarterly tables, YYYY-MM for the monthly balance sheet
+      - name: value
+        type: float
+        description: Value as published (amounts in 亿元; ratios normalized from Excel percent-form decimals to percent, e.g. 0.01518 → 1.518)
+      - name: unit
+        type: string
+        description: Unit after normalization (亿元 / %)
+      - name: report_title
+        type: string
+        description: Title of the source table document
+      - name: published_at
+        type: string
+        description: Document publish date (YYYY-MM-DD); monthly tables republish in place, so this tracks the latest month
+      - name: doc_id
+        type: string
+        description: NFRA docId the attachment belongs to (re-queried every run; attachment uuid never cached)
+      - name: source
+        type: string
+        description: Data source identifier (constant "nfra-stats-xls")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: banking.regulatory_indicator
+    entity_type: organization_category
+    measure: value
+    unit: mixed
+    frequency: quarterly
+entities:
+  - entity_type: organization_category
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

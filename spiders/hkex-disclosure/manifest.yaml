@@ -1,0 +1,128 @@
+version: "2"
+name: hkex-disclosure         # = spiders/hkex-disclosure/ 目录名，运行时标识符，合入后不可改名
+label: HKEXnews 披露易港股公告标题搜索（注册表驱动宇宙 universes/hk.yaml）
+source_url: https://www1.hkexnews.hk/search/titleSearchServlet.do
+# site: 缺省 —— 本机直连 www1.hkexnews.hk 实测 200（2026-11-07），HTTPS 免鉴权，无需代理出口
+#
+# 本车道属性：金融车道扩展。**2026-10-07 侦察簿边界注记**：裁决理由 = 防重叠；港股（HKEX 披露易）在平台此前**无既有财报车道**，本扩展不构成与既有财报线的重叠。本单元取公告**标题与元数据**（事件面），并对 results 类公告做**最小化头条抽取**（只读固定标签行；不解析财报正文全文、不做版面重建/OCR），另对 06862/09922 做**白名单细分 KPI 抽取**（翻台率/同店销售/人均消费/门店数，每项带报告期+分部+单位+原文标签+脚注口径）。头条数字与细分 KPI 均不写 semantic_observations（半年粒度 + 期数 <12 趋势门），可查询路径 = crawl_items.payload 的 headline_* / kpi_* 字段。
+#
+# schedule: 故意不写 —— 生成流（health-ticket 20261107-hkex-disclosure-82e7ef63）
+# 要求先静默合入、试跑通过后再点亮。data_period 已按 irregular 声明。
+data_period: irregular        # 公告发布不规则（结果/盈警/月报表节奏不同，intraday 突发）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_hkex_disclosure
+    description: Fetch HKEXnews title-search announcement events (release date, EN/ZH title, announcement-type keyword class, PDF URL) for the HK registry universe (universes/hk.yaml, cross-vertical), plus a minimal headline-number extraction (revenue + profit attributable to owners, with period/currency/unit/verbatim evidence) and a whitelisted segment/KPI extraction (table turnover, same-store sales, spend per guest, restaurant counts — each with report period, segment definition, unit, verbatim label and footnote definition) for the latest results announcement of each stock and period kind; stockId is resolved via prefix.do (internal numeric id, not the ticker), EN and ZH feeds are joined 1:1, and pagination grows rowRange (no page offset)
+    frequency: daily          # 公告盘中发布（results/盈警 时效强）；点亮后按日频调度
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned, newest release_date first across the whole universe (default 500)
+      - name: stocks
+        type: array
+        required: false
+        description: Monitored universe override — entries "06862" or ["06862","海底捞"]; codes zero-padded to 5 digits; default = every entity in universes/hk.yaml, in registry order (an empty list is a hard failure, never a silent fall-back to the registry)
+      - name: days_back
+        type: int
+        required: false
+        description: Look-back window in days, inclusive of today in HK time (default 90; drives fromDate/toDate YYYYMMDD)
+      - name: max_pages
+        type: int
+        required: false
+        description: Max paging rounds per stock+language (each round raises the servlet rowRange by 100 from 100); hasNextRow still true at the cap is a hard failure, never a truncated payload (default 5 -> up to 500 rows/stock/language)
+    columns:
+      - name: stock_code
+        type: string
+        description: HKEX 5-digit ticker of the monitored stock (e.g. 06862); zero-padded form as used by prefix.do
+      - name: stock_name
+        type: string
+        description: Upstream stock name from prefix.do stockInfo.name (traditional Chinese, e.g. 海底撈); falls back to the caller-supplied label, null if neither
+      - name: stock_id
+        type: int
+        description: HKEX internal numeric stockId from prefix.do (e.g. 199151 for 06862) — the id the search servlet requires; NOT the ticker
+      - name: release_date
+        type: string
+        description: Announcement release date (ISO YYYY-MM-DD) parsed from upstream DATE_TIME "DD/MM/YYYY HH:MM" in Hong Kong time; unparseable values fail the run
+      - name: title
+        type: string
+        description: English announcement title (lang=EN TITLE), HTML entities unescaped and whitespace collapsed; null only if upstream omits it
+      - name: title_zh
+        type: string
+        description: Chinese (traditional) announcement title (lang=ZH TITLE) joined to the EN row; null when the EN/ZH feeds are not 1:1 for that timestamp (never mis-assigned)
+      - name: ann_type
+        type: string
+        description: Announcement-type class from the explicit module rule table, first match in priority order — profit-warning(盈警/盈利警告/盈利預警/profit warning) | profit-alert(盈喜/正面盈利預告/positive profit alert) | results(中期/年度/季度業績, interim/annual/quarterly results, 年報/中期報告, annual/interim report) | monthly-returns(月報表/monthly return) | other(no literal hit)
+      - name: ann_type_hits
+        type: array<string>
+        description: Every rule that matched the EN+ZH title, as "<ann_type>:<matched literal>" in priority order (empty list when ann_type=other); the audit trail for the classification, no inference beyond literals
+      - name: is_profit_warning
+        type: boolean
+        description: True iff ann_type == profit-warning (a 盈警 literal hit); profit-alert is a distinct class and does NOT set this flag
+      - name: doc_url
+        type: string
+        description: Full https://www1.hkexnews.hk URL of the announcement document (PDF, occasionally HTML) built from FILE_LINK; null when upstream omits FILE_LINK. For results rows this URL is also the headline-number source parsed by the unit (labelled-line extraction only, never full-text parsing)
+      - name: headline_status
+        type: string
+        description: Headline-number state — ok (revenue + attributable profit parsed from this row's own results PDF) | unavailable (explicit non-extraction with a reason code) | not_applicable (non-results row). Only the latest results announcement per stock and period kind is parsed; other results rows carry not_selected
+      - name: headline_reason
+        type: string
+        description: Reason code when headline_status != ok — no_doc_url | not_a_pdf | pdf_too_large | pdf_unavailable | no_text_layer | no_title | period_not_stated_in_title | period_end_not_in_document | no_revenue_line | no_profit_attributable_line | unit_not_found | column_header_not_found | revenue_and_profit_not_in_same_table | conflicting_units | ambiguous_revenue | ambiguous_profit | not_selected | cancelled | internal_error. Documented in docs/hkex-results-headline-caliber.md
+      - name: headline_period_end
+        type: string
+        description: Reporting period end (ISO YYYY-MM-DD) stated by the results announcement title (e.g. six months ended June 30, 2026 -> 2026-06-30) and cross-checked to appear in the PDF text; null when unavailable
+      - name: headline_period_months
+        type: int
+        description: Reporting period length in months from the announcement title — 6 (interim), 12 (annual), 3/9 (quarterly). Half-year figures MUST NOT be read as quarters
+      - name: headline_period_label
+        type: string
+        description: Verbatim title phrase the period was parsed from (e.g. "for the six months ended June 30, 2026")
+      - name: headline_currency
+        type: string
+        description: Reporting currency declared by the PDF table header — CNY (RMB), HKD (HK$) or USD (US$); null when unavailable
+      - name: headline_unit
+        type: string
+        description: Denomination declared by the PDF table header — thousand (000/thousand) or million; headline_revenue / headline_net_income are already multiplied up to raw currency units
+      - name: headline_revenue
+        type: string
+        description: Revenue for the period in raw currency units (integer string, e.g. RMB'000 22,336,906 -> 22336906000), taken from the "Revenue"/"Total revenues" row of the same table as the profit line; null when unavailable
+      - name: headline_net_income
+        type: string
+        description: Profit attributable to owners of the Company for the period in raw currency units (integer string; 归母口径, not "profit for the period" including non-controlling interests), same caliber as SEC EDGAR NetIncomeLoss; null when unavailable
+      - name: headline_evidence
+        type: array<string>
+        description: Verbatim PDF text lines the numbers were read from, plus the "[unit] ..." table-header line that declared currency and scale. Empty when unavailable; for failures it carries the offending candidate lines so the 不可得 is auditable
+      - name: kpi_status
+        type: string
+        description: Segment-KPI state for this row (task 3.5 一期, HK lane) — ok (every registered KPI landed with a full caliber) | partial (some registered KPI landed, others explicitly unavailable) | unavailable (none landed; reason code on the row) | not_applicable (non-results row → ann_type_not_results, or a company with no phase-1 KPI target → no_phase1_kpi_target; never a null reason). Per-KPI fields follow the naming convention kpi_<slug>, kpi_<slug>_unit, kpi_<slug>_caliber, kpi_<slug>_status, kpi_<slug>_reason, kpi_<slug>_prior, kpi_<slug>_evidence — only on the parsed results row of 06862 / 09922; full slug inventory and per-company caliber in docs/hkex-segment-kpi-caliber.md
+      - name: kpi_reason
+        type: string
+        description: Row-level KPI reason code when kpi_status != ok — no_phase1_kpi_target (company outside the phase-1 scope) | ann_type_not_results (target company, but this announcement is not a results announcement) | not_selected | no_doc_url | no_text_layer | period_not_stated_in_title | period_end_not_in_document | pdf_too_large | not_a_pdf | pdf_unavailable | cancelled | internal_error | partial (names the unavailable slugs). Per-KPI reason codes live on kpi_<slug>_reason — no_section_line | no_labelled_line | no_row_label | column_header_not_found | column_position_mismatch | current_column_empty | prior_column_empty | ambiguous_section | ambiguous_labelled_line | ambiguous_row_label | ambiguous_current_value | ambiguous_prior_value | unit_mismatch | non_integer_value | unparsable_value | caliber_note_missing | caliber_note_not_declared | caliber_definition_mismatch | narrative_only. Documented in docs/hkex-segment-kpi-caliber.md
+      - name: kpi_targets
+        type: array<string>
+        description: The KPI slugs registered for this row's company in phase 1 (06862 海底捞 = 11 slugs, 09922 九毛九 = 13 slugs); empty list for the other eight HK names, which carry kpi_status=not_applicable + kpi_reason=no_phase1_kpi_target instead of silent omission. Each slug has kpi_<slug>, _unit, _caliber, _status, _reason, _prior and _evidence; absent slugs never appear as guessed numbers
+      - name: source
+        type: string
+        description: Constant "hkex-disclosure"
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the run's extraction start (UTC)
+concepts:
+  - column: title
+    concept: document.title
+    entity_type: organization
+    measure: value
+    unit: string
+    frequency: daily
+  - column: stock_name
+    concept: organization.name
+    entity_type: organization
+    measure: value
+    unit: string
+    frequency: daily
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

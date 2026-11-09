@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-chinamoney-shibor",
+  "created": "2026-11-07",
+  "target": "run_chinamoney_shibor",
+  "params": {"limit": 20, "days": 0},
+  "expect": {
+    "min_rows": 8,
+    "rows_contains": [
+      {"field": "source", "equals": "chinamoney-shibor"},
+      {"field": "curve", "equals": "ShiborO/N"},
+      {"field": "date", "equals": "2006-10-08"},
+      {"field": "value", "equals": 2.1184}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

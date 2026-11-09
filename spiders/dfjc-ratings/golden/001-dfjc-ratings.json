@@ -1,0 +1,28 @@
+{
+  "sample_id": "001-dfjc-ratings",
+  "created": "2026-11-08",
+  "target": "run_dfjc_ratings",
+  "params": {"limit": 100, "keyword": "银行", "pages": 3, "year": "2024"},
+  "expect": {
+    "min_rows": 30,
+    "rows_contains": [
+      {"field": "source", "equals": "dfjc-ratings"},
+      {"field": "keyword", "equals": "银行"},
+      {"field": "year", "equals": "2024"},
+      {"field": "page", "equals": 2},
+      {"field": "project_name", "equals": "江苏淮安农村商业银行股份有限公司主体及“21淮安农商永续债01”2024年度跟踪评级报告（更正）（以此为准）"},
+      {"field": "subject_rating", "equals": "AA"},
+      {"field": "bond_rating", "equals": "AA-"},
+      {"field": "announce_date", "equals": "2024-09-30"},
+      {"field": "project_name", "equals": "浙江乐清农村商业银行股份有限公司2023年绿色金融债券(第一期)"},
+      {"field": "subject_rating", "equals": "AA+"},
+      {"field": "bond_rating", "equals": "AA+"},
+      {"field": "outlook", "equals": "稳定"},
+      {"field": "pdf_url", "equals": "https://www.dfratings.com/uploads/files/2024/0802/8u3HxJZ8YFF9RCOA5g5f6pt3Ozq5J5VQCHX6loSv.pdf"},
+      {"field": "page", "equals": 3},
+      {"field": "project_name", "equals": "日照银行股份有限公司2022年绿色金融债券"},
+      {"field": "pdf_url", "equals": "https://www.dfratings.com/uploads/files/2024/0730/y7Dp3MiyOMfnDufUayUqu7VJaUDvYf0PX8nZBkEs.pdf"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

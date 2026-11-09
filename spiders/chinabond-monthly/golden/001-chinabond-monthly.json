@@ -1,0 +1,24 @@
+{
+  "sample_id": "001-chinabond-monthly",
+  "created": "2026-11-08",
+  "target": "run_chinabond_monthly",
+  "params": {"limit": 400, "months": 1, "period": "2026-09"},
+  "expect": {
+    "min_rows": 280,
+    "rows_contains": [
+      {"field": "source", "equals": "chinabond-monthly"},
+      {"field": "period", "equals": "2026-09"},
+      {"field": "table_code", "equals": "01"},
+      {"field": "table_code", "equals": "06"},
+      {"field": "table_name", "equals": "债券持有者结构"},
+      {"field": "row_dimension", "equals": "investor_type"},
+      {"field": "row_label", "equals": "1.商业银行"},
+      {"field": "value", "equals": 886790.8119340657},
+      {"field": "metric", "equals": "现券交易·本月"},
+      {"field": "row_label", "equals": "5.投资者数量"},
+      {"field": "unit", "equals": "个"},
+      {"field": "unit", "equals": "只"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

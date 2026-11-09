@@ -1,0 +1,103 @@
+version: "2"
+name: shclearing-capital-notes   # = spiders/shclearing-capital-notes/ 目录名，运行时标识符，合入后不可改名
+label: SHCH capital instruments — tier-2 / perpetual capital bond issuance and circulation elements
+source_url: https://www.shclearing.com.cn/xxpl/jyltysgg/
+# site: 缺省 —— 本机直连 www.shclearing.com.cn 实测 200（2026-11-08，见 README 证据表）
+schedule: "21 13 * * 1-5"   # 发行/流通要素公告随登记披露实时更新；工作日 UTC 13:21 日频巡检（错峰由 batch6_schedule_fit 选槽）
+data_period: day
+scanner_mode: upstream-curated
+functions:
+  - command: run_shclearing_capital_notes
+    description: Fetch SHCH (上海清算所) TRS announcements for commercial-bank capital instruments — circulation elements (channelId=166, 交易流通要素公告) and issuance elements (channelId=144, 发行披露) — searching the title for 二级资本债券 / 无固定期限资本债券, then parsing each detail page's label-value table (代码/总额/期限/票面利率/债项评级/主体评级/关键日期) via the shared tabular HTML layer; start/limit are the ExtJS paging params, and keyword restricts the run to a single search term
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned (default 200); reaching the cap stops further detail-page requests
+      - name: keyword
+        type: string
+        required: false
+        description: Title search term; when given only that term is crawled (no default terms added); empty = 二级资本债券 then 无固定期限资本债券
+    columns:
+      - name: channel
+        type: string
+        description: Announcement channel code — circulation (channelId 166, 交易流通要素公告) or issuance (channelId 144, 发行披露)
+      - name: channel_label
+        type: string
+        description: Channel name as published (交易流通要素公告 / 发行披露)
+      - name: bond_name
+        type: string
+        description: Full bond name as published (产品全称, e.g. 无锡农村商业银行股份有限公司2026年二级资本债券（第一期）)
+      - name: bond_short_name
+        type: string
+        description: Short bond name as published (产品简称, e.g. 26无锡农商行二级资本债01)
+      - name: bond_code
+        type: string
+        description: Bond code as published (产品代码, e.g. 232680049); leading zeros preserved as text
+      - name: issue_amount
+        type: float
+        description: Issuance amount in the unit given by amount_unit (发行（创设）总额（亿元）)
+      - name: amount_unit
+        type: string
+        description: Unit of issue_amount (constant 亿元 — upstream labels the field 发行（创设）总额（亿元）)
+      - name: term
+        type: string
+        description: Term as published (期限, e.g. 10年)
+      - name: term_years
+        type: float
+        description: Term parsed to years from the term string (10年 → 10.0); null when no N年 pattern exists
+      - name: coupon_rate
+        type: float
+        description: Coupon rate in percent with the % sign stripped (票面年利率（%） 1.72000000 → 1.72); unit in coupon_unit
+      - name: coupon_unit
+        type: string
+        description: Unit of coupon_rate (constant %)
+      - name: product_rating
+        type: string
+        description: Bond issue rating as published (产品评级/债项评级, e.g. AA)
+      - name: issuer_rating
+        type: string
+        description: Issuer rating as published (主体评级, e.g. AA+)
+      - name: rating_agency
+        type: string
+        description: Rating agency as published (产品评级机构, e.g. 联合资信)
+      - name: issue_date
+        type: string
+        description: Issue/create date as published (发行（创设）日, YYYY-MM-DD)
+      - name: circulation_date
+        type: string
+        description: Circulation start date as published (流通日, YYYY-MM-DD)
+      - name: circulation_end_date
+        type: string
+        description: Circulation end date as published (流通结束日, YYYY-MM-DD)
+      - name: maturity_date
+        type: string
+        description: Maturity/redemption date as published (到期（兑付）日, YYYY-MM-DD)
+      - name: interest_method
+        type: string
+        description: Interest calculation method as published (计息方式, e.g. 附息固定)
+      - name: publish_date
+        type: string
+        description: Announcement publish date from the TRS search result (YYYY-MM-DD)
+      - name: detail_url
+        type: string
+        description: Absolute URL of the element announcement detail page
+      - name: source
+        type: string
+        description: Data source identifier (constant "shclearing-capital-notes")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: issue_amount
+    concept: bond.capital_instrument_issuance
+    entity_type: bond
+    measure: amount
+    unit: hundred_million_cny
+    frequency: irregular
+entities:
+  - entity_type: bond
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

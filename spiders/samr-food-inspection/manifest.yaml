@@ -1,0 +1,59 @@
+version: "2"
+name: samr-food-inspection    # = spiders/samr-food-inspection/ 目录名，运行时标识符，合入后不可改名
+label: 市场监管总局食品安全抽检公告 (SAMR Food Sampling Inspection Notices)
+source_url: https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/spcjs/
+# site: tencent              # 缺省 tencent；www.samr.gov.cn 国内源直连（出口矩阵无特殊站点要求）
+schedule: "27 6 * * 3"       # 点亮（波1，2026-11-07 试跑 success rows=100）：每周三 06:27；通告不规则发布（实测月 1-3 条、突发成批），周频保证周内捕获且成本极低
+data_period: irregular        # 通告发布不规则（实测 2026 年 1-10 月 16 条，月 1-3 条突发成批）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_samr_food_inspection
+    description: Fetch SAMR food-safety sampling-inspection announcements (食品安全监督抽检通报/通告) from the 食品抽检司 disclosure column, with field-level classification (unqualified/qualified/other) and restaurant-relevance annotation
+    frequency: weekly          # 公告非定期（实测月 1-3 条突发）；weekly 轮询保证周内捕获，成本低
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (one row per announcement, newest first)
+      - name: max_pages
+        type: int
+        required: false
+        description: Maximum list pages walked for announcement discovery (default 2, 20 items/page; only walked while limit is not yet met)
+    columns:
+      - name: notice_date
+        type: str
+        description: 公告发布日期 (ISO YYYY-MM-DD, 列表页 contenttime 锚定；缺失回退正文 meta PubDate 日期部分，再缺失 None)
+      - name: title
+        type: str
+        description: 公告标题 (list-page anchor; whitespace-squashed)
+      - name: url
+        type: str
+        description: 正文页 URL
+      - name: result_category
+        type: str
+        description: 字段级口径分类 unqualified(抽检不合格通报/通告) / qualified(全部合格类,防御性未见实例) / other(方法公告/名录/废止/召回/建议答复/季度综合统计等非抽检结果类)；标题规则优先，正文兜底，矛盾跳过留痕；无法判定 None
+      - name: restaurant_related
+        type: bool
+        description: 标题+正文+附件名命中 餐饮|食堂|餐馆 的标注列（餐饮食品/餐饮具/餐饮服务前缀族；附件名是分类覆盖面唯一载体）— annotation only, never a filter
+      - name: body_digest
+        type: str
+        description: 正文块(div.Three_xilan_07)去空白文本前 200 字符；缺失回退 meta Description，再缺失 None
+      - name: source
+        type: str
+        description: 固定 samr-food-inspection
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction (UTC)
+concepts:
+  - column: title
+    concept: food.safety_notice
+    entity_type: organization
+    measure: value
+    unit: string
+    frequency: weekly
+entities:
+  - entity_type: organization
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

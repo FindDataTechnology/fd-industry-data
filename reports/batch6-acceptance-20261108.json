@@ -1,0 +1,266 @@
+{
+  "generated": "2026-11-08T02:13:24",
+  "units": [
+    {
+      "slug": "nfra-stats-xls",
+      "ok": true,
+      "rows": 800,
+      "diffs": [],
+      "seconds": 0.4,
+      "params": {
+        "limit": 800
+      },
+      "sample": "001-nfra-stats-xls",
+      "external": "cheap1",
+      "local_error": "entry raised RuntimeError: nfra-stats-xls: 全部统计表取数失败 — list p1: HTTPError: HTTP Error 403: Forbidden; list p2: HTTPError: HTTP Error 403: Forbidden; list p3: HTTPError: HTTP Error 403: Forbidden; list"
+    },
+    {
+      "slug": "nfra-penalty",
+      "ok": true,
+      "rows": 60,
+      "diffs": [],
+      "seconds": 540.6,
+      "params": {
+        "limit": 60
+      },
+      "sample": "001-nfra-penalty",
+      "external": "cheap1",
+      "local_error": "entry raised RuntimeError: nfra-penalty: every leaf returned zero penalty rows"
+    },
+    {
+      "slug": "pboc-credit-funds",
+      "ok": true,
+      "rows": 2997,
+      "diffs": [],
+      "seconds": 6.8,
+      "params": {
+        "limit": 4000
+      },
+      "sample": "001-pboc-credit-funds"
+    },
+    {
+      "slug": "pboc-loan-usage",
+      "ok": true,
+      "rows": 24,
+      "diffs": [],
+      "seconds": 1.0,
+      "params": {
+        "limit": 40
+      },
+      "sample": "001-pboc-loan-usage"
+    },
+    {
+      "slug": "chinamoney-shibor",
+      "ok": true,
+      "rows": 30,
+      "diffs": [],
+      "seconds": 156.9,
+      "params": {
+        "limit": 20,
+        "days": 0
+      },
+      "sample": "001-chinamoney-shibor"
+    },
+    {
+      "slug": "chinamoney-lpr",
+      "ok": true,
+      "rows": 80,
+      "diffs": [],
+      "seconds": 14.9,
+      "params": {
+        "limit": 80
+      },
+      "sample": "001-chinamoney-lpr"
+    },
+    {
+      "slug": "chinamoney-ncd-curve",
+      "ok": true,
+      "rows": 102,
+      "diffs": [],
+      "seconds": 22.4,
+      "params": {
+        "limit": 400,
+        "days": 10
+      },
+      "sample": "001-chinamoney-ncd-curve"
+    },
+    {
+      "slug": "shclearing-monthly",
+      "ok": true,
+      "rows": 257,
+      "diffs": [],
+      "seconds": 8.1,
+      "params": {
+        "limit": 400,
+        "months": 1,
+        "period": "2026-09"
+      },
+      "sample": "001-shclearing-monthly"
+    },
+    {
+      "slug": "chinabond-monthly",
+      "ok": true,
+      "rows": 284,
+      "diffs": [],
+      "seconds": 9.3,
+      "params": {
+        "limit": 400,
+        "months": 1,
+        "period": "2026-09"
+      },
+      "sample": "001-chinabond-monthly"
+    },
+    {
+      "slug": "chinabond-yield-curve",
+      "ok": true,
+      "rows": 218,
+      "diffs": [],
+      "seconds": 5.6,
+      "params": {
+        "limit": 1200,
+        "days": 3
+      },
+      "sample": "001-chinabond-yield-curve"
+    },
+    {
+      "slug": "shclearing-capital-notes",
+      "ok": true,
+      "rows": 10,
+      "diffs": [],
+      "seconds": 13.9,
+      "params": {
+        "limit": 10,
+        "keyword": "无锡农村商业银行"
+      },
+      "sample": "001-shclearing-capital-notes"
+    },
+    {
+      "slug": "cba-wealth-index",
+      "ok": true,
+      "rows": 32,
+      "diffs": [],
+      "seconds": 23.4,
+      "params": {
+        "limit": 60,
+        "months": 1,
+        "period": "2026-09"
+      },
+      "sample": "001-cba-wealth-index"
+    },
+    {
+      "slug": "chinawealth-reports",
+      "ok": true,
+      "rows": 28,
+      "diffs": [],
+      "seconds": 40.7,
+      "params": {
+        "limit": 60,
+        "pages": 3
+      },
+      "sample": "001-chinawealth-reports"
+    },
+    {
+      "slug": "yindeng-npl-transfer",
+      "ok": true,
+      "rows": 4,
+      "diffs": [],
+      "seconds": 13.6,
+      "params": {
+        "limit": 2,
+        "kinds": "",
+        "start_page": 200
+      },
+      "sample": "001-yindeng-npl-transfer"
+    },
+    {
+      "slug": "eastmoney-disclosure-plan",
+      "ok": true,
+      "rows": 200,
+      "diffs": [],
+      "seconds": 0.8,
+      "params": {
+        "limit": 200
+      },
+      "sample": "001-eastmoney-disclosure-plan"
+    },
+    {
+      "slug": "ratings-ccxi",
+      "ok": true,
+      "rows": 6,
+      "diffs": [],
+      "seconds": 30.8,
+      "params": {
+        "limit": 200,
+        "keyword": "银行",
+        "since": "2026-09-01",
+        "until": "2026-09-30"
+      },
+      "sample": "001-ratings-ccxi"
+    },
+    {
+      "slug": "dagong-ratings",
+      "ok": true,
+      "rows": 10,
+      "diffs": [],
+      "seconds": 1.4,
+      "params": {
+        "limit": 20,
+        "topic": "商业银行",
+        "pages": 1,
+        "page": 5
+      },
+      "sample": "001-dagong-ratings"
+    },
+    {
+      "slug": "lh-ratings",
+      "ok": true,
+      "rows": 70,
+      "diffs": [],
+      "seconds": 11.9,
+      "params": {
+        "limit": 200,
+        "keyword": "银行",
+        "max_pages": 8
+      },
+      "sample": "001-lh-ratings"
+    },
+    {
+      "slug": "dfjc-ratings",
+      "ok": true,
+      "rows": 30,
+      "diffs": [],
+      "seconds": 4.4,
+      "params": {
+        "limit": 100,
+        "keyword": "银行",
+        "pages": 3,
+        "year": "2024"
+      },
+      "sample": "001-dfjc-ratings"
+    },
+    {
+      "slug": "xsj-ratings",
+      "ok": true,
+      "rows": 35,
+      "diffs": [],
+      "seconds": 4.7,
+      "params": {
+        "limit": 200,
+        "pages": 3,
+        "period": "2026-07"
+      },
+      "sample": "001-xsj-ratings"
+    }
+  ],
+  "missing_dirs": [],
+  "validate_manifests": {
+    "rc": 0,
+    "output": "validate_manifests: 157 manifests, 0 violations"
+  },
+  "conformance_gate": {
+    "rc": 0,
+    "output": "conformance gate: PASS — 159 units, 0 violations"
+  },
+  "conformance_gate_batch6_violations": [],
+  "conformance_gate_foreign_violations": []
+}

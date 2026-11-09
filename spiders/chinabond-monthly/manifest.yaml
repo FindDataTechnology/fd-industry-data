@@ -1,0 +1,68 @@
+version: "2"
+name: chinabond-monthly      # = spiders/chinabond-monthly/ 目录名，运行时标识符，合入后不可改名
+label: ChinaBond monthly market statistics bulletin (8 tables, 1997-present)
+source_url: https://www.chinabond.com.cn/zzsj/zzsj_tjsj/tjsj_tjyb/
+# site: 缺省 —— 本机直连 www.chinabond.com.cn 实测 200（2026-11-08，见 README 证据表）
+schedule: "19 13 5,15,25 * *"   # 月报发布窗巡检：次月中下旬发布（实测 202609 期在 11-07 前可得）；每月 5/15/25 日 UTC 13:19 兜一圈（错峰由 batch6_schedule_fit 选槽）
+data_period: month
+scanner_mode: upstream-curated
+functions:
+  - command: run_chinabond_monthly
+    description: Fetch the ChinaBond monthly statistics bulletin — 8 xlsx tables per period (债券业务总览 / 发行 / 付息兑付 / 托管 / 持有者结构 / 主要券种持有者结构 / 银行间交易结算按券种 / 按投资者) — via GetMonthReport queryContent (monthly catalog, reportFlag=T) plus GetDataByte (sWjlx=3 OOXML), emitted as a long table of one row per (period, table, row label, metric); unlisted-in-catalog codes are skipped with a trace line, and period pins a historical month for backfill
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned (default 2000 ≈ 7 months at ~284 rows per period)
+      - name: months
+        type: int
+        required: false
+        description: Number of published periods to walk back from the start period (default 1 = latest only)
+      - name: period
+        type: string
+        required: false
+        description: Start period as YYYY-MM; empty = probe from the previous calendar month for the latest published bulletin, a given value = backfill from that month (1997-present)
+    columns:
+      - name: period
+        type: string
+        description: Statistical month as YYYY-MM (upstream 统计年月 YYYYMM normalized)
+      - name: table_code
+        type: string
+        description: Bulletin table number 01-08 (upstream bbbh; the stable key — table names may drift)
+      - name: table_name
+        type: string
+        description: Table name as published (债券业务总览 / 债券发行情况 / … / 银行间市场债券交易结算情况（按投资者）)
+      - name: row_dimension
+        type: string
+        description: What the row axis enumerates — indicator (01), bond_type (02/03/04/07) or investor_type (05/06/08)
+      - name: row_label
+        type: string
+        description: Row label as published (合计 / 一、银行间债券市场 / 1.商业银行 / 4.债券托管量 …), hierarchy prefix kept
+      - name: metric
+        type: string
+        description: Column metric as published; two-row headers joined with "·" (e.g. 现券交易·本年累计, 托管面额, 本月/本月末)
+      - name: value
+        type: float
+        description: Cell value in the unit given by the unit column (千分位逗号剥离；上游 "-" / "---" 视为缺测不出行)
+      - name: unit
+        type: string
+        description: Row-level unit resolved from the 单位 line (亿元 / 只 / 个) plus published exceptions (美元债托管量 → 美元); see README 单位规则表
+      - name: source
+        type: string
+        description: Data source identifier (constant "chinabond-monthly")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: bond.market_outstanding_and_turnover
+    entity_type: bond_aggregate
+    measure: amount
+    unit: hundred_million_cny
+    frequency: monthly
+entities:
+  - entity_type: bond_aggregate
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,25 @@
+{
+  "sample_id": "001-yindeng-npl-transfer",
+  "created": "2026-11-08",
+  "target": "run_yindeng_npl_transfer",
+  "params": {"limit": 2, "kinds": "", "start_page": 200},
+  "expect": {
+    "min_rows": 4,
+    "rows_contains": [
+      {"field": "source", "equals": "yindeng-npl-transfer"},
+      {"field": "notice_kind", "equals": "zrgg"},
+      {"field": "notice_kind", "equals": "zrjggg"},
+      {"field": "transferor", "equals": "中国建设银行股份有限公司山西省分行"},
+      {"field": "base_date", "equals": "2024-05-31"},
+      {"field": "loan_count", "equals": 229},
+      {"field": "borrower_count", "equals": 193},
+      {"field": "overdue_days", "equals": 226.0},
+      {"field": "unpaid_principal", "equals": 48355544.56},
+      {"field": "project_no", "equals": "NPL2025003780"},
+      {"field": "transferee", "equals": "昆朋资产管理股份有限公司"},
+      {"field": "signing_date", "equals": "2025-08-11"},
+      {"field": "text_layer", "equals": true}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

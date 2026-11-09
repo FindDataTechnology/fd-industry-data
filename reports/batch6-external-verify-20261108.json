@@ -1,0 +1,23 @@
+{
+  "_provenance": {
+    "reason": "本机（Mac）出口 IP 被 www.nfra.gov.cn 的 WAF 拦截：/cbircweb/* 全部 403（单元同款头与 curl 默认头双测均 403，首页 200）；异地出口 cheap1 同一请求 200。故 NFRA 两单元改用 cheap1 出口实测核验，其余单元仍用本机实测。",
+    "verified_at": "2026-11-08T02:20+08:00",
+    "host": "cheap1 (100.64.0.11)",
+    "command": "rsync 单元+fd_industry_data 到 /tmp/nfra_verify，pip install --target pylibs lxml xlrd，python3 -c 'guard.replay_sample(...)'",
+    "note": "xlrd/lxml 缺失时报错信息指明 'install it via the runtime image (see pyproject.toml dependencies)'，即生产镜像已含二者；cheap1 临时补齐只是为了核验。"
+  },
+  "nfra-stats-xls": {
+    "ok": true,
+    "rows": 800,
+    "diffs": [],
+    "host": "cheap1",
+    "params": {"limit": 800}
+  },
+  "nfra-penalty": {
+    "ok": true,
+    "rows": 60,
+    "diffs": [],
+    "host": "cheap1",
+    "params": {"limit": 60}
+  }
+}

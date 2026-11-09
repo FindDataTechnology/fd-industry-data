@@ -1,0 +1,29 @@
+{
+  "sample_id": "001-pboc-credit-funds",
+  "created": "2026-11-07",
+  "target": "run_pboc_credit_funds",
+  "params": {"limit": 4000},
+  "expect": {
+    "min_rows": 2500,
+    "rows_contains": [
+      {"field": "source", "equals": "pboc-credit-funds"},
+      {"field": "table_key", "equals": "financial_institutions_fx"},
+      {"field": "table_key", "equals": "depository_institutions_rmb"},
+      {"field": "table_key", "equals": "large_national_banks_rmb"},
+      {"field": "table_key", "equals": "small_medium_national_banks_rmb"},
+      {"field": "currency", "equals": "本外币"},
+      {"field": "currency", "equals": "外汇"},
+      {"field": "currency", "equals": "人民币"},
+      {"field": "side", "equals": "source"},
+      {"field": "side", "equals": "use"},
+      {"field": "indicator", "equals": "一、各项存款"},
+      {"field": "indicator", "equals": "一、各项贷款"},
+      {"field": "period", "equals": "2026-09"},
+      {"field": "value", "equals": 3575240.64},
+      {"field": "indicator", "equals": "二、债券投资"},
+      {"field": "value", "equals": 947433.92},
+      {"field": "unit", "equals": "亿元"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "published_at"]
+}

@@ -1,0 +1,67 @@
+version: "2"
+name: sac-securities                # = spiders/sac-securities/ 目录名，运行时标识符，合入后不可改名
+label: 中国证券业协会经营数据
+source_url: https://www.sac.net.cn/xxgk/hysj/jjsj/
+# site: tencent 缺省——SAC 官网直连实测可达（2026-11-07 本机 curl 200，见 README 证据表），无需代理出口
+# schedule: 点亮（add-securities-industry-line 3.6）：21:50 UTC 月频（每月 8 日，错峰零重叠；上游为半年度/年度发布，月检轮空无害）
+schedule: "50 21 8 * *"     # SAC 经营数据巡检（半年报/年报披露节奏）
+data_period: irregular              # 上游披露节奏随期代变（早年季度 → 现半年度+年度）；期粒度 YYYY-Qn
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_sac_securities
+    description: 中国证券业协会证券公司经营数据（行业汇总：营业收入/净利润/总资产/净资产/客户交易结算资金等；期粒度 YYYY-Qn 累计口径，金额统一亿元；正文散文解析，无 JSON 端点）
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: 最大返回行数（按 期+指标 确定性排序，保留最近 limit 行）
+    columns:
+      - name: source
+        type: string
+        description: 常量 "sac-securities"
+      - name: stat_period
+        type: string
+        description: 统计期 "YYYY-Qn"（累计口径：年度=Q4、上半年度=Q2、前三季度/三季度=Q3、一季度=Q1）
+      - name: indicator
+        type: string
+        description: 指标名（营业收入、净利润、总资产等；剥离括号限定语，官方全名码表见 README）
+      - name: value
+        type: float
+        description: 指标数值，统一折算为亿元（上游"万亿元"计的资产负债类指标 ×10000）
+      - name: unit
+        type: string
+        description: 常量 "亿元"
+      - name: company_scope
+        type: string
+        description: 常量 "行业汇总"（当期全部证券公司合计；家数随期变化不透出）
+      - name: source_url
+        type: string
+        description: 数据来源文章页 URL
+      - name: upstream_updated
+        type: string
+        description: 上游发布日期 YYYY-MM-DD
+      - name: scraped_at
+        type: string
+        description: ISO 抓取时间戳
+concepts:
+  # value 列按 indicator 区分指标族：营业收入及各主营业务收入行 → operating_revenue，
+  # 净利润行 → net_profit（详见 README 指标码表）
+  - column: value
+    concept: securities_industry.operating_revenue
+    entity_type: industry
+    measure: amount
+    unit: currency_cny
+    frequency: monthly
+  - column: value
+    concept: securities_industry.net_profit
+    entity_type: industry
+    measure: amount
+    unit: currency_cny
+    frequency: monthly
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

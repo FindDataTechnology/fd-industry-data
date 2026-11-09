@@ -1,0 +1,15 @@
+{
+  "sample_id": "002-restaurant-rpi-backfill",
+  "created": "2026-11-07",
+  "target": "run_restaurant_rpi",
+  "params": {"limit": 60, "months_back": 12},
+  "expect": {
+    "min_rows": 12,
+    "rows_contains": [
+      {"field": "source", "equals": "restaurant-rpi"},
+      {"field": "month", "equals": "2025-09"},
+      {"field": "rpi", "equals": 99.4}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

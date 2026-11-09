@@ -1,0 +1,13 @@
+{
+  "sample_id": "001-lhb-daily",
+  "created": "2026-11-07",
+  "target": "run_lhb_daily",
+  "params": {"limit": 20},
+  "expect": {
+    "min_rows": 3,
+    "rows_contains": [
+      {"field": "source", "equals": "lhb-daily"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "upstream_updated"]
+}

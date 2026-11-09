@@ -1,0 +1,30 @@
+{
+  "sample_id": "001-cba-wealth-index",
+  "created": "2026-11-08",
+  "target": "run_cba_wealth_index",
+  "params": {"limit": 60, "months": 1, "period": "2026-09"},
+  "expect": {
+    "min_rows": 30,
+    "rows_contains": [
+      {"field": "source", "equals": "cba-wealth-index"},
+      {"field": "period", "equals": "2026-09"},
+      {"field": "file_format", "equals": "pdf"},
+      {"field": "methodology", "equals": "fixed_income_return_index"},
+      {"field": "series", "equals": "fixed_income"},
+      {"field": "metric", "equals": "index_point"},
+      {"field": "value", "equals": 111.93},
+      {"field": "series", "equals": "cash_management"},
+      {"field": "value", "equals": 39.0},
+      {"field": "series", "equals": "fixed_income_short"},
+      {"field": "value", "equals": 111.02},
+      {"field": "series", "equals": "fixed_income_medium"},
+      {"field": "value", "equals": 112.38},
+      {"field": "series", "equals": "fixed_income_long"},
+      {"field": "value", "equals": 113.47},
+      {"field": "metric", "equals": "return_6m_pct"},
+      {"field": "value", "equals": 0.86},
+      {"field": "unit", "equals": "%"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

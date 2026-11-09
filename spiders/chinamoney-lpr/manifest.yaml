@@ -1,0 +1,48 @@
+version: "2"
+name: chinamoney-lpr              # = spiders/chinamoney-lpr/ 目录名，运行时标识符，合入后不可改名
+label: ChinaMoney LPR (loan prime rate, 1Y and 5Y fixings)
+source_url: https://www.chinamoney.com.cn/chinese/bklpr/
+# site: 缺省 —— 本机直连 chinamoney.com.cn AGS 实测 200（2026-11-07，见 README 证据表）
+schedule: "20 11 * * 1-5"         # LPR 每月 20 日报价；日频巡检（周末无报价），错峰既有排期
+data_period: day
+scanner_mode: upstream-curated
+functions:
+  - command: run_chinamoney_lpr
+    description: Fetch every LPR fixing period since 2013-10 (1Y and 5Y tenors) from the ChinaMoney AGS LprHis endpoint — year-sharded because the upstream silently returns an empty record set for windows longer than one year, parameters are strStartDate/strEndDate (unique to this module), and rows are read from the top-level records array with showDateCN + 1Y/5Y keys
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of long-format rows (one row per fixing period per tenor) returned newest-first (default 800 ≈ 400 fixing periods; full history is ~320 rows)
+    columns:
+      - name: curve
+        type: string
+        description: LPR tenor curve — LPR1Y (1-year) or LPR5Y (5-year-and-over)
+      - name: date
+        type: string
+        description: Fixing date (YYYY-MM-DD; upstream showDateCN, the 20th of each month)
+      - name: value
+        type: float
+        description: Published rate in percent (upstream string parsed to float)
+      - name: unit
+        type: string
+        description: Unit of value (constant "%")
+      - name: source
+        type: string
+        description: Data source identifier (constant "chinamoney-lpr")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: money_market.lpr
+    entity_type: market
+    measure: rate
+    unit: percent
+    frequency: monthly
+entities:
+  - entity_type: market
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

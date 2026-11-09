@@ -1,0 +1,14 @@
+{
+  "sample_id": "001-sse-szse-margin",
+  "created": "2026-11-07",
+  "target": "run_sse_szse_margin",
+  "params": {"limit": 10},
+  "expect": {
+    "min_rows": 2,
+    "rows_contains": [
+      {"field": "source", "equals": "sse-szse-margin"},
+      {"field": "exchange", "equals": "SZSE"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "upstream_updated"]
+}

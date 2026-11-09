@@ -1,0 +1,115 @@
+version: "2"
+name: ctha-hotel-report      # = spiders/ctha-hotel-report/ 目录名，运行时标识符，合入后不可改名
+label: 中国饭店协会 中国酒店业发展报告 + 中国酒店集团及品牌发展报告（年度 · 供给侧 + 集团品牌榜）
+source_url: https://www.chinahotel.org.cn
+# site: 缺省 tencent —— PDF 在 www.chinahotel.org.cn/sfs/cms/ 静态面，2026-11-08 实测 206 直连可取。
+#
+# schedule: 故意不写 —— 生成流要求先静默合入、试跑通过后再人工点亮。而且**当前不可点亮**：
+#   索引面有登录墙（见下），只能靠 reports 参数直给 PDF。
+#
+# 【索引面登录墙（2026-11-08 03:10 实测，本源的重大事实）】栏目页 /cat/35/pN.html、
+#   文章页 /art/<id>.html、/robots.txt、/sitemap.xml 一律 302 → /account/login，
+#   裸 UA / 浏览器 UA / iPhone UA / http / https / 带 cookie jar 全部一样；
+#   **但 /sfs/cms/*.pdf 静态件仍 206 可取**（哈希文件名不随版本变）。
+#   故本单元提供 reports 参数直接传 PDF URL；索引发现失败时抛带解释的 RuntimeError，
+#   绝不静默空跑。等索引面重新开放（或拿到凭据）才谈点亮。
+#
+# 【口径】协会/盈蝶/携程联合调研口径，连锁 = 同一品牌 3 家及以上门店；与文旅部「星级饭店」
+#   口径（6,129 家）是两个宇宙，任何跨源比较都必须显式写口径，本单元不做跨源合并。
+#   报告期 = 「截至 YYYY 年 12 月 31 日」的年份，不是封面年份、不是下载时间。
+data_period: year            # 年度：2026 版报告 = 截至 2025-12-31，每年 4–5 月发布
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_ctha_hotel_report
+    description: >
+      Fetch the China Hotel Association annual reports (two PDFs with a real text layer) and emit a
+      long-form table of two row kinds. row_kind=metric comes from anchored prose sentences
+      (industry scale, grade/size/city-tier structure, province and city extremes, chain rate, top-50
+      group totals, four brand tiers, brand-table roll-ups); row_kind=ranking comes from the ordinal
+      tables (top-50 hotel groups, top-30 foreign brand hotels). A ranking table is emitted only when
+      every ordinal 1..N is recoverable from single lines — otherwise the WHOLE table is skipped with a
+      trace (never half a table); the pages whose cells wrap keep only their unambiguous roll-up
+      sentence. Chart pages carry no data labels and are never guessed. The index surface is behind a
+      login wall, so pass reports="title=url,title=url" to read the static PDFs directly.
+    frequency: yearly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned (two full reports are roughly 170 rows)
+      - name: pages
+        type: int
+        required: false
+        description: Category-page depth to walk when discovering reports (1..12, default 6; only used when reports is not given)
+      - name: reports
+        type: string
+        required: false
+        description: >
+          Direct PDF targets — "标题=URL,标题=URL" or a bare URL list. Required in practice: the index
+          surface returns 302 → /account/login while /sfs/cms/*.pdf stays fetchable.
+    columns:
+      - name: report
+        type: string
+        description: Which report the row came from — hotel2026 (中国酒店业发展报告) or group2026 (集团及品牌发展报告)
+      - name: report_period
+        type: int
+        description: Data year parsed from 截至 YYYY 年 12 月 31 日 in the body; not the cover year, not the fetch date
+      - name: row_kind
+        type: string
+        description: metric (anchored prose sentence) or ranking (ordinal table row)
+      - name: table
+        type: string
+        description: >
+          metric → industry_scale / grade_structure / size_structure / city_tier / province / city /
+          chain / group_scale / brand_tier / brand_foreign_top30 / brand_luxury_top20;
+          ranking → group_top50 / brand_foreign_top30
+      - name: dimension
+        type: string
+        description: Row label for metrics (全国 / 经济型 / 中档 / 高档 / 豪华 / 15-29间 / 一线城市 / 广东省 / 北京 / 前50集团 …); 全国 for rankings
+      - name: metric
+        type: string
+        description: >
+          Indicator slug — lodging_facilities / hotel_rooms / chain_rate_rooms / chain_rooms_yoy /
+          facilities / rooms / share_rooms / rooms_yoy / share_of_chain / rooms_total …; empty for rankings
+      - name: rank
+        type: int
+        description: Ordinal 1..N for rankings; null for metrics
+      - name: entity_name
+        type: string
+        description: Group name (group_top50) or brand name (brand_foreign_top30), verbatim from the table
+      - name: entity_group
+        type: string
+        description: Owning group for brand rankings; empty for group rankings
+      - name: entity_hq
+        type: string
+        description: Headquarters city for group rankings; empty for brand rankings
+      - name: value
+        type: float
+        description: Metric value as published (thousands separators stripped); null for ranking rows. Never interpolated, never zero-filled
+      - name: unit
+        type: string
+        description: Unit exactly as printed — 家 / 间 / 万间 / 万家 / % ; empty for rankings (units live in rooms/hotels)
+      - name: rooms
+        type: int
+        description: Guest rooms (客房数) for ranking rows; null for metrics
+      - name: hotels
+        type: int
+        description: Properties (门店数) for ranking rows; null for metrics
+      - name: page
+        type: int
+        description: PDF page number (1-based) the row was read from, so any row can be re-verified by eye
+      - name: pdf_url
+        type: string
+        description: Exact PDF URL the row came from (hash filenames are opaque; this is the only trace back to the source)
+      - name: source
+        type: string
+        description: Constant "ctha-hotel-report"
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+entities:
+  - entity_type: enterprise
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,23 @@
+# dfjc-ratings 接入检查清单（批次六，2026-11-08）
+
+- [x] 目录名 = manifest `name`（`dfjc-ratings`；入口 `run_dfjc_ratings`）
+- [x] `spider.py` 提供 `run_dfjc_ratings(limit=, keyword=, pages=, year=) -> list[dict]`，纯标准库
+- [x] **列表页实读**：`GET https://www.dfratings.com/Periodic-tracking.html`，服务端渲染 HTML 表格，非 XHR/JS
+- [x] **`wd` 参数实读**：`wd=银行` 页脚「共99页」vs 无 `wd`「共1239页」；服务端全文过滤，非前端藏行
+- [x] **`page` 参数实读**：1-based、10 行/页；`page=99` 5 行、`page=100` 0 行（HTTP 200 空表）
+- [x] **`year` 参数实读**（表单未暴露、探测所得）：`year=2024` 共15页 / `year=2025` 共20页；未来年/非法年返回空表
+- [x] **列错位坑留痕**：每行含被注释的重复 `<td>`，先剔注释再切行（否则 7 列错位）
+- [x] **上游错字不掩盖**：实测 `AA_` 原样保留，不做等级归一化（README 硬坑 2）
+- [x] **字段抽取**：项目名称 / 主体等级 / 债项等级 / 评级展望 / 公告时间 / PDF 直链 / 下载文件名
+- [x] **无详情页**：项目名称直链 `/uploads/files/YYYY/MMDD/<token>.pdf`，列表即详情，不解析 PDF 正文
+- [x] `pdf_url` 绝对化、`pdf_filename` 取 `download` 属性；公告类条目空等级保留空串不丢行
+- [x] 去重：按 `pdf_url`（翻页期间列表插入新条目不重复落库）；`limit` 截断、`pages` 翻页数真实生效
+- [x] `year` 增量参数：默认空=全量滚动列表（任务口径），给定年份用于回补/golden 固定，README 留痕理由
+- [x] manifest 字段齐全；columns 12 键与输出行一一对应；4 个声明参数均在入口签名中
+- [x] `data_period: irregular`（评级公告事件驱动，无固定周期）；`schedule: "41 10 * * 4"` 逐字按批次排期
+- [x] 失败策略：单页失败留痕续跑、表体缺失/全页失败 `RuntimeError`、合法空集返回 `[]`、行结构异常丢行留痕
+- [x] 网络礼节：翻页间隔 1.2s（≥1s），空页/超总页/达 limit 即停
+- [x] golden 口径 `wd=银行&year=2024`（已闭合年份，规避列表滚动）；锚第 1/2/3 页 3 条，含等级/展望/日期/PDF URL
+- [x] 本地自检：`validate_manifests`（143 manifests, 0 violations）/ golden schema+replay（`ok=True rows=30 diffs=[]`，4.8s）
+- [ ] push 后 CI gate 绿——合入前由人工/CI 确认
+- [ ] 点亮后试跑：验证 crawl_runs 记录与评级条目落库（首爬默认 3 页 30 行）

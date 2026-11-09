@@ -1,0 +1,143 @@
+version: "2"
+name: restaurant-rpi            # = spiders/restaurant-rpi/ 目录名，运行时标识符，合入后不可改名
+label: 美国餐馆业绩指数 Restaurant Performance Index (NRA RPI)
+source_url: https://restaurant.org/research-and-media/research/restaurant-economic-insights/restaurant-performance-index/
+# site: tencent              # 缺省 tencent；本单元只访问 restaurant.org 公开页面/PDF，无需换执行位
+schedule: "41 5 2 * *"       # 点亮（波1，2026-11-07 试跑 success rows=5）：每月 2 日 05:41；RPI 每月最后一个工作日发布，次月 2 日取上月末版（单版仅含最近 5 个月滚动窗）
+data_period: month
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_restaurant_rpi
+    description: Fetch the NRA Restaurant Performance Index — monthly composite index of the U.S. restaurant industry (headline RPI plus Current Situation and Expectations components and their four indicators each), parsed from monthly report PDFs (5-month rolling window per edition; optional bounded historical backfill)
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum month rows to return (deterministic order, earliest month first; the current report alone offers only its latest 5-month rolling window)
+      - name: months_back
+        type: int
+        required: false
+        description: Bounded historical backfill, 0..18 (default 0 = current report only). Fetches the prior N monthly report editions by URL pattern, merges their 5-month windows, dedups by month (newest edition wins), returns months ascending. A 404/failed/unparseable edition is skipped with a stderr trace — never retried, never fails the run; missing months are not fabricated.
+    columns:
+      - name: month
+        type: string
+        description: Index month (YYYY-MM); current report's rolling 5-month window plus any backfilled months (Sep-2026 report measured 2026-05..2026-09)
+      - name: rpi
+        type: float
+        description: Restaurant Performance Index (composite, neutral 100; above 100 = expansion, below = contraction)
+      - name: current_situation_index
+        type: float
+        description: Current Situation Index component (current trends in four industry indicators)
+      - name: cs_same_store_sales
+        type: float
+        description: Current Situation indicator — same-store sales vs same month previous year
+      - name: cs_customer_traffic
+        type: float
+        description: Current Situation indicator — customer traffic vs same month previous year
+      - name: cs_labor
+        type: float
+        description: Current Situation indicator — employees and average hours vs same month previous year
+      - name: cs_capital_expenditures
+        type: float
+        description: Current Situation indicator — capex activity during the three most recent months
+      - name: expectations_index
+        type: float
+        description: Expectations Index component (operators' six-month outlook, four indicators)
+      - name: exp_same_store_sales
+        type: float
+        description: Expectations indicator — expected same-store sales in six months vs same period previous year
+      - name: exp_staffing
+        type: float
+        description: Expectations indicator — expected staffing in six months vs previous year
+      - name: exp_capital_expenditures
+        type: float
+        description: Expectations indicator — capex plans during the next six months
+      - name: exp_business_conditions
+        type: float
+        description: Expectations indicator — outlook for general business conditions in six months
+      - name: report_month
+        type: string
+        description: RPI report edition that supplied the row (YYYY-MM; the edition's latest month column)
+      - name: url
+        type: string
+        description: Source PDF URL for the row
+      - name: source
+        type: string
+        description: Data source identifier
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: rpi
+    concept: restaurant.rpi.index
+    entity_type: region
+    measure: index
+    unit: index_100_neutral
+    frequency: monthly
+  - column: current_situation_index
+    concept: restaurant.rpi.current_situation_index
+    entity_type: region
+    measure: index
+    unit: index_100_neutral
+    frequency: monthly
+  - column: cs_same_store_sales
+    concept: restaurant.rpi.current_situation.same_store_sales
+    entity_type: region
+    measure: index
+    unit: index_100_neutral
+    frequency: monthly
+  - column: cs_customer_traffic
+    concept: restaurant.rpi.current_situation.customer_traffic
+    entity_type: region
+    measure: index
+    unit: index_100_neutral
+    frequency: monthly
+  - column: cs_labor
+    concept: restaurant.rpi.current_situation.labor
+    entity_type: region
+    measure: index
+    unit: index_100_neutral
+    frequency: monthly
+  - column: cs_capital_expenditures
+    concept: restaurant.rpi.current_situation.capital_expenditures
+    entity_type: region
+    measure: index
+    unit: index_100_neutral
+    frequency: monthly
+  - column: expectations_index
+    concept: restaurant.rpi.expectations_index
+    entity_type: region
+    measure: index
+    unit: index_100_neutral
+    frequency: monthly
+  - column: exp_same_store_sales
+    concept: restaurant.rpi.expectations.same_store_sales
+    entity_type: region
+    measure: index
+    unit: index_100_neutral
+    frequency: monthly
+  - column: exp_staffing
+    concept: restaurant.rpi.expectations.staffing
+    entity_type: region
+    measure: index
+    unit: index_100_neutral
+    frequency: monthly
+  - column: exp_capital_expenditures
+    concept: restaurant.rpi.expectations.capital_expenditures
+    entity_type: region
+    measure: index
+    unit: index_100_neutral
+    frequency: monthly
+  - column: exp_business_conditions
+    concept: restaurant.rpi.expectations.business_conditions
+    entity_type: region
+    measure: index
+    unit: index_100_neutral
+    frequency: monthly
+entities:
+  - entity_type: region
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

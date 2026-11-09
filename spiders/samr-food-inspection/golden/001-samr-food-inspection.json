@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-samr-food-inspection",
+  "created": "2026-11-07",
+  "target": "run_samr_food_inspection",
+  "params": {"limit": 20},
+  "expect": {
+    "min_rows": 3,
+    "rows_contains": [
+      {"field": "source", "equals": "samr-food-inspection"},
+      {"field": "result_category", "equals": "unqualified"},
+      {"field": "result_category", "equals": "other"},
+      {"field": "restaurant_related", "equals": true}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "body_digest", "url", "notice_date", "title"]
+}

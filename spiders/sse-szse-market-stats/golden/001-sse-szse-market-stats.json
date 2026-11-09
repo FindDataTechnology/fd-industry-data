@@ -1,0 +1,15 @@
+{
+  "sample_id": "001-sse-szse-market-stats",
+  "created": "2026-11-07",
+  "target": "run_sse_szse_market_stats",
+  "params": {"limit": 20},
+  "expect": {
+    "min_rows": 2,
+    "rows_contains": [
+      {"field": "source", "equals": "sse-szse-market-stats"},
+      {"field": "exchange", "equals": "SSE"},
+      {"field": "exchange", "equals": "SZSE"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "upstream_updated"]
+}

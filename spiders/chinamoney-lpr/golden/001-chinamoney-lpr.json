@@ -1,0 +1,19 @@
+{
+  "sample_id": "001-chinamoney-lpr",
+  "created": "2026-11-07",
+  "target": "run_chinamoney_lpr",
+  "params": {"limit": 80},
+  "expect": {
+    "min_rows": 60,
+    "rows_contains": [
+      {"field": "source", "equals": "chinamoney-lpr"},
+      {"field": "curve", "equals": "LPR1Y"},
+      {"field": "curve", "equals": "LPR5Y"},
+      {"field": "date", "equals": "2026-10-20"},
+      {"field": "value", "equals": 3.0},
+      {"field": "value", "equals": 3.5},
+      {"field": "unit", "equals": "%"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

@@ -1,0 +1,19 @@
+{
+  "sample_id": "001-ico-coffee-price",
+  "created": "2026-11-07",
+  "updated": "2026-11-07",
+  "target": "run_ico_coffee_price",
+  "params": {"limit": 24, "months_back": 14},
+  "expect": {
+    "min_rows": 3,
+    "rows_contains": [
+      {"field": "month", "equals": "2025-09"},
+      {"field": "day", "equals": "2025-09-01"},
+      {"field": "icip", "equals": 333.68},
+      {"field": "colombian_milds", "equals": 414.89},
+      {"field": "robustas", "equals": 220.5}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"],
+  "note": "锚窗口起点 2025-09-01（月归档可回溯到的最早月）。行形态为宽表一日一行（day + 5 个指标列），不是长表 date/indicator/price —— 2026-11-07 首次重放发现问题后按真实形态重锚。当月值与最新交易日不入锚：ICO 明注当月表日内修订。"
+}

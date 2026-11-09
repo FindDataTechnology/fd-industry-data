@@ -1,0 +1,29 @@
+{
+  "sample_id": "001-lh-ratings",
+  "created": "2026-11-08",
+  "target": "run_lh_ratings",
+  "params": {"limit": 200, "keyword": "银行", "max_pages": 8},
+  "expect": {
+    "min_rows": 60,
+    "rows_contains": [
+      {"field": "source", "equals": "lh-ratings"},
+      {"field": "doc_type", "equals": "定期跟踪评级"},
+      {"field": "keyword", "equals": "银行"},
+      {"field": "issuer", "equals": "重庆银行股份有限公司"},
+      {"field": "report_year", "equals": 2026},
+      {"field": "rating_date", "equals": "2026-05-23"},
+      {"field": "entity_rating", "equals": "AAA"},
+      {"field": "outlook", "equals": "稳定"},
+      {"field": "debt_rating", "equals": "AAA"},
+      {"field": "url", "equals": "https://www.lhratings.com/reports/A0058-P59649-2021-GZ2026.pdf"},
+      {"field": "issuer", "equals": "中国建设银行股份有限公司"},
+      {"field": "report_year", "equals": 2019},
+      {"field": "rating_date", "equals": "2019-07-19"},
+      {"field": "url", "equals": "https://www.lhratings.com/reports/A0009-CJZQ0077-GZ2019.pdf"},
+      {"field": "issuer", "equals": "晋中银行股份有限公司"},
+      {"field": "report_kind", "equals": "公告"},
+      {"field": "report_year", "equals": 2021}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"]
+}

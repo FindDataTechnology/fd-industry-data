@@ -1,0 +1,112 @@
+version: "2"
+name: ratings-ccxi        # = spiders/ratings-ccxi/ 目录名，运行时标识符，合入后不可改名
+label: China Chengxin International (CCXI) — bank rating results (regular tracking / initial / irregular tracking)
+source_url: https://www.ccxi.com.cn/creditrating/result
+# site: 缺省 —— 本机直连 website-api.ccxi.com.cn 实测 200（2026-11-08，见 README 证据表）
+schedule: "57 9 * * 1"    # 每周一 UTC 09:57 巡检（错峰由 batch6_schedule_fit 选槽）；银行跟踪评级按年批量披露、不定期公告零散发布，周频足够
+data_period: irregular    # 评级结果无固定统计期：按发行人披露日零散发布（不定期跟踪公告更是不规律）
+scanner_mode: upstream-curated
+functions:
+  - command: run_ratings_ccxi
+    description: >-
+      Fetch CCXI (中诚信国际) bank rating results from three signed endpoints —
+      /admin/content/dqgz/page (定期跟踪, bank filter on tracename),
+      /admin/content/cspj/page (初始评级, bank filter on bondname) and
+      /admin/content/bdqgz/page (不定期跟踪, bank filter on reportname) — with
+      HMAC-SHA256 request signing per the front-end algorithm
+      (GET\npath?query\nbody\ntimestamp\nnonce + X-Api-Version/Timestamp/Nonce/Sign).
+      Signing key and API version are configurable via CCXI_HMAC_KEY /
+      CCXI_API_VERSION (falling back to the key measured in the public front-end
+      bundle; an explicitly empty env var raises instead of silently falling back).
+      One row per rating report: records repeated for every covered bond are
+      deduplicated by the PDF URL (ratingreport/bondreport) and the merged bond
+      abbreviations/count are kept in bond_abbreviations / bond_count.
+    frequency: weekly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows returned after dedupe (default 200). The budget is split evenly across the selected endpoints (page-granular fetch, then truncated), so every interface is represented
+      - name: keyword
+        type: string
+        required: false
+        description: Bank filter keyword passed to the upstream `likes` fuzzy match (default "银行"; dqgz matches tracename, cspj bondname, bdqgz reportname; empty string disables it). Measured totals 2026-11-08 — dqgz 3870 / cspj 1129 / bdqgz 296
+      - name: rating_types
+        type: string
+        required: false
+        description: Comma-separated endpoint subset of dqgz,cspj,bdqgz (empty = all three); lets a backfill or the golden sample target one interface
+      - name: since
+        type: string
+        required: false
+        description: Inclusive lower bound on rating_date YYYY-MM-DD (empty = no bound). Paging stops once a page is older than this, so historical windows do not scan the whole table
+      - name: until
+        type: string
+        required: false
+        description: Inclusive upper bound on rating_date YYYY-MM-DD (empty = no bound). Together with since it pins a closed window, which is what the golden sample uses to keep its anchors from drifting as new reports arrive
+    columns:
+      - name: report_type
+        type: string
+        description: Upstream interface code — dqgz (定期跟踪) / cspj (初始评级) / bdqgz (不定期跟踪)
+      - name: report_type_cn
+        type: string
+        description: Interface label as published (定期跟踪 / 初始评级 / 不定期跟踪)
+      - name: issuer
+        type: string
+        description: Issuer name (upstream issuers; empty for bdqgz, where upstream leaves issuers null and only the announcement title carries the bank name)
+      - name: report_title
+        type: string
+        description: Report/bond title as published (tracename for dqgz, bondname for cspj, reportname for bdqgz)
+      - name: subject_rating
+        type: string
+        description: Issuer credit rating (upstream subjectlevel, e.g. AA-); empty for bdqgz announcements, which carry no rating grades
+      - name: debt_rating
+        type: string
+        description: Debt instrument rating (upstream debtlevel, e.g. A+); may differ from the subject rating
+      - name: outlook
+        type: string
+        description: Rating outlook (upstream expectation, e.g. 稳定)
+      - name: rating_date
+        type: string
+        description: Rating date as YYYY-MM-DD (upstream rankdate)
+      - name: pdf_url
+        type: string
+        description: Rating report PDF direct link on website-oss.ccxi.com.cn (upstream ratingreport, or bondreport for cspj); this is the dedupe key
+      - name: subject_report_url
+        type: string
+        description: cspj subject-rating report link (upstream subjectreport); empty for the other two interfaces
+      - name: info_id
+        type: int
+        description: Upstream record primary key (id) of the first merged record
+      - name: bond_abbreviations
+        type: string
+        description: Bond abbreviations covered by the same report, joined with ";" (the upstream emits one record per covered bond)
+      - name: bond_count
+        type: int
+        description: Number of upstream records merged into this row (identical PDF URL); 1 = no duplication
+      - name: classification
+        type: string
+        description: Published taxonomy path joined with "/" (e.g. 初始评级/金融机构评级/普通金融债)
+      - name: source
+        type: string
+        description: Data source identifier (constant "ratings-ccxi")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: subject_rating
+    concept: banking.issuer_credit_rating
+    entity_type: bank
+    measure: rating
+    unit: grade
+    frequency: irregular
+  - column: debt_rating
+    concept: banking.credit_rating
+    entity_type: bank
+    measure: rating
+    unit: rating_grade
+    frequency: irregular
+entities:
+  - entity_type: bank
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

@@ -1,0 +1,54 @@
+version: "2"
+name: chinamoney-shibor            # = spiders/chinamoney-shibor/ 目录名，运行时标识符，合入后不可改名
+label: 中国货币网 Shibor 与回购定盘利率 FR/FDR（全史日频）
+source_url: https://www.chinamoney.com.cn/chinese/bkcurv/   # 落地页（SPA 壳）；JSON 通道与鉴权头见 README
+# site: 缺省 —— 本机直连 chinamoney.com.cn AGS 接口实测 200（2026-11-07，见 README 证据表），无需代理出口
+# schedule: 批次六（add-banking-industry-sources 3.1）：UTC 11:16（北京 19:16），在 11:00 北京定盘之后取当日值；错峰既有排期由 batch6_schedule_fit 选槽
+schedule: "16 11 * * 1-5"   # Shibor/FR/FDR 日频（错峰由 batch6_schedule_fit 选槽）
+data_period: day
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_chinamoney_shibor
+    description: Fetch daily Shibor (O/N,1W,2W,1M,3M,6M,9M,1Y) and fixing rates FR001/FR007/FR014 + FDR001/FDR007/FDR014 from chinamoney.com.cn AGS (POST ShiborHis cm-u-bk-shibor + POST FrrHis cm-u-bk-currency, annual shards of at most one year each from 2006-10-08, JSON-sniff anti-fake-200, values in percent); a run fetches the last `days` calendar days (default 45 = one annual shard = two requests) and returns the most-recent `limit` rows by date desc plus the start-of-series anchor rows; `days=0` or a platform window backfills the full history from 2006-10-08
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum number of most-recent rows (date desc) returned after the shard fetch; pass a very large value to return the whole fetched history (anchor rows are always included, deduped)
+      - name: days
+        type: int
+        required: false
+        description: Calendar-day lookback for the shard fetch (default 45, about 30 trading days, which is a single annual shard and two requests). 0 means full history from 2006-10-08, i.e. about 140 requests at the mandatory 3.5s interval; use 0 only for backfill or verification, because the same request fingerprint repeated every day is what trips the site's 403 rate ban. A platform first-crawl window (window_start/window_end) takes precedence.
+    columns:
+      - name: curve
+        type: string
+        description: Rate curve identifier — ShiborO/N, Shibor1W, Shibor2W, Shibor1M, Shibor3M, Shibor6M, Shibor9M, Shibor1Y (ShiborHis keys ON/1W/2W/1M/3M/6M/9M/1Y) and FR001, FR007, FR014, FDR001, FDR007, FDR014 (FrrHis frValueMap keys)
+      - name: date
+        type: string
+        description: Fixing day (YYYY-MM-DD; ShiborHis showDateCN / FrrHis lfiProducDate)
+      - name: value
+        type: float
+        description: Daily fixing rate in percent (upstream strings parsed to float; missing values "---"/null are not emitted)
+      - name: unit
+        type: string
+        description: Unit of value (constant "%")
+      - name: source
+        type: string
+        description: Data source identifier (constant "chinamoney-shibor")
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: value
+    concept: money_market.rate
+    entity_type: market
+    measure: rate
+    unit: percent
+    frequency: daily
+entities:
+  - entity_type: market
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

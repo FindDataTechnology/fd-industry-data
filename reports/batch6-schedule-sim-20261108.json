@@ -1,0 +1,32 @@
+{
+  "days": 60,
+  "grid": "UTC (runner chart cluster timezone)",
+  "units_total": 114,
+  "units_scheduled": 114,
+  "new_units": [
+    "cba-wealth-index",
+    "chinabond-monthly",
+    "chinabond-yield-curve",
+    "chinamoney-lpr",
+    "chinamoney-ncd-curve",
+    "chinamoney-shibor",
+    "chinawealth-reports",
+    "dagong-ratings",
+    "dfjc-ratings",
+    "eastmoney-disclosure-plan",
+    "lh-ratings",
+    "nfra-penalty",
+    "nfra-stats-xls",
+    "pboc-credit-funds",
+    "pboc-loan-usage",
+    "ratings-ccxi",
+    "shclearing-capital-notes",
+    "shclearing-monthly",
+    "xsj-ratings",
+    "yindeng-npl-transfer"
+  ],
+  "start_events": 5501,
+  "new_duplicates_same_minute": [],
+  "new_window_overlaps": [],
+  "duplicates": "NONE"
+}

@@ -1,0 +1,15 @@
+{
+  "sample_id": "001-hsgt-northbound",
+  "created": "2026-11-07",
+  "target": "run_hsgt_northbound",
+  "params": {"limit": 10},
+  "expect": {
+    "min_rows": 4,
+    "rows_contains": [
+      {"field": "source", "equals": "hsgt-northbound"},
+      {"field": "channel", "equals": "沪股通"},
+      {"field": "channel", "equals": "深股通"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "upstream_updated"]
+}

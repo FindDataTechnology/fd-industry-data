@@ -1,0 +1,22 @@
+{
+  "nfra-stats-xls": 3,
+  "nfra-penalty": 3,
+  "pboc-credit-funds": 1,
+  "pboc-loan-usage": 1,
+  "chinamoney-shibor": 4,
+  "chinamoney-lpr": 1,
+  "chinamoney-ncd-curve": 1,
+  "shclearing-monthly": 1,
+  "chinabond-monthly": 1,
+  "chinabond-yield-curve": 1,
+  "shclearing-capital-notes": 1,
+  "cba-wealth-index": 1,
+  "chinawealth-reports": 2,
+  "yindeng-npl-transfer": 1,
+  "eastmoney-disclosure-plan": 1,
+  "ratings-ccxi": 2,
+  "dagong-ratings": 1,
+  "lh-ratings": 1,
+  "dfjc-ratings": 1,
+  "xsj-ratings": 1
+}

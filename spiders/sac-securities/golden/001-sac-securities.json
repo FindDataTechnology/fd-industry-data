@@ -1,0 +1,13 @@
+{
+  "sample_id": "001-sac-securities",
+  "created": "2026-11-07",
+  "target": "run_sac_securities",
+  "params": {"limit": 20},
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "source", "equals": "sac-securities"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "upstream_updated"]
+}

@@ -1,0 +1,62 @@
+version: "2"
+name: ico-coffee-price       # = spiders/ico-coffee-price/ 目录名，运行时标识符，合入后不可改名
+label: 国际咖啡组织咖啡指示价 ICO Coffee Indicator Prices (I-CIP)
+source_url: https://ico.org/documents/I-CIP.pdf
+# site: tencent              # 缺省 tencent；本单元只访问 ico.org / icocoffee.org 公开 PDF，2026-11-07 实测直连可达
+schedule: "23 6 * * *"       # 点亮（波1，2026-11-07 试跑 success rows=285）：每日 06:23 抓当月活文档+近 14 个归档月；ICO 在工作日白天修订当月表，早间一次覆盖前日全天
+data_period: day             # 日度指示价（交易日逐日一行；周末/假日源表空行）
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_ico_coffee_price
+    description: Fetch daily ICO coffee indicator prices from the official monthly PDF tables — composite I-CIP plus group indicators (Colombian Milds / Other Milds / Brazilian Naturals / Robustas), US cents/lb, with column cross-validation (Robustas lowest, I-CIP inside the four-group range; a "Colombian is always highest" rule is NOT applied — measured 2026-04-07 has Other Milds above Colombian); current-month live PDF plus monthly archives (online archive ~2025-09..2026-09, two naming schemes, dual hosts)
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum day rows to return (deterministic order, earliest day first)
+      - name: months_back
+        type: int
+        required: false
+        description: How many past months of archived PDFs to fetch besides the current-month live document (default 2; months beyond the ~13-month online archive are skipped and logged, never fabricated)
+    columns:
+      - name: month
+        type: string
+        description: Calendar month of the row (YYYY-MM), taken from the document title and cross-checked against the archive month
+      - name: day
+        type: string
+        description: Price observation date (YYYY-MM-DD, trading day; weekends/holidays are empty rows in the source and produce no row)
+      - name: icip
+        type: float
+        description: ICO Composite Indicator Price (I-CIP) in US cents/lb
+      - name: colombian_milds
+        type: float
+        description: Colombian Milds group indicator price in US cents/lb (cross-validation guard always-max column; payload-only, no concept registered)
+      - name: other_milds
+        type: float
+        description: Other Milds group indicator price in US cents/lb (payload-only, no concept registered)
+      - name: brazilian_naturals
+        type: float
+        description: Brazilian Naturals group indicator price in US cents/lb (payload-only, no concept registered)
+      - name: robustas
+        type: float
+        description: Robustas group indicator price in US cents/lb (cross-validation guard always-min column; payload-only, no concept registered)
+      - name: source_url
+        type: string
+        description: Exact PDF URL the row was parsed from
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: icip
+    concept: price.coffee.ico.daily
+    entity_type: country
+    measure: value
+    unit: us_cents_per_lb
+    frequency: daily
+entities:
+  - entity_type: country
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

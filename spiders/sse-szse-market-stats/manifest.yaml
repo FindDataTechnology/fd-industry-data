@@ -1,0 +1,68 @@
+version: "2"
+name: sse-szse-market-stats    # = spiders/sse-szse-market-stats/ 目录名，运行时标识符，合入后不可改名
+label: 沪深交易所每日成交概况（成交量/成交额/平均市盈率）
+source_url: https://www.szse.cn/market/stock/situation/daily/index.html
+# site: tencent 缺省——直连 www.szse.cn / query.sse.com.cn 实测可达（免 key 免鉴权，2026-11-07，见 README）
+# schedule: 点亮（add-securities-industry-line 3.6）：20:50 UTC 错峰（与既有 82 条调度零重叠）
+schedule: "50 20 * * 1-5"   # 市场每日概况（成交/估值汇总）日频
+data_period: day
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_sse_szse_market_stats
+    description: Fetch latest daily market turnover/volume/avg-PE overview for SSE and SZSE (SZSE ShowReport data API + SSE commonQuery JSON, no key required)
+    frequency: daily
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return (deterministic order; one row per exchange, cap is defensive)
+    columns:
+      - name: source
+        type: string
+        description: Data source identifier (constant "sse-szse-market-stats")
+      - name: exchange
+        type: string
+        description: Exchange of the row ("SSE" | "SZSE")
+      - name: trade_date
+        type: string
+        description: Trading day in YYYY-MM-DD (latest trading day; SZSE walks back over weekends/holidays)
+      - name: turnover_amount
+        type: float
+        description: Market stock turnover in yuan (both exchanges' 亿元 headline figures x 1e8)
+      - name: turnover_volume
+        type: float
+        description: Market stock traded volume in shares (亿股 x 1e8)
+      - name: avg_pe
+        type: float
+        description: Market average PE ratio (倍, pass-through); null when the valuation column is missing upstream
+      - name: source_url
+        type: string
+        description: Source request URL for the row
+      - name: scraped_at
+        type: string
+        description: ISO timestamp of the fetch
+concepts:
+  - column: turnover_amount
+    concept: market.turnover_amount
+    entity_type: market
+    measure: amount
+    unit: currency_cny
+    frequency: daily
+  - column: turnover_volume
+    concept: market.turnover_volume
+    entity_type: market
+    measure: volume
+    unit: share
+    frequency: daily
+  - column: avg_pe
+    concept: market.avg_pe
+    entity_type: market
+    measure: ratio
+    unit: ratio
+    frequency: daily
+entities:
+  - entity_type: market
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

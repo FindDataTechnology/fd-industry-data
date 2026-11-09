@@ -1,0 +1,37 @@
+# ctha-hotel-report 接入检查清单（add-hotel-vertical · 波1 · 任务 2.4）
+
+- [x] 目录名 = manifest `name`（`ctha-hotel-report`；入口 `run_ctha_hotel_report`）
+- [x] `spider.py` 提供 `run_ctha_hotel_report(limit, pages, reports) -> list[dict]`，只用标准库（urllib/re/json）
+- [x] PDF 文本层走共享层 `fd_industry_data.pdftext`（`pdftotext -layout`），不自带第二套抽取器
+- [x] manifest 字段齐全：name/label/source_url/functions/columns/entities/fetch（18 列）
+- [x] `site` 未写（只访问 `www.chinahotel.org.cn` 静态 PDF，走缺省执行位 tencent）
+- [x] **未写 `schedule`**——静默合入；且**当前不可点亮**（索引面登录墙，理由写在 manifest 与 README 顶部）
+- [x] `data_period: year`（年度，4–5 月发布上年末数据；2026 版 = 2025 年）
+- [x] 期次从正文「截至 YYYY 年 12 月 31 日」落，**不按封面年份、不按下载时间**
+- [x] 两份报告归一个单元但**行级可分**（`report` 列），期次不一致时也不会混
+- [x] 锚定句按**所属报告**分派（`owner`）——hotel2026 不会因为缺 group2026 的句子而炸，反之亦然
+- [x] 必需锚定句缺失 → `UnmappedPhrase` → 整次运行 `RuntimeError`（上游改版必须炸）
+- [x] 可选锚定句缺失只丢该组行（负例：只喂 group2026 P7，连锁化率行消失但不报错）
+- [x] 排名表**序号 1..N 全覆盖才取**；缺一个序号 → 整表丢弃并留痕「单元格折行 X/N」（宁缺不错）
+- [x] 跨页续表判据 = 有 `ROOMS`/`HOTELS` 表头 **且** 序号集不与已取行重叠（防把豪华榜当外资榜续页）
+- [x] 折行表格页只取**无歧义汇总句**（外资前 30 789,099 间 / 豪华前 20 287,557 间），明细不取
+- [x] 图形页（P8/P12/P14 时间序列与排序图）**不猜值**，只取同页散文极值句
+- [x] 概要页整页跳过并留痕（摘要与明细有舍入差：59.3 万 vs 593,086）
+- [x] 集团榜 / 品牌榜**不同名合并**（各带 `table`，锦江两个量级）
+- [x] 协会口径 ≠ 文旅部星级饭店口径，**不做跨源合并**，README 显式写明
+- [x] 千分位逗号剥除写进 `_num`；`－` / 空 → None，绝不补 0
+- [x] 全角空格 / `\xa0` / 换行在锚定前压掉（`门店连锁化率\n达28.37%` 实测）
+- [x] 登录墙被 `_get` 识别（302 → `/account/login` 抛 `LoginWall`）；入口转成**带操作指引**的 `RuntimeError`
+- [x] `LAST_TRACES` 留痕：每份 PDF 的期次与行数、跳过原因、整表丢弃原因
+- [x] golden 样本 `golden/001-ctha-hotel-report.json`（`reports=` 直给两份静态 PDF，168 行；三个易变字段入 whitelist）
+- [x] 离线回归：`tests/test_ctha_hotel_report.py` 32 项跑两份真件文本层（fixture 为逐字 `pdftotext -layout` 输出）
+- [x] 正例锚定 2026 版实测值（593,086 / 20,514,799 / 374,694 / 18,736,357 / 41.80 / 28.37 / 10.63 万家 / 783.18 万间 / 789,099 / 287,557 / 锦江 1,368,057 间 14,132 店）
+- [x] 负例覆盖：序号不全整表丢弃、续页串榜、折行残句、千分位、可选锚定句缺失、必需锚定句缺失
+- [x] 仓级自检全绿：`validate_manifests.py` 160 manifests 0 violations / `conformance_gate.py` PASS 162 units 0 violations
+- [x] **golden live 重放绿**：`guard.replay_sample` 打真实上游 → `rows=168 diffs=0`（不是只过 schema）
+- [ ] 等一个 dispatcher tick（≤5 分钟），Console 源清单出现该源（`crawl_sources`）
+- [ ] **点亮 `schedule`：阻塞**——索引面 `/cat/35/pN.html` 302 → `/account/login`（2026-11-08 实测），
+      自动发现不通，只有硬编码哈希 PDF 能跑；等索引面重开或拿到凭据后再点亮
+- [ ] 索引面重开后：改回栏目发现（`_category_articles` 已实现，只需验证内嵌 JSON 解析键不变）
+- [ ] 指标语义治理（列→绑定→verified→标识符）另行推进，不阻塞爬取本身
+- [ ] 5.3 公司板接线：`group_top50` × `universes/{us,hk,cn-a}.yaml` 的酒店标的做「协会口径系统规模 vs 企业自报 KPI」交叉校验
