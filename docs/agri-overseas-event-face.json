@@ -1,0 +1,890 @@
+{
+  "generated_for": "awaken-agriculture-report-ingest W6 事件面",
+  "date": "2026-11-08",
+  "caliber": {
+    "both": "仅事件面：披露日期/公告类型/报告期/头条营收净利；不做 XBRL 结构化细分",
+    "hk": "港交所官方证券名单 + 名称筛查（该名单无行业字段，非官方行业分类）",
+    "us": "SEC 官方 ticker 表挑候选 + SEC SIC 定案（官方行业字段）",
+    "excluded": "农资类（化肥/农药/种子生产/农机）排除，逐条留理由"
+  },
+  "hk_event_face": {
+    "basis": "name-screen",
+    "stocks": [
+      {
+        "code": "01431",
+        "name": "YST DAIRY",
+        "exchange": "HKEX",
+        "board": "Main Board",
+        "isin": "BMG987851018",
+        "classification_basis": "name-screen",
+        "rule_hits": [
+          "R2"
+        ],
+        "industry_evidence": "R2 乳业/牧场"
+      },
+      {
+        "code": "02319",
+        "name": "MENGNIU DAIRY",
+        "exchange": "HKEX",
+        "board": "Main Board",
+        "isin": "KYG210961051",
+        "classification_basis": "name-screen",
+        "rule_hits": [
+          "R2"
+        ],
+        "industry_evidence": "R2 乳业/牧场"
+      },
+      {
+        "code": "03889",
+        "name": "GLOBAL CORN GP",
+        "exchange": "HKEX",
+        "board": "Main Board",
+        "isin": "KYG3932Q1029",
+        "classification_basis": "name-screen",
+        "rule_hits": [
+          "R8"
+        ],
+        "industry_evidence": "R8 粮油糖作物"
+      },
+      {
+        "code": "09858",
+        "name": "YOURAN DAIRY",
+        "exchange": "HKEX",
+        "board": "Main Board",
+        "isin": "KYG2163J1004",
+        "classification_basis": "name-screen",
+        "rule_hits": [
+          "R2"
+        ],
+        "industry_evidence": "R2 乳业/牧场"
+      }
+    ],
+    "excluded": [
+      {
+        "code": "00149",
+        "name": "CH AGRI-PROD EX",
+        "exchange": "HKEX",
+        "board": "Main Board",
+        "isin": "BMG2150P2343",
+        "classification_basis": "name-screen",
+        "rule_hits": [
+          "R1"
+        ],
+        "industry_evidence": "R1 名称含 AGRI",
+        "excluded_reason": "CH AGRI-PROD EX —— 农产品交易所/平台，非种植养殖经营主体"
+      }
+    ],
+    "known_limits": [
+      "港交所证券名单只有英文名与板块，无行业字段；名称筛查会漏掉英文名不带农业词的中文主营公司（如中粮家佳康 01610 这类），故本名单只作事件面起点，不宣称覆盖全港农业股"
+    ]
+  },
+  "us_event_face": {
+    "basis": "sec-sic",
+    "allowed_sic_ranges": [
+      [
+        100,
+        299
+      ],
+      [
+        900,
+        999
+      ],
+      [
+        2000,
+        2099
+      ]
+    ],
+    "excluded_sic": {
+      "2870": "化肥/农药（农资类，决策记录不变项排除）",
+      "3523": "农业机械（农资类排除）",
+      "5083": "农业机械批发（农资类排除）"
+    },
+    "companies": [
+      {
+        "cik": "0000014177",
+        "ticker": "BRID",
+        "name": "BRIDGFORD FOODS CORP",
+        "sic": 2013,
+        "sicDescription": "Sausages & Other Prepared Meat Products",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2013 Sausages & Other Prepared Meat Products"
+      },
+      {
+        "cik": "0000016160",
+        "ticker": "CALM",
+        "name": "CAL-MAINE FOODS INC",
+        "sic": 200,
+        "sicDescription": "Agricultural Prod-Livestock & Animal Specialties",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 200 Agricultural Prod-Livestock & Animal Specialties"
+      },
+      {
+        "cik": "0000048465",
+        "ticker": "HRL",
+        "name": "HORMEL FOODS CORP /DE/",
+        "sic": 2011,
+        "sicDescription": "Meat Packing Plants",
+        "exchange": "NYSE",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2011 Meat Packing Plants"
+      },
+      {
+        "cik": "0000088948",
+        "ticker": "SENEA",
+        "name": "Seneca Foods Corp",
+        "sic": 2033,
+        "sicDescription": "Canned, Fruits, Veg, Preserves, Jams & Jellies",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2033 Canned, Fruits, Veg, Preserves, Jams & Jellies"
+      },
+      {
+        "cik": "0000091388",
+        "ticker": "SFD",
+        "name": "SMITHFIELD FOODS INC",
+        "sic": 2011,
+        "sicDescription": "Meat Packing Plants",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2011 Meat Packing Plants"
+      },
+      {
+        "cik": "0000100493",
+        "ticker": "TSN",
+        "name": "TYSON FOODS, INC.",
+        "sic": 2015,
+        "sicDescription": "Poultry Slaughtering and Processing",
+        "exchange": "NYSE",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2015 Poultry Slaughtering and Processing"
+      },
+      {
+        "cik": "0000785956",
+        "ticker": "JJSF",
+        "name": "J&J SNACK FOODS CORP",
+        "sic": 2052,
+        "sicDescription": "Cookies & Crackers",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2052 Cookies & Crackers"
+      },
+      {
+        "cik": "0000814586",
+        "ticker": "LWAY",
+        "name": "Lifeway Foods, Inc.",
+        "sic": 2020,
+        "sicDescription": "Dairy Products",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2020 Dairy Products"
+      },
+      {
+        "cik": "0000838875",
+        "ticker": "WVVI",
+        "name": "WILLAMETTE VALLEY VINEYARDS INC",
+        "sic": 2080,
+        "sicDescription": "Beverages",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2080 Beverages"
+      },
+      {
+        "cik": "0001128928",
+        "ticker": "FLO",
+        "name": "FLOWERS FOODS INC",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "NYSE",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001163609",
+        "ticker": "SDSYA",
+        "name": "SOUTH DAKOTA SOYBEAN PROCESSORS LLC",
+        "sic": 2070,
+        "sicDescription": "Fats & Oils",
+        "exchange": "OTC",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2070 Fats & Oils"
+      },
+      {
+        "cik": "0001278027",
+        "ticker": "BGS",
+        "name": "B&G Foods, Inc.",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "NYSE",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001321851",
+        "ticker": "SEED",
+        "name": "Origin Agritech LTD",
+        "sic": 100,
+        "sicDescription": "Agricultural Production-Crops",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 100 Agricultural Production-Crops"
+      },
+      {
+        "cik": "0001487197",
+        "ticker": "BRFH",
+        "name": "BARFRESH FOOD GROUP INC.",
+        "sic": 2030,
+        "sicDescription": "Canned, Frozen & Preservd Fruit, Veg & Food Specialties",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2030 Canned, Frozen & Preservd Fruit, Veg & Food Specialties"
+      },
+      {
+        "cik": "0001499849",
+        "ticker": "LND",
+        "name": "BrasilAgro - Brazilian Agricultural Real Estate Co",
+        "sic": 100,
+        "sicDescription": "Agricultural Production-Crops",
+        "exchange": "NYSE",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 100 Agricultural Production-Crops"
+      },
+      {
+        "cik": "0001579733",
+        "ticker": "VITL",
+        "name": "Vital Farms, Inc.",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001584549",
+        "ticker": "VFF",
+        "name": "Village Farms International, Inc.",
+        "sic": 100,
+        "sicDescription": "Agricultural Production-Crops",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 100 Agricultural Production-Crops"
+      },
+      {
+        "cik": "0001650696",
+        "ticker": "LSF",
+        "name": "Laird Superfood, Inc.",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "NYSE",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001651717",
+        "ticker": "NOMD",
+        "name": "Nomad Foods Ltd",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "NYSE",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001655210",
+        "ticker": "BYND",
+        "name": "BEYOND MEAT, INC.",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001696556",
+        "ticker": "OFRM",
+        "name": "Once Upon a Farm, PBC",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "NYSE",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001701261",
+        "ticker": "FAMI",
+        "name": "Farmmi, Inc.",
+        "sic": 2033,
+        "sicDescription": "Canned, Fruits, Veg, Preserves, Jams & Jellies",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2033 Canned, Fruits, Veg, Preserves, Jams & Jellies"
+      },
+      {
+        "cik": "0001702744",
+        "ticker": "SMPL",
+        "name": "Simply Good Foods Co",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001730773",
+        "ticker": "BSFC",
+        "name": "Blue Star Foods Corp.",
+        "sic": 2092,
+        "sicDescription": "Prepared Fresh or  Frozen Fish & Seafoods",
+        "exchange": "OTC",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2092 Prepared Fresh or  Frozen Fish & Seafoods"
+      },
+      {
+        "cik": "0001811530",
+        "ticker": "NXMH",
+        "name": "Next Meats Holdings, Inc.",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "OTC",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001828098",
+        "ticker": "MTTCF",
+        "name": "Steakholder Foods Ltd.",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001852973",
+        "ticker": "BRLS",
+        "name": "Borealis Foods Inc.",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001901203",
+        "ticker": "UCFI",
+        "name": "CN Healthy Food Tech Group Corp.",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001959994",
+        "ticker": "COOT",
+        "name": "Australian Oilseeds Holdings Ltd",
+        "sic": 2070,
+        "sicDescription": "Fats & Oils",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2070 Fats & Oils"
+      },
+      {
+        "cik": "0001962481",
+        "ticker": "BOF",
+        "name": "BranchOut Food Inc.",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001979484",
+        "ticker": "ABVEF",
+        "name": "Above Food Ingredients Inc.",
+        "sic": 2000,
+        "sicDescription": "Food and Kindred Products",
+        "exchange": "OTC",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2000 Food and Kindred Products"
+      },
+      {
+        "cik": "0001999860",
+        "ticker": "WYHG",
+        "name": "Wing Yip Food Holdings Group Ltd",
+        "sic": 2013,
+        "sicDescription": "Sausages & Other Prepared Meat Products",
+        "exchange": "Nasdaq",
+        "classification_basis": "sec-sic",
+        "industry_evidence": "SEC SIC 2013 Sausages & Other Prepared Meat Products"
+      }
+    ],
+    "excluded": [
+      {
+        "cik": 24741,
+        "ticker": "GLW",
+        "name": "CORNING INC /NY",
+        "sic": 3357,
+        "sicDescription": "Drawing & Insulating of  Nonferrous Wire",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 33934,
+        "ticker": "CRF",
+        "name": "CORNERSTONE TOTAL RETURN FUND INC",
+        "excluded_reason": "SIC 缺失/非数值：''"
+      },
+      {
+        "cik": 96869,
+        "ticker": "TRC",
+        "name": "TEJON RANCH CO",
+        "sic": 6500,
+        "sicDescription": "Real Estate",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 97745,
+        "ticker": "TMO",
+        "name": "THERMO FISHER SCIENTIFIC INC.",
+        "sic": 3829,
+        "sicDescription": "Measuring & Controlling Devices, NEC",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 277135,
+        "ticker": "GWW",
+        "name": "W.W. GRAINGER, INC.",
+        "sic": 5000,
+        "sicDescription": "Wholesale-Durable Goods",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 312257,
+        "ticker": "IVFH",
+        "name": "INNOVATIVE FOOD HOLDINGS INC",
+        "sic": 5141,
+        "sicDescription": "Wholesale-Groceries, General Line",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 709337,
+        "ticker": "FMNB",
+        "name": "FARMERS NATIONAL BANC CORP /OH/",
+        "sic": 6022,
+        "sicDescription": "State Commercial Banks",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 792966,
+        "ticker": "FMAO",
+        "name": "FARMERS & MERCHANTS BANCORP INC",
+        "sic": 6035,
+        "sicDescription": "Savings Institution, Federally Chartered",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 814083,
+        "ticker": "CLM",
+        "name": "Cornerstone Strategic Investment Fund, Inc.",
+        "sic": 0,
+        "sicDescription": "",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 841533,
+        "ticker": "SRMX",
+        "name": "SADDLE RANCH MEDIA, INC.",
+        "sic": 3640,
+        "sicDescription": "Electric Lighting & Wiring Equipment",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 845877,
+        "ticker": "AGM",
+        "name": "FEDERAL AGRICULTURAL MORTGAGE CORP",
+        "sic": 6111,
+        "sicDescription": "Federal & Federally-Sponsored Credit Agencies",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 880984,
+        "ticker": "ACFN",
+        "name": "ACORN ENERGY, INC.",
+        "sic": 8711,
+        "sicDescription": "Services-Engineering Services",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 887359,
+        "ticker": "VCEL",
+        "name": "Vericel Corp",
+        "sic": 2836,
+        "sicDescription": "Biological Products, (No Diagnostic Substances)",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 921968,
+        "ticker": "HVGDF",
+        "name": "HARVEST GOLD CORP",
+        "excluded_reason": "SIC 缺失/非数值：''"
+      },
+      {
+        "cik": 942149,
+        "ticker": "OCGSF",
+        "name": "Outcrop Silver & Gold Corp",
+        "sic": 1000,
+        "sicDescription": "Metal Mining",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1020859,
+        "ticker": "UNFI",
+        "name": "UNITED NATURAL FOODS INC",
+        "sic": 5141,
+        "sicDescription": "Wholesale-Groceries, General Line",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1030997,
+        "ticker": "WILCF",
+        "name": "G WILLI FOOD INTERNATIONAL LTD",
+        "sic": 5141,
+        "sicDescription": "Wholesale-Groceries, General Line",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1041803,
+        "ticker": "PSMT",
+        "name": "PRICESMART INC",
+        "sic": 5331,
+        "sicDescription": "Retail-Variety Stores",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1085913,
+        "ticker": "FMCB",
+        "name": "FARMERS & MERCHANTS BANCORP",
+        "sic": 6021,
+        "sicDescription": "National Commercial Banks",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1113169,
+        "ticker": "TROW",
+        "name": "PRICE T ROWE GROUP INC",
+        "sic": 6282,
+        "sicDescription": "Investment Advice",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1169760,
+        "ticker": "CMGHF",
+        "name": "CHAODA MODERN AGRICULTURE HOLDINGS LTD /FI",
+        "excluded_reason": "SIC 缺失/非数值：''"
+      },
+      {
+        "cik": 1279967,
+        "ticker": "CRARF",
+        "name": "CREDIT AGRICOLE S A",
+        "excluded_reason": "SIC 缺失/非数值：''"
+      },
+      {
+        "cik": 1310630,
+        "ticker": "CFOO",
+        "name": "China Foods Holdings Ltd.",
+        "sic": 2833,
+        "sicDescription": "Medicinal Chemicals & Botanical Products",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1323404,
+        "ticker": "WPM",
+        "name": "Wheaton Precious Metals Corp.",
+        "sic": 1040,
+        "sicDescription": "Gold and Silver Ores",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1360565,
+        "ticker": "WFCF",
+        "name": "Where Food Comes From, Inc.",
+        "sic": 7372,
+        "sicDescription": "Services-Prepackaged Software",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1364954,
+        "ticker": "CHGG",
+        "name": "CHEGG, INC",
+        "sic": 8200,
+        "sicDescription": "Services-Educational Services",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1370946,
+        "ticker": "OC",
+        "name": "Owens Corning",
+        "sic": 3290,
+        "sicDescription": "Abrasive, Asbestos & Misc Nonmetallic Mineral Prods",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1383082,
+        "ticker": "DBA",
+        "name": "INVESCO DB AGRICULTURE FUND",
+        "sic": 6221,
+        "sicDescription": "Commodity Contracts Brokers & Dealers",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1445211,
+        "ticker": "PIFMF",
+        "name": "Indofood Sukses Makmur, Tbk",
+        "excluded_reason": "SIC 缺失/非数值：''"
+      },
+      {
+        "cik": 1474627,
+        "ticker": "NEGG",
+        "name": "Newegg Commerce, Inc.",
+        "sic": 5990,
+        "sicDescription": "Retail-Retail Stores, NEC",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1496919,
+        "ticker": "MBRFY",
+        "name": "MARFRIG GLOBAL FOODS S.A.",
+        "excluded_reason": "SIC 缺失/非数值：''"
+      },
+      {
+        "cik": 1532175,
+        "ticker": "NHFOF",
+        "name": "NH Foods Ltd./ADR",
+        "sic": 8880,
+        "sicDescription": "American Depositary Receipts",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1575515,
+        "ticker": "SFM",
+        "name": "Sprouts Farmers Market, Inc.",
+        "sic": 5411,
+        "sicDescription": "Retail-Grocery Stores",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1591670,
+        "ticker": "FPI",
+        "name": "Farmland Partners Inc.",
+        "sic": 6798,
+        "sicDescription": "Real Estate Investment Trusts",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1593001,
+        "ticker": "NGTF",
+        "name": "NightFood Holdings, Inc.",
+        "sic": 3590,
+        "sicDescription": "Misc Industrial & Commercial Machinery & Equipment",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1618673,
+        "ticker": "PFGC",
+        "name": "Performance Food Group Co",
+        "sic": 5141,
+        "sicDescription": "Wholesale-Groceries, General Line",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1650132,
+        "ticker": "FCPT",
+        "name": "Four Corners Property Trust, Inc.",
+        "sic": 6798,
+        "sicDescription": "Real Estate Investment Trusts",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1665918,
+        "ticker": "USFD",
+        "name": "US Foods Holding Corp.",
+        "sic": 5140,
+        "sicDescription": "Wholesale-Groceries & Related Products",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1680873,
+        "ticker": "HFFG",
+        "name": "HF Foods Group Inc.",
+        "sic": 5140,
+        "sicDescription": "Wholesale-Groceries & Related Products",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1695295,
+        "ticker": "HYFM",
+        "name": "HYDROFARM HOLDINGS GROUP, INC.",
+        "sic": 5190,
+        "sicDescription": "Wholesale-Miscellaneous Nondurable Goods",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1698022,
+        "ticker": "FMFG",
+        "name": "Farmers & Merchants Bancshares, Inc.",
+        "sic": 6036,
+        "sicDescription": "Savings Institutions, Not Federally Chartered",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1723464,
+        "ticker": "BHST",
+        "name": "BIOHARVEST SCIENCES INC.",
+        "sic": 2834,
+        "sicDescription": "Pharmaceutical Preparations",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1769484,
+        "ticker": "BIOX",
+        "name": "Bioceres Crop Solutions Corp.",
+        "sic": 2870,
+        "excluded_reason": "化肥/农药（农资类，决策记录不变项排除）"
+      },
+      {
+        "cik": 1811999,
+        "ticker": "FMHS",
+        "name": "FARMHOUSE, INC. /NV",
+        "sic": 7370,
+        "sicDescription": "Services-Computer Programming, Data Processing, Etc.",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1828972,
+        "ticker": "BZFD",
+        "name": "BuzzFeed, Inc.",
+        "sic": 4899,
+        "sicDescription": "Communications Services, NEC",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1853889,
+        "ticker": "KGFMF",
+        "name": "Kingfisher Metals Corp.",
+        "excluded_reason": "SIC 缺失/非数值：''"
+      },
+      {
+        "cik": 1857910,
+        "ticker": "JFTH",
+        "name": "Japan Food Tech Holdings, Inc.",
+        "sic": 6770,
+        "sicDescription": "Blank Checks",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1859022,
+        "ticker": "NPRFF",
+        "name": "Nepra Foods Inc.",
+        "excluded_reason": "SIC 缺失/非数值：''"
+      },
+      {
+        "cik": 1978954,
+        "ticker": "TBBB",
+        "name": "BBB FOODS INC",
+        "sic": 5411,
+        "sicDescription": "Retail-Grocery Stores",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 1993431,
+        "ticker": "MCRP",
+        "name": "Micropolis AI Robotics",
+        "sic": 3714,
+        "sicDescription": "Motor Vehicle Parts & Accessories",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 2006028,
+        "ticker": "SRAV",
+        "name": "Source Agriventures Inc.",
+        "sic": 6500,
+        "sicDescription": "Real Estate",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 2032755,
+        "ticker": "PFAI",
+        "name": "Pinnacle Food Group Ltd",
+        "sic": 700,
+        "sicDescription": "Agricultural Services",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 2074872,
+        "ticker": "KRSP",
+        "name": "Rice Acquisition Corp 3",
+        "sic": 6770,
+        "sicDescription": "Blank Checks",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 2082876,
+        "ticker": "FHFFY",
+        "name": "Foshan Haitian Flavouring & Food Co Ltd./ADR",
+        "excluded_reason": "SIC 缺失/非数值：''"
+      },
+      {
+        "cik": 2088281,
+        "ticker": "MFP",
+        "name": "Midera Food Processing, Inc.",
+        "sic": 3580,
+        "sicDescription": "Refrigeration & Service Industry Machinery",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 2089855,
+        "ticker": "TKNZ",
+        "name": "T. Rowe Price Active Crypto ETF",
+        "sic": 6221,
+        "sicDescription": "Commodity Contracts Brokers & Dealers",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 2098397,
+        "ticker": "ANJFY",
+        "name": "Anjoy Foods Group Co., Ltd./ADR",
+        "excluded_reason": "SIC 缺失/非数值：''"
+      },
+      {
+        "cik": 2123232,
+        "ticker": "CMBY",
+        "name": "Cumberland Farms Ltd",
+        "sic": 5500,
+        "sicDescription": "Retail-Auto Dealers & Gasoline Stations",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 2123524,
+        "ticker": "MUYNY",
+        "name": "Muyuan Foods Co. Ltd/ADR",
+        "sic": 8880,
+        "sicDescription": "American Depositary Receipts",
+        "excluded_reason": "SIC 不在农业区间 0100–0299 / 0900–0999"
+      },
+      {
+        "cik": 2155226,
+        "ticker": "UNIC",
+        "name": "Unlimited Unicorn Opportunities Fund I",
+        "excluded_reason": "SIC 缺失/非数值：''"
+      }
+    ]
+  },
+  "counts": {
+    "hk": 4,
+    "hk_excluded": 1,
+    "us": 32,
+    "us_excluded": 60
+  }
+}

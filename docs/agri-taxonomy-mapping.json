@@ -1,0 +1,88 @@
+{
+  "generated_for": "awaken-agriculture-report-ingest 6.1 农业科目/经营指标 → 概念映射",
+  "date": "2026-11-08",
+  "why_here": "daas.db 里虽有 taxonomy_mapping 表，但它是**文档类型**映射（old_module/old_subgroup/new_taxonomy_code，0 行，配套 document_taxonomy 13 条与 report_taxonomy 75 条），不是「中文科目→语义概念」。概念本体归 fd_open_data，故科目映射跟着概念所有者放，登记脚本直接消费本文件——不写进那张语义不匹配的表里凑数。",
+  "caliber": {
+    "unit": "金额类一律「元」（报告原文即元，不换算、不四舍五入）；每股类「元/股」；比率类「%」",
+    "source_used": "cn-report",
+    "period_rule": {
+      "年度报告": {"date": "FY-12-31", "granularity": "year"},
+      "半年度报告": {"date": "FY-06-30", "granularity": "ytd_h1"},
+      "第一季度报告": {"date": "FY-03-31", "granularity": "ytd"},
+      "第三季度报告": {"date": "FY-09-30", "granularity": "ytd_9m"}
+    },
+    "period_note": "季报/半年报的利润表与现金流量表是**年内累计（YTD）**，故粒度写 ytd/ytd_h1/ytd_9m；资产负债表是期末时点，但同一行按报告粒度登记，读数端不得把 YTD 当单季。",
+    "legacy_lane_note": "库里已有 source_used='cnreport' 的旧行（86 条，date 只写「2025」、granularity 写成 day）——那是坏数据，本映射**不复用、不改写**它们；新登记一律 source_used='cn-report'、日期带月日、粒度按上表。"
+  },
+  "fields": [
+    {
+      "zh": ["营业收入（元）", "营业收入", "营业总收入"],
+      "concept": "financials.revenue",
+      "unit": "元",
+      "section": "主要会计数据和财务指标",
+      "note": "取合并口径营业收入；「其中：营业收入」与「营业总收入」在多数公司相等，若不等以「营业收入」为准"
+    },
+    {
+      "zh": ["归属于上市公司股东的净利润（元）", "归属于上市公司股东的净利润"],
+      "concept": "financials.net_income",
+      "unit": "元",
+      "section": "主要会计数据和财务指标",
+      "note": "归母口径（不是净利润合计）；括号与负号为负值，不许取绝对值"
+    },
+    {
+      "zh": ["经营活动产生的现金流量净额（元）", "经营活动产生的现金流量净额"],
+      "concept": "financials.operating_cash_flow",
+      "unit": "元",
+      "section": "主要会计数据和财务指标",
+      "note": "可为负；与「经营现金流」其他写法区分：不含「投资/筹资」"
+    },
+    {
+      "zh": ["总资产（元）", "资产总额（元）", "总资产", "资产总额"],
+      "concept": "financials.total_assets",
+      "unit": "元",
+      "section": "主要会计数据和财务指标",
+      "note": "期末数（不是期初）；晓鸣等公司写「资产总额」"
+    },
+    {
+      "zh": ["归属于上市公司股东的净资产（元）", "归属于上市公司股东的净资产", "所有者权益合计"],
+      "concept": "financials.equity",
+      "unit": "元",
+      "section": "主要会计数据和财务指标",
+      "note": "归母净资产；「所有者权益合计」含少数股东权益，属另一口径，仅在无归母线时使用并标注"
+    },
+    {
+      "zh": ["营业成本"],
+      "concept": "financials.operating_cost",
+      "unit": "元",
+      "section": "合并利润表",
+      "note": "**必须锚在合并利润表内**取「其中：营业成本」——全文取第一个会把「营业收入构成」分析表的分行业成本抓来（实测牧原毛利率被算成 19.05% vs 20.75% 的假差异）。附注号与金额粘连时（北大荒 `七、613,492,136,748.90`）金额边界不可辨，**跳过不猜**"
+    },
+    {
+      "zh": ["营业利润"],
+      "concept": "financials.operating_profit",
+      "unit": "元",
+      "section": "合并利润表",
+      "note": "可为负；口径含其他收益/投资收益，不剔除"
+    },
+    {
+      "zh": ["利润总额"],
+      "concept": "financials.total_profit",
+      "unit": "元",
+      "section": "合并利润表",
+      "note": "税前口径"
+    },
+    {
+      "zh": ["基本每股收益（元/股）", "基本每股收益"],
+      "concept": "financials.eps",
+      "unit": "元/股",
+      "section": "主要会计数据和财务指标",
+      "note": "基本（不是稀释）；公司若只披露稀释，不顶替"
+    }
+  ],
+  "narrative_fields": {
+    "note": "叙述式经营指标（agri.ops.*）不在此映射表内：它们不是报表科目、披露率 1%–8%，由 agri_segment_extract.py 的 NARRATIVE_RULES 单独抽取并带原文 evidence",
+    "concepts": ["agri.ops.free_cost", "agri.ops.avg_price", "agri.ops.sow_inventory",
+                 "agri.ops.feed_sales", "agri.ops.seed_area", "agri.ops.planted_area",
+                 "agri.ops.batch_release"]
+  }
+}

@@ -37,3 +37,9 @@ reports/flower-alerts/events-*.json
 
 # 知识图谱缓存（graphify 产物，37M，可再生）
 graphify-out/
+
+# 农业分部抽取产物（20MB 级，可由 scripts/agri_segment_extract.py + 文本缓存重跑）
+docs/agri-segment-extract-2024-all.json
+docs/agri-segment-extract.json
+# 运行时探测留痕（可重跑）
+docs/agri-report-probe.json

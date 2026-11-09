@@ -1,0 +1,544 @@
+{
+  "generated_for": "awaken-agriculture-report-ingest W6 事件面（7.1-7.3）",
+  "date": "2026-11-08",
+  "caliber": {
+    "scope": "事件面：披露日期 / 公告类型 / 报告期 / 头条营收净利",
+    "not_done": "不做 XBRL 或其他结构化财务细分；SEC 的 companyfacts/companyconcept 一律不调用",
+    "headline": "头条取自**公告原文**：港股取业绩公告 PDF 的「綜合損益表」表体行（表头单位换算，空值不填 0）；美股取 8-K item 2.02 的 EX-99.1 新闻稿（叙述式 $X billion 或表体 + in thousands）。抽不到就 headline_status=not_extracted并写明原因，**不用 XBRL 数、行业数或四舍五入的摘要值顶替**",
+    "sources": {
+      "us": "SEC EDGAR submissions + 8-K EX-99.1 正文（官方，data/www.sec.gov）",
+      "hk": "HKEXnews 标题检索 + 业绩公告 PDF 文本层（官方，www1.hkexnews.hk）"
+    }
+  },
+  "board_contract": {
+    "shape": "事件流（每行 = 一条披露事件）+ 头条 KPI（每家最近一期）",
+    "fields_for_board": [
+      "market",
+      "name",
+      "event_kind",
+      "disclosed|filed",
+      "report_period",
+      "url",
+      "headline"
+    ],
+    "kpi_fields_for_board": [
+      "revenue",
+      "net_income",
+      "currency",
+      "unit_note",
+      "revenue_evidence|net_income_evidence"
+    ],
+    "unavailable_rule": "headline 为 null 且 headline_status=not_extracted 时，板面必须显示「头条未抽取」而不是空值或 0"
+  },
+  "headline_kpi": {
+    "us": [
+      {
+        "market": "US",
+        "cik": "0000014177",
+        "name": "BRIDGFORD FOODS CORP",
+        "headline": null,
+        "headline_status": "not_extracted",
+        "reason": "最近一次 8-K 2.02（2008-06-02）的 EX-99 正文未找到可核对句式（试过 ['2008-06-02:exhibit99-1.htm', '2008-03-10:a08-7724_1ex99d1.htm']）",
+        "ticker": "BRID"
+      },
+      {
+        "market": "US",
+        "cik": "0000016160",
+        "name": "CAL-MAINE FOODS INC",
+        "form": "8-K",
+        "filed": "2026-09-30",
+        "accession": "0001562762-26-000111",
+        "doc": "exhibit991.htm",
+        "doc_url": "https://www.sec.gov/Archives/edgar/data/16160/000156276226000111/exhibit991.htm",
+        "headline_status": "extracted",
+        "revenue": 539607000.0,
+        "revenue_basis": "新闻稿表格（单位 in thousands）：Net sales $ 539,607 $ 922,602",
+        "net_income": -58615000.0,
+        "net_income_basis": "新闻稿表格（单位 in thousands）：Net income (loss) attributable to Cal-Maine Foods, Inc. $ (58,615) $ 199,340",
+        "currency": "USD",
+        "unit_note": "USD 绝对量（叙述式按 billion/million 换算，表格按 in thousands/millions 换算）",
+        "ticker": "CALM"
+      },
+      {
+        "market": "US",
+        "cik": "0000048465",
+        "name": "HORMEL FOODS CORP /DE/",
+        "form": "8-K",
+        "filed": "2026-08-27",
+        "accession": "0000048465-26-000053",
+        "doc": "hormelearningsreleaseq32026.htm",
+        "doc_url": "https://www.sec.gov/Archives/edgar/data/48465/000004846526000053/hormelearningsreleaseq32026.htm",
+        "headline_status": "extracted",
+        "revenue": 2960000000.0,
+        "revenue_basis": "新闻稿叙述式：Net sales of $2.96 billion",
+        "net_income": 59573000.0,
+        "net_income_basis": "新闻稿表格（单位 in thousands）：Net Earnings Attributable to Hormel Foods Corporation $ 59,573 $ 183,742",
+        "currency": "USD",
+        "unit_note": "USD 绝对量（叙述式按 billion/million 换算，表格按 in thousands/millions 换算）",
+        "ticker": "HRL"
+      }
+    ],
+    "hk": [
+      {
+        "market": "HK",
+        "stock_code": "01431",
+        "name": "原生態牧業",
+        "title": "截至二零二六年六月三十日止六個月中期業績公告",
+        "disclosed": "26/08/2026 21:21",
+        "doc_url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0826/2026082601694_c.pdf",
+        "headline_status": "extracted",
+        "revenue": 1456257000.0,
+        "net_income": 247455000.0,
+        "currency": "CNY",
+        "net_income_basis": "归母行（本公司权益股东/拥有人）",
+        "unit_note": "公告表体原值 × 1000（表头单位：人民幣千元）",
+        "revenue_evidence": "收益                                   4      1,456,257      1,311,814",
+        "net_income_evidence": "本公司擁有人                                      247,455        118,871"
+      },
+      {
+        "market": "HK",
+        "stock_code": "02319",
+        "name": "蒙牛乳業",
+        "title": "截至二零二六年六月三十日止六個月中期業績公佈",
+        "disclosed": "26/08/2026 21:52",
+        "doc_url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0826/2026082601830_c.pdf",
+        "headline_status": "extracted",
+        "revenue": 44794932000.0,
+        "net_income": 2371497000.0,
+        "currency": "CNY",
+        "net_income_basis": "归母行（本公司权益股东/拥有人）",
+        "unit_note": "公告表体原值 × 1000（表头单位：人民幣千元）",
+        "revenue_evidence": "收入                         4     44,794,932     41,567,160",
+        "net_income_evidence": "本公司權益股東                         2,371,497      2,045,524"
+      },
+      {
+        "market": "HK",
+        "stock_code": "03889",
+        "name": "大成玉米集團",
+        "title": "截至2026年6月30日止六個月中期業績公告",
+        "disclosed": "28/08/2026 19:30",
+        "doc_url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0828/2026082801997_c.pdf",
+        "headline_status": "extracted",
+        "revenue": 268923000.0,
+        "net_income": -81772000.0,
+        "currency": "HKD",
+        "net_income_basis": "无归母块（无少数股东权益），取期内溢利/亏损替代",
+        "unit_note": "公告表体原值 × 1000（表头单位：千港元）",
+        "revenue_evidence": "收益                              4         268,923     253,647",
+        "net_income_evidence": "本期間虧損                                     (81,772)    (63,295)"
+      }
+    ]
+  },
+  "us_events": [
+    {
+      "market": "US",
+      "cik": "0000014177",
+      "name": "BRIDGFORD FOODS CORP",
+      "form": "8-K",
+      "filed": "2026-09-30",
+      "report_period": "2026-09-30",
+      "items": [
+        "8.01"
+      ],
+      "event_kind": "other",
+      "accession": "0001493152-26-045130",
+      "url": "https://www.sec.gov/Archives/edgar/data/14177/000149315226045130",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000014177",
+      "name": "BRIDGFORD FOODS CORP",
+      "form": "10-Q",
+      "filed": "2026-08-24",
+      "report_period": "2026-07-10",
+      "items": [],
+      "event_kind": "periodic_report",
+      "accession": "0001493152-26-039892",
+      "url": "https://www.sec.gov/Archives/edgar/data/14177/000149315226039892",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000014177",
+      "name": "BRIDGFORD FOODS CORP",
+      "form": "10-Q",
+      "filed": "2026-06-01",
+      "report_period": "2026-04-17",
+      "items": [],
+      "event_kind": "periodic_report",
+      "accession": "0001493152-26-026675",
+      "url": "https://www.sec.gov/Archives/edgar/data/14177/000149315226026675",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000014177",
+      "name": "BRIDGFORD FOODS CORP",
+      "form": "8-K",
+      "filed": "2026-04-14",
+      "report_period": "2026-04-13",
+      "items": [
+        "4.01",
+        "9.01"
+      ],
+      "event_kind": "other",
+      "accession": "0001493152-26-016410",
+      "url": "https://www.sec.gov/Archives/edgar/data/14177/000149315226016410",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000014177",
+      "name": "BRIDGFORD FOODS CORP",
+      "form": "8-K",
+      "filed": "2026-03-27",
+      "report_period": "2026-03-25",
+      "items": [
+        "5.07"
+      ],
+      "event_kind": "other",
+      "accession": "0001493152-26-013200",
+      "url": "https://www.sec.gov/Archives/edgar/data/14177/000149315226013200",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000016160",
+      "name": "CAL-MAINE FOODS INC",
+      "form": "8-K",
+      "filed": "2026-10-02",
+      "report_period": "2026-10-02",
+      "items": [
+        "5.07",
+        "9.01"
+      ],
+      "event_kind": "other",
+      "accession": "0001562762-26-000117",
+      "url": "https://www.sec.gov/Archives/edgar/data/16160/000156276226000117",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000016160",
+      "name": "CAL-MAINE FOODS INC",
+      "form": "10-Q",
+      "filed": "2026-09-30",
+      "report_period": "2026-08-29",
+      "items": [],
+      "event_kind": "periodic_report",
+      "accession": "0001562762-26-000113",
+      "url": "https://www.sec.gov/Archives/edgar/data/16160/000156276226000113",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000016160",
+      "name": "CAL-MAINE FOODS INC",
+      "form": "8-K",
+      "filed": "2026-09-30",
+      "report_period": "2026-09-30",
+      "items": [
+        "2.02",
+        "9.01"
+      ],
+      "event_kind": "earnings_release",
+      "accession": "0001562762-26-000111",
+      "url": "https://www.sec.gov/Archives/edgar/data/16160/000156276226000111",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000016160",
+      "name": "CAL-MAINE FOODS INC",
+      "form": "8-K",
+      "filed": "2026-09-02",
+      "report_period": "2026-08-31",
+      "items": [
+        "1.01",
+        "2.03",
+        "9.01"
+      ],
+      "event_kind": "other",
+      "accession": "0001562762-26-000102",
+      "url": "https://www.sec.gov/Archives/edgar/data/16160/000156276226000102",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000016160",
+      "name": "CAL-MAINE FOODS INC",
+      "form": "10-K",
+      "filed": "2026-07-22",
+      "report_period": "2026-05-30",
+      "items": [],
+      "event_kind": "periodic_report",
+      "accession": "0001562762-26-000080",
+      "url": "https://www.sec.gov/Archives/edgar/data/16160/000156276226000080",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000048465",
+      "name": "HORMEL FOODS CORP /DE/",
+      "form": "8-K",
+      "filed": "2026-10-29",
+      "report_period": "2026-10-23",
+      "items": [
+        "5.02"
+      ],
+      "event_kind": "other",
+      "accession": "0000048465-26-000060",
+      "url": "https://www.sec.gov/Archives/edgar/data/48465/000004846526000060",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000048465",
+      "name": "HORMEL FOODS CORP /DE/",
+      "form": "8-K",
+      "filed": "2026-10-23",
+      "report_period": "2026-10-21",
+      "items": [
+        "5.02"
+      ],
+      "event_kind": "other",
+      "accession": "0000048465-26-000058",
+      "url": "https://www.sec.gov/Archives/edgar/data/48465/000004846526000058",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000048465",
+      "name": "HORMEL FOODS CORP /DE/",
+      "form": "8-K",
+      "filed": "2026-09-30",
+      "report_period": "2026-09-29",
+      "items": [
+        "1.01",
+        "7.01",
+        "9.01"
+      ],
+      "event_kind": "other",
+      "accession": "0001104659-26-112101",
+      "url": "https://www.sec.gov/Archives/edgar/data/48465/000110465926112101",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000048465",
+      "name": "HORMEL FOODS CORP /DE/",
+      "form": "10-Q",
+      "filed": "2026-08-27",
+      "report_period": "2026-07-26",
+      "items": [],
+      "event_kind": "periodic_report",
+      "accession": "0000048465-26-000055",
+      "url": "https://www.sec.gov/Archives/edgar/data/48465/000004846526000055",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "market": "US",
+      "cik": "0000048465",
+      "name": "HORMEL FOODS CORP /DE/",
+      "form": "8-K",
+      "filed": "2026-08-27",
+      "report_period": "2026-08-27",
+      "items": [
+        "2.02",
+        "9.01"
+      ],
+      "event_kind": "earnings_release",
+      "accession": "0000048465-26-000053",
+      "url": "https://www.sec.gov/Archives/edgar/data/48465/000004846526000053",
+      "headline": null,
+      "headline_status": "not_extracted"
+    }
+  ],
+  "hk_events": [
+    {
+      "stock_code": "01431",
+      "name": "原生態牧業",
+      "title": "2026中期報告",
+      "category_text": "財務報表/環境、社會及管治資料 - [中期/半年度報告]",
+      "disclosed": "28/09/2026 16:48",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0928/2026092800743_c.pdf",
+      "news_id": "12348402",
+      "market": "HK",
+      "event_kind": "periodic_report",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "01431",
+      "name": "原生態牧業",
+      "title": "截至二零二六年六月三十日止六個月中期業績公告",
+      "category_text": "公告及通告 - [中期業績]",
+      "disclosed": "26/08/2026 21:21",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0826/2026082601694_c.pdf",
+      "news_id": "12301100",
+      "market": "HK",
+      "event_kind": "periodic_report",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "01431",
+      "name": "原生態牧業",
+      "title": "正面盈利預告",
+      "category_text": "公告及通告 - [盈利警告 / 內幕消息]",
+      "disclosed": "07/08/2026 19:10",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0807/2026080701030_c.pdf",
+      "news_id": "12277513",
+      "market": "HK",
+      "event_kind": "profit_warning",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "01431",
+      "name": "原生態牧業",
+      "title": "年報2025",
+      "category_text": "財務報表/環境、社會及管治資料 - [年報 / 環境、社會及管治資料/報告]",
+      "disclosed": "28/04/2026 16:30",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0428/2026042800537_c.pdf",
+      "news_id": "12127460",
+      "market": "HK",
+      "event_kind": "periodic_report",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "01431",
+      "name": "原生態牧業",
+      "title": "截至二零二五年十二月三十一日止年度的年度業績公告",
+      "category_text": "公告及通告 - [末期業績]",
+      "disclosed": "26/03/2026 21:43",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0326/2026032602217_c.pdf",
+      "news_id": "12070293",
+      "market": "HK",
+      "event_kind": "periodic_report",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "02319",
+      "name": "蒙牛乳業",
+      "title": "中期報告 2026",
+      "category_text": "財務報表/環境、社會及管治資料 - [中期/半年度報告]",
+      "disclosed": "25/09/2026 16:37",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0925/2026092500456_c.pdf",
+      "news_id": "12346892",
+      "market": "HK",
+      "event_kind": "periodic_report",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "02319",
+      "name": "蒙牛乳業",
+      "title": "截至二零二六年六月三十日止六個月中期業績公佈",
+      "category_text": "公告及通告 - [中期業績]",
+      "disclosed": "26/08/2026 21:52",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0826/2026082601830_c.pdf",
+      "news_id": "12301236",
+      "market": "HK",
+      "event_kind": "periodic_report",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "02319",
+      "name": "蒙牛乳業",
+      "title": "年報2025",
+      "category_text": "財務報表/環境、社會及管治資料 - [年報]",
+      "disclosed": "27/04/2026 22:28",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0427/2026042703201_c.pdf",
+      "news_id": "12126573",
+      "market": "HK",
+      "event_kind": "periodic_report",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "03889",
+      "name": "大成玉米集團",
+      "title": "中期報告 2026",
+      "category_text": "財務報表/環境、社會及管治資料 - [中期/半年度報告]",
+      "disclosed": "29/09/2026 06:37",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0929/2026092900042_c.pdf",
+      "news_id": "12349765",
+      "market": "HK",
+      "event_kind": "periodic_report",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "03889",
+      "name": "大成玉米集團",
+      "title": "截至2026年6月30日止六個月中期業績公告",
+      "category_text": "公告及通告 - [中期業績]",
+      "disclosed": "28/08/2026 19:30",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0828/2026082801997_c.pdf",
+      "news_id": "12305623",
+      "market": "HK",
+      "event_kind": "periodic_report",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "03889",
+      "name": "大成玉米集團",
+      "title": "解決核數師不發表意見行動之季度進展",
+      "category_text": "公告及通告 - [其他-業務發展最新情況]",
+      "disclosed": "07/08/2026 16:47",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0807/2026080700445_c.pdf",
+      "news_id": "12276912",
+      "market": "HK",
+      "event_kind": "other",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "03889",
+      "name": "大成玉米集團",
+      "title": "年報2025",
+      "category_text": "財務報表/環境、社會及管治資料 - [年報]",
+      "disclosed": "24/04/2026 07:16",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0424/2026042400254_c.pdf",
+      "news_id": "12120124",
+      "market": "HK",
+      "event_kind": "periodic_report",
+      "headline": null,
+      "headline_status": "not_extracted"
+    },
+    {
+      "stock_code": "03889",
+      "name": "大成玉米集團",
+      "title": "截至2025年12月31日止年度的全年業績公告",
+      "category_text": "公告及通告 - [末期業績 / 暫停辦理過戶登記手續或更改暫停辦理過戶日期 / 核數師發出「非標準報告」]",
+      "disclosed": "27/03/2026 21:09",
+      "url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0327/2026032702801_c.pdf",
+      "news_id": "12073870",
+      "market": "HK",
+      "event_kind": "periodic_report",
+      "headline": null,
+      "headline_status": "not_extracted"
+    }
+  ],
+  "problems": []
+}
