@@ -108,7 +108,12 @@ The remote browser can be any CDP-compatible service (e.g., `browserless/chrome`
 
 ## Notes
 
-- All spiders respect `robots.txt`
+- **`robots.txt` 检查有工具，但需按单元接入**：`fd_industry_data.http.allowed_by_robots(url)`
+  按 host 缓存取 `robots.txt` 并与规则比对（标准库，零依赖）。**取不到时放行**
+  （RFC 9309：没有 robots.txt 等于没有限制）。**没有单一收口**——spider 的取数方式分散在
+  scrapling `Fetcher.get`（52 个）、`requests`、及各单元自有实现，工具无法在共享层强制生效；
+  **新单元应当调用它**，既有单元按需迁移。
+  （2026-11-09 之前这里写的是「All spiders respect `robots.txt`」——一句不成立的文档承诺，见审计 05 §6。）
 - Rate limiting is configured to avoid overloading servers
 - Flower auction data is time-sensitive and should be crawled frequently
 - Kaggle/GitHub spiders focus on metadata, not full dataset downloads
