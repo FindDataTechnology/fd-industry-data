@@ -224,7 +224,23 @@ def test_sync_sources_updates_platform_rows(tmp_path):
     n = dispatch.sync_sources(conn, str(content))
     assert n == 1
     synced = [p for s, p in conn.executed if "INSERT INTO crawl_sources" in s]
-    assert synced == [("bls", "tencent", "*/5 * * * *", True, None, "")]
+    # schedule_tz is always written explicitly (harden-crawl-delivery D1):
+    # a k8s site's CronJob evaluates the cron in the chart's default timezone.
+    assert synced == [("bls", "tencent", "*/5 * * * *", True, None, "", "Asia/Shanghai")]
+
+
+def test_sync_sources_writes_site_appropriate_timezone(tmp_path):
+    """Docker sites are matched by enqueue_due, whose missing default is UTC."""
+    content = _manifest_dir(tmp_path, {
+        "decl": 'name: decl\nschedule: "0 4 * * *"\nschedule_tz: UTC\n',
+        "dock": 'name: dock\nschedule: "0 4 * * *"\nsite: zihan\n',
+        "tens": 'name: tens\nschedule: "0 4 * * *"\n',
+    })
+    conn = _QueuedConn(fetches=[(None,), (None,), (None,)])
+    assert dispatch.sync_sources(conn, str(content)) == 3
+    synced = {p[0]: p[6] for s, p in conn.executed if "INSERT INTO crawl_sources" in s}
+    assert synced == {"decl": "UTC", "dock": "UTC", "tens": "Asia/Shanghai"}
+    assert all(v for v in synced.values())  # never NULL
 
 
 # --- per-source schedule timezone (rmfyalk night scheduling, 2026-10-08) ---

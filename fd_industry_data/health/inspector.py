@@ -235,6 +235,11 @@ class Plan:
     # flk-law-backfill/polygon，30 天口径变成 example-stock/yfinance —— 名单会漂，
     # 说明"静默跳过"不是稳定状态。这里把它变成可见的一行字。
     unregistered: list[str] = field(default_factory=list)
+    # 影子模式产出（harden-crawl-delivery 1.8）：新新鲜度判据（按各自 cron 数
+    # 「应触发但未成功的周期数」）与旧判据并行运行，**只留痕不出单**。
+    # 每项形如 {source, cycles, alerting, first_fire, last_fire, note}。
+    # 观察满 3 天无误报后才切为出单判据（tasks 1.8）。
+    freshness_shadow: list[dict] = field(default_factory=list)
 
 
 def _last_success(runs: list[triage.Run]) -> dict | None:
@@ -400,7 +405,62 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
             continue
         emit.append(Emit(source=source, unit=f"spiders/{source}/", verdict=verdict, runs=runs))
     return Plan(emit=emit, deferred=deferred, healthy=healthy,
-                skipped_unknown_period=unknown, absent=absent, unregistered=unregistered)
+                skipped_unknown_period=unknown, absent=absent, unregistered=unregistered,
+                freshness_shadow=shadow_freshness(runs_by_source, repo, now))
+
+
+def shadow_freshness(runs_by_source: dict, repo: Path, now: datetime) -> list[dict]:
+    """Cadence-aware freshness, recorded only (harden-crawl-delivery 1.8).
+
+    Runs beside the existing judgement and never emits a ticket: the new
+    metric is on probation until its false-positive rate is observed for three
+    days. Every scheduled, non-parked source gets an entry so the shadow report
+    can be compared row-for-row with the tickets the old rules produced.
+
+    A source with no good run and no known start reports ``cycles=0`` plus a
+    note — never a fabricated count (see freshness.cycles_since_last_good).
+    """
+    from .freshness import cycles_since_last_good
+
+    out: list[dict] = []
+    for source, meta in sorted(scheduled_sources(repo).items()):
+        try:
+            data = yaml.safe_load((repo / "spiders" / source / "manifest.yaml").read_text()) or {}
+        except (yaml.YAMLError, OSError):
+            continue
+        schedule = str(data.get("schedule") or "").strip()
+        if not schedule:
+            continue
+        runs = runs_by_source.get(source) or []
+        good = [r for r in runs if r.status in getattr(triage, "REACHED", ())]
+        last_good = max((r.started_at for r in good), default=None)
+        first_seen = min((r.started_at for r in runs), default=None)
+        result = cycles_since_last_good(
+            schedule=schedule,
+            tz=data.get("schedule_tz"),
+            last_good_at=_parse_iso(last_good) if isinstance(last_good, str) else last_good,
+            created_at=_parse_iso(first_seen) if isinstance(first_seen, str) else first_seen,
+            now=now,
+        )
+        out.append({
+            "source": source,
+            "cycles": result.cycles,
+            "alerting": result.alerting,
+            "first_fire": result.first_fire.isoformat() if result.first_fire else None,
+            "last_fire": result.last_fire.isoformat() if result.last_fire else None,
+            **({"note": result.note} if result.note else {}),
+        })
+    return out
+
+
+def _parse_iso(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace(" ", "T"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 def _golden_paths(repo: Path, unit: str) -> list[str]:
@@ -478,7 +538,11 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
     return {"written": written, "deferred": plan.deferred, "healthy": plan.healthy,
             "skipped_unknown_period": plan.skipped_unknown_period,
             "unregistered_sources": plan.unregistered,
-            "absent_sources": plan.absent}
+            "absent_sources": plan.absent,
+            # 影子模式（1.8）：新判据的逐源结果只落在这里，不进工单队列。
+            "freshness_shadow": plan.freshness_shadow,
+            "freshness_shadow_alerting": [e["source"] for e in plan.freshness_shadow
+                                          if e.get("alerting")]}
 
 
 # ── 接线：SUBMIT / STATUS（poster/fetcher 可注入） ─────────────────────────

@@ -144,6 +144,22 @@ def start_run(*, source, kind="runtime", commit_sha, image_tag,
     return None
 
 
+def derive_outcome(status: str, rows_written: int) -> str:
+    """Delivery outcome from the execution status and the row count.
+
+    Spec: crawl-run-telemetry「运行结局 SHALL 区分配置缺失、空产出与失败」.
+    ``status`` keeps describing the execution plane (running/success/failed/
+    partial/cancelled, which dashboards and the inspector read); ``outcome``
+    describes the delivery plane so a zero-row success stops looking like a
+    healthy run and a missing credential stops looking like a code failure.
+    """
+    if status == "blocked-config":
+        return "blocked-config"
+    if status in ("success", "partial"):
+        return "ok" if rows_written > 0 else "ok_empty"
+    return "failed"
+
+
 def finish_run(run_id: int, *, status, finished_at, rows_written,
                error_head=None, items=(), metrics=None,
                source=None, kind="runtime") -> bool:
@@ -180,11 +196,12 @@ def finish_run(run_id: int, *, status, finished_at, rows_written,
                 cur.execute(
                     """UPDATE crawl_runs
                        SET status=%s, finished_at=to_timestamp(%s),
-                           rows_written=%s, error_head=%s, metrics=%s
+                           rows_written=%s, error_head=%s, metrics=%s, outcome=%s
                        WHERE id=%s""",
                     (status, finished_at, rows_written,
                      sanitize_error_head(error_head),
                      json.dumps(metrics, ensure_ascii=False) if metrics else None,
+                     derive_outcome(status, rows_written),
                      run_id),
                 )
                 if payload:
@@ -355,13 +372,14 @@ def report_run(*, source, kind, status, started_at, finished_at, rows_written,
                 cur.execute(
                     """INSERT INTO crawl_runs
                        (source, kind, status, started_at, finished_at,
-                        rows_written, error_head, commit_sha, image_tag, metrics)
-                       VALUES (%s,%s,%s,to_timestamp(%s),to_timestamp(%s),%s,%s,%s,%s,%s)
+                        rows_written, error_head, commit_sha, image_tag, metrics, outcome)
+                       VALUES (%s,%s,%s,to_timestamp(%s),to_timestamp(%s),%s,%s,%s,%s,%s,%s)
                        RETURNING id""",
                     (source, kind, status, started_at, finished_at,
                      rows_written, sanitize_error_head(error_head),
                      commit_sha, image_tag,
-                     json.dumps(metrics, ensure_ascii=False) if metrics else None),
+                     json.dumps(metrics, ensure_ascii=False) if metrics else None,
+                     derive_outcome(status, rows_written)),
                 )
                 run_id = cur.fetchone()[0]
                 if payload:

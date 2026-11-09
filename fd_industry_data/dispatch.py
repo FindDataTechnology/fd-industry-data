@@ -60,6 +60,13 @@ CREATE INDEX IF NOT EXISTS pending_runs_site_idx
 ALTER TABLE crawl_runs ADD COLUMN IF NOT EXISTS cancel_requested timestamptz;
 ALTER TABLE crawl_runs ADD COLUMN IF NOT EXISTS pending_run_id bigint;
 ALTER TABLE crawl_runs ALTER COLUMN finished_at DROP NOT NULL;
+-- 运行结局（harden-crawl-delivery 1.6）：与 status 并存而不是替换它。status 描述
+-- 执行面（running/success/failed/partial/cancelled，dashboards 与巡检都在读），
+-- outcome 描述交付面（ok / ok_empty / blocked-config / failed）。历史行为 NULL，
+-- 读取侧按 coalesce(outcome, status 派生) 解释，所以加列不改变任何既有查询。
+ALTER TABLE crawl_runs ADD COLUMN IF NOT EXISTS outcome text;
+ALTER TABLE crawl_runs ADD COLUMN IF NOT EXISTS error_class text;
+ALTER TABLE crawl_runs ADD COLUMN IF NOT EXISTS parse_error text;
 -- Per-source timezone for `schedule` (NULL = UTC, the historical default the
 -- whole fleet is calibrated to). A source that must run in the operator's
 -- night (e.g. a login-gated source whose session only survives a few hours
@@ -540,6 +547,27 @@ def enqueue_for_auth_profile(conn, auth_profile: str) -> list[str]:
     return enqueued
 
 
+def _resolved_schedule_tz(data: dict, site: str) -> str:
+    """Effective schedule timezone for a manifest, always written explicitly.
+
+    harden-crawl-delivery D1: ``crawl_sources.schedule_tz`` must never be NULL,
+    because NULL means UTC to ``enqueue_due`` while a k8s CronJob evaluates the
+    same cron in the controller's local time. Writing the value the source is
+    **already executing under** keeps the migration behavior-neutral:
+
+    - k8s sites render a CronJob whose chart default is Asia/Shanghai;
+    - docker sites are matched by ``enqueue_due``, whose missing-value default
+      is UTC.
+
+    A manifest-declared ``schedule_tz`` wins over both.
+    """
+    declared = data.get("schedule_tz")
+    if isinstance(declared, str) and declared.strip():
+        return declared.strip()
+    kind = (load_sites().get(site) or {}).get("kind", "k8s")
+    return "UTC" if kind == "docker" else "Asia/Shanghai"
+
+
 def sync_sources(conn, content_dir: str) -> int:
     """Upsert the platform source inventory from the checked-out manifests.
 
@@ -565,7 +593,8 @@ def sync_sources(conn, content_dir: str) -> int:
         site = data.get("site") or DEFAULT_SITE
         rows.append((str(data["name"]), site, data.get("schedule") or None,
                      bool(data.get("enabled", True)),
-                     (data.get("auth_profile") or None)))
+                     (data.get("auth_profile") or None),
+                     _resolved_schedule_tz(data, site)))
     commit = ""
     commit_file = os.environ.get("FD_CONTENT_COMMIT", "")
     if commit_file and os.path.isfile(commit_file):
@@ -575,23 +604,24 @@ def sync_sources(conn, content_dir: str) -> int:
             pass
     synced = 0
     with conn, conn.cursor() as cur:
-        for source, site, schedule, enabled, auth_profile in rows:
+        for source, site, schedule, enabled, auth_profile, schedule_tz in rows:
             cur.execute("SELECT kind FROM crawl_sources WHERE source=%s", (source,))
             found = cur.fetchone()
             if found and found[0] == "federated":
                 continue  # registered federated member: not manifest-owned
             cur.execute(
                 """INSERT INTO crawl_sources (source, site, schedule, enabled,
-                     auth_profile, last_commit)
-                   VALUES (%s,%s,%s,%s,%s,%s)
+                     auth_profile, last_commit, schedule_tz)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s)
                    ON CONFLICT (source) DO UPDATE SET
                      site = EXCLUDED.site, schedule = EXCLUDED.schedule,
                      enabled = EXCLUDED.enabled,
                      auth_profile = EXCLUDED.auth_profile,
+                     schedule_tz = EXCLUDED.schedule_tz,
                      last_commit = CASE WHEN EXCLUDED.last_commit = ''
                                    THEN crawl_sources.last_commit ELSE EXCLUDED.last_commit END,
                      updated_at = now()""",
-                (source, site, schedule, enabled, auth_profile, commit),
+                (source, site, schedule, enabled, auth_profile, commit, schedule_tz),
             )
             synced += 1
     return synced
