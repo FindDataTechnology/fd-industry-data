@@ -69,3 +69,51 @@ exit code 全部为 **128**（git 认证），无 OOM(137) 或脚本错误(1) �
 停摆近 3 小时而 `crawl_runs` 无任何记录，说明诊断面不覆盖「pod 起不来」这一类。
 既有 spec「调度侧为未报到的失败运行合成记录」只覆盖了容器的非零退出，
 **init 容器失败属同一形态却无人合成**。已在 change 中记为 tasks 8.2。
+
+---
+
+## 附录：为什么「修好 token」还不够（2026-11-09 19:00Z 追加）
+
+排查过程中发现，恢复取数只解决一半问题 —— **即使 token 修好，生产跑的还是旧代码**。
+
+### 发布链路实际是断的
+
+```
+git push → CI 构建镜像 ✓（自动）
+        → 集群 appset 的 image 参数 → ✗ 手写死 tag，要人跑 fd-image-bump.sh --apply
+        → 按源 CronJob 拉新镜像   → ✗ 依赖上一步
+```
+
+实测三方不一致：
+
+| 位置 | 值 |
+|---|---|
+| 按源 CronJob（120 个）实际运行 | `sha-34b0330` |
+| `k8s/release.yaml` 的 `runner-tencent-cron` | `sha-750da3f`（采用日 11-06 的快照） |
+| `fd-infra-deploy` 里的 appset 文件 | `sha-750da3f` |
+| 内容仓 HEAD | `34b0330` 之后再前进 **46 个提交** |
+
+`fd-image-bump.sh` 自己的注释就写着这件事（2026-11-08）：*"appset 的 helm 参数 image 是手写死 tag。
+于是管线全绿、镜像齐全，集群却一直跑几个月前的那一片（实测 79 个 CronJob 停在 sha-750da3f）"*。
+该脚本 `--apply` **只改集群里的 appset，不改 git** —— 所以集群永远比 git 新一步，
+git 里的 appset 只是历史快照。
+
+### 后果
+
+- 本仓库 11-09 15:06Z 之后的 46 个提交（含 `33e872b` 起的全部改动）**从未进入生产**
+- 已核验：`crawl_runs` 里 `outcome`/`error_class`/`parse_error` 三列不存在、
+  `metrics ? 'watermark'` = 0 行、`metrics` 里从未出现 `clone_seconds`/`peak_rss_mb`/`runner_seconds`、
+  近 7 天 `status` 只有 `success/failed/running`（无 `blocked-config`）
+- **`FD_SCHEMA_MANAGED=1` 让 `ensure_schema()` 直接 return** —— 即使换上含 SCHEMA_DDL 的新镜像，
+  运行时也**不会**建那三列，必须由部署侧单独执行 DDL
+
+### 正确的恢复顺序
+
+| # | 动作 | 不做会怎样 |
+|---|---|---|
+| 1 | 换 gitee token（`fd-industry` 与 `argocd` 两处 secret 同值） | 取数不恢复 |
+| 2 | 手工执行 `crawl_runs` 三列 DDL | 新镜像的 `outcome` 写入失败，`finish_run` 整条 UPDATE 报错 |
+| 3 | `scripts/fd-image-bump.sh --apply` 推到含新改动的镜像 | 恢复的是 46 个提交之前的旧代码 |
+| 4 | （立项）appset 纳管 GitOps | 每次发布都要手工 bump，这次是第 N 次静默落后 |
+
+**只做第 1 步，等于把系统恢复到「48 小时前的旧代码 + 一堆没生效的改动」。**
