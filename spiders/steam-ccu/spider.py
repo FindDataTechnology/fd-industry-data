@@ -33,6 +33,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -74,25 +75,41 @@ TIMEOUT = 30  # 秒；单请求超时即该 app 失败（不重试、不加频�
 INTER_REQUEST_SLEEP = 0.2  # 秒；app 间礼貌间隔
 
 
-def _get_json(url: str) -> dict:
+def _get_json(url: str, label: str = "") -> dict:
     """GET 一个 JSON 端点（仅 https 固定主机；无鉴权、无重试放大）。
 
     代理出口由环境变量 ``HTTPS_PROXY``/``HTTP_PROXY`` 提供（urllib 缺省
     行为），本函数不硬编码代理地址。
+
+    错误信息带上 HTTP 状态 / Content-Type / 最终 URL：子表面被重定向到
+    HTML 落地页时报「非 JSON 子表面」而非笼统解析错——**不改取数姿态**
+    （不换 UA、不加频次、不做指纹伪装），只把形态变化如实留痕。
     """
+    tag = f"{label}: " if label else ""
     req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
-        raw = resp.read()
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
+            status = getattr(resp, "status", 200)
+            ctype = (resp.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            final_url = resp.geturl()
+            raw = resp.read()
+    except urllib.error.HTTPError as exc:
+        raise ValueError(f"{tag}HTTP {exc.code}") from None
+    except urllib.error.URLError as exc:
+        raise ValueError(f"{tag}transport error {exc.reason}") from None
     try:
         return json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ValueError(f"response is not JSON ({type(exc).__name__})") from None
+        raise ValueError(
+            f"{tag}非 JSON 子表面（HTTP {status}, content-type={ctype or 'none'}, "
+            f"final={final_url}, {type(exc).__name__}）"
+        ) from None
 
 
 def _fetch_ccu(appid: int) -> int:
     """取单个 app 的 CCU；无统计/坏 appid/形态异常 → 抛 ``ValueError``。"""
     query = urllib.parse.urlencode({"appid": appid})
-    payload = _get_json(f"{CCU_URL}?{query}")
+    payload = _get_json(f"{CCU_URL}?{query}", "ccu")
     response = payload.get("response") if isinstance(payload, dict) else None
     if not isinstance(response, dict) or response.get("result") != 1:
         raise ValueError(f"CCU response malformed or result!=1: {str(payload)[:120]}")
@@ -110,7 +127,7 @@ def _fetch_reviews(appid: int) -> dict:
         "language": "all",
         "purchase_type": "all",
     })
-    payload = _get_json(f"{REVIEWS_URL.format(appid=appid)}?{query}")
+    payload = _get_json(f"{REVIEWS_URL.format(appid=appid)}?{query}", "reviews")
     if not isinstance(payload, dict) or payload.get("success") != 1:
         raise ValueError(f"reviews success!=1: {str(payload)[:120]}")
     summary = payload.get("query_summary")
@@ -127,10 +144,11 @@ def _num(summary: dict, key: str) -> int | None:
 
 
 def run_steam_ccu(limit: int = 100) -> list[dict]:
-    """取种子 app 的 CCU + 评论聚合行；全部 app 失败 → 抛 ``RuntimeError``（失败即红）。
+    """取种子 app 的 CCU + 评论聚合行；全部 app 取数失败 → 抛 ``RuntimeError``（失败即红）。
 
     - 每个 app 一行：CCU 在线人数 + 评论聚合（好评率等派生值 round 4 位）；
-    - 单 app 两路任一失败即整行跳过并留痕（errors 收集，不中断其余 app）；
+    - **两路分级失败**：CCU（主数据面）失败 → 整 app 跳过并留痕；
+      评论（子表面）失败 → 该行评论列置 ``null`` 并留痕，行仍成立；
     - 行按种子顺序排列，返回尾部 ``limit`` 行；
     - golden 只锚结构断言（常量字段）+ min_rows，**绝不锚实时数值**。
     """
@@ -144,15 +162,20 @@ def run_steam_ccu(limit: int = 100) -> list[dict]:
     now = datetime.now(timezone.utc).isoformat()
     rows: list[dict] = []
     errors: list[str] = []
+    degraded: list[str] = []
     for i, (appid, name) in enumerate(SEEDS):
         if i:
             time.sleep(INTER_REQUEST_SLEEP)
         try:
             ccu = _fetch_ccu(appid)
-            summary = _fetch_reviews(appid)
-        except Exception as exc:  # noqa: BLE001 - 单 app 失败只跳过并留痕
-            errors.append(f"{appid}: {type(exc).__name__}: {exc}")
+        except Exception as exc:  # noqa: BLE001 - CCU 是主数据面，失败即跳过该 app
+            errors.append(f"{appid}: ccu {type(exc).__name__}: {exc}")
             continue
+        try:
+            summary = _fetch_reviews(appid)
+        except Exception as exc:  # noqa: BLE001 - 评论是子表面，失败降级为 null
+            degraded.append(f"{appid}: reviews {type(exc).__name__}: {exc}")
+            summary = {}
         total_positive = _num(summary, "total_positive")
         total_negative = _num(summary, "total_negative")
         total_reviews = _num(summary, "total_reviews")
@@ -177,6 +200,12 @@ def run_steam_ccu(limit: int = 100) -> list[dict]:
             "source": SOURCE,
             "scraped_at": now,
         })
+    if errors:
+        print(f"{SOURCE}: skipped {len(errors)} app(s) (CCU failed): "
+              + "; ".join(errors[:3]), file=sys.stderr)
+    if degraded:
+        print(f"{SOURCE}: degraded {len(degraded)} app(s) (reviews sub-surface down; "
+              f"review columns=null): " + "; ".join(degraded[:3]), file=sys.stderr)
     if not rows:
         raise RuntimeError("steam-ccu: 全部种子 app 取数失败 — " + "; ".join(errors)[:300])
     return rows[-limit:]
