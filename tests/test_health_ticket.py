@@ -226,7 +226,8 @@ def test_set_terminal_rejects_unknown():
 @pytest.mark.parametrize("terminal", ticket.TERMINALS)
 def test_all_terminals_accepted(terminal):
     doc = _base()
-    ticket.set_terminal(doc, terminal)
+    # closed 是人工门：自动路径会抛错，这里用 human=True 模拟人工置入
+    ticket.set_terminal(doc, terminal, human=(terminal == "closed"))
     assert doc["terminal"] == terminal
     assert ticket.validate_ticket(doc) == []
 

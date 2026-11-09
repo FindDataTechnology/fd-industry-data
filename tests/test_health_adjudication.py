@@ -50,7 +50,8 @@ def _mk_ticket(tickets: Path, source: str, day: str, *, terminal: str | None = "
         created_at=created,
     )
     if terminal:
-        set_terminal(doc, terminal)
+        # 夹具构造既有状态（closed 只可能来自人工合并）
+        set_terminal(doc, terminal, human=(terminal == 'closed'))
     path = tickets / f"{doc['ticket_id']}.yaml"
     path.write_text(dump_ticket(doc), encoding="utf-8")
     return path

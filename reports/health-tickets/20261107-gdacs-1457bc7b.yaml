@@ -140,4 +140,13 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-11-09T16:52:00.323780+00:00'
+  event: terminal
+  terminal: superseded
+  previous: null
+  note: 重复单：与 20261106-gdacs-8123a350 同源、同类别、同证据签名，已并入该单
+- at: '2026-11-10T00:52:00.323753+08:00'
+  event: merged
+  into: 20261106-gdacs-8123a350
+terminal: superseded
+superseded_by: 20261106-gdacs-8123a350
