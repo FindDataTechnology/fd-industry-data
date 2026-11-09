@@ -1,0 +1,349 @@
+# 酒店行业监控宇宙（首批 33 家）— add-hotel-vertical 任务 3.6 真源
+#
+# entity_type 一律 `stock`。
+#
+# 代码约定（与餐饮线一致，注册脚本按此解析）：
+#   * A股：裸 6 位数字（600754）
+#   * 港股：5 位数字 + `.HK`（00069.HK）
+#   * 台股：4 位数字 + `.TW`（2707.TW）
+#   * 日股：4 位数字 + `.T`（9722.T）
+#   * 美股：裸 ticker（MAR）
+#   * 欧股：交易所后缀（AC.PA / WTB.L）—— 本批只登记，无车道
+#
+# segment 口径（六类，互斥，不模糊归类）：
+#   luxury-upscale     高端/奢华全服务（含观光饭店）
+#   midscale           中端（含有限服务连锁、生活方式品牌）
+#   economy-budget     经济型/平价（含特许经营为主）
+#   serviced-apartment 服务式公寓/分时度假
+#   resort-casino      度假村/娱乐综合体
+#   OTA-platform       分销平台（与运营商不同业态，只作对照不做合并聚合）
+#
+# 本批 resort-casino 无实体：原候选复星旅游文化 01992 已退市（见 verified 段）。
+#
+# verified 字段口径（**不造数纪律**）：
+#   ticker    = 票符本身经上游核实（A股经东财公告列表、港股经 HKEX prefix.do、
+#               美股经 SEC company_tickers.json）
+#   lanes     = 数据车道可达性经实测
+#   unverified= 上游不可达，票符未核（台股 TWSE openapi 超时、日股无 EDINET key、
+#               欧股平台无车道）——读路径 MUST 呈现不可得，不得据此出数
+
+version: "2026-11-08"
+change: add-hotel-vertical
+task: "3.6"
+
+segments:
+  luxury-upscale: 高端/奢华全服务
+  midscale: 中端
+  economy-budget: 经济型/平价
+  serviced-apartment: 服务式公寓/分时度假
+  resort-casino: 度假村/娱乐综合体
+  OTA-platform: 分销平台
+
+companies:
+  # ── A股 6（车道：cninfo-operating + fd-cn-report，零新建爬虫）─────────
+  - code: "600754"
+    name_zh: 锦江酒店
+    name_en: Shanghai Jin Jiang International Hotels Co., Ltd.
+    region: CN
+    exchange: SSE
+    segment: midscale
+    lanes: [cninfo-operating, fd-cn-report]
+    verified: {ticker: true, lanes: true}
+    notes: 唯一发过独立经营数据简报的 A 股酒店（2023-09 / 2023-12 两份），2024 起停发；当前期 RevPAR 不可得
+  - code: "600258"
+    name_zh: 首旅酒店
+    name_en: BTG Hotels (Group) Co., Ltd.
+    region: CN
+    exchange: SSE
+    segment: midscale
+    lanes: [cninfo-operating, fd-cn-report]
+    verified: {ticker: true, lanes: true}
+    notes: 近 450 条公告无独立经营数据披露；RevPAR 仅在季报正文
+  - code: "601007"
+    name_zh: 金陵饭店
+    name_en: Jinling Hotel Corporation, Ltd.
+    region: CN
+    exchange: SSE
+    segment: luxury-upscale
+    lanes: [cninfo-operating, fd-cn-report]
+    verified: {ticker: true, lanes: true}
+  - code: "000428"
+    name_zh: 华天酒店
+    name_en: Hunan Huatian Hotel Group Co., Ltd.
+    region: CN
+    exchange: SZSE
+    segment: midscale
+    lanes: [cninfo-operating, fd-cn-report]
+    verified: {ticker: true, lanes: true}
+  - code: "301073"
+    name_zh: 君亭酒店
+    name_en: Juntin Hotel Group Co., Ltd.
+    region: CN
+    exchange: SZSE
+    segment: midscale
+    lanes: [cninfo-operating, fd-cn-report]
+    verified: {ticker: true, lanes: true}
+  - code: "000610"
+    name_zh: "*ST西旅"
+    name_en: Xi'an Tourism Co., Ltd.
+    region: CN
+    exchange: SZSE
+    segment: midscale
+    lanes: [cninfo-operating, fd-cn-report]
+    verified: {ticker: true, lanes: true}
+    notes: 简称已为「*ST西旅」（原西安旅游）；酒店+旅游服务混合业态，segment 取中端
+
+  # ── 港股 5（车道：hkex-disclosure 参数覆盖）─────────────────────────
+  - code: "00069.HK"
+    name_zh: 香格里拉（亚洲）
+    name_en: Shangri-La Asia Limited
+    region: HK
+    exchange: HKEX
+    segment: luxury-upscale
+    lanes: [hkex-disclosure]
+    verified: {ticker: true, lanes: true}
+  - code: "00045.HK"
+    name_zh: 大酒店
+    name_en: The Hongkong and Shanghai Hotels, Limited
+    region: HK
+    exchange: HKEX
+    segment: luxury-upscale
+    lanes: [hkex-disclosure]
+    verified: {ticker: true, lanes: true}
+    notes: 半岛酒店母公司
+  - code: "01179.HK"
+    name_zh: 华住集团－Ｓ
+    name_en: H World Group Limited
+    region: HK
+    exchange: HKEX
+    segment: midscale
+    lanes: [hkex-disclosure]
+    verified: {ticker: true, lanes: true}
+    notes: 港股+美股双重上市（NASDAQ HTHT），同一主体 US 侧另登记；两车道互不覆盖
+  - code: "01270.HK"
+    name_zh: 朗廷－ＳＳ
+    name_en: Langham Hospitality Investments Limited
+    region: HK
+    exchange: HKEX
+    segment: luxury-upscale
+    lanes: [hkex-disclosure]
+    verified: {ticker: true, lanes: true}
+  - code: "00071.HK"
+    name_zh: 美丽华酒店
+    name_en: Miramar Hotel and Investment Company, Limited
+    region: HK
+    exchange: HKEX
+    segment: luxury-upscale
+    lanes: [hkex-disclosure]
+    verified: {ticker: true, lanes: true}
+    notes: 2026-11-08 替换原候选复星旅游文化 01992（已退市，见 excluded 段）
+
+  # ── 美股 10（车道：sec-edgar-facts 参数覆盖）─────────────────────────
+  - code: "MAR"
+    name_zh: 万豪国际
+    name_en: Marriott International, Inc.
+    region: US
+    exchange: NASDAQ
+    segment: luxury-upscale
+    lanes: [sec-edgar-facts, sec-edgar-8k-operating]
+    verified: {ticker: true, lanes: true}
+    notes: system-wide constant-currency RevPAR 口径
+  - code: "HLT"
+    name_zh: 希尔顿全球
+    name_en: Hilton Worldwide Holdings Inc.
+    region: US
+    exchange: NYSE
+    segment: luxury-upscale
+    lanes: [sec-edgar-facts, sec-edgar-8k-operating]
+    verified: {ticker: true, lanes: true}
+    notes: system-wide comparable RevPAR 口径
+  - code: "IHG"
+    name_zh: 洲际酒店集团
+    name_en: InterContinental Hotels Group PLC
+    region: US
+    exchange: NYSE
+    segment: luxury-upscale
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, lanes: true}
+    notes: 英国注册、美股 ADR；本线走 EDGAR，不走伦交所
+  - code: "WH"
+    name_zh: 温德姆酒店及度假村
+    name_en: Wyndham Hotels & Resorts, Inc.
+    region: US
+    exchange: NYSE
+    segment: economy-budget
+    lanes: [sec-edgar-facts, sec-edgar-8k-operating]
+    verified: {ticker: true, lanes: true}
+  - code: "H"
+    name_zh: 凯悦酒店
+    name_en: Hyatt Hotels Corporation
+    region: US
+    exchange: NYSE
+    segment: luxury-upscale
+    lanes: [sec-edgar-facts, sec-edgar-8k-operating]
+    verified: {ticker: true, lanes: true}
+  - code: "CHH"
+    name_zh: 精选国际酒店
+    name_en: Choice Hotels International, Inc.
+    region: US
+    exchange: NYSE
+    segment: economy-budget
+    lanes: [sec-edgar-facts, sec-edgar-8k-operating]
+    verified: {ticker: true, lanes: true}
+  - code: "HTHT"
+    name_zh: 华住集团（ADR）
+    name_en: H World Group Limited (ADR)
+    region: US
+    exchange: NASDAQ
+    segment: midscale
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, lanes: true}
+    notes: 与 01179.HK 同主体双上市，勿合并计数
+  - code: "ATAT"
+    name_zh: 亚朵
+    name_en: Atour Lifestyle Holdings Limited
+    region: US
+    exchange: NASDAQ
+    segment: midscale
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, lanes: true}
+    notes: 生活方式品牌，RevPAR 口径含租赁/管理
+  - code: "GHG"
+    name_zh: 格林酒店
+    name_en: GreenTree Hospitality Group Ltd.
+    region: US
+    exchange: NYSE
+    segment: economy-budget
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, lanes: true}
+  - code: "HGV"
+    name_zh: 希尔顿度假
+    name_en: Hilton Grand Vacations Inc.
+    region: US
+    exchange: NYSE
+    segment: serviced-apartment
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, lanes: true}
+    notes: 分时度假，KPI 口径与运营商不同（合约销售为主）
+
+  # ── 平台侧 4（OTA 分销，只作需求/分销对照）──────────────────────────
+  - code: "BKNG"
+    name_zh: Booking Holdings
+    name_en: Booking Holdings Inc.
+    region: US
+    exchange: NASDAQ
+    segment: OTA-platform
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, lanes: true}
+  - code: "EXPE"
+    name_zh: Expedia
+    name_en: Expedia Group, Inc.
+    region: US
+    exchange: NASDAQ
+    segment: OTA-platform
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, lanes: true}
+  - code: "ABNB"
+    name_zh: 爱彼迎
+    name_en: Airbnb, Inc.
+    region: US
+    exchange: NASDAQ
+    segment: OTA-platform
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, lanes: true}
+  - code: "TCOM"
+    name_zh: 携程
+    name_en: Trip.com Group Limited
+    region: US
+    exchange: NASDAQ
+    segment: OTA-platform
+    lanes: [sec-edgar-facts]
+    verified: {ticker: true, lanes: true}
+
+  # ── 台股 4（**票符未核实**：TWSE openapi 本机与生产均超时，同餐饮线 1.4）──
+  - code: "2707.TW"
+    name_zh: 晶华酒店
+    name_en: Formosa International Hotels Corporation
+    region: TW
+    exchange: TWSE
+    segment: luxury-upscale
+    lanes: [twse-monthly-revenue]
+    verified: {ticker: false, lanes: false}
+    notes: 票符未上游核实；twse-monthly-revenue 上游不可达（餐饮线 1.4 同因阻塞）
+  - code: "2748.TW"
+    name_zh: 云品国际
+    name_en: Fleur de Chine Hotel Group
+    region: TW
+    exchange: TWSE
+    segment: luxury-upscale
+    lanes: [twse-monthly-revenue]
+    verified: {ticker: false, lanes: false}
+    notes: 票符未上游核实
+  - code: "2739.TW"
+    name_zh: 寒舍餐旅
+    name_en: My Humble House Hospitality Management Consulting Co., Ltd.
+    region: TW
+    exchange: TWSE
+    segment: luxury-upscale
+    lanes: [twse-monthly-revenue]
+    verified: {ticker: false, lanes: false}
+    notes: 票符未上游核实
+  - code: "2704.TW"
+    name_zh: 国宾大饭店
+    name_en: The Ambassador Hotel, Ltd.
+    region: TW
+    exchange: TWSE
+    segment: luxury-upscale
+    lanes: [twse-monthly-revenue]
+    verified: {ticker: false, lanes: false}
+    notes: 票符未上游核实
+
+  # ── 日股 2（**票符未核实**：EDINET API key 未申请）──────────────────
+  - code: "9722.T"
+    name_zh: 藤田观光
+    name_en: Fujita Kanko Inc.
+    region: JP
+    exchange: TSE
+    segment: midscale
+    lanes: [edinet-api]
+    verified: {ticker: false, lanes: false}
+    notes: 票符未上游核实；EDINET key 未到位
+  - code: "9616.T"
+    name_zh: 共立维护
+    name_en: Kyoritsu Maintenance Co., Ltd.
+    region: JP
+    exchange: TSE
+    segment: economy-budget
+    lanes: [edinet-api]
+    verified: {ticker: false, lanes: false}
+    notes: 票符未上游核实；EDINET key 未到位
+
+  # ── 欧股 2（只登记，**无车道**，一期不可得）──────────────────────────
+  - code: "AC.PA"
+    name_zh: 雅高集团
+    name_en: Accor SA
+    region: EU
+    exchange: Euronext
+    segment: luxury-upscale
+    lanes: []
+    verified: {ticker: false, lanes: false}
+    notes: 平台无 Euronext 车道；只登记不接，读路径呈现不可得
+  - code: "WTB.L"
+    name_zh: 惠特贝瑞
+    name_en: Whitbread PLC
+    region: EU
+    exchange: LSE
+    segment: economy-budget
+    lanes: []
+    verified: {ticker: false, lanes: false}
+    notes: Premier Inn 母公司；平台无伦交所车道
+
+# ── 排除（留痕，避免后续重复调研）────────────────────────────────────
+excluded:
+  - code: "01992.HK"
+    name_zh: 复星旅游文化
+    name_en: Fosun Tourism Group
+    reason: >-
+      2026-11-08 实测：HKEX `prefix.do` 返回空 stockInfo，且出现在
+      `inactivestock_sehk_c.json` 退市清单（`{"c":"01992","n":"復星旅遊文化"}`）。
+      已退市，不纳入宇宙；港股第 5 席由美丽华酒店 00071 顶替。
