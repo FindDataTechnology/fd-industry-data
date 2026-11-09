@@ -151,6 +151,22 @@ def validate(manifest_path: Path) -> list[str]:
     if (tz := data.get("schedule_tz")) is not None and (e := _check_timezone(tz)):
         errs.append(f"{manifest_path}: {e}")
 
+    # 回填窗口（harden-crawl-delivery 3.5）：只对「只取最新 N 条」的源声明。
+    # 形如 24m / 2y（月/年，1..120 个月）；经既有 --window-start/--window-end 执行，
+    # 不是新的跑批通道。
+    if (bw := data.get("backfill_window")) is not None:
+        ok = False
+        if isinstance(bw, int) and not isinstance(bw, bool):
+            ok = 1 <= bw <= 120
+        elif isinstance(bw, str):
+            import re as _re
+            m = _re.match(r"^(\d{1,3})([my])$", bw.strip().lower())
+            ok = bool(m) and 1 <= int(m.group(1)) * (12 if m.group(2) == "y" else 1) <= 120
+        if not ok:
+            errs.append(
+                f"{manifest_path}: backfill_window {bw!r} must be months (1-120) "
+                "or a string like '24m' / '2y'")
+
     # 数据期字段（harden-crawl-delivery 3.2）：条目里承载数据期的键名。只支持
     # 顶层键；声明后 runner 会据此记录水位，取不到时降级为 unavailable，不猜路径。
     if (fld := data.get("data_period_field")) is not None:
