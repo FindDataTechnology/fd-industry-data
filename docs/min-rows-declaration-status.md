@@ -481,6 +481,34 @@ samr-food-inspection / sec-edgar-8k-operating / sec-edgar-facts / tpex-monthly-r
 **剩下的都是等**：3.2（一周误报率，盯 `eastmoney-data` 2/2、`eastmoney-futures` 1/1、
 `fangchan-market` 79/79 三个贴边项）、2.3（真跑抽查，写生产库需放行）、7.1b、7.5（生成态不进 git）。
 
+## 裁决（2026-11-09，用户授权"你替我决定"）
+
+| 事项 | 决定 | 理由 |
+|---|---|---|
+| 9 个提交推不推 | **推**，两个远程都推 | 推前实测两边都是纯落后（0 未拉取），快进无冲突。推完复核：`local = github = gitee = cea38b6` |
+| 2.3 手动跑 3 个源 | **不跑** | 要占 3 个身份租约、可能触发反爬；而"真实链路走通"已有四条等价证据（见下）。下一次计划内调度就是这次抽查 |
+| `max_daily_tickets` 调高 | **不动，保持 5** | 每多放一单多一次修复 agent 回合，属花钱的口子 |
+| 7.5 生成态出 git | **不在本次动** | 要改 6 个 workflow 的提交策略，超出一次裁决的合理范围；先留着，每次 sync 合并时机械解决 |
+
+### 2.3 的四条等价证据
+
+1. 新遥测 SQL 对真实库实跑 → 返回 8 列，`limit` 列为空（符合"还没人写过"）
+2. 真实 30 天遥测（3406 条 / 129 源）回放真实代码路径 → 45 个声明源里 **42 个零误报**
+3. 端到端 `main()` 用例 → 证明 `partial` 与 `metrics.accept` 真的会写进运行记录
+4. 两侧读取器在真实文件上 **45/45 同值**
+
+### 推后复核（线上真值，非本地引用）
+
+```
+local  = cea38b6626e4d75420e86316400c8ba214358c03
+github = cea38b6626e4d75420e86316400c8ba214358c03
+gitee  = cea38b6626e4d75420e86316400c8ba214358c03
+```
+
+关键改动逐项在线上确认：`min_rows_per_run` 46 份 manifest、`triage.py` 的 `REACHED`（5 处）、
+`limit is None or run.limit >= floor`（1 处）、退出码修复（1 处）、
+`scripts/min_rows_false_positive_report.py`（存在）。
+
 ## 下一步
 
 ### 还差提交（需要人定一件事）
