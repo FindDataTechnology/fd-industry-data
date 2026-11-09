@@ -68,8 +68,12 @@ law-loader:  akshare 110/140      wbgapi 14/14       flk-law-embed 7/7
              ccdi-supervisory-load 7/7                  ccdi-supervisory-crawl 7/7
 ```
 
-`akshare` 一条就占全库零行的 **55%**（110/201）。先修它和 `wbgapi`，比在行业线
-上做任何事都划算 —— 这也是 3.5 交接单的内容。
+`akshare` 一条就占全库零行的 **55%**（110/201）。
+
+> **但不要据此认为「akshare 坏了」。** 3.5 的取证把它拆开了：这些零行里绝大部分
+> 是**空计划**（`plan_cells=0` → `no_op`）与**重复窗口**（`redundant`，99 次），
+> 以及集群容量导致的 `failed`（55 次）。没有一项的修复在爬虫代码里。
+> 详见 [`docs/law-loader-zero-row-handoff.md`](law-loader-zero-row-handoff.md)。
 
 ## 边界
 
