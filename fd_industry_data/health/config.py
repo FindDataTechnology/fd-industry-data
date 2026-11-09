@@ -68,7 +68,10 @@ class HealthConfig:
     telemetry_sql: str = (
         "SELECT source, status, started_at, COALESCE(rows_written,0), "
         "COALESCE(error_head,''), '', '', "
-        "COALESCE(metrics->>'limit','') "
+        "COALESCE(metrics->>'limit',''), "
+        # 第 9 列：runner 记的水位状态（ok / unavailable / unknown）。空 = 那一轮
+        # 没记（旧镜像或未声明字段），与「记了但不可得」是两件事，不合并。
+        "COALESCE(metrics->'watermark'->>'state','') "
         "FROM crawl_runs WHERE started_at >= now() - interval '30 days' "
         "ORDER BY source, started_at"
     )

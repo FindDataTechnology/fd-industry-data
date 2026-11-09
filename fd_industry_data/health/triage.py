@@ -130,6 +130,9 @@ class Run:
     error: str = ""
     http_status: int | None = None
     watermark: str | None = None
+    # 本轮 runner 记的水位状态（ok/unavailable/unknown）。None = 没记，
+    # 与「记了但不可得」不同：前者不能用来判断声明是否失效。
+    watermark_state: str | None = None
     # 本次运行生效的行数上限（`crawl_runs.metrics.limit`）。None = 未记录，
     # 历史 run 全是 None。它决定了 `rows` 能不能跟"全量应有的行数"比：
     # 用 limit=20 跑出来 20 行，不是低产，是跑满了。

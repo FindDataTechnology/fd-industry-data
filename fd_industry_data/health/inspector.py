@@ -120,7 +120,7 @@ def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql",
         # 第 7 列为可选 watermark（数据水位/最新数据期），第 8 列为本轮生效的
         # 行数上限（`metrics.limit`）。两条都是"运维扩展 SQL 才有的列"：缺列时补空，
         # 语义是"没记录"，绝不能当成 0——0 会意味着"这轮一行都不许写"。
-        cols += [""] * (8 - len(cols))
+        cols += [""] * (9 - len(cols))
         source, status, started_at, rows, error, http_status = cols[:6]
         out.append({
             "source": source.strip(),
@@ -131,6 +131,7 @@ def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql",
             "http_status": int(http_status) if http_status.strip().isdigit() else None,
             "watermark": cols[6].strip() or None,
             "limit": int(cols[7]) if cols[7].strip().isdigit() else None,
+            "watermark_state": cols[8].strip() or None,
         })
     if rejected:
         print(f"fd-health: 丢弃 {rejected} 行非遥测输出（状态列不是 "
@@ -149,6 +150,7 @@ def group_runs(records: list[dict]) -> dict[str, list[triage.Run]]:
             http_status=r.get("http_status"),
             watermark=(str(r["watermark"]) if r.get("watermark") else None),
             limit=(int(r["limit"]) if isinstance(r.get("limit"), int) else None),
+            watermark_state=(str(r["watermark_state"]) if r.get("watermark_state") else None),
         )
         grouped.setdefault(str(r.get("source", "")), []).append(run)
     for runs in grouped.values():
@@ -270,6 +272,8 @@ class Plan:
     # 遥测解析异常（harden-crawl-delivery 2.10）：非遥测行/非 slug 源名不再混进
     # skipped_unknown_period，单独成列。空列表 = 本轮输入干净。
     parse_errors: list[str] = field(default_factory=list)
+    # 拆了声明却取不到字段的源（harden-crawl-delivery 3.4）。空 = 所有声明都可兑现。
+    declaration_mismatches: list[dict] = field(default_factory=list)
     # 影子模式产出（harden-crawl-delivery 1.8）：新新鲜度判据（按各自 cron 数
     # 「应触发但未成功的周期数」）与旧判据并行运行，**只留痕不出单**。
     # 每项形如 {source, cycles, alerting, first_fire, last_fire, note}。
@@ -403,6 +407,48 @@ def reconcile_absent(runs_by_source: dict, repo: Path, config: HealthConfig) -> 
     return absent
 
 
+#: 声明失效判定需要连续多少次「记了但取不到」。三次约等于日频源三天，
+#: 给一次上游换版留出容错；同时要求**每一次都真的记了**，没记的不算。
+DECLARATION_MISMATCH_RUNS = 3
+
+_MISMATCH_STATES = ("unavailable", "unknown")
+
+
+def declaration_mismatches(runs_by_source: dict, repo: Path) -> list[dict]:
+    """Declared ``data_period_field`` that the payload never yields (task 3.4).
+
+    A field declared in the manifest but absent from every item is a promise the
+    code cannot keep: the watermark silently reads "unavailable" forever, which
+    looks the same as "this source has no period". Only runs that actually
+    recorded a watermark state count — a run from an older image (``None``)
+    proves nothing and must not accumulate towards the threshold.
+    """
+    out: list[dict] = []
+    for source, runs in sorted(runs_by_source.items()):
+        manifest = repo / "spiders" / source / "manifest.yaml"
+        if not manifest.is_file():
+            continue
+        try:
+            data = yaml.safe_load(manifest.read_text()) or {}
+        except (yaml.YAMLError, OSError):
+            continue
+        field = data.get("data_period_field")
+        if not isinstance(field, str) or not field.strip():
+            continue
+        observed = [r for r in runs if getattr(r, "watermark_state", None)]
+        if len(observed) < DECLARATION_MISMATCH_RUNS:
+            continue
+        tail = observed[-DECLARATION_MISMATCH_RUNS:]
+        if all(r.watermark_state in _MISMATCH_STATES for r in tail):
+            out.append({
+                "source": source,
+                "field": field.strip(),
+                "runs": len(tail),
+                "states": [r.watermark_state for r in tail],
+            })
+    return out
+
+
 def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config: HealthConfig,
                  now: datetime) -> Plan:
     emit, deferred, healthy, unknown, unregistered = [], [], 0, [], []
@@ -455,10 +501,34 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
             healthy += 1
             continue
         emit.append(Emit(source=source, unit=f"spiders/{source}/", verdict=verdict, runs=runs))
+
+    # 声明失效（3.4）：manifest 声明了水位字段、但连续 N 次运行都记不到。这些运行
+    # 本身是成功的，分诊投票看不见它，所以单独追加一条结构类判词。
+    declared_bad = declaration_mismatches(runs_by_source, repo)
+    for item in declared_bad:
+        source = item["source"]
+        if source in config.excluded_sources:
+            continue
+        emit.append(Emit(
+            source=source,
+            unit=f"spiders/{source}/",
+            verdict=triage.Verdict(
+                category="structure",
+                needs_human=False,
+                suspected_anti_bot=False,
+                suggested_action=(f"核对条目键名或更新 data_period_field"
+                                  f"（当前声明 {item['field']!r}）"),
+                rule_trace=(f"declare:field-mismatch field={item['field']!r} "
+                            f"states={item['states']} runs={item['runs']}"),
+            ),
+            runs=runs_by_source.get(source) or [],
+        ))
+
     return Plan(emit=emit, deferred=deferred, healthy=healthy,
                 skipped_unknown_period=unknown, absent=absent, unregistered=unregistered,
                 blocked_config=blocked_config,
                 freshness_shadow=shadow_freshness(runs_by_source, repo, now),
+                declaration_mismatches=declared_bad,
                 parse_errors=plan_parse_errors)
 
 
@@ -711,6 +781,7 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
             "absent_sources": plan.absent,
             # 影子模式（1.8）：新判据的逐源结果只落在这里，不进工单队列。
             "parse_errors": plan.parse_errors,
+            "declaration_mismatches": plan.declaration_mismatches,
             "freshness_shadow": plan.freshness_shadow,
             "freshness_shadow_alerting": [e["source"] for e in plan.freshness_shadow
                                           if e.get("alerting")]}
