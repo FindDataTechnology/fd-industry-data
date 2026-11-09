@@ -5,6 +5,7 @@ source_url: https://quickstats.nass.usda.gov/api/
 # site: tencent              # 缺省 tencent；本单元只访问 quickstats.nass.usda.gov 官方 API，无需换执行位
 schedule: "2 6 * * 3"       # 点亮（批次二 Wave B）：weekly
 data_period: month
+min_rows_per_run: 6    # runs=8 p10=12 p50=12; p10=12，取半档 — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
@@ -105,3 +106,6 @@ entities:
     coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+# 接入声明（change: define-ingest-revision-and-coverage, decision 4A）
+revision_policy: overwrite_with_history
+coverage_capability: gaps_only

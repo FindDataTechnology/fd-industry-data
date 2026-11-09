@@ -5,6 +5,7 @@ source_url: https://waterservices.usgs.gov/nwis/dv/
 # site: tencent              # 缺省 tencent；本单元只访问 waterservices.usgs.gov 公开 REST，无需换执行位
 schedule: "40 8 * * *"  # 点亮（批次二）：08:40 取水文站点日值
 data_period: day
+min_rows_per_run: 20    # runs=34 p10=100 p50=100; p50=limit 截断型，取上限 20% — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
@@ -59,3 +60,6 @@ entities:
     coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+# 接入声明（change: define-ingest-revision-and-coverage, decision 4A）
+revision_policy: overwrite_with_history
+coverage_capability: gaps_only

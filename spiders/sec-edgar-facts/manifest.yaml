@@ -9,6 +9,7 @@ source_url: https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json
 #
 # schedule: 故意不写 —— 生成流要求先静默合入、试跑通过后再点亮。
 data_period: irregular        # 季度源：事实面为 10-Q/10-K 期间（约 91 天），事件面 filing 不规则；data_period 词表无 quarter，
+min_rows_per_run: 150    # runs=5 p10=748 p50=835; p10=748，分页累加、非 100 截断，取 20% — 见 docs/min-rows-coverage-baseline.md §3
                               # 而 month(35d 容忍窗) 会在两个季度窗之间假超期、year(370d) 过宽 —— 故按 irregular 登记，
                               # 断档由 series_state 的 gap_in_series 兜底（同既有季度源先例）
 scanner_mode: upstream-curated
@@ -113,3 +114,6 @@ entities:
     coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+# 接入声明（change: define-ingest-revision-and-coverage, decision 4A）
+revision_policy: overwrite_with_history
+coverage_capability: gaps_only

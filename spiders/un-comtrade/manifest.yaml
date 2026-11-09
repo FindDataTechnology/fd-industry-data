@@ -6,6 +6,7 @@ source_url: https://comtradeapi.un.org/
 # schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
 schedule: "52 4 30 * *"       # 点亮（批次二 Wave B）：monthly
 data_period: irregular
+min_rows_per_run: 2    # runs=15 p10=4 p50=5; p10=4，取半档 — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
@@ -120,3 +121,6 @@ entities:
     coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+# 接入声明（change: define-ingest-revision-and-coverage, decision 4A）
+revision_policy: overwrite_with_history
+coverage_capability: gaps_only

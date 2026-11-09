@@ -4,6 +4,7 @@ label: Steam concurrent players (CCU) + review aggregates for seed titles
 source_url: "https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/ (reviews: https://store.steampowered.com/appreviews/)"
 schedule: "56 7 * * *"       # 点亮（批次二 Wave C，经 fx01 出口）：daily
 data_period: day
+min_rows_per_run: 5    # runs=16 p10=11 p50=12; p10=11，取约半档 — 见 docs/min-rows-coverage-baseline.md §3
 egress_secret: fd-industry-egress-fx01
 # site: 未写——api/store.steampowered.com 被墙，**需代理出口**；集群 runner 代理注入就绪前不点亮（静默合入）
 # schedule: 未写——同上，代理注入后由人工门点亮
@@ -67,3 +68,6 @@ entities:
     coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+# 接入声明（change: define-ingest-revision-and-coverage, decision 4A）
+revision_policy: overwrite_with_history
+coverage_capability: gaps_only

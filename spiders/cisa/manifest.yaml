@@ -6,6 +6,7 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "29 1 5,15,25 * *"
 data_period: month
+min_rows_per_run: 25    # runs=6 p10=60 p50=100; p10=60，取 25 — 见 docs/min-rows-coverage-baseline.md §3
 functions:
   - command: run_cisa
     description: "fd-runner 唯一入口（并入两通道）：chinaisa.org.cn 门户为主（旬报/周价格/统计发布），legacy cisa.org.cn 通道异常自动吞掉记 warning"
@@ -79,3 +80,6 @@ entities:
     coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+# 接入声明（change: define-ingest-revision-and-coverage, decision 4A）
+revision_policy: overwrite_with_history
+coverage_capability: gaps_only
