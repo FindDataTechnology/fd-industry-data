@@ -151,6 +151,16 @@ def validate(manifest_path: Path) -> list[str]:
     if (tz := data.get("schedule_tz")) is not None and (e := _check_timezone(tz)):
         errs.append(f"{manifest_path}: {e}")
 
+    # 数据期字段（harden-crawl-delivery 3.2）：条目里承载数据期的键名。只支持
+    # 顶层键；声明后 runner 会据此记录水位，取不到时降级为 unavailable，不猜路径。
+    if (fld := data.get("data_period_field")) is not None:
+        if not isinstance(fld, str) or not fld.strip():
+            errs.append(f"{manifest_path}: data_period_field must be a non-empty key name")
+        elif "." in fld:
+            errs.append(
+                f"{manifest_path}: data_period_field {fld!r} must be a top-level key "
+                "(nested paths are not supported)")
+
     # 运行配置依赖（harden-crawl-delivery 2.5）：只写名字，不写值。缺失时 runner
     # 预检判 blocked-config，不取数、不进失败率。
     if (req := data.get("requires_env")) is not None:

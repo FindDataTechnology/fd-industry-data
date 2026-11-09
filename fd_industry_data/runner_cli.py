@@ -45,6 +45,7 @@ import traceback
 from datetime import datetime
 
 from . import cancel_event
+from .health import watermark
 from .writer import cancel_requested, finish_run, open_run_for, report_run, start_run
 
 EXIT_OK = 0
@@ -53,6 +54,21 @@ EXIT_ADAPTER_ERROR = 3
 EXIT_NO_ENTRY = 4
 EXIT_BLOCKED_CONFIG = 5
 _EXIT_SKIPPED = 0  # single-flight skip is a successful no-op for the caller
+
+
+def _manifest_field(src: str, content_dir: str, key: str) -> str | None:
+    """Read one optional scalar field from the unit's manifest, if present."""
+    manifest = Path(content_dir) / src / "manifest.yaml"
+    if not manifest.is_file():
+        return None
+    try:
+        import yaml
+
+        data = yaml.safe_load(manifest.read_text()) or {}
+    except Exception:  # noqa: BLE001 - a broken manifest must not block the run
+        return None
+    value = data.get(key) if isinstance(data, dict) else None
+    return value.strip() if isinstance(value, str) and value.strip() else None
 
 
 def missing_required_env(src: str, content_dir: str) -> list[str]:
@@ -650,6 +666,21 @@ def main(argv: list[str] | None = None) -> int:
     # threshold look wrong when it isn't. Recording the effective limit is the
     # enabling step for that comparison — no schema change, same jsonb.
     metrics = {**(metrics or {}), "limit": args.limit}
+
+    # 数据期水位（harden-crawl-delivery 3.2）：行数会骗人——每天重写同一旧期的源
+    # 行数漂亮、水位不动。字段名逐源声明（data_period_field），不猜通用键；
+    # 声明了但取不到/不可归一，如实记 unavailable/unknown，不当作「没新数据」。
+    data_period_field = _manifest_field(src, content_dir, "data_period_field")
+    if data_period_field:
+        wm = watermark.max_period(items, data_period_field)
+        metrics = {**(metrics or {}), "watermark": {
+            "state": wm["state"],
+            "field": data_period_field,
+            "period": wm["period"].canonical if wm.get("period") else None,
+            "granularity": wm["period"].granularity if wm.get("period") else None,
+            "seen": wm.get("seen", 0),
+            **({"reason": wm["reason"]} if wm.get("reason") else {}),
+        }}
 
     if accept_failures is not None:
         metrics = {**(metrics or {}), "accept": accept_failures}
