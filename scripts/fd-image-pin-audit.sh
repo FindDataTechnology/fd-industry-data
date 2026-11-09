@@ -59,6 +59,16 @@ while IFS='|' read -r ctx ns kind name sus im; do
   fi
 done < "$TMP"
 
+# 空跑必须响。2026-11-09 实测：在 cheap3 上跑出 `missing=0 checked=0`——那台机的
+# 唯一 context 指向 127.0.0.1:6443（拒绝连接），一个负载都没扫到。这是最坏的一种
+# 绿灯：审计什么都没验，却和"全部可拉"长得一模一样（同类教训见「验证必须对准坏的
+# 那个本身」）。
+if [ "$CHECKED" -eq 0 ]; then
+  echo "AUDIT_EMPTY checked=0 —— 没扫到任何 ccr/100.64 镜像，本次审计不成立" >&2
+  echo "  查：kubectl --context <ctx> get cronjobs -A 是否可读；FD_AUDIT_CONTEXTS 是否配错；本机 kubeconfig 是否缺失" >&2
+  exit 2
+fi
+
 echo "AUDIT_DONE missing=$MISSING checked=$CHECKED"
 [ "$MISSING" -gt 0 ] && exit 1
 exit 0
