@@ -6,6 +6,7 @@ source_url: https://web-api.tp.entsoe.eu/api
 # schedule 留空：静默合入（批次二 Wave B 收尾直建），点亮排期由人工门统一补
 schedule: "2 4 * * *"       # 点亮（批次二 Wave B，daily；全仓 60 天窗口零重叠实证）
 data_period: day
+data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 requires_env: ["ENTSOE_SECURITY_TOKEN"]   # 缺失时 runner 预检记 blocked-config，不取数、不进失败率（harden-crawl-delivery 2.5）
 min_rows_per_run: 20    # runs=25 p10=100 p50=100; p50=limit 截断型，取上限 20% — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated

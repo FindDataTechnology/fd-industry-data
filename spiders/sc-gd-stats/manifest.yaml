@@ -6,6 +6,7 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "47 2 19 * *"
 data_period: month
+data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 functions:
   - command: run_sc_gd_stats
     description: Fetch the latest monthly key economic indicator tables from Sichuan and Guangdong provincial statistics bureaus (one row per indicator)

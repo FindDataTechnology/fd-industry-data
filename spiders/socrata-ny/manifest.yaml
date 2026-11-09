@@ -5,6 +5,7 @@ source_url: https://data.ny.gov/d/k7gz-mn77
 egress_secret: fd-industry-egress-fx01       # 需代理出口：data.ny.gov 从 tencent 站点直连被 Socrata 边缘 403
 schedule: "3 5 * * 2"       # 周频（数据周一更新，README 记 2026-10-06）；socrata-cadence-alignment 修正：原 "3 5 * * *" 每日触发，对周频数据每周浪费 ~6 次代理请求
 data_period: month
+data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 min_rows_per_run: 20    # runs=9 p10=100 p50=100; p50=limit 截断型，取上限 20% — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]

@@ -5,6 +5,7 @@ source_url: https://data-explorer.oecd.org/ (dataflow OECD.SDD.STES:DSD_STES@DF_
 # site: tencent              # 缺省 tencent；本单元只访问 sdmx.oecd.org 公开 SDMX REST，无需换执行位
 schedule: "24 3 16 * *" # 点亮（批次二）：每月 16 日 03:24；OECD CLI 月中发布
 data_period: month
+data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

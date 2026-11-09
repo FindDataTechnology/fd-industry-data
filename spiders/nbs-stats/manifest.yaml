@@ -1,6 +1,7 @@
 name: nbs-stats
 schedule: "11 4 4,14,24 * *"
 data_period: month
+data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 label: 国家统计局综合数据
 source_url: https://www.stats.gov.cn/
 data_url: https://data.stats.gov.cn/

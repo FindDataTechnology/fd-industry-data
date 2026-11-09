@@ -5,6 +5,7 @@ source_url: http://www.cninfo.com.cn/new/hisAnnouncement/query
 # site: tencent                # 缺省 tencent；只访问 www.cninfo.com.cn 与 *.eastmoney.com 公开 JSON，无需换执行位
 schedule: "58 7 8 * *"       # 点亮（批次四）：每月 8 日 07:58；上市公司月度经营数据多在次月 10 日前披露完毕
 data_period: month
+data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

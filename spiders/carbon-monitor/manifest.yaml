@@ -6,6 +6,7 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "37 4 * * *"
 data_period: day
+data_period_field: date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 min_rows_per_run: 20    # runs=39 p10=100 p50=100; p50=limit 截断型，取上限 20% — 见 docs/min-rows-coverage-baseline.md §3
 memory_limit: "512Mi"
 functions:

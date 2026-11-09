@@ -8,6 +8,7 @@ source_url: https://www.sse.com.cn/market/othersdata/margin/sum/   # SSE 落地�
 #   （11-09 10:50Z 运行取得上一交易日 2026-11-06，与下行「T+1 时滞容忍」一致），故只改注释、不动槽位。
 schedule: "50 18 * * 1-5"   # 两融余额日频，交易日夜间更新（含 T+1 时滞容忍）
 data_period: day
+data_period_field: trade_date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

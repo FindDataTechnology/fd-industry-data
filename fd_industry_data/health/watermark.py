@@ -31,6 +31,9 @@ from datetime import date, datetime
 # 不是「健康」。
 _CADENCE = {"day": "day", "month": "month", "year": "year"}
 
+#: 粒度由细到粗。水位粒度比周期粗时不可比：年值代表 12-31，在月频下永远"未来"。
+_RANK = {"day": 0, "week": 1, "month": 2, "year": 3}
+
 _YEAR_RE = re.compile(r"^(\d{4})$")
 _MONTH_RE = re.compile(r"^(\d{4})-(\d{2})$")
 _DAY_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$")
@@ -139,10 +142,16 @@ def periods_behind(period: Period, data_period: str | None, today: date) -> floa
     """How many expected publish periods have elapsed since ``period`` ended.
 
     ``None`` when there is no cadence (``irregular`` / unknown ``data_period``):
-    "cannot judge" must not look like "0 periods behind".
+    "cannot judge" must not look like "0 periods behind". Also ``None`` when the
+    watermark is **coarser** than the cadence — a year-only watermark under a
+    monthly cadence represents Dec 31 of that year, which is always in the
+    future, so it would report 0 behind forever (measured on `amis-market`:
+    `year` field + `data_period: month` → "advance", which is false).
     """
     cadence = _CADENCE.get(str(data_period or "").strip().lower())
     if cadence is None:
+        return None
+    if _RANK[period.granularity] > _RANK[cadence]:
         return None
     days = period.days_behind(today)
     if days < 0:
@@ -163,9 +172,14 @@ def judge(watermark: dict, data_period: str | None, today: date) -> dict:
     period: Period = watermark["period"]
     behind = periods_behind(period, data_period, today)
     if behind is None:
+        cadence = _CADENCE.get(str(data_period or "").strip().lower())
+        reason = (f"watermark granularity {period.granularity!r} is coarser than "
+                  f"cadence {cadence!r}; staleness cannot be judged"
+                  if cadence and _RANK[period.granularity] > _RANK[cadence]
+                  else f"data_period {data_period!r} has no cadence")
         return {"state": "unavailable", "periods_behind": None,
                 "period": period.canonical, "granularity": period.granularity,
-                "reason": f"data_period {data_period!r} has no cadence"}
+                "reason": reason}
     stalled = behind >= ALERT_AFTER_PERIODS
     return {
         "state": "stall" if stalled else "advance",

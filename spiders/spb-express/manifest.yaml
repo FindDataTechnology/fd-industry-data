@@ -6,6 +6,7 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "3 3 18 * *"
 data_period: month
+data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 functions:
   - command: run_spb_express
     description: Fetch monthly express-industry operating stats (volume, revenue, CR8) and China Express Development Index releases from spb.gov.cn

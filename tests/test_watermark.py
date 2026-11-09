@@ -86,6 +86,38 @@ def test_future_period_is_not_negative():
     assert judge(wm, "day", TODAY)["periods_behind"] == 0.0
 
 
+def test_coarser_watermark_cannot_judge_staleness():
+    """年值 + 月频 = 永远「落后 0」的假健康。
+
+    实测 amis-market：`year` 字段只有年份，data_period=month；年值代表 12-31，
+    在月频下恒在未来，若不守粒度就会一直报 advance。
+    """
+    wm = max_period([{"year": "2024"}, {"year": "2026"}], "year")
+    out = judge(wm, "month", TODAY)
+    assert out["state"] == "unavailable"
+    assert "coarser" in out["reason"]
+
+
+def test_one_period_behind_is_only_a_trace():
+    """9 月数据在 11 月 = 只欠一期（10 月）→ 未达 2 期阈值，判 advance。"""
+    wm = max_period([{"month": "2026-09"}], "month")
+    out = judge(wm, "month", TODAY)
+    assert out["state"] == "advance"
+    assert 1.0 <= out["periods_behind"] < 2.0
+
+
+def test_same_granularity_still_judges():
+    wm = max_period([{"month": "2026-07"}], "month")
+    assert judge(wm, "month", TODAY)["state"] == "stall"
+
+
+def test_finer_watermark_is_fine_under_coarser_cadence():
+    """日粒度水位 + 月频周期：可比（日水位比月周期细）。"""
+    wm = max_period([{"d": "2026-11-09"}], "d")
+    out = judge(wm, "month", TODAY)
+    assert out["state"] == "advance"
+
+
 def test_dotted_field_path_is_not_silently_treated_as_flat():
     """只支持顶层键；路径写错应落到 unavailable（取不到），不猜。"""
     wm = max_period([{"raw": {"period": "2026-10"}}], "raw.period")

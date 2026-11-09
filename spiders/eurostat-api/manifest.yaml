@@ -6,6 +6,7 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "43 3 20 * *"
 data_period: month
+data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 min_rows_per_run: 10    # runs=10 p10=18 p50=100; p10=18，取 10 留出波动余量 — 见 docs/min-rows-coverage-baseline.md §3
 functions:
   - command: run_eurostat_api

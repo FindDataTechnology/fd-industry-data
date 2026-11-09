@@ -5,6 +5,7 @@ source_url: https://www.jfnet.or.jp/industry_report/
 # site: tencent              # 缺省 tencent；本单元只访问 www.jfnet.or.jp 公开索引页与 Excel，无需换执行位
 schedule: "12 7 8 * *"       # 每月 8 日 07:12（UTC+8）；JF 月次报告在次月月初上传（2026-09 版落在 uploads/2026/10），8 日取最新已发布版，13 个月滚动窗足以覆盖上月
 data_period: month
+data_period_field: month   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

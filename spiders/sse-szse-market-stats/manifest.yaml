@@ -8,6 +8,7 @@ source_url: https://www.szse.cn/market/stock/situation/daily/index.html
 #   （11-09 12:50Z 运行取到 trade_date=2026-11-09 当日），故只改注释、不动槽位。
 schedule: "50 20 * * 1-5"   # 市场每日概况（成交/估值汇总）日频
 data_period: day
+data_period_field: trade_date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

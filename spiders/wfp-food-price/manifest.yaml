@@ -9,6 +9,7 @@ source_url: https://data.humdata.org/dataset/global-wfp-food-prices
 authority: intergovernmental
 # 不写 schedule：先静默合入（点亮时才补 cron）
 data_period: month
+data_period_field: month   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

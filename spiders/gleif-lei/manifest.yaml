@@ -5,6 +5,7 @@ source_url: https://www.gleif.org/
 # site: tencent              # 缺省 tencent；本单元只访问 api.gleif.org 公开 REST，无需换执行位
 schedule: "16 2 11 * *" # 点亮（批次二）：每月 11 日 02:16；GLEIF 月度文件中旬可得
 data_period: month
+data_period_field: month   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

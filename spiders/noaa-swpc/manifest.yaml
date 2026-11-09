@@ -6,6 +6,7 @@ source_url: https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json
 # schedule 留空：静默合入（批次三直建），点亮排期由人工门统一补
 schedule: "17 5 * * *"       # 点亮（批次三，daily）
 data_period: day
+data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 min_rows_per_run: 4    # runs=33 p10=8 p50=8; p10=8，取半档（目录名为 noaa-swpc） — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]

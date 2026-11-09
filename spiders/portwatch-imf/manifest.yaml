@@ -6,6 +6,7 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "41 1 * * *"
 data_period: day
+data_period_field: date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 functions:
   - command: run_portwatch_imf
     description: Fetch the latest available day of IMF PortWatch daily maritime flow records from the ArcGIS FeatureServer — per-port port calls and import/export tonnes (Daily_Ports_Data) plus per-chokepoint transit counts and transiting tonnes (Daily_Chokepoints_Data)

@@ -10,6 +10,7 @@ source_url: http://www.sse.com.cn/services/hkexsc/hgtscsj/hgtcjgk/
 #   （nmc-weather / eia-v2 每小时）的窗口相交不可避免，不构成冲突。
 schedule: "50 19 * * 1-5"   # 北向成交概况日频（净买入已停披露，总额口径）
 data_period: day
+data_period_field: trade_date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

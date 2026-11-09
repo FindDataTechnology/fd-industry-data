@@ -6,6 +6,7 @@ source_url: https://api.eia.gov/v2/electricity/rto/region-data/data/
 # 未写 schedule —— keyed 源静默合入，点亮留给人工门
 schedule: "0 * * * *"       # 点亮（批次二 Wave B）：hourly
 data_period: day
+data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 requires_env: ["EIA_API_KEY"]   # 缺失时 runner 预检记 blocked-config，不取数、不进失败率（harden-crawl-delivery 2.5）
 min_rows_per_run: 20    # runs=703 p10=100 p50=100; p50=limit 截断型，取上限 20% — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated

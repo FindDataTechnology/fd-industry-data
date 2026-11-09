@@ -7,6 +7,7 @@ source_url: https://www.dce.com.cn
 # 交易日 17:20 抓当日收盘+结算（结算价日终生成后）
 schedule: "20 17 * * 1-5"
 data_period: day
+data_period_field: date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated
 ranking_seed:
 - 0.5
