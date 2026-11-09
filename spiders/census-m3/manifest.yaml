@@ -6,6 +6,7 @@ egress_secret: fd-industry-egress-fx01
 # site: tencent              # 缺省 tencent；本单元只访问 api.census.gov 公开 REST，无需换执行位
 schedule: "48 4 29 * *"       # 点亮（批次二 Wave B，经 fx01 出口）
 data_period: irregular
+requires_env: ["CENSUS_API_KEY"]   # 缺失时 runner 预检记 blocked-config，不取数、不进失败率（harden-crawl-delivery 2.5）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

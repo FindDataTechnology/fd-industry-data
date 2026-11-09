@@ -6,6 +6,7 @@ source_url: https://openchargemap.org/
 # schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
 schedule: "54 6 * * 3"       # 点亮（批次二 Wave B）：weekly
 data_period: month
+requires_env: ["OCM_API_KEY"]   # 缺失时 runner 预检记 blocked-config，不取数、不进失败率（harden-crawl-delivery 2.5）
 min_rows_per_run: 20    # runs=5 p10=100 p50=100; p50=limit 截断型，取上限 20% — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]

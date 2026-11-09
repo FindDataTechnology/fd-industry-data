@@ -6,6 +6,7 @@ source_url: https://api.ember-energy.org/v1/electricity-generation/monthly
 # 未写 schedule —— keyed 源静默合入，点亮留给人工门
 schedule: "1 4 29 * *"       # 点亮（批次二 Wave B）：monthly
 data_period: irregular
+requires_env: ["EMBER_API_KEY"]   # 缺失时 runner 预检记 blocked-config，不取数、不进失败率（harden-crawl-delivery 2.5）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

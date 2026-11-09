@@ -6,6 +6,7 @@ source_url: https://www.e-stat.go.jp/
 # schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
 schedule: "53 4 31 * *"       # 点亮（批次二 Wave B）：monthly
 data_period: irregular
+requires_env: ["ESTAT_APP_ID"]   # 缺失时 runner 预检记 blocked-config，不取数、不进失败率（harden-crawl-delivery 2.5）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
