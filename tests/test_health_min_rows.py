@@ -196,3 +196,33 @@ def test_running_is_valid_telemetry_but_never_judged():
     v = triage.classify("src", "spiders/src/", DAY, runs, NOW)
     assert v.category is None
     assert "last_success_age=30.00h" in v.rule_trace, "running 不该顶替 last_success"
+
+
+def test_boundary_rows_equal_to_floor_is_healthy():
+    """等于下限不算低产——判据是"低于"，不是"不高于"。"""
+    v = triage.classify("src", "spiders/src/", DAY, [_run(2, rows=25)], NOW,
+                        min_rows_per_run=25)
+    assert v.category is None
+
+
+def test_boundary_rows_one_below_floor_tickets():
+    v = triage.classify("src", "spiders/src/", DAY, [_run(2, rows=24)], NOW,
+                        min_rows_per_run=25)
+    assert v.category == "structure"
+
+
+def test_zero_floor_is_not_a_declaration():
+    """floor=0 不生效：0 行对某些源合法，声明 0 等于没声明。"""
+    v = triage.classify("src", "spiders/src/", DAY, [_run(2, rows=0)], NOW,
+                        min_rows_per_run=0)
+    assert v.category is None
+
+
+def test_missing_row_count_is_defensive_not_reachable_today():
+    """rows=None 在现行链路上不可达（telemetry_sql 已 COALESCE(rows_written,0)，
+    实测 90 天 4693 条成功记录 NULL 数为 0）。triage 里按 0 处理只是防御，
+    这里钉住它的行为，免得将来有人误以为 None 会"跳过判定"。
+    """
+    v = triage.classify("src", "spiders/src/", DAY, [_run(2, rows=None)], NOW,
+                        min_rows_per_run=25)
+    assert v.category == "structure", "None 被当 0 判；若将来要改语义，先改这条测试"
