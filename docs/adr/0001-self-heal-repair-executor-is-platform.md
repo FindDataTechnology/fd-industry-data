@@ -5,10 +5,14 @@ spider-self-heal-l2 的修复执行体不做一次性脚本：按萬星 agents �
 最终接口（2026-10-03 v2 实跑验收后回传固化，契约全文=paas `docs/spider-heal-pack.md`）：
 
 - pack `KkCie7NlrHluo4LiKPnn0w` · agent `spider-heal` · fd-prod（runner cheap1）
-- 调用：`POST https://platform.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal`，Bearer 调用键（允许清单制）
+- 调用：`POST https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal`，Bearer 调用键（允许清单制）
+  - ⚠ 主机名是**独立门面** `wanxing.finddatatech.cloud`（unify-wanxing-a2a-face 4.x 起）。旧的
+    `platform.finddatatech.cloud/api/wanxing/...` 挂载已摘除，打到那里只会被平台 auth 闸拦成
+    `401 {"error":"Authentication required"}`——**与密钥无关**；2026-11-09 实测：当时误判为密钥问题，
+    换到门面主机后立刻变成文档化的 `403 CALLER_NOT_AUTHORIZED`，补允许清单即通
 - 协议：`SUBMIT <repo> <ticket>` / `STATUS <ticket>` / `QUEUE`；SUBMIT 秒级回执（入队/已见过/拒绝），inbox 去重+门面幂等键双层；回合预算 20 分钟硬停转人工
 - 节奏：30 分钟自巡检队列 + 外部 SUBMIT 立即入队
-- 工单契约：category 枚举 network/structure/contract/source-dead/fallback + verify 验证链命令声明 + golden 路径
+- 工单契约：category 枚举 network/source-revision/structure/contract/source-dead/fallback + verify 验证链命令声明 + golden 路径
 - 凭据：git PAT 已绑定（secret `git_pat`，仅推分支；平台存 ws_ 引用，日志尾四位）
 - 已验证：真回合 110s、重放幂等单笔计费、STATUS 跨回合读盘、GitHub 出海（cheap1）
 

@@ -1126,9 +1126,12 @@ def cmd_escalate(args, cfg: dict, dry_run: bool) -> dict:
                        REPO / "reports/restaurant-alerts" / _today().isoformat() / "health-drill/tickets")
     tickets = _load_tickets(tickets_dir)
     key = os.environ.get("WANXING_SPIDER_HEAL_KEY", "")
+    # 门面主机 = wanxing.finddatatech.cloud（unify-wanxing-a2a-face 4.x 后，
+    # platform.finddatatech.cloud 上的 /api/wanxing 挂载已摘除；打到旧主机只会被平台
+    # auth 闸拦成 401 "Authentication required"，与密钥无关——2026-11-09 实测）
     url = os.environ.get(
         "WANXING_SPIDER_HEAL_URL",
-        "https://platform.finddatatech.cloud/api/wanxing/v1/a2a/"
+        "https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/"
         "packs-kkcie7nlrhluo4likpnn0w-spider-heal",
     )
     repo_slug = os.environ.get("FD_HEALTH_REPO_SLUG", "FindDataTechnology/fd-industry-data")

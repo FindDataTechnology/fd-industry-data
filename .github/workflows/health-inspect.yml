@@ -106,7 +106,7 @@ jobs:
         env:
           FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
           WANXING_SPIDER_HEAL_KEY: ${{ secrets.WANXING_SPIDER_HEAL_KEY }}
-          WANXING_SPIDER_HEAL_URL: ${{ vars.WANXING_SPIDER_HEAL_URL || 'https://platform.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal' }}
+          WANXING_SPIDER_HEAL_URL: ${{ vars.WANXING_SPIDER_HEAL_URL || 'https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal' }}
           # 巡检范围收敛（add-fleet-lifecycle-adjudication 1.3）：vars.FD_HEALTH_CONFIG
           # 未配置时回落仓内 scope 文件——跨仓特殊 Job（law 线/适配器/observer）不属
           # 本巡检判定范围，其遥测走 report_special_run/federation-observer 面
@@ -145,7 +145,7 @@ jobs:
         env:
           FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
           WANXING_SPIDER_HEAL_KEY: ${{ secrets.WANXING_SPIDER_HEAL_KEY }}
-          WANXING_SPIDER_HEAL_URL: ${{ vars.WANXING_SPIDER_HEAL_URL || 'https://platform.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal' }}
+          WANXING_SPIDER_HEAL_URL: ${{ vars.WANXING_SPIDER_HEAL_URL || 'https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal' }}
           FD_HEALTH_CONFIG: ${{ vars.FD_HEALTH_CONFIG || 'config/health-scope.json' }}
         run: |
           ARGS=""
