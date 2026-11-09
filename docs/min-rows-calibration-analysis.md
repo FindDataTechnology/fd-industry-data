@@ -115,6 +115,24 @@
 原任务 8.2 写的是"按 ε=1% 重算"。修正为：**按样本能力分两类算，并在注释里标明类别**；
 同时给 `n<30` 的源记一个"待样本增长后重估"的标记（一个月量级后多数会到 30+）。
 
+### 已经落地的 38 个注释里，14 个的统计效力是空的
+
+按同一把尺子回看现有注释（不是假设，是逐个对的）：
+
+| 判定 | 数量 | 说明 |
+|---|---|---|
+| 注释以 `p10=` 为依据，但 `n < 15` | **14** | `n=5` 时 p10 就是最小值；写"p10=52"没错，但它暗示的统计效力不存在 |
+| 注释以"撞上限取 20%"为依据 | 9 | 这条不依赖分位数，**不受影响** |
+| 注释以 `p10=` 为依据且 `n ≥ 15` | 15 | 尚可，`n≥30` 的才真站得住 |
+
+14 个的名单：`sec-edgar-facts`(5)、`jodi-gas`(5)、`moa-hog-price`(6)、`boxofficemojo`(6)、
+`cisa`(6)、`fao-empres`(6)、`mohurd-yearbook`(7)、`imf-pcps`(7)、`gb-standards`(7)、
+`chinawuliu-logistics`(7)、`usda-quickstats`(8)、`hkex-disclosure`(9)、
+`fao-food-price`(10)、`eurostat-api`(10)。
+
+这些注释**没有说谎**（p10 确实按公式算出来了），但它让人以为"有 10% 的分位依据"，
+而实际上那只是 5–10 个样本里的次小值。8.2 重写时这批必须换成"取观测最小值"的措辞。
+
 ## 三个直接结论
 
 1. **B 桶 7 个源必须撤掉声明**（`cninfo-operating` 17%、`portwatch-imf` 15%、`nbs-stats` 10%、`cpcaauto-monthly`/`eastmoney-futures`/`eastmoney-data`/`fangchan-market` 2–3%）。我在 `declare-health-min-rows` 里按 p10 给它们声明了下限，这在结构上必然误报。
