@@ -214,6 +214,22 @@ python3 scripts/health_new_generation_ticket.py --slug nmc-weather \
 新增健康级缺口（排期在册却整窗零运行、跨源缺席对账）见 `inspector.reconcile_absent()` 与
 `absent_source_policy`（默认 `report` = 零回归）。
 
+### 巡检摘要 `last-run.json` 的字段契约（2026-11-09 扩充）
+
+下游读者（`scripts/alert_selfcheck.py`、人）只看几项，扩字段是安全的，但要知道现在有哪些：
+
+| 字段 | 含义 |
+|---|---|
+| `healthy` / `written` / `deferred` | 判健康数 / 本轮落单 / 顺延 |
+| `deferred[]` | 每条含 `source`、`reason`、**`category`、`rule`**（2026-11-09 加：只记 `source+reason` 时"顺延 7 个"看不出严重程度，上限挡住的东西等于不可见） |
+| `skipped_unknown_period` | 有 manifest 但定不出周期的源（**不含**没 manifest 的） |
+| `unregistered_sources` | **有运行记录、但本仓没有 manifest、也不在 `excluded_sources`** 的源（2026-11-09 加，原先混在 `skipped_unknown_period` 里静默跳过） |
+| `absent_sources` | 在册但遥测窗内零运行 |
+| `master_switch` / `config_source` / `at` / `source` | 总闸、配置来源、时间、读取方式 |
+
+`alert_selfcheck.py` 只读 `submit[]`（整批 401/403 才是"链断了"），不看 `deferred`，
+所以上面两次扩字段没有改变它的判断。
+
 ### 巡检面 ≠ 交付面（2026-11-09 实测，务必记住）
 
 巡检每晚 `git clone --depth=1` **GitHub** 的 `main`（`36d5836`，127 个 `spiders/` 目录）；
