@@ -1,7 +1,6 @@
 name: nbs-stats
 schedule: "11 4 4,14,24 * *"
 data_period: month
-min_rows_per_run: 18    # runs=10 p10=18 p50=100; B 桶：p10=18，取 18 — 见 docs/min-rows-coverage-baseline.md §3
 label: 国家统计局综合数据
 source_url: https://www.stats.gov.cn/
 data_url: https://data.stats.gov.cn/

@@ -3,7 +3,11 @@ name: hsgt-northbound                  # = spiders/hsgt-northbound/ 目录名，
 label: 沪深港通北向资金（沪深股通每日成交概况，交易所官方口径）
 source_url: http://www.sse.com.cn/services/hkexsc/hgtscsj/hgtcjgk/
 # site: tencent 缺省——SSE/SZSE 官方端点直连实测可达（2026-11-07，见 README 证据表），无需代理出口
-# schedule: 点亮（add-securities-industry-line 3.6）：19:50 UTC 错峰（与既有 82 条调度零重叠）
+# schedule: 点亮（add-securities-industry-line 3.6）。cron 按集群本地时区解释 → 实际 19:50 CST（11:50Z）。
+#   **2026-11-09 订正**：原注释写「19:50 UTC」，与执行不符（CronJob 未声明 timeZone 时按控制器本地 CST）。
+#   实测该时点数据正常：11-09 11:50Z 运行取到 trade_date=2026-11-09（当日），故只改注释、不动槽位。
+#   另：原「与既有 82 条调度零重叠」指同分钟起始（duplicates=0）；与整点高频源
+#   （nmc-weather / eia-v2 每小时）的窗口相交不可避免，不构成冲突。
 schedule: "50 19 * * 1-5"   # 北向成交概况日频（净买入已停披露，总额口径）
 data_period: day
 scanner_mode: upstream-curated

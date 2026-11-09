@@ -1,6 +1,5 @@
 schedule: "35 4 * * *"
 data_period: day
-min_rows_per_run: 2    # runs=59 p10=2 p50=2; B 桶：p10=2，取 2 — 见 docs/min-rows-coverage-baseline.md §3
 site: xinru-server2
 # fd-open-data-protocol compliant manifest
 

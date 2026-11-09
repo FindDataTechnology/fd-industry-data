@@ -1,0 +1,52 @@
+version: "2"
+name: customs-xborder-retail
+label: 海关跨境电商零售进出口统计（月度/年度）
+source_url: http://stats.customs.gov.cn/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_customs_xborder_retail
+    description: 中国海关总署跨境电商零售进出口月度/年度统计（9610/1210 零售口径），含出口/进口/合计方向
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: 最大返回行数
+    columns:
+      - name: period
+        type: string
+        description: 统计期 YYYY-MM（月度）或 YYYY（年度）
+      - name: direction
+        type: string
+        description: 方向：出口、进口、合计
+      - name: value
+        type: float
+        description: 统计数值；上游缺失时为 null
+      - name: unit
+        type: string
+        description: 计量单位（如 亿元、亿美元）
+      - name: indicator_name
+        type: string
+        description: 指标中文名（如 跨境电商零售出口额、跨境电商零售进口额、跨境电商零售进出口总额）
+      - name: source_title
+        type: string
+        description: 来源文标题/发布标题
+      - name: source_url
+        type: string
+        description: 数据来源页面 URL
+      - name: publish_date
+        type: string
+        description: 发布日期 YYYY-MM-DD
+concepts:
+  - column: indicator_name
+    concept: trade.customs_xborder_retail
+    entity_type: country
+    measure: value
+    unit: string
+    frequency: monthly
+entities:
+  - entity_type: country
+    coverage: china
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

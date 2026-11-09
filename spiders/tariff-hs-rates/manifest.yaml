@@ -1,0 +1,64 @@
+version: "2"
+name: tariff-hs-rates
+label: 中国进口关税税率查询（MFN+协定税率，按 HS 编码）
+source_url: https://ftatax.mofcom.gov.cn/wmsw/
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_tariff_hs_rates
+    description: 按中国海关 HS 编码（8-10 位）查询当期最惠国税率(MFN)、普通税率、至少一个自贸协定税率（RCEP/中国-东盟等，注明协定名）。需解图片验证码，契约层待人工。
+    frequency: monthly
+    parameters:
+      - name: hs_codes
+        type: string
+        required: false
+        description: 逗号分隔的 HS 编码（带点号，如 8541.42.00,8517.62.00,6109.10.00），默认三枚种子码
+      - name: export_country
+        type: string
+        required: false
+        description: 原产地国家代码（如 CN=中国、AU=澳大利亚、CH=瑞士、VN=越南等），默认 CN
+      - name: import_country
+        type: string
+        required: false
+        description: 进口国代码（默认 CN=中国）
+      - name: limit
+        type: int
+        required: false
+        description: 最大返回行数
+    columns:
+      - name: hs_code
+        type: string
+        description: HS 编码（带点号，如 8541.42.00）
+      - name: hs_desc
+        type: string
+        description: 商品名称/描述
+      - name: duty_type
+        type: string
+        description: 税率类型：mfn/ordinary/fta
+      - name: fta_agreement
+        type: string
+        description: 协定名称（如 RCEP、中国-东盟、中国-澳大利亚 等），duty_type=fta 时必填，其余为空
+      - name: rate
+        type: float
+        description: 税率百分比（如 5.0 表示 5%）
+      - name: effective_period
+        type: string
+        description: 执行期（如 2024-01-01 至 2024-12-31 或 2024）
+      - name: source_url
+        type: string
+        description: 数据来源页面 URL
+      - name: fetched_at
+        type: string
+        description: ISO 提取时间戳
+concepts:
+  - column: rate
+    concept: trade.tariff_rate
+    entity_type: product
+    measure: rate
+    unit: percent
+    frequency: annual
+entities:
+  - entity_type: product
+    coverage: hs_china
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider

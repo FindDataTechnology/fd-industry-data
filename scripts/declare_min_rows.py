@@ -75,13 +75,6 @@ DECLARATIONS: dict[str, tuple[int, int, int, int, str]] = {
     # B 桶 = 零行占比 <20%，即"多数时候有数、偶尔真的空"，仍属快照型语义，
     # 所以照样声明，只是阈值取 p10（任务 3.1 的口径），p10=0 的取下限 1。
     # 任务 3.2 要求观察一周：误报率 >20% 的源回退为不声明。
-    "eastmoney-data":   (59,    2,   2,  2, "B 桶：p10=2，取 2"),
-    "portwatch-imf":    (40,    0, 100,  1, "B 桶：p10=0（15% 运行本就无数据），取下限 1"),
-    "eastmoney-futures": (33,   1,   1,  1, "B 桶：p10=1"),
-    "fangchan-market":  (31,   79,  79, 79, "B 桶：p10=79（90% 运行至少 79 行），取 79"),
-    "cpcaauto-monthly": (30,   30,  31, 30, "B 桶：p10=30，取 30"),
-    "nbs-stats":        (10,   18, 100, 18, "B 桶：p10=18，取 18"),
-    "cninfo-operating":  (6,    5,  50,  5, "B 桶：p10=5，取 5"),
 }
 
 #: 复算里落在 A/B 桶、但**刻意不声明**的源：写下来，免得后来人以为漏了。
@@ -92,6 +85,13 @@ SKIPPED: dict[str, str] = {
                       "trigger-only\"，每次固定写 1 行宿主名+时间戳）——巡检不覆盖停用源，"
                       "且它不是数据源，行数不代表产出",
     "metal-com": "`parked: true` + `enabled: false` + 无 schedule —— 同 inmetals，停用源不覆盖",
+    "cninfo-operating": "**结构性不可声明**：零行占比 17%（合法空跑），任何正的行数下限都会按该比例出单。下限区分不了「本轮正常无数据」与「解析坏了」——需改用跨轮判据（N 轮中 M 轮为空）。见 docs/min-rows-calibration-analysis.md",
+    "portwatch-imf": "**结构性不可声明**：零行占比 15%（合法空跑），任何正的行数下限都会按该比例出单。下限区分不了「本轮正常无数据」与「解析坏了」——需改用跨轮判据（N 轮中 M 轮为空）。见 docs/min-rows-calibration-analysis.md",
+    "nbs-stats": "**结构性不可声明**：零行占比 10%（合法空跑），任何正的行数下限都会按该比例出单。下限区分不了「本轮正常无数据」与「解析坏了」——需改用跨轮判据（N 轮中 M 轮为空）。见 docs/min-rows-calibration-analysis.md",
+    "cpcaauto-monthly": "**结构性不可声明**：零行占比 3%（合法空跑），任何正的行数下限都会按该比例出单。下限区分不了「本轮正常无数据」与「解析坏了」——需改用跨轮判据（N 轮中 M 轮为空）。见 docs/min-rows-calibration-analysis.md",
+    "eastmoney-futures": "**结构性不可声明**：零行占比 3%（合法空跑），任何正的行数下限都会按该比例出单。下限区分不了「本轮正常无数据」与「解析坏了」——需改用跨轮判据（N 轮中 M 轮为空）。见 docs/min-rows-calibration-analysis.md",
+    "eastmoney-data": "**结构性不可声明**：零行占比 2%（合法空跑），任何正的行数下限都会按该比例出单。下限区分不了「本轮正常无数据」与「解析坏了」——需改用跨轮判据（N 轮中 M 轮为空）。见 docs/min-rows-calibration-analysis.md",
+    "fangchan-market": "**结构性不可声明**：零行占比 3%（合法空跑），任何正的行数下限都会按该比例出单。下限区分不了「本轮正常无数据」与「解析坏了」——需改用跨轮判据（N 轮中 M 轮为空）。见 docs/min-rows-calibration-analysis.md",
     "rmfyalk-case-crawl": "遥测源名与目录名不对应：目录只有 `spiders/rmfyalk`（`parked: true`），"
                           "没有 `spiders/rmfyalk-case-crawl/`。声明落在目录上，名对不上就不声明；"
                           "要声明得先统一源名或给它建目录",

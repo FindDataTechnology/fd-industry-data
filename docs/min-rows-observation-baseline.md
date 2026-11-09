@@ -68,6 +68,22 @@
 
 ⚠ = 基线时低于下限。
 
+## 2026-11-10 追加：7 个 B 桶源的声明已撤
+
+按 `docs/min-rows-calibration-analysis.md` 的反算，这 7 个源有合法零行质量，
+任何正的行数下限都会按该比例出单，属**结构性不可声明**，声明已从 manifest 撤除：
+
+| source | 零行占比 |
+|---|---|
+| `cninfo-operating` | 17% |
+| `portwatch-imf` | 15% |
+| `nbs-stats` | 10% |
+| `cpcaauto-monthly` / `eastmoney-futures` | 3% |
+| `eastmoney-data` / `fangchan-market` | 3% / 3% |
+
+所以**下文表格里这 7 行的「下限」列已失效**（它们不再有声明的下限，判据改由周期缺失承担）。
+观察期末复核时，这 7 个源应只统计"是否出了行数不足单"——预期为 0，若非 0 说明撤除没生效。
+
 ## 一周后怎么判
 
 1. 跑 `python3 scripts/min_rows_false_positive_report.py --days 7 --from-pg`；

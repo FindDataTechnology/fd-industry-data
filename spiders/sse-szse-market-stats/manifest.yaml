@@ -3,7 +3,9 @@ name: sse-szse-market-stats    # = spiders/sse-szse-market-stats/ 目录名，�
 label: 沪深交易所每日成交概况（成交量/成交额/平均市盈率）
 source_url: https://www.szse.cn/market/stock/situation/daily/index.html
 # site: tencent 缺省——直连 www.szse.cn / query.sse.com.cn 实测可达（免 key 免鉴权，2026-11-07，见 README）
-# schedule: 点亮（add-securities-industry-line 3.6）：20:50 UTC 错峰（与既有 82 条调度零重叠）
+# schedule: 点亮（add-securities-industry-line 3.6）。cron 按集群本地时区解释 → 实际 20:50 CST（12:50Z）。
+#   **2026-11-09 订正**：原注释写「20:50 UTC」，与执行不符。实测该时点数据正常
+#   （11-09 12:50Z 运行取到 trade_date=2026-11-09 当日），故只改注释、不动槽位。
 schedule: "50 20 * * 1-5"   # 市场每日概况（成交/估值汇总）日频
 data_period: day
 scanner_mode: upstream-curated

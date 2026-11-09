@@ -6,7 +6,6 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "41 1 * * *"
 data_period: day
-min_rows_per_run: 1    # runs=40 p10=0 p50=100; B 桶：p10=0（15% 运行本就无数据），取下限 1 — 见 docs/min-rows-coverage-baseline.md §3
 functions:
   - command: run_portwatch_imf
     description: Fetch the latest available day of IMF PortWatch daily maritime flow records from the ArcGIS FeatureServer — per-port port calls and import/export tonnes (Daily_Ports_Data) plus per-chokepoint transit counts and transiting tonnes (Daily_Chokepoints_Data)
