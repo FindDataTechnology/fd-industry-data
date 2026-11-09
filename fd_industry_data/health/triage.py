@@ -110,6 +110,11 @@ _CONTRACT_RE = re.compile(
 )
 
 
+#: 算作"这次跑到了"的状态。`partial` = 爬取成功但 accept 条件未满足，
+#: 数据不完整而非没跑——巡检的活性判据必须把它算进去（见 last_success 处注释）。
+_REACHED = frozenset({"success", "partial"})
+
+
 @dataclass(frozen=True)
 class Run:
     """单次运行遥测。started_at 为 ISO8601；error 为错误摘要文本（可空）。
@@ -262,9 +267,14 @@ def classify(
         )
         return Verdict("contract", False, False, ABSENT_ACTION, trace)
 
+    # `partial` 算"跑到了"：它是"爬取成功但源自己声明的 accept 条件没满足"
+    # （数据不完整，不是没跑）。巡检判的是"这条源还活着吗"——把 partial 当没成功，
+    # 会让一个每天正常在跑的源被判成"极久未成功"→ rule2 需人工，纯噪声。
+    # 实测（2026-11-09）：三次 partial、最近 2h 前跑过 → 旧逻辑判 needs_human；
+    # 同数据改成 success 就健康。零行判定仍走规则 1c（它只看成功且行数够不够）。
     last_success = None
     for run in ordered:
-        if run.status == "success":
+        if run.status in _REACHED:
             last_success = run
     last_success_age = (
         None
@@ -291,7 +301,7 @@ def classify(
         # 上限未记录（历史 run）时照旧判——那是"不知道"，不是"不可比"。
         comparable = [
             run for run in ordered
-            if run.status == "success"
+            if run.status in _REACHED
             and (run.limit is None or run.limit >= floor)
         ]
         last_comparable = comparable[-1] if comparable else None
@@ -306,7 +316,7 @@ def classify(
                 and (run.rows if run.rows is not None else 0) < floor
             ]
             skipped_by_limit = sum(1 for run in ordered
-                                   if run.status == "success" and run.limit is not None
+                                   if run.status in _REACHED and run.limit is not None
                                    and run.limit < floor)
             trace = (
                 "rule1c:success-but-too-few-rows "

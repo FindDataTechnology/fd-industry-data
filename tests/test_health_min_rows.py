@@ -155,3 +155,31 @@ def test_all_runs_truncated_falls_back_instead_of_silently_passing():
     runs = [_run(2, rows=20, limit=20), _run(1, rows=20, limit=20)]
     v = triage.classify("src", "spiders/src/", DAY, runs, NOW, min_rows_per_run=25)
     assert v.category == "structure"
+
+
+def test_partial_counts_as_reached_for_liveness():
+    """`partial` = 爬取成功但 accept 条件未满足：数据不完整，不是没跑。
+
+    把 partial 当没成功，会让一个每天正常在跑的源被判"极久未成功"→ rule2 需人工。
+    实测（2026-11-09）：三次 partial、最近一次 2h 前 → 旧逻辑 needs_human=True，
+    同数据改成 success 就健康。
+    """
+    runs = [_run(50, status="partial"), _run(26, status="partial"), _run(2, status="partial")]
+    v = triage.classify("src", "spiders/src/", DAY, runs, NOW)
+    assert v.category is None and not v.needs_human, v.rule_trace
+
+
+def test_partial_with_zero_rows_still_trips_the_floor():
+    """活性算"跑到了"，不等于产出合格：partial + 0 行 + 下限 5 仍然出单。"""
+    v = triage.classify("src", "spiders/src/", DAY, [_run(2, status="partial", rows=0)], NOW,
+                        min_rows_per_run=5)
+    assert v.category == "structure"
+    assert "rule1c" in v.rule_trace
+
+
+def test_partial_truncated_by_limit_is_also_skipped():
+    """被上限压住的 partial 同样不可比：两种状态共用同一套可比性判据。"""
+    runs = [_run(60 * 24, status="success", rows=100, limit=100),
+            _run(2, status="partial", rows=20, limit=20)]
+    v = triage.classify("src", "spiders/src/", DAY, runs, NOW, min_rows_per_run=25)
+    assert v.category is None, v.rule_trace
