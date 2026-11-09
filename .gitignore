@@ -34,3 +34,6 @@ output/
 reports/flower-alerts/publication-*.json
 reports/flower-alerts/rules-*.json
 reports/flower-alerts/events-*.json
+
+# 知识图谱缓存（graphify 产物，37M，可再生）
+graphify-out/
