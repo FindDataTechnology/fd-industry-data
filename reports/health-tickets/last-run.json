@@ -1,141 +1,361 @@
 {
-  "at": "2026-11-09T00:56:02.772463+00:00",
+  "at": "2026-11-09T22:32:18.679291+00:00",
   "source": "psql",
   "config_source": "file:config/health-scope.json",
-  "sources_seen": 125,
-  "healthy": 92,
+  "sources_seen": 132,
+  "healthy": 107,
   "written": [],
   "deferred": [],
-  "skipped_unknown_period": [
-    "at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+  "skipped_unknown_period": [],
+  "unregistered_sources": [
     "example-stock",
-    "fred-cpi",
-    "hkex-disclosure",
-    "ico-coffee-price",
-    "jp-foodservice-trend",
-    "restaurant-rpi",
-    "samr-food-inspection",
-    "sec-edgar-8k-operating",
-    "sec-edgar-facts",
-    "tpex-monthly-revenue",
     "yfinance"
   ],
-  "absent_sources": [],
+  "blocked_config_sources": [],
+  "absent_sources": [
+    {
+      "source": "cba-wealth-index",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "chinabond-monthly",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "chinamoney-lpr",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "chinamoney-shibor",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    },
+    {
+      "source": "chinawealth-reports",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "dagong-ratings",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "dfjc-ratings",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "lh-ratings",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "nfra-stats-xls",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "pboc-credit-funds",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "pboc-loan-usage",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "ratings-ccxi",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "sac-securities",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "shclearing-monthly",
+      "reason": "period-longer-than-window",
+      "data_period": "month"
+    },
+    {
+      "source": "stock-zygc",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "xsj-ratings",
+      "reason": "no-run-in-window",
+      "data_period": "irregular"
+    },
+    {
+      "source": "yindeng-npl-transfer",
+      "reason": "no-run-in-window",
+      "data_period": "day"
+    }
+  ],
+  "recovered": [],
+  "parse_errors": [
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)",
+    "non-telemetry line dropped: at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)"
+  ],
+  "inventory_mismatches": [],
   "master_switch": true,
   "submit": [
     {
-      "ticket": "20261107-amis-market-0b865e05.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 5,
-      "http_status": 200,
-      "response": "The quoting broke. Let me write the python to a file in /tmp using the write tool, then run it. That avoids quoting hell. But writing to /tmp is allowed.\n\nActually, let me write a small extract.py in /tmp. Use write tool.\n\nActually, I realize I'm spending too much on PAT. The single-writer check is best-effort. Let me just skip it — the ticket is a new unique submission and the platform validated it. Enqueue now.\n\nBut let me reconsider: maybe I should check the GitHub PRs via API. Without PAT, G"
+      "ticket": "20261106-gdacs-8123a350.yaml",
+      "submitted": false,
+      "reason": "submit failed: RemoteDisconnected: Remote end closed connection without response",
+      "attempt": 1
     },
     {
-      "ticket": "20261107-gdacs-1457bc7b.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 5,
-      "http_status": 200,
-      "response": "Now let me check memory handoff list to see if there's an open handoff, and query memory. Let me do these in parallel."
-    },
-    {
-      "ticket": "20261107-iea-ev-037aca88.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 5,
-      "http_status": 200,
-      "response": "**结论：已入队 → 本回合处理完 → 终态 manual（转人工），未开 PR。**\n\n| 项 | 结果 |\n|---|---|\n| 分诊 | kind=repair；category=null → 兜底类（证据不足）+ 实测落入「源死亡」 |\n| 代码修复 | **无对象可修**：`api.iea.org` 整站 404（`/evs`、`/evs` 带参、`/evs/` 以及 spider docstring 里 2026-10-06 实测可用的 `/evs/list/region`、`/evs/list/mode` 全 404；`http→https` 301 说明主机活着但路径已撤） |\n| 验证 | b) 实跑 `python3 spiders/iea-ev/spider.py` 复现工单原错：`RuntimeError: 数据口取数失败 … HTTP Error 404` → 取不到 ≥1 行，验证链必红，按约束 7 不开 PR |\n| 工单自判 | `needs_human: true`、`notes: rule2:insufficient-evidence tail_f"
-    },
-    {
-      "ticket": "20261107-nasa-firms-bd40ec7f.yaml",
+      "ticket": "20261106-nasa-firms-fff9c02b.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 5,
-      "http_status": 200,
-      "response": "{\"code\": -32003, \"message\": \"Connection error.\"}"
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
     },
     {
-      "ticket": "20261107-socrata-chicago-a563e620.yaml",
-      "submitted": true,
+      "ticket": "20261106-steam-ccu-7836daef.yaml",
+      "submitted": false,
       "reason": "",
-      "attempt": 5,
-      "http_status": 200,
-      "response": "<tool_call>bash\n<parameter name=\"command\">which curl wget openssl 2>&1; command -v curl git perl sed python3 2>&1</param_value></tool_call>"
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261107-fred-cpi-6c71952f.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261107-fred-cpi-a0b0e467.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261107-fred-cpi-ba279d6a.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261107-hkex-disclosure-82e7ef63.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261107-ico-coffee-price-39ecc097.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261107-nra-rpi-15ef6fc0.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261107-nra-rpi-3a5952f4.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261107-sec-edgar-facts-e41262dc.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
     },
     {
       "ticket": "20261108-socrata-ny-383ced01.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 3,
-      "http_status": 200,
-      "response": "{\"code\": -32003, \"message\": \"Connection error.\"}"
+      "attempt": 4,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
     },
     {
-      "ticket": "20261108-steam-ccu-a38fd184.yaml",
-      "submitted": true,
+      "ticket": "20261109-boxofficemojo-38feca08.yaml",
+      "submitted": false,
       "reason": "",
-      "attempt": 3,
-      "http_status": 200,
-      "response": "已入队 `FindDataTechnology/fd-industry-data#20261108-steam-ccu-a38fd184`（队列第 1 位），**不动手**。\n\n**依据（同源单写者，硬约束 6）**\n- 该源 `steam-ccu` 已有我开的未合并修复 PR #62（`heal/20261025-steam-ccu`，2026-10-26 开出，至今 open、未 merge）→ 按规则本单只入队，等待人工先裁决 #62。\n- 交叉核对：本单根因与 #62 **完全相同**。main 上 `spiders/steam-ccu/spider.py:150-155` 仍是「CCU 与评论同一 try」，评论腿退役即整行被杀；我只做两次只读探测（各 1 请求，无重试、无对抗）：\n  - `appreviews/730?json=1&num_per_page=0` → **302 + text/html**（非 JSON，故 `JSONDecodeError`）\n  - `ISteamUserStats/GetNumberOfCurrentPlayers/v1?appid="
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261109-cisa-10eec66b.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261109-education_podcast-ce803d9c.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261109-gb-standards-e6083859.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
+    },
+    {
+      "ticket": "20261109-iea-ev-de18f48e.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 1,
+      "http_status": 409,
+      "verdict": "error",
+      "verdict_reason": "HTTP 409",
+      "state": null,
+      "response": "{\"code\": \"TURN_IN_FLIGHT\", \"message\": \"a turn for this caller and agent is already running; retry after the hint\"}"
     }
   ],
   "status": [
     {
-      "ticket": "20261108-socrata-ny-383ced01.yaml",
-      "http_status": 200,
+      "ticket": "20261106-gdacs-8123a350.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261108-steam-ccu-a38fd184.yaml",
-      "http_status": 200,
-      "state": "merged",
-      "note": "",
-      "pr_url": "https://github.com/FindDataTechnology/fd-industry-data/pull/62)（`heal/20261025-steam-ccu`），覆盖同一根因，新单只入队。"
-    },
-    {
-      "ticket": "20261107-amis-market-0b865e05.yaml",
-      "http_status": 200,
+      "ticket": "20261106-nasa-firms-fff9c02b.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-gdacs-1457bc7b.yaml",
-      "http_status": 200,
+      "ticket": "20261106-steam-ccu-7836daef.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-iea-ev-037aca88.yaml",
-      "http_status": 200,
-      "state": "manual",
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261107-nasa-firms-bd40ec7f.yaml",
-      "http_status": 200,
+      "ticket": "20261107-fred-cpi-6c71952f.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-socrata-chicago-a563e620.yaml",
-      "http_status": 200,
+      "ticket": "20261107-fred-cpi-a0b0e467.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261025-steam-ccu-36a30c20.yaml",
-      "http_status": 200,
-      "state": "pr-open",
+      "ticket": "20261107-fred-cpi-ba279d6a.yaml",
+      "http_status": 409,
+      "state": null,
       "note": "",
-      "pr_url": "https://github.com/FindDataTechnology/fd-industry-data/pull/62)，刚经"
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261107-hkex-disclosure-82e7ef63.yaml",
+      "http_status": 409,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261107-ico-coffee-price-39ecc097.yaml",
+      "http_status": 409,
+      "state": null,
+      "note": "",
+      "pr_url": ""
     }
   ]
 }
