@@ -1,0 +1,16 @@
+# 上线验收清单（2026-11-09 推代码后的一次性核对）
+
+代码已推（github/gitee = 8046b68）。下一轮 GHA 巡检跑新代码，逐项对照：
+
+| # | 看什么 | 旧（11-09 08:56） | 预期（新） | 不符意味着 |
+|---|---|---|---|---|
+| 1 | `skipped_unknown_period` 里还有没有 `at TCPConnectWrap…` | 有 | **无** | 解析器修复未生效 |
+| 2 | `unregistered_sources` 字段 | 不存在 | 存在，≈`["example-stock","yfinance"]` | unregistered 分流未生效 |
+| 3 | `deferred[].category` / `rule` | 无 | 有 | 顺延判词未生效 |
+| 4 | `written` 里有没有 `boxofficemojo`/`cisa`/`gb-standards` | 0 张 | 可能有（若它们仍未重跑） | 若无且 latest 回到 ≥floor 则正常 |
+| 5 | `healthy` | 92 | ≈101（不含 gitee-only 的话仍 92 附近） | 差很多先看 scope 是否变了 |
+
+补充：完整 30 天窗本地预演 = healthy 101 / written 5 / deferred 7（含 3 张 rule1c）。
+生产窗口截止时刻不同，数字会有小幅差异，**看的是三类字段的形态，不是数字相等**。
+
+回归工具：`python3 scripts/min_rows_false_positive_report.py --days 7 --from-pg`
