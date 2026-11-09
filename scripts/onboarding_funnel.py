@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
-"""Onboarding funnel: landed → lit → fresh (candidates: unknown).
+"""Onboarding funnel: candidates → landed → lit → fresh.
 
-Change harden-crawl-delivery 4.4. Three of the four stages have a real source of
-truth in this repo; the first one does not, and saying so is the point:
+Change harden-crawl-delivery 4.4 established three stages with a real source of
+truth and reported the first one as ``unknown`` rather than a number nobody could
+re-derive. The structured candidate list (``data-source-scouting/candidates.json``,
+built by ``data-source-scouting/scripts/extract_candidates.py``) now supplies that
+first stage — and an **absent list still reports ``unknown``**, which stays the
+honest degradation (missing input ≠ zero candidates):
 
-  candidates   scouting lives in a hand-written markdown table
-               (``data-source-scouting/INDUSTRY-DATA-SOURCES.md``). No structured
-               source exists, so this stage reports ``unknown`` rather than a
-               number nobody can re-derive. See the doc for what would fix it.
+  candidates   structured list + status distribution + landed-traceability
   landed       ``spiders/<src>/manifest.yaml`` exists
   lit          landed **and** has a non-empty ``schedule`` (parked/disabled excluded)
   fresh        lit **and** ``cycles_since_last_good == 0`` from central telemetry
 
-Read-only. The funnel answers "of what we landed, how much is actually
-delivering" — the question that matters when deciding whether to add more
-sources.
+Read-only. The funnel answers "of what we decided to acquire, how much is
+actually delivering" — the question that matters when deciding whether to add
+more sources.
 
 Usage:
     python3 scripts/onboarding_funnel.py --dsn "$FD_CRAWL_DB_URL"
@@ -38,6 +39,55 @@ sys.path.insert(0, str(REPO))
 from fd_industry_data.health.freshness import cycles_since_last_good  # noqa: E402
 
 SCOUTING_DOC = "data-source-scouting/INDUSTRY-DATA-SOURCES.md"
+# 侦察簿与清单住在 finddata 根（fd-industry-data 是其子目录），不在本仓内
+CANDIDATES_JSON = REPO.parent / "data-source-scouting" / "candidates.json"
+
+
+def candidates_stage(path: Path = CANDIDATES_JSON) -> dict:
+    """漏斗第一段：读结构化候选清单。
+
+    fail-honest：清单不存在 / schema 不符 / 内容解析失败，一律如实报 ``unknown``
+    并带原因——**绝不退化成 0**。清单存在时给出总数、按状态分布，以及
+    「已接但无法对到落仓单元」的计数（accepted_without_landing）——那是
+    侦察簿不记落地出处的结构性缺口，漏斗应当让它可见而不是替它圆。
+    """
+    if not path.exists():
+        return {
+            "count": None, "state": "unknown",
+            "because": f"结构化候选清单不存在：{path.name}"
+                       f"（生成：data-source-scouting/scripts/extract_candidates.py）",
+        }
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"count": None, "state": "unknown",
+                "because": f"候选清单不可解析：{type(exc).__name__}: {exc}"}
+    if not isinstance(data, dict) or data.get("schema") != "source-candidates/v1":
+        return {"count": None, "state": "unknown",
+                "because": "候选清单 schema 不符（期望 source-candidates/v1）"}
+    rows = data.get("candidates")
+    if not isinstance(rows, list):
+        return {"count": None, "state": "unknown", "because": "候选清单缺 candidates 数组"}
+
+    by_status: dict[str, int] = {}
+    for row in rows:
+        status = row.get("status") if isinstance(row, dict) else None
+        if not isinstance(status, str):
+            status = "malformed"
+        by_status[status] = by_status.get(status, 0) + 1
+    accepted = [r for r in rows if isinstance(r, dict) and r.get("status") == "accepted"]
+    return {
+        "count": len(rows),
+        "state": "ok",
+        "by_status": by_status,
+        "accepted": len(accepted),
+        "accepted_with_landing": sum(1 for r in accepted if r.get("landed_slug")),
+        "accepted_without_landing": sum(1 for r in accepted if not r.get("landed_slug")),
+        "needs_review": sum(1 for r in rows
+                            if isinstance(r, dict) and r.get("needs_review")),
+        "source_doc_sha256": (data.get("meta") or {}).get("source_doc_sha256"),
+        "coverage": (data.get("meta") or {}).get("coverage"),
+    }
 
 
 def repo_stages(repo: Path = REPO) -> dict:
@@ -136,12 +186,7 @@ def main(argv: list[str]) -> int:
         measured = False
 
     report = {
-        "candidates": {
-            "count": None,
-            "state": "unknown",
-            "because": (f"候选只存在于手写 markdown（{SCOUTING_DOC}）；"
-                        "硬解析会得到不可复核的数，见 docs/onboarding-funnel.md"),
-        },
+        "candidates": candidates_stage(),
         "landed": len(stages["landed"]),
         "lit": len(stages["lit"]),
         "stopped": len(stages["stopped"]),
@@ -154,12 +199,21 @@ def main(argv: list[str]) -> int:
         "at_risk_sources": [r["source"] for r in at_risk],
         "stale_sources": stale if measured else [],
     }
+    cands = report["candidates"]
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0
 
     print("接入漏斗")
-    print(f"  candidates    unknown   （{SCOUTING_DOC} 无结构化来源）")
+    if cands.get("state") == "ok":
+        dist = "，".join(f"{k}={v}" for k, v in sorted(cands["by_status"].items()))
+        print(f"  candidates    {cands['count']:>7}   （{dist}）")
+        print(f"    ├ 已接      {cands['accepted']:>7}   "
+              f"（对到在产单元 {cands['accepted_with_landing']}，"
+              f"无落地出处 {cands['accepted_without_landing']}）")
+        print(f"    └ 待复核    {cands['needs_review']:>7}   （解析歧义条目）")
+    else:
+        print(f"  candidates    unknown   （{cands.get('because', '无结构化来源')}）")
     print(f"  landed        {report['landed']:>7}")
     print(f"  lit           {report['lit']:>7}   （另有 {report['stopped']} 个停用/挂起）")
     if measured:
