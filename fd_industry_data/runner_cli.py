@@ -51,7 +51,42 @@ EXIT_OK = 0
 EXIT_SOURCE_MISSING = 2
 EXIT_ADAPTER_ERROR = 3
 EXIT_NO_ENTRY = 4
+EXIT_BLOCKED_CONFIG = 5
 _EXIT_SKIPPED = 0  # single-flight skip is a successful no-op for the caller
+
+
+def missing_required_env(src: str, content_dir: str) -> list[str]:
+    """Declared-but-absent run configuration (manifest ``requires_env``).
+
+    harden-crawl-delivery 2.5: a missing credential is **not** a crawler
+    failure. Fifteen sources used to run, fail on a missing API key, and land
+    in the failure rate — which made the rate useless and sent the repair agent
+    after code that was never wrong. The manifest declares the names (never the
+    values); the runner refuses to fetch and reports ``blocked-config``.
+
+    Returns [] when the manifest is absent, has no declaration, or every
+    declared name is present.
+    """
+    manifest = Path(content_dir) / src / "manifest.yaml"
+    if not manifest.is_file():
+        return []
+    try:
+        import yaml
+
+        data = yaml.safe_load(manifest.read_text()) or {}
+    except Exception:  # noqa: BLE001 - a broken manifest must not block the run
+        return []
+    declared = data.get("requires_env") if isinstance(data, dict) else None
+    if not isinstance(declared, list):
+        return []
+    missing: list[str] = []
+    for name in declared:
+        if not isinstance(name, str):
+            continue
+        key = name.strip()
+        if key and not os.environ.get(key):
+            missing.append(key)
+    return missing
 
 _CANCEL_POLL_SECONDS = 15
 
@@ -496,6 +531,20 @@ def main(argv: list[str] | None = None) -> int:
             pending_run_id = None
 
     account = os.environ.get("FD_ACCOUNT") or None
+    # 配置预检（harden-crawl-delivery 2.5）：缺声明的配置就不取数，记为
+    # blocked-config —— 既不进失败率，也不催修复工单（不是代码问题）。
+    if missing := missing_required_env(src, content_dir):
+        msg = "blocked-config: missing env " + ", ".join(missing)
+        if not args.dry_run:
+            report_run(
+                source=src, kind="runtime", status="blocked-config",
+                started_at=started, finished_at=time.time(), rows_written=0,
+                error_head=msg, commit_sha=_commit_sha(),
+                image_tag=os.environ.get("FD_IMAGE_TAG", "unknown"), items=[],
+            )
+        print(f"fd-runner: {src} {msg}")
+        return EXIT_BLOCKED_CONFIG
+
     run_id = None
     if not args.dry_run:
         run_id = start_run(

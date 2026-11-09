@@ -31,6 +31,8 @@ QUANTITY_RE = re.compile(r"^\d+(?:\.\d+)?(?:m|k|M|G|Ki|Mi|Gi)?$")
 CRON_FIELD_RE = re.compile(r"^[0-9*/,\-A-Za-z]+$")
 # IANA 名形状：Area/Location，允许 UTC 这类单段名与 Etc/GMT+8 这类带符号名。
 TZ_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_+\-]*(?:/[A-Za-z0-9_+\-]+)*$")
+# 环境变量名形状：大写字母/数字/下划线，不以数字开头（与 shell 一致）。
+ENV_NAME_RE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 
 # data_period 合法值（add-fleet-lifecycle-adjudication 1.1）：数据自然周期四值枚举
 DATA_PERIODS = ("day", "month", "year", "irregular")
@@ -148,6 +150,19 @@ def validate(manifest_path: Path) -> list[str]:
     # 因此不要求同时存在 schedule。
     if (tz := data.get("schedule_tz")) is not None and (e := _check_timezone(tz)):
         errs.append(f"{manifest_path}: {e}")
+
+    # 运行配置依赖（harden-crawl-delivery 2.5）：只写名字，不写值。缺失时 runner
+    # 预检判 blocked-config，不取数、不进失败率。
+    if (req := data.get("requires_env")) is not None:
+        if not isinstance(req, list):
+            errs.append(f"{manifest_path}: requires_env must be a list of env var names")
+        else:
+            for name in req:
+                if not isinstance(name, str) or not ENV_NAME_RE.match(name.strip()):
+                    errs.append(
+                        f"{manifest_path}: requires_env entry {name!r} is not an env var name "
+                        f"(expected UPPER_SNAKE, e.g. CENSUS_API_KEY)"
+                    )
 
     return errs
 
