@@ -82,3 +82,6 @@ entities:
     coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
+# 接入声明（change: define-ingest-revision-and-coverage, decision 4A）
+revision_policy: overwrite_with_history
+coverage_capability: gaps_only
