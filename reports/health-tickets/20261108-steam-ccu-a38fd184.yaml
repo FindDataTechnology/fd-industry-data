@@ -119,4 +119,16 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-09T00:49:20.234069+00:00'
+  event: submitted
+  http_status: 403
+  ok: false
+  response: '{"code": "CALLER_NOT_AUTHORIZED", "message": "caller admin@finddatatech.cloud
+    is not on this agent''s allowlist"}'
+- at: '2026-11-09T00:49:21.983896+00:00'
+  event: status
+  http_status: 403
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null

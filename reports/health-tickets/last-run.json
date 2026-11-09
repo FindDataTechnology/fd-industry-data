@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-08T22:52:38.412604+00:00",
+  "at": "2026-11-09T00:49:07.966190+00:00",
   "source": "psql",
   "config_source": "file:config/health-scope.json",
   "sources_seen": 125,
@@ -27,112 +27,112 @@
       "ticket": "20261107-amis-market-0b865e05.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 3,
-      "http_status": 401,
-      "response": "\"Authentication required\""
+      "attempt": 4,
+      "http_status": 403,
+      "response": "{\"code\": \"CALLER_NOT_AUTHORIZED\", \"message\": \"caller admin@finddatatech.cloud is not on this agent's allowlist\"}"
     },
     {
       "ticket": "20261107-gdacs-1457bc7b.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 3,
-      "http_status": 401,
-      "response": "\"Authentication required\""
+      "attempt": 4,
+      "http_status": 403,
+      "response": "{\"code\": \"CALLER_NOT_AUTHORIZED\", \"message\": \"caller admin@finddatatech.cloud is not on this agent's allowlist\"}"
     },
     {
       "ticket": "20261107-iea-ev-037aca88.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 3,
-      "http_status": 401,
-      "response": "\"Authentication required\""
+      "attempt": 4,
+      "http_status": 403,
+      "response": "{\"code\": \"CALLER_NOT_AUTHORIZED\", \"message\": \"caller admin@finddatatech.cloud is not on this agent's allowlist\"}"
     },
     {
       "ticket": "20261107-nasa-firms-bd40ec7f.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 3,
-      "http_status": 401,
-      "response": "\"Authentication required\""
+      "attempt": 4,
+      "http_status": 403,
+      "response": "{\"code\": \"CALLER_NOT_AUTHORIZED\", \"message\": \"caller admin@finddatatech.cloud is not on this agent's allowlist\"}"
     },
     {
       "ticket": "20261107-socrata-chicago-a563e620.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 3,
-      "http_status": 401,
-      "response": "\"Authentication required\""
+      "attempt": 4,
+      "http_status": 403,
+      "response": "{\"code\": \"CALLER_NOT_AUTHORIZED\", \"message\": \"caller admin@finddatatech.cloud is not on this agent's allowlist\"}"
     },
     {
       "ticket": "20261108-socrata-ny-383ced01.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 1,
-      "http_status": 401,
-      "response": "\"Authentication required\""
+      "attempt": 2,
+      "http_status": 403,
+      "response": "{\"code\": \"CALLER_NOT_AUTHORIZED\", \"message\": \"caller admin@finddatatech.cloud is not on this agent's allowlist\"}"
     },
     {
       "ticket": "20261108-steam-ccu-a38fd184.yaml",
       "submitted": false,
       "reason": "",
-      "attempt": 1,
-      "http_status": 401,
-      "response": "\"Authentication required\""
+      "attempt": 2,
+      "http_status": 403,
+      "response": "{\"code\": \"CALLER_NOT_AUTHORIZED\", \"message\": \"caller admin@finddatatech.cloud is not on this agent's allowlist\"}"
     }
   ],
   "status": [
     {
       "ticket": "20261108-socrata-ny-383ced01.yaml",
-      "http_status": 401,
+      "http_status": 403,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261108-steam-ccu-a38fd184.yaml",
-      "http_status": 401,
+      "http_status": 403,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261107-amis-market-0b865e05.yaml",
-      "http_status": 401,
+      "http_status": 403,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261107-gdacs-1457bc7b.yaml",
-      "http_status": 401,
+      "http_status": 403,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261107-iea-ev-037aca88.yaml",
-      "http_status": 401,
+      "http_status": 403,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261107-nasa-firms-bd40ec7f.yaml",
-      "http_status": 401,
+      "http_status": 403,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261107-socrata-chicago-a563e620.yaml",
-      "http_status": 401,
+      "http_status": 403,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
       "ticket": "20261025-steam-ccu-36a30c20.yaml",
-      "http_status": 401,
+      "http_status": 403,
       "state": null,
       "note": "",
       "pr_url": ""
