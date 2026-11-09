@@ -96,7 +96,8 @@ def main() -> int:
         source_kind = "psql"
 
     runs_by_source = inspector.group_runs(records)
-    plan = inspector.plan_tickets(runs_by_source, repo, config, now)
+    plan = inspector.plan_tickets(runs_by_source, repo, config, now,
+                                  dsn=os.environ.get("FD_CENTRAL_PG_DSN", ""))
     if do_emit:
         stats = inspector.write_plan(plan, repo, outdir, config, now)
         # 自愈收口（harden-crawl-delivery 2.9）：源在开单之后连续 N 次成功即置
@@ -136,6 +137,8 @@ def main() -> int:
         # 遥测解析异常（2.10）：非遥测行/非 slug 源名单列，不再混进
         # skipped_unknown_period。空列表 = 本轮输入干净。
         "parse_errors": (stats.get("parse_errors") or []) + (locals().get("_parse_errors") or []),
+        # 调度状态不一致（7.4）：内容仓与源清单说不到一起的源
+        "inventory_mismatches": stats.get("inventory_mismatches") or [],
         "master_switch": config.master_switch,
     }
 

@@ -274,6 +274,8 @@ class Plan:
     parse_errors: list[str] = field(default_factory=list)
     # 拆了声明却取不到字段的源（harden-crawl-delivery 3.4）。空 = 所有声明都可兑现。
     declaration_mismatches: list[dict] = field(default_factory=list)
+    # 内容仓与源清单的调度状态不一致（7.4）。空 = 两边说的一致。
+    inventory_mismatches: list[dict] = field(default_factory=list)
     # 影子模式产出（harden-crawl-delivery 1.8）：新新鲜度判据（按各自 cron 数
     # 「应触发但未成功的周期数」）与旧判据并行运行，**只留痕不出单**。
     # 每项形如 {source, cycles, alerting, first_fire, last_fire, note}。
@@ -353,6 +355,85 @@ def min_rows_floor(repo: Path, source: str) -> int | None:
     if isinstance(raw, bool) or not isinstance(raw, int) or raw <= 0:
         return None
     return int(raw)
+
+
+def inventory_mismatches(dsn: str, repo: Path) -> list[dict]:
+    """来源库与内容仓的调度状态不一致（harden-crawl-delivery 7.4）。
+
+    Measured 2026-11-09: `inmetals` / `metal-com` were parked in git on 11-06
+    (commit `e355220`) but `crawl_sources` still carried
+    ``schedule='51 4 * * *', enabled=t``. Both sides were "internally fine" —
+    git said stopped, the scheduler said due — and nothing ran for 4 days.
+    The inspector could not see it because it exempts parked sources.
+
+    Three shapes, all worth a ticket:
+
+    - ``parked-but-scheduled``: manifest parked, inventory still has a schedule
+    - ``schedule-drift``: both have a schedule but they differ
+    - ``scheduled-but-parked-in-db``: manifest has a schedule, inventory disabled
+
+    Read-only over the DB. A missing DSN means "cannot check", never "no
+    mismatches" — the caller decides what to print.
+    """
+    if not dsn:
+        return []
+    import yaml
+
+    proc = subprocess.run(
+        ["psql", dsn, "-At", "-F", "\t", "-c",
+         "select source, schedule, enabled from crawl_sources"],
+        capture_output=True, text=True, timeout=120)
+    if proc.returncode != 0:
+        print(f"fd-health: inventory mismatch check skipped: "
+              f"{proc.stderr.strip()[:200]}", file=sys.stderr)
+        return []
+    inventory: dict[str, dict] = {}
+    for line in proc.stdout.splitlines():
+        parts = line.split("\t")
+        if len(parts) < 3:
+            continue
+        inventory[parts[0].strip()] = {
+            "schedule": parts[1].strip(),
+            "enabled": parts[2].strip().lower() in ("t", "true"),
+        }
+
+    out: list[dict] = []
+    for path in sorted((repo / "spiders").glob("*/manifest.yaml")):
+        source = path.parent.name
+        try:
+            data = yaml.safe_load(path.read_text()) or {}
+        except yaml.YAMLError:
+            continue
+        if not isinstance(data, dict):
+            continue
+        manifest_sched = " ".join(str(data.get("schedule") or "").split())
+        parked = data.get("parked") is True or data.get("enabled") is False
+        row = inventory.get(source)
+        if row is None:
+            continue  # 未登记：由 unregistered/reconcile_absent 负责
+        db_sched, db_enabled = row["schedule"], row["enabled"]
+        # 只有「DB 里仍有排期」才是危险态：enqueue_due 的判据是
+        # `enabled AND schedule IS NOT NULL`，没有 schedule 就跑不起来。
+        # 首版把「enabled=True 但无 schedule」也算进来，30 个里 28 个是这种噪音。
+        if parked and db_sched:
+            out.append({
+                "source": source, "kind": "parked-but-scheduled",
+                "manifest": "parked", "inventory": f"schedule={db_sched or '<none>'} enabled={db_enabled}",
+                "detail": "内容仓已停用，源清单里仍启用/有排期 —— 调度会认为该跑",
+            })
+        elif manifest_sched and not db_enabled:
+            out.append({
+                "source": source, "kind": "scheduled-but-disabled-in-db",
+                "manifest": f"schedule={manifest_sched}", "inventory": "enabled=False",
+                "detail": "内容仓有排期，源清单里被停用 —— 不会有人跑它",
+            })
+        elif manifest_sched and db_sched and manifest_sched != db_sched:
+            out.append({
+                "source": source, "kind": "schedule-drift",
+                "manifest": manifest_sched, "inventory": db_sched,
+                "detail": "排期不一致 —— 以谁为准需要人确认",
+            })
+    return out
 
 
 def scheduled_sources(repo: Path) -> dict[str, dict]:
@@ -450,7 +531,7 @@ def declaration_mismatches(runs_by_source: dict, repo: Path) -> list[dict]:
 
 
 def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config: HealthConfig,
-                 now: datetime) -> Plan:
+                 now: datetime, *, dsn: str = "") -> Plan:
     emit, deferred, healthy, unknown, unregistered = [], [], 0, [], []
     blocked_config: list[str] = []
     plan_parse_errors: list[str] = []
@@ -524,9 +605,34 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
             runs=runs_by_source.get(source) or [],
         ))
 
+    # 调度状态不一致（7.4）：内容仓停了但清单仍启用/有排期，或排期对不上。
+    # 这类源巡检以前完全看不见（parked 被豁免），实测 zihan 的两个源因此静默 4 天。
+    inv_bad = inventory_mismatches(dsn, repo) if dsn else []
+    for item in inv_bad:
+        source = item["source"]
+        if source in config.excluded_sources:
+            continue
+        if any(e.source == source for e in emit):
+            continue  # 已有更强判词，不叠加
+        emit.append(Emit(
+            source=source,
+            unit=f"spiders/{source}/",
+            verdict=triage.Verdict(
+                category="structure",
+                needs_human=False,
+                suspected_anti_bot=False,
+                suggested_action=("让内容仓与源清单一致：把 crawl_sources 的 "
+                                  "schedule/enabled 改成与 manifest 一致"),
+                rule_trace=(f"inventory:{item['kind']} manifest={item['manifest']} "
+                            f"inventory={item['inventory']}"),
+            ),
+            runs=runs_by_source.get(source) or [],
+        ))
+
     return Plan(emit=emit, deferred=deferred, healthy=healthy,
                 skipped_unknown_period=unknown, absent=absent, unregistered=unregistered,
                 blocked_config=blocked_config,
+                inventory_mismatches=inv_bad,
                 freshness_shadow=shadow_freshness(runs_by_source, repo, now),
                 declaration_mismatches=declared_bad,
                 parse_errors=plan_parse_errors)
@@ -782,6 +888,7 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
             # 影子模式（1.8）：新判据的逐源结果只落在这里，不进工单队列。
             "parse_errors": plan.parse_errors,
             "declaration_mismatches": plan.declaration_mismatches,
+            "inventory_mismatches": plan.inventory_mismatches,
             "freshness_shadow": plan.freshness_shadow,
             "freshness_shadow_alerting": [e["source"] for e in plan.freshness_shadow
                                           if e.get("alerting")]}
