@@ -386,3 +386,32 @@ def test_enqueue_due_matches_schedules_off_the_five_minute_grid():
     finally:
         dispatch.datetime = orig
         dispatch.queue_run = orig_queue_run
+
+
+def test_parked_implies_disabled_in_inventory(tmp_path):
+    """`parked: true` 必须同步成 enabled=false（7.5 实测：wfp-food-price 漏了）。
+
+    只写 parked 的源此前被同步成 enabled=t + schedule=NULL —— 跑不起来却仍
+    "启用"，巡检看不出这个矛盾。
+    """
+    content = _manifest_dir(tmp_path, {
+        "parked-only": 'name: parked-only\nparked: true\n',
+        "disabled": 'name: disabled\nenabled: false\n',
+        "normal": 'name: normal\nschedule: "0 4 * * *"\n',
+    })
+    conn = _QueuedConn(fetches=[(None,), (None,), (None,)])
+    assert dispatch.sync_sources(conn, str(content)) == 3
+    enabled_by_source = {p[0]: p[3] for s, p in conn.executed if "INSERT INTO crawl_sources" in s}
+    assert enabled_by_source["parked-only"] is False
+    assert enabled_by_source["disabled"] is False
+    assert enabled_by_source["normal"] is True
+
+
+def test_explicit_enabled_true_still_wins_over_parked(tmp_path):
+    content = _manifest_dir(tmp_path, {
+        "both": 'name: both\nparked: true\nenabled: true\n',
+    })
+    conn = _QueuedConn(fetches=[(None,)])
+    dispatch.sync_sources(conn, str(content))
+    enabled_by_source = {p[0]: p[3] for s, p in conn.executed if "INSERT INTO crawl_sources" in s}
+    assert enabled_by_source["both"] is True

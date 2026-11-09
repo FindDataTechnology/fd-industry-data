@@ -591,8 +591,14 @@ def sync_sources(conn, content_dir: str) -> int:
         if not isinstance(data, dict) or not data.get("name"):
             continue
         site = data.get("site") or DEFAULT_SITE
+        # `parked: true` 必须等价于 enabled=false（harden-crawl-delivery 7.5 实测）：
+        # 只写 parked 而不写 enabled 的源（如 wfp-food-price）此前被同步成
+        # enabled=t、schedule=NULL —— 跑不起来却仍"启用"，是巡检看不出的矛盾态。
+        enabled = data.get("enabled")
+        if enabled is None:
+            enabled = not (data.get("parked") is True)
         rows.append((str(data["name"]), site, data.get("schedule") or None,
-                     bool(data.get("enabled", True)),
+                     bool(enabled),
                      (data.get("auth_profile") or None),
                      _resolved_schedule_tz(data, site)))
     commit = ""
