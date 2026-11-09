@@ -112,7 +112,8 @@ _CONTRACT_RE = re.compile(
 
 #: 算作"这次跑到了"的状态。`partial` = 爬取成功但 accept 条件未满足，
 #: 数据不完整而非没跑——巡检的活性判据必须把它算进去（见 last_success 处注释）。
-_REACHED = frozenset({"success", "partial"})
+REACHED = frozenset({"success", "partial"})
+_REACHED = REACHED  # 旧名保留：内部与既有引用继续可用
 
 
 @dataclass(frozen=True)

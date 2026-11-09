@@ -849,3 +849,35 @@ class TestDeferredCarriesVerdict:
         assert deferred[0]["reason"] == "daily cap reached"
         assert deferred[0]["category"] == "structure"
         assert deferred[0]["rule"] == "rule1c"
+
+
+class TestEvidenceOnlyCallsFailuresFailures:
+    """工单证据里的 failing_runs 只能装真失败——partial/cancelled 不是失败。
+
+    原来写的是 `status != "success"`，于是 `partial`（爬取成功、只是源自己的 accept
+    条件没满足）和 `cancelled`（主动取消）都会出现在"失败运行"里。修复 agent 读到的
+    就是一份把没失败的东西标成失败的证据。
+    """
+
+    def test_partial_and_cancelled_are_not_listed_as_failing(self):
+        from fd_industry_data.health import inspector, triage
+        runs = [
+            triage.Run(started_at="2026-11-01T00:00:00+00:00", status="success", rows=10),
+            triage.Run(started_at="2026-11-02T00:00:00+00:00", status="partial", rows=3),
+            triage.Run(started_at="2026-11-03T00:00:00+00:00", status="cancelled", rows=0),
+            triage.Run(started_at="2026-11-04T00:00:00+00:00", status="failed", rows=None,
+                       error="timeout"),
+        ]
+        verdict = triage.Verdict("network", False, False, "查上游", "rule3:anti-bot")
+        ev = inspector.build_evidence(runs, verdict)
+        assert [f["status"] for f in ev["failing_runs"]] == ["failed"]
+
+    def test_last_success_accepts_partial_and_reports_its_rows(self):
+        from fd_industry_data.health import inspector, triage
+        runs = [
+            triage.Run(started_at="2026-11-01T00:00:00+00:00", status="success", rows=10),
+            triage.Run(started_at="2026-11-02T00:00:00+00:00", status="partial", rows=7),
+        ]
+        verdict = triage.Verdict("structure", False, False, "核对", "rule1c:x")
+        ev = inspector.build_evidence(runs, verdict)
+        assert ev["last_success"] == {"started_at": "2026-11-02T00:00:00+00:00", "rows": 7}

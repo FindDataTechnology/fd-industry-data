@@ -232,8 +232,14 @@ class Plan:
 
 
 def _last_success(runs: list[triage.Run]) -> dict | None:
+    """最近一次"跑到了"的运行（含 `partial`）。
+
+    工单证据里的 last_success 是给修复 agent 看的"上次拿到数据是什么时候"。
+    `partial` = 爬取成功、只是源自己的 accept 条件没满足——数据是拿到了的，
+    把它排除会让证据显示"很久没成功"，与实际情况相反。
+    """
     for r in reversed(runs):
-        if r.status == "success":
+        if r.status in triage.REACHED:
             return {"started_at": r.started_at, "rows": r.rows}
     return None
 
@@ -260,7 +266,10 @@ def _watermark(runs: list[triage.Run], last_success: dict | None) -> dict:
 
 
 def build_evidence(runs: list[triage.Run], verdict: triage.Verdict) -> dict:
-    failing = [r for r in runs if r.status != "success"]
+    # 只列**真的失败**。原来写的是 `!= "success"`，于是 `partial`（爬取成功、
+    # accept 条件未满足）和 `cancelled`（主动取消）都会被当成 failing run 写进
+    # 工单证据——修复 agent 读到的"失败运行"里混着没失败的东西。
+    failing = [r for r in runs if r.status == "failed"]
     last_success = _last_success(runs)
     return {
         "window": {"from": runs[0].started_at if runs else "", "to": runs[-1].started_at if runs else ""},
