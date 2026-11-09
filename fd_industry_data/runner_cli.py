@@ -646,7 +646,12 @@ def main(argv: list[str] | None = None) -> int:
           + (f" (window {window['window_start']}..{window['window_end']})"
              if window else "")
           + (f" (dropped params: {', '.join(dropped)})" if dropped else ""))
-    return EXIT_OK if status == "success" else EXIT_ADAPTER_ERROR
+    # `partial` 也算这个进程干完了活：爬取成功、数据已写，只是源自己声明的
+    # accept 条件没满足。让它返回 EXIT_ADAPTER_ERROR 会自相矛盾——dispatcher 与
+    # auth 层都按"不是失败"处理它（pending=done、身份按成功归还），k8s Job 却会
+    # 因此显示 Failed，排查失败的人先去追一批其实跑完的运行。
+    # 判定权在下游：DB 里的 status=partial + metrics.accept 已足够巡检出单。
+    return EXIT_OK if status in ("success", "partial") else EXIT_ADAPTER_ERROR
 
 
 _AUTH_FAILURE_RE = ("401", "未登录", "login required", "login_required",

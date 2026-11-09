@@ -166,3 +166,121 @@ class NeverBreaksACrawlTests(Base):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PartialIsActuallyWritten(unittest.TestCase):
+    """端到端：manifest 声明下限、蜘蛛写不够时，运行记录的状态必须是 `partial`。
+
+    这里补的是本文件长期缺的一环。上面所有用例都只测 `_evaluate_accept` / `_accept_block`
+    这些纯函数——**没有一个验证 `main()` 真把 `partial` 写进运行记录**。
+    而"runner 已经在写 partial"这句话，我在这轮的所有判断里都当作既成事实用了：
+    巡检侧不认识 partial 会误判、证据里把 partial 当失败……
+    如果这个状态其实没被写出来，那一整串分析都建在假设上。
+
+    照 `test_attribution` 的做法：替换写库函数，跑真实的 `main()`。
+    """
+
+    def test_declared_floor_unmet_is_recorded_as_partial(self) -> None:
+        import os
+        import tempfile
+        from pathlib import Path
+
+        from fd_industry_data import runner_cli
+
+        tmp = Path(tempfile.mkdtemp(prefix="partial-e2e-"))
+        self.addCleanup(lambda: __import__("shutil").rmtree(tmp, True))
+        src = tmp / "spiders" / "short-demo"
+        src.mkdir(parents=True)
+        (src / "manifest.yaml").write_text(
+            'version: "2"\nname: short-demo\nlabel: demo\n'
+            'source_url: https://example.gov.cn/stats/\n'
+            'data_period: day\nmin_rows_per_run: 5\n'
+            'functions:\n  - command: run_short_demo\n'
+            '    columns:\n      - {name: v, type: str, description: value}\n',
+            encoding="utf-8",
+        )
+        # 只写 2 行，低于声明的 5
+        (src / "spider.py").write_text(
+            "def run_short_demo(limit: int = 10):\n"
+            "    return [{'v': str(i)} for i in range(2)]\n",
+            encoding="utf-8",
+        )
+
+        captured: dict = {}
+        saved = {n: getattr(runner_cli, n) for n in
+                 ("open_run_for", "start_run", "finish_run", "cancel_requested")}
+        old_env = os.environ.get("FD_CONTENT_DIR")
+        old_cwd = os.getcwd()
+        try:
+            runner_cli.open_run_for = lambda s: None
+            runner_cli.start_run = lambda **kw: 999
+            runner_cli.finish_run = lambda run_id, **kw: (captured.update(kw), True)[1]
+            runner_cli.cancel_requested = lambda run_id: False
+            os.environ["FD_CONTENT_DIR"] = str(tmp / "spiders")
+            os.chdir(tmp)
+            rc = runner_cli.main(["short-demo"])
+        finally:
+            for name, fn in saved.items():
+                setattr(runner_cli, name, fn)
+            if old_env is None:
+                os.environ.pop("FD_CONTENT_DIR", None)
+            else:
+                os.environ["FD_CONTENT_DIR"] = old_env
+            os.chdir(old_cwd)
+
+        self.assertEqual(rc, 0)
+        self.assertEqual(captured.get("status"), "partial",
+                         "低于声明下限的运行必须记 partial，不能记 success")
+        self.assertEqual(captured.get("rows_written"), 2)
+        accept = (captured.get("metrics") or {}).get("accept")
+        self.assertIsNotNone(accept, "accept 结论必须随运行入库，供巡检与工单证据用")
+        self.assertFalse(accept["ok"])
+
+    def test_undeclared_source_still_records_success(self) -> None:
+        """没有声明 = 行为完全不变（零回归）。"""
+        import os
+        import tempfile
+        from pathlib import Path
+
+        from fd_industry_data import runner_cli
+
+        tmp = Path(tempfile.mkdtemp(prefix="partial-none-"))
+        self.addCleanup(lambda: __import__("shutil").rmtree(tmp, True))
+        src = tmp / "spiders" / "plain-demo"
+        src.mkdir(parents=True)
+        (src / "manifest.yaml").write_text(
+            'version: "2"\nname: plain-demo\nlabel: demo\n'
+            'source_url: https://example.gov.cn/stats/\ndata_period: day\n'
+            'functions:\n  - command: run_plain_demo\n'
+            '    columns:\n      - {name: v, type: str, description: value}\n',
+            encoding="utf-8",
+        )
+        (src / "spider.py").write_text(
+            "def run_plain_demo(limit: int = 10):\n"
+            "    return [{'v': 'x'}]\n", encoding="utf-8")
+
+        captured: dict = {}
+        saved = {n: getattr(runner_cli, n) for n in
+                 ("open_run_for", "start_run", "finish_run", "cancel_requested")}
+        old_env = os.environ.get("FD_CONTENT_DIR")
+        old_cwd = os.getcwd()
+        try:
+            runner_cli.open_run_for = lambda s: None
+            runner_cli.start_run = lambda **kw: 999
+            runner_cli.finish_run = lambda run_id, **kw: (captured.update(kw), True)[1]
+            runner_cli.cancel_requested = lambda run_id: False
+            os.environ["FD_CONTENT_DIR"] = str(tmp / "spiders")
+            os.chdir(tmp)
+            rc = runner_cli.main(["plain-demo"])
+        finally:
+            for name, fn in saved.items():
+                setattr(runner_cli, name, fn)
+            if old_env is None:
+                os.environ.pop("FD_CONTENT_DIR", None)
+            else:
+                os.environ["FD_CONTENT_DIR"] = old_env
+            os.chdir(old_cwd)
+
+        self.assertEqual(rc, 0)
+        self.assertEqual(captured.get("status"), "success")
+        self.assertIsNone((captured.get("metrics") or {}).get("accept"))
