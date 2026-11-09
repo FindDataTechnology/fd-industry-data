@@ -1,0 +1,45 @@
+ticket_id: 20261107-ico-coffee-price-ba21fcd1
+source: ico-coffee-price
+unit: spiders/ico-coffee-price/
+kind: repair
+created_at: '2026-11-07T16:36:48.177595+00:00'
+category: network
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 出口切换/代理复测（不改代码）
+evidence:
+  window:
+    from: '2026-10-20T00:00:00Z'
+    to: '2026-11-08T02:00:00Z'
+  failing_runs:
+  - started_at: '2026-11-06T02:00:00Z'
+    status: failed
+    rows: 0
+    error_summary: 'ReadTimeout: timed out'
+    http_status: null
+  - started_at: '2026-11-07T02:00:00Z'
+    status: failed
+    rows: 0
+    error_summary: 'ReadTimeout: timed out'
+    http_status: null
+  - started_at: '2026-11-08T02:00:00Z'
+    status: failed
+    rows: 0
+    error_summary: 'ReadTimeout: timed out'
+    http_status: null
+  last_success:
+    started_at: '2026-10-20T00:00:00Z'
+    rows: 10
+  watermark:
+    latest: null
+    basis: unknown（遥测未提供数据期；最近成功时间见 evidence.last_success）
+  notes: 'rule5:network votes=3/3 labels={''network'': 3}'
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261107-ico-coffee-price-ba21fcd1.yaml
+golden:
+- spiders/ico-coffee-price/golden/001-ico-coffee-price.json
+lifecycle:
+- at: '2026-11-07T16:36:48.177595+00:00'
+  event: created
+terminal: null

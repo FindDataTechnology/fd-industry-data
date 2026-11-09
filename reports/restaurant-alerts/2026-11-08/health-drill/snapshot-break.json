@@ -1,0 +1,426 @@
+[
+  {
+    "source": "census-eits",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "census-eits",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: HTTPSConnectionPool timed out",
+    "http_status": null
+  },
+  {
+    "source": "census-eits",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: HTTPSConnectionPool timed out",
+    "http_status": null
+  },
+  {
+    "source": "census-eits",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: HTTPSConnectionPool timed out",
+    "http_status": null
+  },
+  {
+    "source": "dce",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "dce",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "dce",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "dce",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "fao-food-price",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "fao-food-price",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "fao-food-price",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "fao-food-price",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "fred-cpi",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "fred-cpi",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "ConnectionResetError: connect reset by peer",
+    "http_status": null
+  },
+  {
+    "source": "fred-cpi",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "ConnectionResetError: connect reset by peer",
+    "http_status": null
+  },
+  {
+    "source": "fred-cpi",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "ConnectionResetError: connect reset by peer",
+    "http_status": null
+  },
+  {
+    "source": "hkex-disclosure",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "hkex-disclosure",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "503 Service Unavailable",
+    "http_status": 503
+  },
+  {
+    "source": "hkex-disclosure",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "503 Service Unavailable",
+    "http_status": 503
+  },
+  {
+    "source": "hkex-disclosure",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "503 Service Unavailable",
+    "http_status": 503
+  },
+  {
+    "source": "ico-coffee-price",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "ico-coffee-price",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "ico-coffee-price",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "ico-coffee-price",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "imf-pcps",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "imf-pcps",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "imf-pcps",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "imf-pcps",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "moa-hog-price",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "moa-hog-price",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "moa-hog-price",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "moa-hog-price",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "restaurant-rpi",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "restaurant-rpi",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "restaurant-rpi",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "restaurant-rpi",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "samr-food-inspection",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "samr-food-inspection",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "samr-food-inspection",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "samr-food-inspection",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "sec-edgar-facts",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "sec-edgar-facts",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "schema mismatch: unexpected html page instead of json (golden drift)",
+    "http_status": 200
+  },
+  {
+    "source": "sec-edgar-facts",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "schema mismatch: unexpected html page instead of json (golden drift)",
+    "http_status": 200
+  },
+  {
+    "source": "sec-edgar-facts",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "schema mismatch: unexpected html page instead of json (golden drift)",
+    "http_status": 200
+  },
+  {
+    "source": "usda-quickstats",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "usda-quickstats",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "usda-quickstats",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "usda-quickstats",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "nbs-stats",
+    "status": "success",
+    "started_at": "2026-09-05T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "wbgapi",
+    "status": "success",
+    "started_at": "2026-10-20T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "wbgapi",
+    "status": "failed",
+    "started_at": "2026-11-06T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "wbgapi",
+    "status": "failed",
+    "started_at": "2026-11-07T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  },
+  {
+    "source": "wbgapi",
+    "status": "failed",
+    "started_at": "2026-11-08T02:00:00Z",
+    "rows": 0,
+    "error": "ReadTimeout: timed out",
+    "http_status": null
+  }
+]

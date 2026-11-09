@@ -1,0 +1,11 @@
+{
+  "at": "2026-11-07T16:36:29.642627+00:00",
+  "source": "snapshot:reports/restaurant-alerts/2026-11-08/health-drill/snapshot-healthy.json",
+  "config_source": "file:config/health-scope.json",
+  "sources_seen": 14,
+  "healthy": 13,
+  "written": [],
+  "deferred": [],
+  "skipped_unknown_period": [],
+  "master_switch": true
+}

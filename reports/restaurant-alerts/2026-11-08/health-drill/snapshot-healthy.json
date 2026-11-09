@@ -1,0 +1,114 @@
+[
+  {
+    "source": "census-eits",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "dce",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "fao-food-price",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "fred-cpi",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "hkex-disclosure",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "ico-coffee-price",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "imf-pcps",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "moa-hog-price",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "restaurant-rpi",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "samr-food-inspection",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "sec-edgar-facts",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "usda-quickstats",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "nbs-stats",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  },
+  {
+    "source": "wbgapi",
+    "status": "success",
+    "started_at": "2026-11-06T00:00:00Z",
+    "rows": 10,
+    "error": "",
+    "http_status": 200
+  }
+]

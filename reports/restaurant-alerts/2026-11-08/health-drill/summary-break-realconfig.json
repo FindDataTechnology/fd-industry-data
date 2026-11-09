@@ -1,0 +1,50 @@
+{
+  "at": "2026-11-07T16:36:48.177595+00:00",
+  "source": "snapshot:reports/restaurant-alerts/2026-11-08/health-drill/snapshot-break.json",
+  "config_source": "file:config/health-scope.json",
+  "sources_seen": 14,
+  "healthy": 0,
+  "written": [
+    "20261107-census-eits-87d11ac3.yaml",
+    "20261107-fao-food-price-a7f3d778.yaml",
+    "20261107-fred-cpi-bc6601b0.yaml",
+    "20261107-hkex-disclosure-89934d77.yaml",
+    "20261107-ico-coffee-price-ba21fcd1.yaml"
+  ],
+  "deferred": [
+    {
+      "source": "dce",
+      "reason": "adjudication freeze (manual escalation)"
+    },
+    {
+      "source": "imf-pcps",
+      "reason": "daily cap reached"
+    },
+    {
+      "source": "moa-hog-price",
+      "reason": "daily cap reached"
+    },
+    {
+      "source": "nbs-stats",
+      "reason": "daily cap reached"
+    },
+    {
+      "source": "restaurant-rpi",
+      "reason": "daily cap reached"
+    },
+    {
+      "source": "samr-food-inspection",
+      "reason": "daily cap reached"
+    },
+    {
+      "source": "sec-edgar-facts",
+      "reason": "daily cap reached"
+    },
+    {
+      "source": "usda-quickstats",
+      "reason": "daily cap reached"
+    }
+  ],
+  "skipped_unknown_period": [],
+  "master_switch": true
+}
