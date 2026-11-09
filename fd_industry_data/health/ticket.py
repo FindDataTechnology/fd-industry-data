@@ -113,6 +113,7 @@ def new_ticket(
     brief: dict | None = None,
     golden_paths: list[str] | None = None,
     created_at: str | None = None,
+    evidence_signature: str | None = None,
 ) -> dict:
     """构造完整工单 dict；created_at 缺省为当前 UTC ISO8601。
 
@@ -141,6 +142,10 @@ def new_ticket(
     }
     if brief is not None:
         doc["brief"] = brief
+    if evidence_signature is not None:
+        # 工单身份第三分量（harden-crawl-delivery 2.7）：同源同类别下，只有签名
+        # 相同的失败才算同一件事；重复失败追加到既有单，不新开。
+        doc["evidence_signature"] = evidence_signature
     return doc
 
 

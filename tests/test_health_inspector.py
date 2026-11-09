@@ -12,7 +12,7 @@ import yaml
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from fd_industry_data.health import inspector  # noqa: E402
+from fd_industry_data.health import identity, inspector  # noqa: E402
 from fd_industry_data.health.config import DEFAULTS  # noqa: E402
 from fd_industry_data.health.ticket import (  # noqa: E402
     dump_ticket,
@@ -58,8 +58,10 @@ def _snapshot(tmp_path, records):
     return p
 
 
-def _mk_ticket(outdir, source, terminal=None):
-    doc = new_ticket(source=source, unit=f"spiders/{source}/", evidence={}, verify_commands=["echo"])
+def _mk_ticket(outdir, source, terminal=None, category=None, evidence_signature=None):
+    doc = new_ticket(source=source, unit=f"spiders/{source}/", evidence={},
+                     verify_commands=["echo"], category=category,
+                     evidence_signature=evidence_signature)
     if terminal:
         doc["terminal"] = terminal
     fname = doc["ticket_id"] + ".yaml"
@@ -355,7 +357,33 @@ def test_write_plan_dedupes_nonterminal(tmp_path):
     plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
     stats = inspector.write_plan(plan, repo, outdir, DEFAULTS, NOW)
     assert stats["written"] == []
-    assert any(d["source"] == "alpha" and "nonterminal" in d["reason"] for d in stats["deferred"])
+    # 去重键已从「按源」改为「源 + 类别 + 证据签名」（harden-crawl-delivery 2.7）；
+    # 老单没有签名时仍按源退回，因此 reason 是 duplicate of open ticket。
+    assert any(d["source"] == "alpha" and "duplicate" in d["reason"] for d in stats["deferred"])
+
+
+def test_write_plan_allows_new_failure_shape_for_same_source(tmp_path):
+    """同源不同故障形状 = 两件事：修好网络层后暴露的结构层不能被旧单吞掉。"""
+    repo = _mk_repo(tmp_path)
+    outdir = tmp_path / "tickets"
+    _mk_ticket(outdir, "alpha", category="network", evidence_signature="old-sig")
+    records = _runs("alpha", fails=3, error="403 forbidden cloudflare", http=403)
+    plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
+    stats = inspector.write_plan(plan, repo, outdir, DEFAULTS, NOW)
+    assert len(stats["written"]) == 1
+
+
+def test_write_plan_suppresses_identical_signature(tmp_path):
+    repo = _mk_repo(tmp_path)
+    outdir = tmp_path / "tickets"
+    records = _runs("alpha", fails=3, error="connection timed out")
+    plan = inspector.plan_tickets(inspector.group_runs(records), repo, DEFAULTS, NOW)
+    sig = identity.signature(plan.emit[0].runs[-1].error)
+    _mk_ticket(outdir, "alpha", category=plan.emit[0].verdict.category,
+               evidence_signature=sig)
+    stats = inspector.write_plan(plan, repo, outdir, DEFAULTS, NOW)
+    assert stats["written"] == []
+    assert any("duplicate" in d["reason"] for d in stats["deferred"])
 
 
 def test_nonterminal_sources_terminal_excluded(tmp_path):

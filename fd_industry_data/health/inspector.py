@@ -20,6 +20,7 @@ import yaml
 
 from . import ticket as ticket_mod
 from . import triage
+from . import identity
 from .config import (
     VALID_DATA_PERIODS,
     HealthConfig,
@@ -53,6 +54,11 @@ def load_runs_from_snapshot(path: str | Path) -> list[dict]:
 #: psql 的 `-At` 输出里混进任何非表格文本（驱动告警、连接池报错、Node 调用栈），
 #: 列数补齐后都能伪装成一条记录，但它的第 2 列不会是这四个词之一。
 _KNOWN_STATUS = frozenset({"success", "failed", "cancelled", "partial",
+                           # `blocked-config`（2026-11-10，runner 的 requires_env 预检）：
+                           # 源缺必需环境变量，runner 不取数直接记这个状态。它是合法遥测，
+                           # 但**既不是跑到也不是失败**——不认它会把它当"非遥测输出"丢掉，
+                           # 那些源就会看起来"窗内没跑"，与"缺配置"是两回事。
+                           "blocked-config",
                            # `running` 也是合法遥测：这条 run 已经开了但还没结束。
                            # 不认它会把"正在跑"误报成"非遥测输出"——2026-11-09 实测
                            # 真实库里就有一条（education_podcast，开了 10 小时尚未收尾）。
@@ -472,6 +478,25 @@ def todays_emitted(outdir: Path, day: str) -> int:
     return len(list(outdir.glob(f"{day}-*.yaml"))) if outdir.is_dir() else 0
 
 
+def nonterminal_ticket_docs(outdir: Path, within_days: int = 7) -> list[dict]:
+    """未终态工单的完整文档（供按 (source, category, signature) 去重）。"""
+    docs: list[dict] = []
+    if not outdir.is_dir():
+        return docs
+    cutoff = datetime.now(timezone.utc) - timedelta(days=within_days)
+    for p in outdir.glob("*.yaml"):
+        try:
+            day = datetime.strptime(p.name[:8], "%Y%m%d").replace(tzinfo=timezone.utc)
+            doc = ticket_mod.load_ticket(p)
+        except (ValueError, Exception):
+            continue
+        if day < cutoff:
+            continue
+        if doc.get("terminal") in (None, "queued"):
+            docs.append(doc)
+    return docs
+
+
 def nonterminal_sources(outdir: Path, within_days: int = 7) -> set[str]:
     """近 within_days 天内已存在未终态工单（terminal 为 None 或 queued）的源。"""
     found: set[str] = set()
@@ -500,6 +525,7 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
     already_today = todays_emitted(outdir, day)
     remaining = max(0, config.max_daily_tickets - already_today)
     existing = nonterminal_sources(outdir)
+    existing_docs = nonterminal_ticket_docs(outdir)
     written: list[str] = []
     for item in plan.emit:
         # 顺延条目带上判词类别与规则名：只记 {source, reason} 时，"顺延 7 个"看不出
@@ -509,7 +535,17 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
         detail = {"source": item.source, "category": item.verdict.category,
                   "rule": (item.verdict.rule_trace.split(":")[0]
                            if item.verdict.rule_trace else None)}
-        if item.source in existing:
+        # 工单身份（harden-crawl-delivery 2.7）：同源 + 同类别 + 同错误签名才算
+        # 同一件事；这种情况追加到既有单，不再按「本批新单」重开一张。
+        last_error = item.runs[-1].error if item.runs else ""
+        signature = identity.signature(last_error)
+        if any(identity.is_same_failure(d, item.source, item.verdict.category, signature)
+               for d in existing_docs):
+            plan.deferred.append({**detail, "reason": "duplicate of open ticket",
+                                  "evidence_signature": signature})
+            continue
+        if item.source in existing and not existing_docs:
+            # 兼容：工单文档读不出来时退回旧的按源去重
             plan.deferred.append({**detail, "reason": "nonterminal ticket exists"})
             continue
         if remaining <= 0:
@@ -527,6 +563,7 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
             suggested_action=item.verdict.suggested_action,
             golden_paths=_golden_paths(repo, item.unit),
             created_at=now.isoformat(),
+            evidence_signature=signature,
         )
         short_id = doc["ticket_id"].split("-")[-1]
         fname = ticket_mod.ticket_filename(day, item.source, short_id)
