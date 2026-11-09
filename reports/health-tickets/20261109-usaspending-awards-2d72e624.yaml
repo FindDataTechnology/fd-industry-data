@@ -1,0 +1,38 @@
+ticket_id: 20261109-usaspending-awards-2d72e624
+source: usaspending-awards
+unit: spiders/usaspending-awards/
+kind: generate
+created_at: '2026-11-09T22:27:24.060561+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-11-09T22:27:24.060159+00:00'
+    to: '2026-11-09T22:27:24.060159+00:00'
+  failing_runs: []
+  last_success: null
+  watermark:
+    latest: null
+    basis: n/a（生成单：目标单元尚不存在）
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261109-usaspending-awards-2d72e624.yaml
+golden:
+- spiders/usaspending-awards/golden/
+lifecycle:
+- at: '2026-11-09T22:27:24.060561+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://api.usaspending.gov/api/v2/search/spending_by_award/
+  - https://api.usaspending.gov/api/v2/references/filter_tree/naics/
+  expectations: 美国联邦合同按 NAICS 行业月度聚合=行业需求信号（侦察簿 W1-L37 判定保留：免费 key 必须）。行字段：award_type/naics_code/agency_name/obligated_amount/period；发现层端点
+    /api/v2/awards/last_updated 实测 200（2026-11-10 探针，fd-source-probe 审计 queue/usaspending3）。
+  cadence: monthly
+  notes: 证据：探针 queue/usaspending3 200 {last_updated:11/06/2026}；侦察簿「欠账复测队列第一批」L 活跃待接行。口径：只做聚合信号层，不做逐单明细；POST
+    JSON body，参数白名单须实测后固化（search 端点形态复测由生成 agent 做）。出单=industry-source-solution-fleet
+    5.1，人工门=owner 已总授权处理应做工作，出单后仍守生成链全部既有门（出单校验→PR→双门→人审 merge→静默→点亮）。
