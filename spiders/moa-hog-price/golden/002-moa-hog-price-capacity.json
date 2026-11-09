@@ -1,0 +1,22 @@
+{
+  "sample_id": "002-moa-hog-price-capacity",
+  "created": "2026-11-08",
+  "target": "run_moa_hog_capacity",
+  "params": {"limit": 40},
+  "expect": {
+    "min_rows": 20,
+    "rows_contains": [
+      {"field": "unit", "equals": "万头"},
+      {"field": "item", "equals": "breeding_sow_inventory"},
+      {"field": "item", "equals": "hog_inventory"},
+      {"field": "period_end", "equals": "2026-09-30"},
+      {"field": "quarter", "equals": "2026Q3"},
+      {"field": "value", "equals": 3602.0},
+      {"field": "value", "equals": 42533.0},
+      {"field": "qoq_pct", "equals": -4.7},
+      {"field": "yoy_pct", "equals": -10.7},
+      {"field": "target_ratio_pct", "equals": 96.0}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"]
+}

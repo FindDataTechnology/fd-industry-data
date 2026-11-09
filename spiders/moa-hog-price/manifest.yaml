@@ -2,6 +2,8 @@ version: "2"
 name: moa-hog-price
 label: 农业农村部生猪和猪肉价格周报 (MOA Hog & Pork Weekly Price)
 source_url: https://www.moa.gov.cn/ztzl/szcpxx/scxxfb/
+# authority: official —— 农业农村部畜牧兽医局本级发布
+authority: official
 schedule: "58 8 * * 2"       # 点亮（批次四）：每周二 08:58；农业农村部周报周一发布（覆盖至前一周日）
 data_period: month
 scanner_mode: upstream-curated
@@ -53,6 +55,56 @@ functions:
       - name: source
         type: str
         description: 固定 moa-hog-price
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of extraction
+  - command: run_moa_hog_capacity
+    description: >-
+      Fetch quarterly hog-capacity inventory from MOA (农业农村部) 生猪专题 →「季度数据」
+      (/ztzl/szcpxx/jdsj/). 季频：每年 1/4/7/10 月 20 日发布，无月度数值（实测 202608 页
+      无任何存栏行，只有屠宰量与价格）。产出季度末能繁母猪存栏 / 生猪存栏两行。
+    frequency: quarterly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum records to return (rows, newest quarter first; default 40 = full visible history)
+      - name: window_start
+        type: str
+        required: false
+        description: Inclusive lower bound on period_end (YYYY-MM-DD; YYYY-MM and YYYY accepted); also read from FD_WINDOW_START
+      - name: window_end
+        type: str
+        required: false
+        description: Inclusive upper bound on period_end (YYYY-MM-DD; YYYY-MM and YYYY accepted); also read from FD_WINDOW_END
+    columns:
+      - name: period_end
+        type: str
+        description: 季度末日期 YYYY-MM-DD（03-31 / 06-30 / 09-30 / 12-31）
+      - name: quarter
+        type: str
+        description: 季度标识 YYYYQn（如 2026Q3）
+      - name: item
+        type: str
+        description: 产能指标（breeding_sow_inventory = 能繁母猪存栏 / hog_inventory = 生猪存栏）
+      - name: value
+        type: float
+        description: 存栏量（万头）；「—」/缺失为 None，绝不写 0、不插值
+      - name: unit
+        type: str
+        description: 计量单位（固定 万头）
+      - name: qoq_pct
+        type: float
+        description: 环比涨跌幅（%），signed；「—」/缺失为 None
+      - name: yoy_pct
+        type: float
+        description: 同比涨跌幅（%），signed；「—」/缺失为 None
+      - name: target_ratio_pct
+        type: float
+        description: 能繁母猪相当于调控目标（2025 年前为「正常保有量」）的百分比；仅 breeding_sow_inventory 行，原文无括注为 None
+      - name: source_url
+        type: str
+        description: 月份页 URL（数据所在页）
       - name: scraped_at
         type: str
         description: ISO timestamp of extraction

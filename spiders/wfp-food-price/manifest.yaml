@@ -1,64 +1,120 @@
-version: '2'
+version: "2"
 name: wfp-food-price
-label: WFP Global Food Prices (HDX)
-source_url: https://data.humdata.org/dataset/wfp-food-prices
+label: WFP 全球市场粮价（HDX 活数据集，按年分片 CSV，市场级月度）
+source_url: https://data.humdata.org/dataset/global-wfp-food-prices
+# authority: intergovernmental —— WFP（联合国世界粮食计划署）VAM 一手市场调查，
+# 非转述、非商业聚合。国际组织单列一档（规格词表 official/association/industry/
+# intergovernmental）：它是一手权威数据，但**不是本国政府部门统计发布**，
+# 按 agriculture-source-alerting 的判据纪律不得单独驱动阈值告警。
+authority: intergovernmental
+# 不写 schedule：先静默合入（点亮时才补 cron）
 data_period: month
 scanner_mode: upstream-curated
-ranking_seed:
-- 0.5
-- 0.5
+ranking_seed: [0.5, 0.5]
 functions:
-- command: run_wfp_food_price
-  description: Fetch monthly market-level food prices (90+ countries) from the WFP
-    global prices database hosted on HDX
-  frequency: monthly
-  parameters:
-  - name: limit
-    type: int
-    required: false
-    description: Maximum number of price rows to return (streamed from the global
-      CSV)
-  columns:
-  - name: country
-    type: string
-    description: Country name (WFP adm0_name)
-  - name: market
-    type: string
-    description: Market name (WFP mkt_name)
-  - name: commodity
-    type: string
-    description: Commodity and market segment (WFP cm_name, e.g. Bread - Retail)
-  - name: month
-    type: string
-    description: Observation month as YYYY-MM (mp_year + mp_month)
-  - name: price
-    type: float
-    description: Monthly price in local currency (mp_price)
-  - name: currency
-    type: string
-    description: ISO currency code (WFP cur_name, e.g. AFN)
-  - name: unit
-    type: string
-    description: Price unit (WFP um_name, e.g. KG)
-  - name: url
-    type: string
-    description: Resolved resource download URL for the row
-  - name: source
-    type: string
-    description: Data source identifier
-  - name: scraped_at
-    type: string
-    description: ISO timestamp of the fetch
+  - command: run_wfp_food_price
+    description: >-
+      Fetch monthly market-level food prices from the ACTIVE WFP dataset on HDX
+      (global-wfp-food-prices). Migrated 2026-11-08 from the frozen
+      wfp-food-prices dataset, whose current resource had been returning HTTP
+      202 with an empty body since 2021-08. The new dataset ships ONE CSV PER
+      YEAR (40 shards, ~620MB total); the unit resolves shard URLs live from
+      the CKAN package_show API and streams only the requested years
+      (default: current + previous year), never the whole archive. Parsing is
+      line-streamed and stops at limit. The observation date is the survey day
+      (usually the 15th), normalised to month YYYY-MM. Rows in the non-food
+      category (exchange rate / fuel / wage) are excluded by default and kept
+      only with include_non_food=true. Any hard failure raises — the unit never
+      returns a silent empty list.
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return, streamed from the year shard(s). NOTE the shard is ordered by country then date, so a small limit yields a contiguous alphabetical slice of countries — pin window_start/window_end and raise the limit for full-month coverage (2026-10 = 5763 food rows across 16 countries)
+      - name: window_start
+        type: str
+        required: false
+        description: Backfill window start (YYYY-MM or YYYY-MM-DD) applied to the OBSERVATION DATE before the limit truncation; must be paired with window_end
+      - name: window_end
+        type: str
+        required: false
+        description: Backfill window end (YYYY-MM or YYYY-MM-DD); must be paired with window_start
+      - name: years
+        type: json
+        required: false
+        description: Year shards to stream, e.g. [2025, 2026] or 2026; default = current UTC year plus the previous one
+      - name: include_non_food
+        type: bool
+        required: false
+        description: Keep rows whose category is "non-food" (exchange rate, fuel, non-qualified wage). Default false
+    columns:
+      - name: country_iso3
+        type: str
+        description: ISO-3 country code as published (the new schema carries no country name)
+      - name: month
+        type: str
+        description: Observation month YYYY-MM derived from date
+      - name: date
+        type: str
+        description: Observation date YYYY-MM-DD as published (survey day, usually the 15th)
+      - name: category
+        type: str
+        description: WFP food category — cereals and tubers / pulses and nuts / oil and fats / vegetables and fruits / meat, fish and eggs / miscellaneous food (plus non-food when requested)
+      - name: commodity
+        type: str
+        description: Commodity name as published (e.g. Bread, Maize, Rice (high quality))
+      - name: market
+        type: str
+        description: Market name as published
+      - name: admin1
+        type: str
+        description: First-level administrative unit as published
+      - name: price_type
+        type: str
+        description: Retail or Wholesale
+      - name: price_flag
+        type: str
+        description: actual (direct observation) or aggregate (market/month aggregate)
+      - name: price
+        type: float
+        description: Price in local currency
+      - name: usd_price
+        type: float
+        description: USD equivalent as published by WFP
+      - name: currency
+        type: str
+        description: ISO currency code (e.g. AFN)
+      - name: unit
+        type: str
+        description: Price unit as published (KG, L, 8 pcs, 240 G, 2.1 KG, 46 KG …)
+      - name: url
+        type: str
+        description: Year-shard download URL the row was streamed from
+      - name: source
+        type: str
+        description: Data source identifier
+      - name: scraped_at
+        type: str
+        description: ISO timestamp of the fetch
 concepts:
-- column: price
-  concept: market.food_price
-  entity_type: region
-  measure: value
-  unit: local_currency
-  frequency: monthly
+  - column: price
+    concept: market.food_price
+    entity_type: region
+    measure: value
+    unit: local_currency
+    frequency: monthly
+  - column: usd_price
+    concept: market.food_price
+    entity_type: region
+    measure: value
+    unit: usd
+    frequency: monthly
 entities:
-- entity_type: region
-  coverage: universe
+  - entity_type: region
+    coverage: universe
+  - entity_type: product
+    coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
 parked: true

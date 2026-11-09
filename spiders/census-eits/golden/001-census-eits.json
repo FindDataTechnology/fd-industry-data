@@ -1,8 +1,8 @@
 {
   "sample_id": "001-census-eits",
-  "created": "2026-10-07",
+  "created": "2026-11-07",
   "target": "run_census_eits",
-  "params": {"limit": 20},
+  "params": {"limit": 20, "time": "2020-01"},
   "expect": {
     "min_rows": 14,
     "rows_contains": [
@@ -14,8 +14,8 @@
       {"field": "data_type_code", "equals": "IM"},
       {"field": "source", "equals": "census-eits"},
       {"field": "cell_value", "equals": 472427.0},
-      {"field": "cell_value", "equals": 488638.0},
-      {"field": "cell_value", "equals": 684010.0}
+      {"field": "cell_value", "equals": 483141.0},
+      {"field": "cell_value", "equals": 679282.0}
     ]
   },
   "whitelist_fields": ["scraped_at", "timestamp"]

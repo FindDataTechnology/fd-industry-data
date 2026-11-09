@@ -1,6 +1,6 @@
-"""moa-hog-price — 农业农村部生猪和猪肉价格周报.
+"""moa-hog-price — 农业农村部生猪和猪肉价格周报 + 生猪产能季度数据.
 
-Source: 农业农村部 (Ministry of Agriculture and Rural Affairs) 生猪专题 →
+Source 1 (weekly prices): 农业农村部 (Ministry of Agriculture and Rural Affairs) 生猪专题 →
 「市场信息发布」栏目（市场动态）, https://www.moa.gov.cn/ztzl/szcpxx/scxxfb/.
 
 Live data paths (measured 2026-10-12, UTC+8):
@@ -32,11 +32,26 @@ Live data paths (measured 2026-10-12, UTC+8):
 Encoding: 实测页面 UTF-8；_decode 仍防御性回退 gb18030，解码异常不致命。
 No auth, no captcha, no cookies. TLS 为 CFCA OV (*.moa.gov.cn)；按仓内惯例
 verify=False（不假设容器信任库）。国内源：仅直连，从不走代理。
+
+Source 2 (quarterly capacity): 生猪专题 →「季度数据」
+https://www.moa.gov.cn/ztzl/szcpxx/jdsj/。入口与年份目录都是 meta-refresh 跳转壳
+（/jdsj/ → /jdsj/<YYYY>/ → /jdsj/<YYYY>/<YYYYMM>/，实测 2026-11-08），必须跟到月份页；
+数据在月份页静态 HTML 表 table.data_table（生产/价格/进出口三张），无需 JS。
+只取「生产」表的季度末存栏两行：
+  2026年3季度末能繁母猪存栏（万头）= 3602（相当于调控目标的96.0%），环比 -4.7%，同比 -10.7%
+  2026年3季度末生猪存栏（万头）   = 42533，环比 0.1%，同比 -2.6%
+发布频次为**季度**（页面原文：每年 1/4/7/10 月 20 日发布）：实测 202608 页无任何存栏
+行、只有屠宰量与价格 ⇒ 月度产能数值不存在，本函数只产出季频行，不插值不推算。
+PC 表 table.data_table 与移动表 table.data_table_mobile 是同一数据的双份（实测产能行
+在全页出现 5 次，含备注文字），按 (quarter, item) 去重。数值单元格内嵌
+<br><span>（调控目标/正常保有量括注），须剥离后取首个数字；「—」表示不适用 ⇒ None，
+绝不写 0。xlsx 附件 href 落在次月目录（相对路径易 404），本函数不依赖附件。
 """
 from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import re
 from datetime import datetime, timezone
 from urllib.parse import urljoin
@@ -389,7 +404,16 @@ def run_moa_hog_price(limit: int = 100, max_pages: int = 2) -> list[dict]:
     Returns:
         list of price row dicts (schema = manifest columns). Missing numbers
         are None; nothing is zero-filled.
+
+    Single-entry command routing: the runner only ever loads ``run_<slug>``, so
+    the unit's second declared command (``run_moa_hog_capacity``) is reachable
+    through this entry when ``MOA_HOG_COMMAND=capacity`` is set. Without that
+    switch the weekly price path runs exactly as before (same signature, same
+    columns — the capacity rows never leak into this output).
     """
+    if _selected_command() == CAPACITY_COMMAND:
+        return run_moa_hog_capacity(limit=limit)
+
     try:
         from fd_industry_data.cancel_event import is_set as cancel_set
     except ImportError:  # standalone run outside the repo package
@@ -401,6 +425,398 @@ def run_moa_hog_price(limit: int = 100, max_pages: int = 2) -> list[dict]:
             logger.info("cancel requested before start; returning empty")
             return []
         return await _collect(max(int(limit), 0), max(int(max_pages), 1))
+
+    return asyncio.run(_run())[: max(int(limit), 0)]
+
+
+# ---------------------------------------------------------------------------
+# 生猪产能（季频）—— 生猪专题 →「季度数据」 (/ztzl/szcpxx/jdsj/)
+# ---------------------------------------------------------------------------
+CAPACITY_ROOT = "https://www.moa.gov.cn/ztzl/szcpxx/jdsj/"
+COMMAND_ENV = "MOA_HOG_COMMAND"
+CAPACITY_COMMAND = "capacity"
+CAPACITY_UNIT = "万头"
+
+# 页面指标名 -> 行 item 值（两个口径绝不合并，各占一行）
+_CAPACITY_ITEMS = {
+    "能繁母猪存栏": "breeding_sow_inventory",
+    "生猪存栏": "hog_inventory",
+}
+_QUARTER_END = {1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}
+
+# 「2026年3季度末能繁母猪存栏（万头）」——季度数字实测有阿拉伯与中文两种写法
+# （2023年三季度末），全角/半角括号兼容
+_QUARTER_LABEL_RE = re.compile(
+    r"(\d{4})年\s*([1-4一二三四])\s*季度末\s*(能繁母猪存栏|生猪存栏)\s*[（(]\s*万头\s*[)）]"
+)
+_CN_QUARTER = {"一": 1, "二": 2, "三": 3, "四": 4}
+# 能繁母猪的调控目标/正常保有量括注：「相当于调控目标的96.0%」「相当于正常保有量的101.6%」
+_TARGET_RATIO_RE = re.compile(r"相当于(?:调控目标的|正常保有量的)\s*([\d.]+)\s*%")
+_PCT_RE = re.compile(r"^([+-]?\d+(?:\.\d+)?)\s*%?$")
+_MONTH_NAV_RE = re.compile(r"/jdsj/(\d{4})/(\d{4})(\d{2})/?$")
+_YEAR_NAV_RE = re.compile(r"/jdsj/(\d{4})/?$")
+_META_REFRESH_RE = re.compile(
+    r"""<meta[^>]+http-equiv\s*=\s*["']?refresh["']?[^>]*content\s*=\s*["']?([^"'>]*)""",
+    re.IGNORECASE,
+)
+_JS_REFRESH_RE = re.compile(r"""window\.location(?:\.href)?\s*=\s*['"]([^'"]+)['"]""")
+
+
+def _selected_command() -> str:
+    """Runner 单入口的命令选择（env，因为入口签名不可加参数）。"""
+    return (os.environ.get(COMMAND_ENV) or "").strip().lower()
+
+
+def _number(text: str) -> float | None:
+    """取文本首个数字（数值单元格内嵌 <br><span> 括注，先剥成纯文本）。"""
+    m = re.match(r"\s*([+-]?\d+(?:\.\d+)?)", text or "")
+    return float(m.group(1)) if m else None
+
+
+def _percent(text: str) -> float | None:
+    """「-4.7%」「0.0%」→ 带符号数值；「—」/空/不可解析 → None（不写 0）。"""
+    match = _PCT_RE.match(_squash(text))
+    return float(match.group(1)) if match else None
+
+
+def _quarter_period_end(year: int, quarter: int) -> str:
+    return f"{year:04d}-{_QUARTER_END[quarter]}"
+
+
+def _quarter_no(token: str) -> int:
+    """「3」或「三」→ 3。"""
+    return int(token) if token.isdigit() else _CN_QUARTER[token]
+
+
+def _norm_window(value: str | None, *, end: bool = False) -> str | None:
+    """窗口边界归一为可做 ISO 字符串比较的日期（支持 YYYY / YYYY-MM）。"""
+    if not value:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if re.fullmatch(r"\d{4}", text):
+        return f"{text}-12-31" if end else f"{text}-01-01"
+    if re.fullmatch(r"\d{4}-\d{2}", text):
+        return f"{text}-31" if end else f"{text}-01"
+    return text
+
+
+def _capacity_row(
+    match: re.Match[str],
+    value_text: str,
+    qoq_text: str,
+    yoy_text: str,
+    source_url: str,
+    scraped_at: str,
+) -> dict:
+    year = int(match.group(1))
+    quarter = _quarter_no(match.group(2))
+    item_cn = match.group(3)
+    value_text = _squash(value_text)
+    ratio = _TARGET_RATIO_RE.search(value_text)
+    return {
+        "period_end": _quarter_period_end(year, quarter),
+        "quarter": f"{year}Q{quarter}",
+        "item": _CAPACITY_ITEMS[item_cn],
+        "value": _number(value_text),
+        "unit": CAPACITY_UNIT,
+        "qoq_pct": _percent(qoq_text),
+        "yoy_pct": _percent(yoy_text),
+        "target_ratio_pct": float(ratio.group(1)) if ratio else None,
+        "source_url": source_url,
+        "scraped_at": scraped_at,
+    }
+
+
+def _capacity_rows_desktop(
+    doc, source_url: str, scraped_at: str
+) -> list[dict]:
+    """PC 表：一行 5 个 td（序号 / 指标 / 数值 / 环比 / 同比）。"""
+    rows: list[dict] = []
+    for table in doc.xpath(
+        '//table[contains(concat(" ", normalize-space(@class), " "), " data_table ")]'
+    ):
+        for tr in table.xpath(".//tr"):
+            tds = tr.xpath("./td")
+            if len(tds) < 5:
+                continue
+            match = _QUARTER_LABEL_RE.search(_squash(tds[1].text_content()))
+            if not match:
+                continue
+            rows.append(
+                _capacity_row(
+                    match,
+                    tds[2].text_content(),
+                    tds[3].text_content(),
+                    tds[4].text_content(),
+                    source_url,
+                    scraped_at,
+                )
+            )
+    return rows
+
+
+def _capacity_rows_mobile(
+    doc, source_url: str, scraped_at: str
+) -> list[dict]:
+    """移动表：每行「标签 | 值」两 td，一张表只装一条指标（与 PC 表重复）。"""
+    rows: list[dict] = []
+    for table in doc.xpath(
+        '//table[contains(concat(" ", normalize-space(@class), " "), " data_table_mobile ")]'
+    ):
+        texts: dict[str, str] = {}
+        for tr in table.xpath(".//tr"):
+            tds = tr.xpath("./td")
+            if len(tds) < 2:
+                continue
+            texts[_squash(tds[0].text_content())] = tds[1].text_content()
+        match = _QUARTER_LABEL_RE.search(_squash(texts.get("指标", "")))
+        if not match:
+            continue
+        rows.append(
+            _capacity_row(
+                match,
+                texts.get("数值", ""),
+                texts.get("环比", ""),
+                texts.get("同比", ""),
+                source_url,
+                scraped_at,
+            )
+        )
+    return rows
+
+
+def _parse_capacity_page(
+    page_html: str, source_url: str, scraped_at: str
+) -> list[dict]:
+    """解析一张月份页的存栏行；PC/移动双份表按 (quarter, item) 去重。"""
+    doc = lxml_html.fromstring(page_html)
+    rows = _capacity_rows_desktop(doc, source_url, scraped_at)
+    rows.extend(_capacity_rows_mobile(doc, source_url, scraped_at))
+    deduped: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for row in rows:
+        key = (row["quarter"], row["item"])
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(row)
+    return deduped
+
+
+def _refresh_target(page_html: str) -> str | None:
+    """meta-refresh（主）或 window.location 脚本（兜底）里的跳转目标。"""
+    meta = _META_REFRESH_RE.search(page_html)
+    if meta:
+        target = re.search(r"url\s*=\s*([^;\"'\s>]+)", meta.group(1), re.IGNORECASE)
+        if target:
+            return target.group(1).strip()
+    script = _JS_REFRESH_RE.search(page_html)
+    return script.group(1).strip() if script else None
+
+
+async def _follow_refresh(
+    session: FetcherSession, url: str, max_hops: int = 4
+) -> tuple[str, str] | None:
+    """跟 meta-refresh 壳（/jdsj/ → /jdsj/<YYYY>/ → /jdsj/<YYYY>/<YYYYMM>/）。
+
+    返回 (最终 URL, 最终页 HTML)；任一跳失败返回 None。
+    """
+    current = url
+    for hop in range(max_hops + 1):
+        resp = await _fetch(session, current)
+        if resp is None:
+            return None
+        page = _decode(resp.body)
+        target = _refresh_target(page)
+        if not target:
+            return current, page
+        if hop == max_hops:
+            logger.warning("meta-refresh chain too long at %s — stop", current)
+            return None
+        nxt = urljoin(current, target)
+        logger.info("meta-refresh: %s -> %s", current, nxt)
+        current = nxt
+    return None
+
+
+def _parse_nav(page_html: str) -> tuple[dict[int, str], dict[str, str]]:
+    """页面「选择时间」导航：年份 objurl 与月份 objurl（键为 YYYYMM）。"""
+    doc = lxml_html.fromstring(page_html)
+    years: dict[int, str] = {}
+    months: dict[str, str] = {}
+    for node in doc.xpath("//li[@objurl]"):
+        href = (node.get("objurl") or "").strip()
+        if not href:
+            continue
+        match = _MONTH_NAV_RE.search(href)
+        if match:
+            months[f"{match.group(2)}{match.group(3)}"] = href
+            continue
+        match = _YEAR_NAV_RE.search(href)
+        if match:
+            years[int(match.group(1))] = href
+    return years, months
+
+
+async def _collect_capacity(
+    limit: int,
+    window_start: str | None,
+    window_end: str | None,
+) -> list[dict]:
+    rows: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    pages_done = 0
+    pages_failed = 0
+    scraped_at = datetime.now(timezone.utc).isoformat()
+
+    if limit <= 0:
+        return rows
+    window_start = _norm_window(window_start)
+    window_end = _norm_window(window_end, end=True)
+
+    async with FetcherSession(
+        impersonate="chrome120",
+        timeout=25,
+        verify=False,  # CFCA cert, per estate convention
+        retries=1,     # exactly one attempt — no retry storms
+    ) as session:
+        landing = await _follow_refresh(session, CAPACITY_ROOT)
+        if landing is None:
+            # 失败即红：索引页拿不到 ≠ 「本期没有产能数据」。静默返回空表会让
+            # 平台把网络故障记成「成功 0 行」，制造看不见的数据缺口。
+            raise RuntimeError(
+                f"moa-hog-price capacity: 季度数据索引不可达 {CAPACITY_ROOT}"
+            )
+        latest_url, latest_html = landing
+
+        years, latest_months = _parse_nav(latest_html)
+        match = _MONTH_NAV_RE.search(latest_url)
+        if match:
+            latest_year = int(match.group(1))
+        else:
+            match = _YEAR_NAV_RE.search(latest_url)
+            latest_year = int(match.group(1)) if match else max(years, default=None)
+        if latest_year is None:
+            raise RuntimeError(
+                f"moa-hog-price capacity: 无法从 {latest_url} 解析最新年份"
+                f"（years={sorted(years)}）"
+            )
+
+        # 只走季度末月份（03/06/09/12）：实测非季末月份页（如 202608）无任何存栏行，
+        # 月度产能数值不存在（页面原文：每年 1/4/7/10 月 20 日发布）。
+        stop = False
+        for year in sorted(set(years) | {latest_year}, reverse=True):
+            if stop:
+                break
+            if year == latest_year:
+                year_months = dict(latest_months)
+            else:
+                year_landing = await _follow_refresh(
+                    session, urljoin(CAPACITY_ROOT, f"{year}/")
+                )
+                if year_landing is None:
+                    pages_failed += 1
+                    continue
+                _, year_html = year_landing
+                _, year_months = _parse_nav(year_html)
+            keys = sorted(
+                (
+                    key
+                    for key in year_months
+                    if key[:4] == f"{year:04d}" and key[4:6] in ("03", "06", "09", "12")
+                ),
+                reverse=True,
+            )
+            if not keys:
+                logger.info("capacity: no quarter-end month listed for %d", year)
+                continue
+            for key in keys:
+                if len(rows) >= limit:
+                    stop = True
+                    break
+                resp = await _fetch(session, year_months[key])
+                if resp is None:
+                    pages_failed += 1
+                    continue
+                parsed = _parse_capacity_page(
+                    _decode(resp.body), year_months[key], scraped_at
+                )
+                pages_done += 1
+                if not parsed:
+                    logger.warning("capacity: no inventory row in %s — skip", key)
+                    continue
+                oldest = min(row["period_end"] for row in parsed)
+                for row in parsed:
+                    if window_start and row["period_end"] < window_start:
+                        continue
+                    if window_end and row["period_end"] > window_end:
+                        continue
+                    dedup_key = (row["quarter"], row["item"])
+                    if dedup_key in seen:
+                        continue
+                    seen.add(dedup_key)
+                    if len(rows) < limit:
+                        rows.append(row)
+                if window_start and oldest < window_start:
+                    # 季度按时间倒序；本页已整体早于窗口下界，更老的页不必再取
+                    stop = True
+                    break
+
+    # 一页季度数据都没成功解析 ≠ 窗口内无数据（窗口过滤只会让 rows 变少，
+    # 不会让 pages_done 归零）。归零说明站点改版或整批请求失败 → 抛错。
+    if pages_done == 0:
+        raise RuntimeError(
+            f"moa-hog-price capacity: 0 页解析成功 "
+            f"(failed={pages_failed}, years={sorted(years)})"
+            f" — 站点改版或请求整批失败，不当成空结果"
+        )
+
+    rows.sort(key=lambda row: row["period_end"], reverse=True)
+    logger.info(
+        "moa-hog-price capacity: %d rows from %d quarter page(s) (%d failed)",
+        len(rows), pages_done, pages_failed,
+    )
+    return rows
+
+
+def run_moa_hog_capacity(
+    limit: int = 40,
+    window_start: str | None = None,
+    window_end: str | None = None,
+) -> list[dict]:
+    """Entry point for the unit's quarterly hog-capacity command.
+
+    数据源：农业农村部生猪专题「季度数据」(/ztzl/szcpxx/jdsj/)，季频
+    （每年 1/4/7/10 月 20 日发布），**无月度数值**。
+
+    Args:
+        limit: maximum rows to return (rows, newest quarter first).
+        window_start: inclusive lower bound on period_end (YYYY-MM-DD; YYYY-MM
+            and YYYY accepted). Also read from FD_WINDOW_START.
+        window_end: inclusive upper bound on period_end. Likewise FD_WINDOW_END.
+
+    Returns:
+        list of capacity row dicts (schema = manifest columns). 「—」/缺失记
+        None，绝不写 0；不插值、不推算任何非发布月的数值。
+    """
+    try:
+        from fd_industry_data.cancel_event import is_set as cancel_set
+    except ImportError:  # standalone run outside the repo package
+        def cancel_set() -> bool:
+            return False
+
+    window_start = window_start or os.environ.get("FD_WINDOW_START") or None
+    window_end = window_end or os.environ.get("FD_WINDOW_END") or None
+
+    async def _run() -> list[dict]:
+        if cancel_set():
+            logger.info("cancel requested before start; returning empty")
+            return []
+        return await _collect_capacity(
+            max(int(limit), 0), window_start, window_end
+        )
 
     return asyncio.run(_run())[: max(int(limit), 0)]
 

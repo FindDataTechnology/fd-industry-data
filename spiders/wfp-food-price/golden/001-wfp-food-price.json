@@ -1,19 +1,29 @@
 {
   "sample_id": "001-wfp-food-price",
   "created": "2026-10-07",
+  "updated": "2026-11-08",
   "target": "run_wfp_food_price",
-  "params": {"limit": 1},
+  "params": {"limit": 100000, "window_start": "2026-10", "window_end": "2026-10"},
   "expect": {
-    "min_rows": 1,
+    "min_rows": 5000,
     "rows_contains": [
-      {"field": "country", "equals": "Afghanistan"},
-      {"field": "market", "equals": "Fayzabad"},
-      {"field": "commodity", "equals": "Bread - Retail"},
-      {"field": "month", "equals": "2014-01"},
-      {"field": "price", "equals": 50.0},
+      {"field": "month", "equals": "2026-10"},
+      {"field": "date", "equals": "2026-10-15"},
+      {"field": "country_iso3", "equals": "AFG"},
+      {"field": "country_iso3", "equals": "KEN"},
+      {"field": "country_iso3", "equals": "NGA"},
+      {"field": "category", "equals": "cereals and tubers"},
+      {"field": "commodity", "equals": "Bread"},
+      {"field": "price_type", "equals": "Wholesale"},
+      {"field": "price_flag", "equals": "actual"},
+      {"field": "price", "equals": 77.0},
+      {"field": "usd_price", "equals": 1.19},
       {"field": "currency", "equals": "AFN"},
+      {"field": "currency", "equals": "INR"},
+      {"field": "unit", "equals": "8 pcs"},
       {"field": "source", "equals": "wfp-food-price"}
     ]
   },
-  "whitelist_fields": ["scraped_at", "timestamp"]
+  "whitelist_fields": ["scraped_at", "url", "market", "admin1"],
+  "note": "2026-11-08 迁移到活数据集 global-wfp-food-prices（旧 wfp-food-prices 自 2021-08 冻结、资源 202 空体）。窗口钉 2026-10（该分片的完整末月；2026-11 尚在补数），limit 放大到无截断 → 实测 5763 行 / 16 国。锚真实行：AFG Bread 77.0 AFN（USD 1.19）、IRQ 单位 8 pcs、SLV 批发价、KEN/NGA 现价。price/usd_price 未进白名单：若上游回溯修订会转红，那是金样的 canary 语义，不当误报处理。"
 }

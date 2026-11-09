@@ -19,7 +19,7 @@ functions:
       - name: series
         type: string
         required: false
-        description: "PCPS series key COUNTRY.INDICATOR.DATA_TRANSFORMATION.FREQ (default G001.PCOIL.INDEX.M = World crude oil price index, monthly)"
+        description: "PCPS series key COUNTRY.INDICATOR.DATA_TRANSFORMATION.FREQ (default seeds G001.PCOIL.INDEX.M / G001.PPOIL.INDEX.M / G001.PSUGA.INDEX.M = World coconut oil / palm oil / sugar monthly index 2016=100); extend to other commodity codes from the DSD CL_COMMODITY codelist (palm oil is PPOIL; PPALM is invalid)"
     columns:
       - name: period
         type: string
@@ -35,7 +35,7 @@ functions:
         description: Country/region code (G001 = World)
       - name: indicator
         type: string
-        description: Commodity indicator code (e.g. PCOIL = petroleum crude oil)
+        description: Commodity indicator code (PCOIL = coconut oil, PPOIL = palm oil, PSUGA = sugar; base quotes US$/mt per DSD, INDEX transformation rescales to 2016=100)
       - name: data_transformation
         type: string
         description: Data transformation code (INDEX = index number)
@@ -57,6 +57,18 @@ concepts:
     entity_type: region
     measure: value
     unit: index
+    frequency: monthly
+  - column: value
+    concept: price.palm_oil.imf.monthly
+    entity_type: country
+    measure: value
+    unit: index_2016_100
+    frequency: monthly
+  - column: value
+    concept: price.sugar.imf.monthly
+    entity_type: country
+    measure: value
+    unit: index_2016_100
     frequency: monthly
 entities:
   - entity_type: region

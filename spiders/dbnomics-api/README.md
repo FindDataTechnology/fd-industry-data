@@ -26,7 +26,7 @@ GET https://api.db.nomics.world/v22/series/{provider}/{dataset}/{code}?observati
 
 ## provider 白名单（硬约束）
 
-代码内 `PROVIDER_WHITELIST = {ECB, IMF, OECD, ESTAT}`（IMF/OECD/ECB 必收，Eurostat=ESTAT 可选）。
+代码内 `PROVIDER_WHITELIST = {ECB, IMF, OECD, ESTAT, BLS}`（IMF/OECD/ECB 必收，Eurostat=ESTAT 可选；BLS=2026-11-07 餐饮垂直线波0 扩入，承载 BLS CPI `cu` 数据集的在经外就餐/在家就餐对照对——api.bls.gov/download.bls.gov 对本机与集群出口均 Akamai-403，DBnomics 镜像是唯一可达免 key 通道；**镜像观测冻结于 2025-01**，其后月份按不可得口径处理）。
 manifest 参数 `default_sequences`（`"provider/dataset/code"` 字符串数组，默认
 `["ECB/EXR/D.CNY.EUR.SP00.A"]`，即 ECB 日频人民币/欧元即期均价）可传参扩展序列；
 **白名单外的 provider 在发请求前即被 `ValueError` 拒绝**（实测：传 `SAFE/...` 被拒，未发起任何 HTTP）。

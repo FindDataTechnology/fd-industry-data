@@ -32,6 +32,10 @@ functions:
         type: str
         required: false
         description: cninfo seDate window end (YYYY-MM-DD); defaults to today
+      - name: keywords
+        type: array
+        required: false
+        description: Override the default keyword whitelist (list or comma-separated string). Default = the 5 production keywords (产销快报/销售简报/发电量/主要运营数据/经营简报) unchanged; hotel history uses the extension category 经营数据简报 (Jinjiang 2023 operating-data briefs only — the company stopped publishing them from 2024). The singular `keyword` parameter takes precedence when both are given.
       - name: page_size
         type: int
         required: false

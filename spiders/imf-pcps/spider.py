@@ -4,7 +4,7 @@
 
 - ``GET https://api.imf.org/external/sdmx/2.1/data/PCPS/<key>``
   key = ``COUNTRY.INDICATOR.DATA_TRANSFORMATION.FREQ``（DSD 实测 4 维，顺序如此），
-  种子 key ``G001.PCOIL.INDEX.M``（World 原油价格指数，月度；World=G001 非 W00）。
+  种子 key ``G001.PCOIL.INDEX.M``（World 椰子油价格指数，月度；World=G001 非 W00）。
 - **只返 XML**（format 参数被忽略）：SDMX-ML StructureSpecificData，``Series``/``Obs``
   元素直接带属性（``TIME_PERIOD`` / ``OBS_VALUE``），用标准库 ``xml.etree`` 按本地名
   解析（不依赖命名空间前缀）。
@@ -33,9 +33,16 @@ from datetime import datetime, timezone
 SOURCE = "imf-pcps"
 DATA_URL = "https://api.imf.org/external/sdmx/2.1/data/PCPS"
 
-# 种子序列：World 原油价格指数（月度）。World=G001；四段 key=COUNTRY.INDICATOR.
-# DATA_TRANSFORMATION.FREQ；可扩其他商品码（如 G001.PCOIL.USX.M 美元价、PCOM 总指数）。
-SEED_SERIES = ("G001.PCOIL.INDEX.M",)
+# 种子序列：World 商品价格指数（月度，2016=100）。World=G001；四段 key=COUNTRY.INDICATOR.
+# DATA_TRANSFORMATION.FREQ；INDEX 变换=指数（2016 年均值=100，实测 PPOIL/PSUGA/PCOIL 三列
+# 2016 年 12 个月均值均恰为 100.0），INDICATOR 码的基础报价见 DSD（PCOIL=椰子油 US$/mt、
+# PPOIL=棕榈油 US$/mt、PSUGA=原糖，经 INDEX 变换归一为指数）。扩列参考 DSD dataflow
+# PCPS/latest?references=all 的 CL_COMMODITY 码表；PPALM 无效，真实棕榈油码是 PPOIL。
+SEED_SERIES = (
+    "G001.PCOIL.INDEX.M",  # 椰子油（coconut oil；manifest 旧描述误作原油，见 DSD）
+    "G001.PPOIL.INDEX.M",  # 棕榈油（palm oil）
+    "G001.PSUGA.INDEX.M",  # 原糖（sugar, raw）
+)
 TIMEOUT = 30  # 秒；XML 约 60KB/序列，超时即跳过该序列（不重试、不加频次）
 
 
@@ -108,7 +115,8 @@ def fetch_series(series_key: str) -> list[dict]:
 def run_imf_pcps(limit: int = 100, series: str | None = None) -> list[dict]:
     """取 PCPS 序列 obs 行；全部序列失败 → 抛 ``RuntimeError``（失败即红）。
 
-    - ``series`` 缺省用种子序列 ``G001.PCOIL.INDEX.M``（可传其他商品码扩展）；
+    - ``series`` 缺省用种子序列（PCOIL/PPOIL/PSUGA 三列 World 月度指数，可传其他
+      商品码扩展，如 ``G001.PPALM...`` 无效——棕榈油真实码是 PPOIL）；
     - 行按期次升序排列，返回最近 ``limit`` 行（生产取最新）；
     - golden 重放传小 ``limit`` 并锚固定历史 obs（2020-M01），结果恒定。
     """

@@ -1,0 +1,38 @@
+{
+  "sample_id": "002-cninfo-operating",
+  "created": "2026-11-08",
+  "target": "run_cninfo_operating",
+  "note": "酒店线 golden：A 股酒店经营数据简报类目。实证结论=该披露形态仅历史可得（锦江 2023 发过两份，2024 起停发），故窗口锁 2023-12。素材来自真实上游，非构造。见 openspec/changes/add-hotel-vertical/reports/3.5-ashare-disclosure-evidence.md",
+  "params": {
+    "limit": 5,
+    "keyword": "经营数据简报",
+    "start_date": "2023-12-01",
+    "end_date": "2023-12-31",
+    "page_size": 30
+  },
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      {"field": "source", "equals": "cninfo-operating"},
+      {"field": "sec_code", "equals": "600754"},
+      {"field": "sec_name", "equals": "锦江酒店"},
+      {"field": "category", "equals": "经营简报"},
+      {"field": "period", "equals": "2023-11"},
+      {"field": "art_code", "equals": "AN202312221614813250"}
+    ]
+  },
+  "whitelist_fields": [
+    "sec_code",
+    "sec_name",
+    "announcement_title",
+    "announcement_id",
+    "art_code",
+    "announce_date",
+    "period",
+    "category",
+    "content",
+    "adjunct_url",
+    "source",
+    "scraped_at"
+  ]
+}

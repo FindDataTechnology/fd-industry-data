@@ -1,79 +1,72 @@
-version: '1'
+version: "2"
 name: dce
 label: 大连商品交易所
 source_url: https://www.dce.com.cn
+# 点亮（restaurant-vertical-2026-11-07 有意识翻案 2026-11-06 park 裁决）：官方站点
+# 被瑞数挑战挡死（412/rows_written=0），默认通道已切新浪期货日线（详见 README）；
+# 交易日 17:20 抓当日收盘+结算（结算价日终生成后）
+schedule: "20 17 * * 1-5"
+data_period: day
 scanner_mode: upstream-curated
 ranking_seed:
 - 0.5
 - 0.5
 functions:
 - command: run_dce
-  description: Fetch futures prices and market data from DCE (大连商品交易所)
+  description: Fetch DCE futures daily bars via the Sina daily-kline channel (InnerFuturesNewService.getDailyKLine) — exchange daily OHLC/volume/open-interest/settlement relayed by Sina; default symbols are the M0/C0 main-continuous series
   frequency: daily
   parameters:
   - name: limit
     type: int
     required: false
-    description: Maximum records to return
+    description: Maximum records to return (deterministic newest-first round-robin across symbols, so any budget covers every symbol's latest days; full ~10.6k-row history needs one big-limit backfill)
+  - name: symbols
+    type: array<string>
+    required: false
+    description: Sina futures symbols to fetch; default ["M0","C0"] (soybean meal / corn main-continuous). Any Sina symbol works (e.g. M2701 for a specific contract)
   columns:
-  - name: contract_name
+  - name: symbol
     type: str
-    description: Futures contract name
-  - name: opening
+    description: Sina futures symbol of the row (M0 = soybean meal main-continuous, C0 = corn main-continuous)
+  - name: contract_desc
+    type: str
+    description: Human contract description (豆粕主力连续/玉米主力连续 for main-continuous; the raw symbol for specific contracts)
+  - name: date
+    type: str
+    description: Trading day, YYYY-MM-DD
+  - name: settle
     type: float
-    description: Opening price
-  - name: high
-    type: float
-    description: Highest price
-  - name: low
-    type: float
-    description: Lowest price
+    description: Settlement price (结算价) in CNY per ton; 0.0 = not relayed for that day (sentinel, extractor skips)
   - name: close
     type: float
-    description: Closing price
-  - name: settlement
-    type: float
-    description: Settlement price
-  - name: change
-    type: str
-    description: Price change
+    description: Closing price in CNY per ton
   - name: volume
     type: float
-    description: Trading volume
+    description: Trading volume (lots)
   - name: open_interest
     type: float
-    description: Open interest
-  - name: category
-    type: str
-    description: Commodity category (agriculture, chemicals, livestock)
+    description: Open interest / hold (持仓量, lots)
   - name: source_url
     type: str
-    description: Source URL
+    description: Source API URL carrying the symbol parameter
   - name: scraped_at
     type: str
-    description: ISO timestamp of extraction
+    description: ISO timestamp of the fetch
 concepts:
-- column: settlement
-  concept: future.settlement_price
-  entity_type: future
+- column: settle
+  concept: futures.dce.meal.settle.daily
+  entity_type: contract
   measure: price
-  unit: currency_cny
+  unit: cny_per_ton
   frequency: daily
-- column: volume
-  concept: future.volume
-  entity_type: future
-  measure: volume
-  unit: string
-  frequency: daily
-- column: open_interest
-  concept: future.open_interest
-  entity_type: future
-  measure: volume
-  unit: string
+- column: settle
+  concept: futures.dce.corn.settle.daily
+  entity_type: contract
+  measure: price
+  unit: cny_per_ton
   frequency: daily
 entities:
-- entity_type: future
+- entity_type: contract
   coverage: universe
 fetch:
   module: fd_industry_data.provider:IndustryDataProvider
-parked: true

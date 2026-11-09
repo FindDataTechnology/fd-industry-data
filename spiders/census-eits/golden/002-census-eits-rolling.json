@@ -1,0 +1,22 @@
+{
+  "sample_id": "002-census-eits-rolling",
+  "created": "2026-11-07",
+  "target": "run_census_eits",
+  "params": {"limit": 2000, "months_back": 60},
+  "expect": {
+    "min_rows": 600,
+    "rows_contains": [
+      {"field": "program", "equals": "mrts"},
+      {"field": "program", "equals": "mwts"},
+      {"field": "time", "equals": "2024-01"},
+      {"field": "seasonally_adj", "equals": "no"},
+      {"field": "category_code", "equals": "44X72"},
+      {"field": "category_code", "equals": "42"},
+      {"field": "data_type_code", "equals": "SM"},
+      {"field": "data_type_code", "equals": "IM"},
+      {"field": "source", "equals": "census-eits"},
+      {"field": "cell_value", "equals": 603091.0}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}

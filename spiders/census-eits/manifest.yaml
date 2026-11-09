@@ -1,6 +1,6 @@
 version: "2"
 name: census-eits            # = spiders/census-eits/ 目录名，运行时标识符，合入后不可改名
-label: US Census EITS Monthly Retail (MARTS) & Wholesale (MWTS) Sales/Inventories, 2020-01 NSA
+label: US Census EITS Monthly Retail (MARTS) & Wholesale (MWTS) Sales/Inventories, rolling NSA window (latest ~13 months)
 source_url: https://api.census.gov/data/timeseries/eits/mrts
 egress_secret: fd-industry-egress-fx01
 # site: tencent              # 缺省 tencent；本单元只访问 api.census.gov 公开 REST，无需换执行位
@@ -10,20 +10,32 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
   - command: run_census_eits
-    description: Fetch 2020-01 NSA retail (eits/mrts, category 44X72) and wholesale (eits/mwts, category 42) indicator values from Census EITS API (key= query param from CENSUS_API_KEY)
+    description: Fetch NSA retail (eits/mrts, category 44X72) and wholesale (eits/mwts, category 42) indicator values from Census EITS API (key= query param from CENSUS_API_KEY); default rolling window = latest available month back months_back months (upstream NSA lags ~3 months)
     frequency: monthly
     parameters:
       - name: limit
         type: int
         required: false
-        description: Maximum number of indicator rows to return (14 rows for the fixed 2020-01 window)
+        description: Maximum number of indicator rows to return; the rolling window is capped at whole-month granularity keeping the newest months (13 months needs ~200 rows; limit below one month's rows ~14 fails the run)
+      - name: months_back
+        type: int
+        required: false
+        description: Rolling window depth in months, counting back from the latest available month (default 13; upstream NSA data ends ~3 months behind the calendar)
+      - name: time
+        type: string
+        required: false
+        description: Legacy fixed-month snapshot "YYYY-MM" (both programs, one request each; golden 001 replays time=2020-01 through this channel)
+      - name: time_range
+        type: string
+        required: false
+        description: Explicit historical backfill window "YYYY-MM/YYYY-MM" (closed interval, month-by-month fetches)
     columns:
       - name: program
         type: string
         description: EITS program id (mrts = monthly retail, mwts = wholesale)
       - name: time
         type: string
-        description: Observation month (yyyy-mm, fixed 2020-01)
+        description: Observation month (yyyy-mm; rolling window = latest available month back per months_back, upstream NSA lags ~3 months)
       - name: category_code
         type: string
         description: EITS category (44X72 = retail trade & food services total, 42 = merchant wholesalers total)
@@ -41,7 +53,7 @@ functions:
         description: EITS time slot id ("0" = monthly)
       - name: url
         type: string
-        description: Source request URL for the row
+        description: Source request URL for the row (rolling window rows carry the from/to chunk window they were fetched in)
       - name: source
         type: string
         description: Data source identifier

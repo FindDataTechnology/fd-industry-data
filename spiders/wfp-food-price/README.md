@@ -1,69 +1,95 @@
-# wfp-food-price —— WFP 全球市场粮价月度（HDX 托管）
+# wfp-food-price —— WFP 全球市场粮价月度（HDX 活数据集）
 
 新源接入档案（`templates/new-source/`）。工单：`reports/health-tickets/20261006-wfp-food-price-a8b9bfd6.yaml`
 （`kind=generate`，拷问 Q1 裁决纳入：官方统计口径）。
+
+## 2026-11-08 迁移：从冻结库换到活库
+
+| | 旧（已废） | 新（现行） |
+|---|---|---|
+| 数据集 slug | `wfp-food-prices` | **`global-wfp-food-prices`** |
+| `last_modified` | 2021-08-22（归档停更） | **2026-11-05** |
+| 现行资源 | HTTP **202 + 空体**（读不到表头） | 40 个按年分片 CSV，均 200 |
+| 列名 | `adm0_name`/`mkt_name`/`cm_name`/`mp_*` | **全换**：`countryiso3`/`date`/`market`/`commodity`/`price`/`usdprice` … |
+
+旧库里 `spider.py` 已把 202 空体判定写进异常文案；迁移后该分支不再可达。
 
 ## 数据表面
 
 | 用途 | 端点 | 说明 |
 |---|---|---|
-| 资源解析 | `GET https://data.humdata.org/api/3/action/package_show?id=wfp-food-prices` | CKAN JSON，`result.resources[]` 取 `format == "CSV"` 的现行下载 URL |
-| 资源本体 | 上一步解析出的 `https://data.humdata.org/dataset/4fdcd4dc-…/resource/12d7c8e3-…/download/wfpvam_foodprices.csv` | 全库约 200MB：90+ 国 × 市场级 × 月度主粮价（1990 起；2021-08 后归档停更） |
+| 分片解析 | `GET https://data.humdata.org/api/3/action/package_show?id=global-wfp-food-prices` | CKAN JSON；`resources[]` 里 **40 个 CSV，一年一个**，名称形如 `Global WFP food prices 2026` |
+| 分片本体 | `…/resource/<rid>/download/wfp_food_prices_global_<year>.csv` | HDX 先 302 到 S3 预签名地址（`urlopen` 自动跟随）。2026: 42MB / 2025: 60MB / 2024: 61MB …全量 ≈620MB |
 
-入口：`run_wfp_food_price(limit=100) -> list[dict]`（`spider.py`）。仅标准库
-`urllib/json/csv`，无新依赖。
+入口：`run_wfp_food_price(limit=2000, window_start=None, window_end=None, years=None, include_non_food=False) -> list[dict]`
+（`spider.py`）。仅标准库 `urllib/json/csv/datetime`，无新依赖。
 
-## 实测样例行（2026-10-07 接前复测）
+**只下需要的年份**：`years` 缺省 = 当年 + 上一年；不拉 40 年全档。
 
-```csv
-adm0_name,adm1_name,mkt_name,cm_name,cur_name,um_name,mp_month,mp_year,mp_price
-Afghanistan,Badakhshan,Fayzabad,Bread - Retail,AFN,KG,1,2014,50.0
+## 实测表头与样例行（2026-11-08）
+
+```
+countryiso3,date,admin1,admin2,market,market_id,latitude,longitude,category,
+commodity,commodity_id,unit,priceflag,pricetype,currency,price,usdprice
 ```
 
-- `package_show` HTTP 200，1 个 CSV 资源，现行 URL 与上表一致。
-- 资源 HTTP 200，`text/csv`，UTF-8（带 BOM 可能，按 `utf-8-sig` 读）。
+```csv
+AFG,2026-10-15,Badakhshan,Argo,Badakhshan,3690,37.04,70.46,cereals and tubers,Bread,55,KG,aggregate,Retail,AFN,77,1.19
+```
 
 ## 字段口径
 
-| 列 | 来源 | 口径 |
+| 列 | 来源列 | 口径 |
 |---|---|---|
-| `country` | `adm0_name` | 国家名 |
-| `market` | `mkt_name` | 市场名 |
-| `commodity` | `cm_name` | 品种+购销环节（如 `Bread - Retail`） |
-| `month` | `mp_year`+`mp_month` | 归一为 `YYYY-MM`（零填充） |
-| `price` | `mp_price` | 当月市场价（本地货币，float；非数即脏行跳过） |
-| `currency` | `cur_name` | ISO 币种码（如 `AFN`） |
-| `unit` | `um_name` | 计价单位（如 `KG`） |
-| `url` | 解析出的资源 URL | 行级来源可追溯 |
-| `source` | 常量 | `wfp-food-price` |
-| `scraped_at` | 本地 | UTC ISO8601，抓取时刻 |
+| `country_iso3` | `countryiso3` | **只有 ISO3，新 schema 无国家名**（要中文名由柏讯侧实体表补） |
+| `month` | `date` | 归一 `YYYY-MM` |
+| `date` | `date` | 观测日 `YYYY-MM-DD`（多为当月 15 日） |
+| `category` | `category` | 六大食品类目；`non-food`（汇率/燃油/工资）**默认剔除** |
+| `commodity` | `commodity` | 品种名 |
+| `market` / `admin1` | 同名 | 市场 / 一级行政区 |
+| `price_type` | `pricetype` | `Retail` / `Wholesale` |
+| `price_flag` | `priceflag` | `actual`（直接观测）/ `aggregate`（市场月聚合） |
+| `price` | `price` | 本币价 |
+| `usd_price` | `usdprice` | WFP 给的美元等价 |
+| `currency` / `unit` | 同名 | `AFN` / `KG`、`8 pcs`、`240 G`、`2.1 KG`、`46 KG` |
+| `url` | — | 该行来自哪个年份分片 |
+| `source` / `scraped_at` | — | 常量 / 抓取时刻 |
 
-## 参数白名单与容错
+## 两个必须知道的口径事实
 
-- 仅发两个已实测参数：`package_show` 的 `id=wfp-food-prices`（即工单 `brief.source_urls`
-  页面 slug）；资源 URL 由 API 现场解析，不硬编码旧路径，无其他任何参数。
-- **流式解析**：全库 CSV 约 200MB，`urlopen` 逐行喂 `csv.reader`，取满 `limit` 行即断流，
-  绝不整文件落地。
-- **失败即红**：资源解析/下载是单链路，任一环节整体失败抛 `RuntimeError`，不静默返回空
-  列表；流中个别脏行（列数不足/价格非数/月份非法）跳过并在异常信息留痕。
-- 常规浏览器 UA；不做指纹伪装、频次对抗与验证码处理——遇风控升级按协议转人工。
+1. **分片按「国家 → 日期」排序**，所以 `limit` 截断得到的是**按字母序的一段国家**，
+   不是随机抽样，也不是全球均匀样本。要看某个完整月份，必须
+   `window_start=window_end=<YYYY-MM>` 且把 `limit` 放大到 ≥ 该月行数
+   （实测 2026-10 = **5763 行 / 16 国**，`limit=100000` 约 24s）。
+2. **`non-food` 默认不出**：汇率、柴油、非熟练工工资三行属综合物价，不是粮价。
+   需要时显式 `include_non_food=True`。
+
+## 容错
+
+- **失败即红**：分片解析/下载/表头缺列（缺 `countryiso3`/`date`/`commodity`/`price`
+  任一）→ `RuntimeError`，不静默返空。
+- 脏行（列数不足 / 日期非 ISO / 价格非数）跳过并计数，日志给 `skipped`。
+- 常规浏览器 UA；不做指纹伪装与频次对抗。
+
+## golden 断言口径
+
+`golden/001-wfp-food-price.json`：窗口钉 `2026-10`（该分片的完整末月；2026-11 仍在补数），
+`limit=100000` 无截断 → 实测 5763 行。锚真实行：`AFG Bread 77.0 AFN（USD 1.19）`、
+IRQ 单位 `8 pcs`、SLV `Wholesale`、KEN/NGA 现价、`date=2026-10-15`。
+
+`price`/`usd_price` **不进白名单**：上游回溯修订会让金样转红——这是 canary 语义，
+按「上游改了数」处理，不当误报。
 
 ## 历史深度
 
-1990-01 起至 2021-08（数据集 `dataset_date` 与 `last_modified` 为证，归档停更）。
-故 golden 可锚**固定历史月值**且跨期恒定。
-
-## golden 断言口径（跨期稳定）
-
-`golden/001-wfp-food-price.json`（`limit=1`）锚文件首行固定历史值：
-`country=Afghanistan / market=Fayzabad / commodity=Bread - Retail / month=2014-01 /
-price=50.0 / currency=AFN`，以及 `min_rows: 1`、`source` 常量。**绝不锚**当期/近期值与
-`scraped_at`（`whitelist_fields` 收录 `scraped_at`/`timestamp`）。
+按年分片覆盖 1990 起；本单元**只为当年前后两年取数**，历史回补用
+`years=[2019,2020]` 之类显式声明，一次一片。
 
 ## 自检
 
 ```bash
-python3 spiders/wfp-food-price/spider.py          # 冒烟：流式取 3 行打印
-python3 scripts/check_manifest_commands.py        # manifest 命令漂移 lint
-python3 scripts/health_verify.py --ticket reports/health-tickets/20261006-wfp-food-price-a8b9bfd6.yaml
+cd fd-industry-data
+.venv/bin/python spiders/wfp-food-price/spider.py     # 冒烟：流式取 3 行
+.venv/bin/python scripts/validate_manifests.py
+.venv/bin/python scripts/conformance_gate.py
 ```

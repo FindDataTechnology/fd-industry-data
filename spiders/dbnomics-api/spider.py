@@ -46,7 +46,14 @@ HDRS = {
 
 # Brief-mandated provider whitelist: IMF/OECD/ECB, Eurostat optional.
 # Anything else (incl. SAFE, whose DBnomics mirror froze at 2020-12) is refused.
-PROVIDER_WHITELIST = frozenset({"ECB", "IMF", "OECD", "ESTAT"})
+# BLS (2026-11-07, restaurant vertical, add-restaurant-vertical 波0): DBnomics
+# mirrors the BLS CPI "cu" dataset (US city average, e.g. CUSR0000SEFV food
+# away from home / CUSR0000SAF11 food at home — api.bls.gov and
+# download.bls.gov are Akamai-403 to both local and cluster egress, so the
+# DBnomics mirror is the only reachable keyless channel for these series).
+# Known mirror caveat: BLS observations freeze at 2025-01 — downstream must
+# treat later months as 不可得 until the mirror catches up.
+PROVIDER_WHITELIST = frozenset({"ECB", "IMF", "OECD", "ESTAT", "BLS"})
 
 # Default sequence: ECB daily CNY/EUR reference (spot, average) rate.
 DEFAULT_SEQUENCES: list[dict] = [
