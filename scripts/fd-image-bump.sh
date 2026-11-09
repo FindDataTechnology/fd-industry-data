@@ -90,7 +90,16 @@ probe_pullable() {
     . /etc/tcr-relay/env
     creds="--creds ${TCR_USER:-}:${TCR_PASS:-}"
   fi
-  skopeo inspect $creds "docker://$ref" >/dev/null 2>&1
+  # The runner image is LINUX/AMD64 ONLY. A bare `skopeo inspect` resolves the
+  # image index against the LOCAL platform, so on an arm64 host (any Apple
+  # Silicon dev box) every valid tag fails with "no image instance for
+  # architecture arm64/darwin" and this probe reports it as "ccr 上还没有" —
+  # silently skipping the genuinely newest slices and adopting an older one.
+  # Live 2026-11-09: on an M-series Mac the script skipped sha-34b0330 (which
+  # carries the jp-tdnet unit) and adopted sha-68ebd20, which predates it.
+  # Pin the platform so "pullable" means "the nodes can pull it", not "this
+  # laptop can run it".
+  skopeo inspect --override-os linux --override-arch amd64 $creds "docker://$ref" >/dev/null 2>&1
 }
 
 has_skopeo=1; command -v skopeo >/dev/null 2>&1 || has_skopeo=0
