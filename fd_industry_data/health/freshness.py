@@ -28,6 +28,11 @@ ALERT_AFTER_CYCLES = 2
 
 DEFAULT_LOOKBACK_DAYS = 30
 
+#: 「连续 2 个周期」对高频源是空转：每小时跑的源欠两小时就会被判陈旧/告警
+#: （实测 eia-v2、nmc-weather 在漏斗里正是这样落进 stale）。因此再要求距上次成功
+#: 至少这么长；没到就只留一条 trace，不升级为告警。
+MIN_ALERT_WINDOW_HOURS = 24.0
+
 
 def _expand(field: str, lo: int, hi: int) -> set[int]:
     out: set[int] = set()
@@ -191,5 +196,16 @@ def cycles_since_last_good(
             first_fire = first_fire or cursor
             last_fire = cursor
         cursor += timedelta(minutes=1)
+
+    # 高频源护栏：计数达到告警门槛、但距上次成功还不足最小窗口时，压回 1
+    # （trace-only）。否则每小时源欠两小时就会被判陈旧。放在计数之后——
+    # 压在计数之前会把「刚成功过」也压成 1。
+    elapsed_hours = (now - start).total_seconds() / 3600.0
+    if count >= ALERT_AFTER_CYCLES and elapsed_hours < MIN_ALERT_WINDOW_HOURS:
+        return Freshness(
+            1, capped, first_fire, last_fire,
+            note or (f"under {MIN_ALERT_WINDOW_HOURS:.0f}h since last good; "
+                     "high-frequency source is trace-only"),
+        )
 
     return Freshness(count, capped, first_fire, last_fire, note)

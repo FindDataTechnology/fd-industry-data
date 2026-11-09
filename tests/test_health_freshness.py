@@ -87,6 +87,31 @@ def test_utc_source_uses_its_own_timezone():
     assert got_cst.cycles == 2  # 23:00 CST on the 8th and 9th
 
 
+def test_hourly_source_is_not_alarmed_within_a_day():
+    """每小时跑的源欠两小时不该判陈旧：2 个周期 = 2h 是空转。
+
+    实测 eia-v2 / nmc-weather 在漏斗里就是这样落进 stale 的。
+    """
+    from fd_industry_data.health.freshness import MIN_ALERT_WINDOW_HOURS
+    got = cycles_since_last_good(
+        schedule="0 * * * *", tz="UTC",
+        last_good_at=datetime(2026, 11, 9, 10, tzinfo=UTC),
+        now=datetime(2026, 11, 9, 13, tzinfo=UTC))  # 3 次触发，仅 3h
+    assert MIN_ALERT_WINDOW_HOURS == 24.0
+    assert got.cycles == 1
+    assert not got.alerting
+    assert "trace-only" in (got.note or "")
+
+
+def test_hourly_source_is_alarmed_after_a_full_day():
+    got = cycles_since_last_good(
+        schedule="0 * * * *", tz="UTC",
+        last_good_at=datetime(2026, 11, 7, 10, tzinfo=UTC),
+        now=datetime(2026, 11, 9, 13, tzinfo=UTC))
+    assert got.cycles >= 2
+    assert got.alerting
+
+
 def test_lookback_caps_the_walk_and_says_so():
     got = cycles_since_last_good(
         schedule="0 4 * * *", tz="UTC",
