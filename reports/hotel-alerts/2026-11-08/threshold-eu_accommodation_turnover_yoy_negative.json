@@ -2,8 +2,8 @@
   "rule": "eu_accommodation_turnover_yoy_negative",
   "description": "欧盟住宿业营业额指数低于基期（< 100，2021=100）——欧盟腿的景气转弱读数",
   "asof": "2026-11-08",
-  "replay_from": "2023-01-01",
-  "generated_at": "2026-11-07T21:52:19.930401+00:00",
+  "replay_from": "2023-11-01",
+  "generated_at": "2026-11-08T17:55:58.503249+00:00",
   "config": "config/restaurant-alerts.json",
   "evidence": [
     {
@@ -13,50 +13,10 @@
       "entity_type": "country",
       "entity_id": 300990,
       "window": [
-        "2023-01",
+        "2023-11",
         "2026-07"
       ],
       "observed": [
-        {
-          "date": "2023-01",
-          "value": 190.8
-        },
-        {
-          "date": "2023-02",
-          "value": 190.6
-        },
-        {
-          "date": "2023-03",
-          "value": 194.6
-        },
-        {
-          "date": "2023-04",
-          "value": 197.9
-        },
-        {
-          "date": "2023-05",
-          "value": 196.5
-        },
-        {
-          "date": "2023-06",
-          "value": 200.0
-        },
-        {
-          "date": "2023-07",
-          "value": 199.2
-        },
-        {
-          "date": "2023-08",
-          "value": 197.9
-        },
-        {
-          "date": "2023-09",
-          "value": 203.9
-        },
-        {
-          "date": "2023-10",
-          "value": 202.0
-        },
         {
           "date": "2023-11",
           "value": 201.5
@@ -204,14 +164,16 @@
       },
       "never_held": null,
       "closest": {
-        "date": "2023-02",
-        "value": 190.6,
-        "distance": 90.6,
+        "date": "2023-11",
+        "value": 201.5,
+        "distance": 101.5,
         "unit": "index_2021_100"
       },
-      "evaluated_points": 43,
+      "evaluated_points": 33,
       "provenance": "semantic_observations; concept=hotel.eu.turnover.accommodation.monthly; source_used=eurostat-api; entity_id=300990",
       "rejected_values": [],
+      "latest_period": "2026-07",
+      "current_fired": false,
       "trigger_count": 0,
       "triggers": []
     }

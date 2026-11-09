@@ -1,15 +1,15 @@
 {
-  "at": "2026-11-08T08:00:59.243843+00:00",
+  "at": "2026-11-08T16:42:10.077384+00:00",
   "base_date": "2026-11-08",
-  "config": "/Users/chengsishi/finddata/fd-industry-data/config/agriculture-alerts.json",
-  "state_path": "/Users/chengsishi/finddata/fd-industry-data/state/agriculture-alert-state.json",
-  "alert_events_ledger": "/Users/chengsishi/finddata/fd-industry-data/state/agriculture-alert-events.jsonl",
+  "config": "/data/runner/_work/fd-industry-data/fd-industry-data/src/config/agriculture-alerts.json",
+  "state_path": "/data/runner/_work/fd-industry-data/fd-industry-data/src/state/agriculture-alert-state.json",
+  "alert_events_ledger": "/data/runner/_work/fd-industry-data/fd-industry-data/src/state/agriculture-alert-events.jsonl",
   "summary": {
-    "judged": 2,
+    "judged": 1,
     "crossed": 0,
-    "quiet": 2,
+    "quiet": 1,
     "insufficient_data": 0,
-    "suppressed": 0,
+    "suppressed": 1,
     "disabled": 2
   },
   "judged": [
@@ -109,7 +109,10 @@
         "unparsed_periods": 0
       },
       "action": "idle"
-    },
+    }
+  ],
+  "insufficient_data": [],
+  "suppressed": [
     {
       "name": "soybean_meal_settle_percentile_spike",
       "rule": {
@@ -138,7 +141,7 @@
         "_threshold_note": "2026-11-08 实测：3726 期（2010-06-08–2026-11-06），最新 3101 元/吨；滚动 90 自然日窗口 58 点、当前分位 0.00 < 90、窗口 p90=3414 元/吨 → 当前判「未越阈」（价格处于近 90 日低位）。样本不足 min_history_periods=40 判 insufficient_data，不当作「没越阈」。",
         "authority_note": "DCE 官方结算价；抓取通道为新浪日线（DCE 官网被瑞数拦截，见 spiders/dce/README.md）。本规则是统计分位基线，不是官方政策阈值。"
       },
-      "verdict": "quiet",
+      "verdict": "suppressed",
       "value": 3101.0,
       "unit": "cny_per_ton",
       "period": "2026-11-06",
@@ -349,8 +352,10 @@
       },
       "notes": [],
       "source_guard": {
-        "suppressed": false,
-        "reasons": [],
+        "suppressed": true,
+        "reasons": [
+          "健康巡检判该源非健康：unlit；manifest parked: true（有意挂起，不判停更）"
+        ],
         "basis": {
           "series_latest": "2026-11-06",
           "series_age_days": 2,
@@ -358,16 +363,15 @@
           "source_latest": "2026-11-06",
           "source_age_days": 2,
           "max_source_age_days": 14,
-          "telemetry_health": "healthy"
+          "telemetry_health": "unlit"
         },
         "observation_rows": 7454,
         "unparsed_periods": 0
       },
-      "action": "idle"
+      "suppressed": "source-unhealthy",
+      "warning": "信息可能不完整"
     }
   ],
-  "insufficient_data": [],
-  "suppressed": [],
   "disabled": [
     {
       "name": "cpi_food_vs_wholesale_scissors",

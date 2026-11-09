@@ -1,0 +1,6 @@
+{
+  "at": "2026-11-08T18:31:57.468662+00:00",
+  "findings": [
+    "ticket_auth:route_moved"
+  ]
+}

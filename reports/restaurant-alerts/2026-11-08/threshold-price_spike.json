@@ -1,0 +1,2323 @@
+{
+  "rule": "price_spike",
+  "description": "高波动食品投入品价格尖峰：滚动 z-score（不含当前点）绝对值跨阈；窗口按观测条数计（非日历天）",
+  "asof": "2026-11-08",
+  "replay_from": "2024-11-01",
+  "generated_at": "2026-11-08T17:15:05.855679+00:00",
+  "config": "config/restaurant-alerts.json",
+  "evidence": [
+    {
+      "rule": "price_spike",
+      "concept": "price.coffee.icip.daily",
+      "source_used": "ico-coffee-price",
+      "entity_type": "country",
+      "entity_id": 300932,
+      "window": [
+        "2025-09-01",
+        "2026-11-05"
+      ],
+      "observed": [
+        {
+          "date": "2025-09-01",
+          "value": 333.68
+        },
+        {
+          "date": "2025-09-02",
+          "value": 321.71
+        },
+        {
+          "date": "2025-09-03",
+          "value": 323.35
+        },
+        {
+          "date": "2025-09-04",
+          "value": 323.53
+        },
+        {
+          "date": "2025-09-05",
+          "value": 321.64
+        },
+        {
+          "date": "2025-09-08",
+          "value": 330.44
+        },
+        {
+          "date": "2025-09-09",
+          "value": 328.38
+        },
+        {
+          "date": "2025-09-10",
+          "value": 332.37
+        },
+        {
+          "date": "2025-09-11",
+          "value": 336.92
+        },
+        {
+          "date": "2025-09-12",
+          "value": 344.98
+        },
+        {
+          "date": "2025-09-15",
+          "value": 360.74
+        },
+        {
+          "date": "2025-09-16",
+          "value": 354.34
+        },
+        {
+          "date": "2025-09-17",
+          "value": 327.51
+        },
+        {
+          "date": "2025-09-18",
+          "value": 330.63
+        },
+        {
+          "date": "2025-09-19",
+          "value": 305.02
+        },
+        {
+          "date": "2025-09-22",
+          "value": 308.02
+        },
+        {
+          "date": "2025-09-23",
+          "value": 298.14
+        },
+        {
+          "date": "2025-09-24",
+          "value": 312.34
+        },
+        {
+          "date": "2025-09-25",
+          "value": 307.41
+        },
+        {
+          "date": "2025-09-26",
+          "value": 313.73
+        },
+        {
+          "date": "2025-09-29",
+          "value": 312.17
+        },
+        {
+          "date": "2025-09-30",
+          "value": 314.64
+        },
+        {
+          "date": "2025-10-01",
+          "value": 324.08
+        },
+        {
+          "date": "2025-10-02",
+          "value": 319.59
+        },
+        {
+          "date": "2025-10-03",
+          "value": 329.77
+        },
+        {
+          "date": "2025-10-06",
+          "value": 322.97
+        },
+        {
+          "date": "2025-10-07",
+          "value": 317.08
+        },
+        {
+          "date": "2025-10-08",
+          "value": 323.94
+        },
+        {
+          "date": "2025-10-09",
+          "value": 319.5
+        },
+        {
+          "date": "2025-10-10",
+          "value": 314.68
+        },
+        {
+          "date": "2025-10-13",
+          "value": 322.59
+        },
+        {
+          "date": "2025-10-14",
+          "value": 328.46
+        },
+        {
+          "date": "2025-10-15",
+          "value": 326.09
+        },
+        {
+          "date": "2025-10-16",
+          "value": 328.27
+        },
+        {
+          "date": "2025-10-17",
+          "value": 326.99
+        },
+        {
+          "date": "2025-10-20",
+          "value": 330.95
+        },
+        {
+          "date": "2025-10-21",
+          "value": 337.77
+        },
+        {
+          "date": "2025-10-22",
+          "value": 344.77
+        },
+        {
+          "date": "2025-10-23",
+          "value": 335.98
+        },
+        {
+          "date": "2025-10-24",
+          "value": 332.94
+        },
+        {
+          "date": "2025-10-27",
+          "value": 321.95
+        },
+        {
+          "date": "2025-10-28",
+          "value": 320.41
+        },
+        {
+          "date": "2025-10-29",
+          "value": 325.43
+        },
+        {
+          "date": "2025-10-30",
+          "value": 327.11
+        },
+        {
+          "date": "2025-10-31",
+          "value": 325.52
+        },
+        {
+          "date": "2025-11-03",
+          "value": 337.0
+        },
+        {
+          "date": "2025-11-04",
+          "value": 335.93
+        },
+        {
+          "date": "2025-11-05",
+          "value": 342.55
+        },
+        {
+          "date": "2025-11-06",
+          "value": 330.34
+        },
+        {
+          "date": "2025-11-07",
+          "value": 336.28
+        },
+        {
+          "date": "2025-11-10",
+          "value": 340.93
+        },
+        {
+          "date": "2025-11-11",
+          "value": 343.92
+        },
+        {
+          "date": "2025-11-12",
+          "value": 326.82
+        },
+        {
+          "date": "2025-11-13",
+          "value": 323.15
+        },
+        {
+          "date": "2025-11-14",
+          "value": 320.39
+        },
+        {
+          "date": "2025-11-17",
+          "value": 326.23
+        },
+        {
+          "date": "2025-11-18",
+          "value": 333.0
+        },
+        {
+          "date": "2025-11-19",
+          "value": 324.83
+        },
+        {
+          "date": "2025-11-20",
+          "value": 328.54
+        },
+        {
+          "date": "2025-11-21",
+          "value": 322.25
+        },
+        {
+          "date": "2025-11-24",
+          "value": 326.07
+        },
+        {
+          "date": "2025-11-25",
+          "value": 329.37
+        },
+        {
+          "date": "2025-11-26",
+          "value": 326.66
+        },
+        {
+          "date": "2025-11-27",
+          "value": 326.42
+        },
+        {
+          "date": "2025-11-28",
+          "value": 328.06
+        },
+        {
+          "date": "2025-12-01",
+          "value": 325.77
+        },
+        {
+          "date": "2025-12-02",
+          "value": 319.69
+        },
+        {
+          "date": "2025-12-03",
+          "value": 318.85
+        },
+        {
+          "date": "2025-12-04",
+          "value": 324.24
+        },
+        {
+          "date": "2025-12-05",
+          "value": 320.58
+        },
+        {
+          "date": "2025-12-08",
+          "value": 312.99
+        },
+        {
+          "date": "2025-12-09",
+          "value": 313.7
+        },
+        {
+          "date": "2025-12-10",
+          "value": 316.81
+        },
+        {
+          "date": "2025-12-11",
+          "value": 318.13
+        },
+        {
+          "date": "2025-12-12",
+          "value": 314.25
+        },
+        {
+          "date": "2025-12-15",
+          "value": 307.2
+        },
+        {
+          "date": "2025-12-16",
+          "value": 299.84
+        },
+        {
+          "date": "2025-12-17",
+          "value": 294.98
+        },
+        {
+          "date": "2025-12-18",
+          "value": 293.36
+        },
+        {
+          "date": "2025-12-19",
+          "value": 283.21
+        },
+        {
+          "date": "2025-12-22",
+          "value": 288.84
+        },
+        {
+          "date": "2025-12-23",
+          "value": 289.77
+        },
+        {
+          "date": "2025-12-24",
+          "value": 288.92
+        },
+        {
+          "date": "2025-12-26",
+          "value": 291.57
+        },
+        {
+          "date": "2025-12-29",
+          "value": 293.66
+        },
+        {
+          "date": "2025-12-30",
+          "value": 293.39
+        },
+        {
+          "date": "2025-12-31",
+          "value": 293.09
+        },
+        {
+          "date": "2026-01-02",
+          "value": 297.71
+        },
+        {
+          "date": "2026-01-05",
+          "value": 297.64
+        },
+        {
+          "date": "2026-01-06",
+          "value": 307.08
+        },
+        {
+          "date": "2026-01-07",
+          "value": 307.11
+        },
+        {
+          "date": "2026-01-08",
+          "value": 306.36
+        },
+        {
+          "date": "2026-01-09",
+          "value": 295.31
+        },
+        {
+          "date": "2026-01-12",
+          "value": 294.97
+        },
+        {
+          "date": "2026-01-13",
+          "value": 297.88
+        },
+        {
+          "date": "2026-01-14",
+          "value": 296.14
+        },
+        {
+          "date": "2026-01-15",
+          "value": 298.08
+        },
+        {
+          "date": "2026-01-16",
+          "value": 296.32
+        },
+        {
+          "date": "2026-01-19",
+          "value": 296.52
+        },
+        {
+          "date": "2026-01-20",
+          "value": 290.22
+        },
+        {
+          "date": "2026-01-21",
+          "value": 292.51
+        },
+        {
+          "date": "2026-01-22",
+          "value": 292.51
+        },
+        {
+          "date": "2026-01-23",
+          "value": 294.75
+        },
+        {
+          "date": "2026-01-26",
+          "value": 298.37
+        },
+        {
+          "date": "2026-01-27",
+          "value": 304.17
+        },
+        {
+          "date": "2026-01-28",
+          "value": 294.47
+        },
+        {
+          "date": "2026-01-29",
+          "value": 293.58
+        },
+        {
+          "date": "2026-01-30",
+          "value": 283.02
+        },
+        {
+          "date": "2026-02-02",
+          "value": 281.34
+        },
+        {
+          "date": "2026-02-03",
+          "value": 269.0
+        },
+        {
+          "date": "2026-02-04",
+          "value": 267.45
+        },
+        {
+          "date": "2026-02-05",
+          "value": 266.5
+        },
+        {
+          "date": "2026-02-06",
+          "value": 262.13
+        },
+        {
+          "date": "2026-02-09",
+          "value": 270.54
+        },
+        {
+          "date": "2026-02-10",
+          "value": 267.41
+        },
+        {
+          "date": "2026-02-11",
+          "value": 268.99
+        },
+        {
+          "date": "2026-02-12",
+          "value": 273.44
+        },
+        {
+          "date": "2026-02-13",
+          "value": 275.35
+        },
+        {
+          "date": "2026-02-16",
+          "value": 274.98
+        },
+        {
+          "date": "2026-02-17",
+          "value": 261.96
+        },
+        {
+          "date": "2026-02-18",
+          "value": 263.86
+        },
+        {
+          "date": "2026-02-19",
+          "value": 263.92
+        },
+        {
+          "date": "2026-02-20",
+          "value": 265.43
+        },
+        {
+          "date": "2026-02-23",
+          "value": 259.92
+        },
+        {
+          "date": "2026-02-24",
+          "value": 265.52
+        },
+        {
+          "date": "2026-02-25",
+          "value": 266.23
+        },
+        {
+          "date": "2026-02-26",
+          "value": 264.14
+        },
+        {
+          "date": "2026-02-27",
+          "value": 263.22
+        },
+        {
+          "date": "2026-03-02",
+          "value": 267.4
+        },
+        {
+          "date": "2026-03-03",
+          "value": 267.69
+        },
+        {
+          "date": "2026-03-04",
+          "value": 270.19
+        },
+        {
+          "date": "2026-03-05",
+          "value": 273.95
+        },
+        {
+          "date": "2026-03-06",
+          "value": 275.35
+        },
+        {
+          "date": "2026-03-09",
+          "value": 278.77
+        },
+        {
+          "date": "2026-03-10",
+          "value": 276.01
+        },
+        {
+          "date": "2026-03-11",
+          "value": 267.19
+        },
+        {
+          "date": "2026-03-12",
+          "value": 271.35
+        },
+        {
+          "date": "2026-03-13",
+          "value": 265.5
+        },
+        {
+          "date": "2026-03-16",
+          "value": 269.74
+        },
+        {
+          "date": "2026-03-17",
+          "value": 271.89
+        },
+        {
+          "date": "2026-03-18",
+          "value": 270.71
+        },
+        {
+          "date": "2026-03-19",
+          "value": 278.54
+        },
+        {
+          "date": "2026-03-20",
+          "value": 281.79
+        },
+        {
+          "date": "2026-03-23",
+          "value": 278.76
+        },
+        {
+          "date": "2026-03-24",
+          "value": 285.83
+        },
+        {
+          "date": "2026-03-25",
+          "value": 284.67
+        },
+        {
+          "date": "2026-03-26",
+          "value": 278.27
+        },
+        {
+          "date": "2026-03-27",
+          "value": 273.69
+        },
+        {
+          "date": "2026-03-30",
+          "value": 265.23
+        },
+        {
+          "date": "2026-03-31",
+          "value": 268.81
+        },
+        {
+          "date": "2026-04-01",
+          "value": 268.65
+        },
+        {
+          "date": "2026-04-02",
+          "value": 267.06
+        },
+        {
+          "date": "2026-04-03",
+          "value": 264.09
+        },
+        {
+          "date": "2026-04-06",
+          "value": 265.59
+        },
+        {
+          "date": "2026-04-07",
+          "value": 260.4
+        },
+        {
+          "date": "2026-04-08",
+          "value": 264.58
+        },
+        {
+          "date": "2026-04-09",
+          "value": 264.41
+        },
+        {
+          "date": "2026-04-10",
+          "value": 265.61
+        },
+        {
+          "date": "2026-04-13",
+          "value": 268.36
+        },
+        {
+          "date": "2026-04-14",
+          "value": 269.66
+        },
+        {
+          "date": "2026-04-15",
+          "value": 271.63
+        },
+        {
+          "date": "2026-04-16",
+          "value": 266.33
+        },
+        {
+          "date": "2026-04-17",
+          "value": 258.89
+        },
+        {
+          "date": "2026-04-20",
+          "value": 263.7
+        },
+        {
+          "date": "2026-04-21",
+          "value": 261.46
+        },
+        {
+          "date": "2026-04-22",
+          "value": 266.62
+        },
+        {
+          "date": "2026-04-23",
+          "value": 274.92
+        },
+        {
+          "date": "2026-04-24",
+          "value": 271.93
+        },
+        {
+          "date": "2026-04-27",
+          "value": 265.68
+        },
+        {
+          "date": "2026-04-28",
+          "value": 267.96
+        },
+        {
+          "date": "2026-04-29",
+          "value": 267.19
+        },
+        {
+          "date": "2026-04-30",
+          "value": 262.6
+        },
+        {
+          "date": "2026-05-01",
+          "value": 262.99
+        },
+        {
+          "date": "2026-05-04",
+          "value": 263.46
+        },
+        {
+          "date": "2026-05-05",
+          "value": 267.19
+        },
+        {
+          "date": "2026-05-06",
+          "value": 262.71
+        },
+        {
+          "date": "2026-05-07",
+          "value": 256.11
+        },
+        {
+          "date": "2026-05-08",
+          "value": 257.69
+        },
+        {
+          "date": "2026-05-11",
+          "value": 263.83
+        },
+        {
+          "date": "2026-05-12",
+          "value": 261.96
+        },
+        {
+          "date": "2026-05-13",
+          "value": 263.78
+        },
+        {
+          "date": "2026-05-14",
+          "value": 259.5
+        },
+        {
+          "date": "2026-05-15",
+          "value": 251.48
+        },
+        {
+          "date": "2026-05-18",
+          "value": 248.69
+        },
+        {
+          "date": "2026-05-19",
+          "value": 247.89
+        },
+        {
+          "date": "2026-05-20",
+          "value": 246.63
+        },
+        {
+          "date": "2026-05-21",
+          "value": 251.19
+        },
+        {
+          "date": "2026-05-22",
+          "value": 254.0
+        },
+        {
+          "date": "2026-05-25",
+          "value": 253.33
+        },
+        {
+          "date": "2026-05-26",
+          "value": 253.54
+        },
+        {
+          "date": "2026-05-27",
+          "value": 251.33
+        },
+        {
+          "date": "2026-05-28",
+          "value": 254.57
+        },
+        {
+          "date": "2026-05-29",
+          "value": 245.2
+        },
+        {
+          "date": "2026-06-01",
+          "value": 241.86
+        },
+        {
+          "date": "2026-06-02",
+          "value": 241.19
+        },
+        {
+          "date": "2026-06-03",
+          "value": 237.68
+        },
+        {
+          "date": "2026-06-04",
+          "value": 233.72
+        },
+        {
+          "date": "2026-06-05",
+          "value": 232.92
+        },
+        {
+          "date": "2026-06-08",
+          "value": 232.79
+        },
+        {
+          "date": "2026-06-09",
+          "value": 231.96
+        },
+        {
+          "date": "2026-06-10",
+          "value": 235.29
+        },
+        {
+          "date": "2026-06-11",
+          "value": 241.31
+        },
+        {
+          "date": "2026-06-12",
+          "value": 246.66
+        },
+        {
+          "date": "2026-06-15",
+          "value": 250.43
+        },
+        {
+          "date": "2026-06-16",
+          "value": 259.1
+        },
+        {
+          "date": "2026-06-17",
+          "value": 259.15
+        },
+        {
+          "date": "2026-06-18",
+          "value": 256.66
+        },
+        {
+          "date": "2026-06-19",
+          "value": 254.73
+        },
+        {
+          "date": "2026-06-22",
+          "value": 252.7
+        },
+        {
+          "date": "2026-06-23",
+          "value": 258.73
+        },
+        {
+          "date": "2026-06-24",
+          "value": 260.51
+        },
+        {
+          "date": "2026-06-25",
+          "value": 260.51
+        },
+        {
+          "date": "2026-06-26",
+          "value": 257.28
+        },
+        {
+          "date": "2026-06-29",
+          "value": 258.21
+        },
+        {
+          "date": "2026-06-30",
+          "value": 272.39
+        },
+        {
+          "date": "2026-07-01",
+          "value": 280.17
+        },
+        {
+          "date": "2026-07-02",
+          "value": 278.11
+        },
+        {
+          "date": "2026-07-03",
+          "value": 279.09
+        },
+        {
+          "date": "2026-07-06",
+          "value": 301.98
+        },
+        {
+          "date": "2026-07-07",
+          "value": 290.77
+        },
+        {
+          "date": "2026-07-08",
+          "value": 283.52
+        },
+        {
+          "date": "2026-07-09",
+          "value": 309.8
+        },
+        {
+          "date": "2026-07-10",
+          "value": 296.55
+        },
+        {
+          "date": "2026-07-13",
+          "value": 293.94
+        },
+        {
+          "date": "2026-07-14",
+          "value": 292.86
+        },
+        {
+          "date": "2026-07-15",
+          "value": 293.58
+        },
+        {
+          "date": "2026-07-16",
+          "value": 286.87
+        },
+        {
+          "date": "2026-07-17",
+          "value": 287.86
+        },
+        {
+          "date": "2026-07-20",
+          "value": 290.07
+        },
+        {
+          "date": "2026-07-21",
+          "value": 288.93
+        },
+        {
+          "date": "2026-07-22",
+          "value": 282.17
+        },
+        {
+          "date": "2026-07-23",
+          "value": 272.26
+        },
+        {
+          "date": "2026-07-24",
+          "value": 274.72
+        },
+        {
+          "date": "2026-07-27",
+          "value": 283.31
+        },
+        {
+          "date": "2026-07-28",
+          "value": 288.79
+        },
+        {
+          "date": "2026-07-29",
+          "value": 285.62
+        },
+        {
+          "date": "2026-07-30",
+          "value": 280.5
+        },
+        {
+          "date": "2026-07-31",
+          "value": 285.48
+        },
+        {
+          "date": "2026-08-03",
+          "value": 283.11
+        },
+        {
+          "date": "2026-08-04",
+          "value": 282.18
+        },
+        {
+          "date": "2026-08-05",
+          "value": 286.64
+        },
+        {
+          "date": "2026-08-06",
+          "value": 280.22
+        },
+        {
+          "date": "2026-08-07",
+          "value": 285.75
+        },
+        {
+          "date": "2026-08-10",
+          "value": 284.53
+        },
+        {
+          "date": "2026-08-11",
+          "value": 285.88
+        },
+        {
+          "date": "2026-08-12",
+          "value": 287.71
+        },
+        {
+          "date": "2026-08-13",
+          "value": 282.08
+        },
+        {
+          "date": "2026-08-14",
+          "value": 287.19
+        },
+        {
+          "date": "2026-08-17",
+          "value": 285.15
+        },
+        {
+          "date": "2026-08-18",
+          "value": 295.01
+        },
+        {
+          "date": "2026-08-19",
+          "value": 294.03
+        },
+        {
+          "date": "2026-08-20",
+          "value": 294.47
+        },
+        {
+          "date": "2026-08-21",
+          "value": 289.17
+        },
+        {
+          "date": "2026-08-24",
+          "value": 298.12
+        },
+        {
+          "date": "2026-08-25",
+          "value": 301.97
+        },
+        {
+          "date": "2026-08-26",
+          "value": 287.62
+        },
+        {
+          "date": "2026-08-27",
+          "value": 279.38
+        },
+        {
+          "date": "2026-08-28",
+          "value": 281.76
+        },
+        {
+          "date": "2026-08-31",
+          "value": 281.15
+        },
+        {
+          "date": "2026-09-01",
+          "value": 279.85
+        },
+        {
+          "date": "2026-09-02",
+          "value": 270.47
+        },
+        {
+          "date": "2026-09-03",
+          "value": 268.38
+        },
+        {
+          "date": "2026-09-04",
+          "value": 269.49
+        },
+        {
+          "date": "2026-09-07",
+          "value": 269.37
+        },
+        {
+          "date": "2026-09-08",
+          "value": 267.23
+        },
+        {
+          "date": "2026-09-09",
+          "value": 268.25
+        },
+        {
+          "date": "2026-09-10",
+          "value": 266.82
+        },
+        {
+          "date": "2026-09-11",
+          "value": 265.31
+        },
+        {
+          "date": "2026-09-14",
+          "value": 268.2
+        },
+        {
+          "date": "2026-09-15",
+          "value": 262.57
+        },
+        {
+          "date": "2026-09-16",
+          "value": 259.93
+        },
+        {
+          "date": "2026-09-17",
+          "value": 256.69
+        },
+        {
+          "date": "2026-09-18",
+          "value": 258.77
+        },
+        {
+          "date": "2026-09-21",
+          "value": 251.92
+        },
+        {
+          "date": "2026-09-22",
+          "value": 248.44
+        },
+        {
+          "date": "2026-09-23",
+          "value": 251.53
+        },
+        {
+          "date": "2026-09-24",
+          "value": 250.82
+        },
+        {
+          "date": "2026-09-25",
+          "value": 252.96
+        },
+        {
+          "date": "2026-09-28",
+          "value": 259.49
+        },
+        {
+          "date": "2026-09-29",
+          "value": 259.81
+        },
+        {
+          "date": "2026-09-30",
+          "value": 261.6
+        },
+        {
+          "date": "2026-11-02",
+          "value": 254.88
+        },
+        {
+          "date": "2026-11-03",
+          "value": 250.79
+        },
+        {
+          "date": "2026-11-04",
+          "value": 248.69
+        },
+        {
+          "date": "2026-11-05",
+          "value": 247.74
+        }
+      ],
+      "trigger_date": "2026-08-25",
+      "trigger_value": 2.743015,
+      "threshold": 2.5,
+      "comparator": "abs_gte",
+      "verdict": "fired",
+      "unit": "zscore",
+      "gaps": [
+        {
+          "date": "2025-09-06",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-09-07",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-09-13",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-09-14",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-09-20",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-09-21",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-09-27",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-09-28",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-10-04",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-10-05",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-10-11",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-10-12",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-10-18",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-10-19",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-10-25",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-10-26",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-11-01",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-11-02",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-11-08",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-11-09",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-11-15",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-11-16",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-11-22",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-11-23",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-11-29",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-11-30",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-12-06",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-12-07",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-12-13",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-12-14",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-12-20",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-12-21",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-12-25",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-12-27",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2025-12-28",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-01-01",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-01-03",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-01-04",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-01-10",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-01-11",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-01-17",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-01-18",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-01-24",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-01-25",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-01-31",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-02-01",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-02-07",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-02-08",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-02-14",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-02-15",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-02-21",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-02-22",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-02-28",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-03-01",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-03-07",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-03-08",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-03-14",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-03-15",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-03-21",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-03-22",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-03-28",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-03-29",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-04-04",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-04-05",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-04-11",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-04-12",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-04-18",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-04-19",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-04-25",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-04-26",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-05-02",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-05-03",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-05-09",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-05-10",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-05-16",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-05-17",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-05-23",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-05-24",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-05-30",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-05-31",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-06-06",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-06-07",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-06-13",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-06-14",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-06-20",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-06-21",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-06-27",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-06-28",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-07-04",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-07-05",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-07-11",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-07-12",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-07-18",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-07-19",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-07-25",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-07-26",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-08-01",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-08-02",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-08-08",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-08-09",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-08-15",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-08-16",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-08-22",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-08-23",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-08-29",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-08-30",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-09-05",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-09-06",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-09-12",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-09-13",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-09-19",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-09-20",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-09-26",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-09-27",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-01",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-02",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-03",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-04",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-05",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-06",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-07",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-08",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-09",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-10",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-11",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-12",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-13",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-14",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-15",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-16",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-17",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-18",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-19",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-20",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-21",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-22",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-23",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-24",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-25",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-26",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-27",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-28",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-29",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-30",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）；可能为交易所休市，配置未提供节假日日历（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-10-31",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        },
+        {
+          "date": "2026-11-01",
+          "attribution": "not_applicable",
+          "reason": "周末；交易日序列源不发布（ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录）"
+        }
+      ],
+      "gap_counts": {
+        "never_held": 0,
+        "gap_in_series": 24,
+        "not_applicable": 122
+      },
+      "never_held": {
+        "from": "2024-11-01",
+        "to": "2025-08-31",
+        "attribution": "never_held",
+        "reason": "replay 窗口起点早于该序列首次观测；上游从未提供该区间数据（不补造）"
+      },
+      "closest": null,
+      "evaluated_points": 255,
+      "z_window": 30,
+      "z_basis": "滚动 z-score：前 z_window 个观测的均值/总体标准差，不含当前点",
+      "gap_note": "ICO 指示价为交易日序列；周末/节假日源不发布（not_applicable），缺失工作日按 gap_in_series 记录",
+      "provenance": "semantic_observations; concept=price.coffee.icip.daily; source_used=ico-coffee-price; z_window=30",
+      "rejected_values": [],
+      "latest_period": "2026-11-05",
+      "current_fired": false,
+      "trigger_detail": {
+        "raw_value": 301.97,
+        "rolling_mean": 286.475333,
+        "rolling_stdev": 5.648771,
+        "z_window": 30
+      },
+      "trigger_count": 19,
+      "triggers": [
+        {
+          "date": "2025-12-16",
+          "z": -2.964328,
+          "value": 299.84
+        },
+        {
+          "date": "2025-12-17",
+          "z": -3.060908,
+          "value": 294.98
+        },
+        {
+          "date": "2025-12-18",
+          "z": -2.841625,
+          "value": 293.36
+        },
+        {
+          "date": "2025-12-19",
+          "z": -3.332786,
+          "value": 283.21
+        },
+        {
+          "date": "2026-02-03",
+          "z": -4.086297,
+          "value": 269.0
+        },
+        {
+          "date": "2026-02-04",
+          "z": -3.547681,
+          "value": 267.45
+        },
+        {
+          "date": "2026-02-05",
+          "z": -3.031467,
+          "value": 266.5
+        },
+        {
+          "date": "2026-02-06",
+          "z": -3.021729,
+          "value": 262.13
+        },
+        {
+          "date": "2026-03-20",
+          "z": 2.531342,
+          "value": 281.79
+        },
+        {
+          "date": "2026-03-24",
+          "z": 2.830451,
+          "value": 285.83
+        },
+        {
+          "date": "2026-05-15",
+          "z": -3.202375,
+          "value": 251.48
+        },
+        {
+          "date": "2026-05-18",
+          "z": -3.273843,
+          "value": 248.69
+        },
+        {
+          "date": "2026-05-19",
+          "z": -2.870353,
+          "value": 247.89
+        },
+        {
+          "date": "2026-05-20",
+          "z": -2.696709,
+          "value": 246.63
+        },
+        {
+          "date": "2026-06-30",
+          "z": 2.601419,
+          "value": 272.39
+        },
+        {
+          "date": "2026-07-01",
+          "z": 3.050979,
+          "value": 280.17
+        },
+        {
+          "date": "2026-07-06",
+          "z": 3.703141,
+          "value": 301.98
+        },
+        {
+          "date": "2026-07-09",
+          "z": 2.956421,
+          "value": 309.8
+        },
+        {
+          "date": "2026-08-25",
+          "z": 2.743015,
+          "value": 301.97
+        }
+      ]
+    },
+    {
+      "rule": "price_spike",
+      "concept": "price.palm_oil.imf.monthly",
+      "source_used": "imf-pcps",
+      "entity_type": "country",
+      "entity_id": 300932,
+      "window": [
+        "2024-11",
+        "2026-09"
+      ],
+      "observed": [
+        {
+          "date": "2024-11",
+          "value": 177.053882
+        },
+        {
+          "date": "2024-12",
+          "value": 176.257448
+        },
+        {
+          "date": "2025-01",
+          "value": 160.982073
+        },
+        {
+          "date": "2025-02",
+          "value": 166.809517
+        },
+        {
+          "date": "2025-03",
+          "value": 165.218902
+        },
+        {
+          "date": "2025-04",
+          "value": 153.345792
+        },
+        {
+          "date": "2025-05",
+          "value": 141.094499
+        },
+        {
+          "date": "2025-06",
+          "value": 146.051194
+        },
+        {
+          "date": "2025-07",
+          "value": 145.51
+        },
+        {
+          "date": "2025-08",
+          "value": 160.352984
+        },
+        {
+          "date": "2025-09",
+          "value": 161.741968
+        },
+        {
+          "date": "2025-10",
+          "value": 162.270392
+        },
+        {
+          "date": "2025-11",
+          "value": 152.701727
+        },
+        {
+          "date": "2025-12",
+          "value": 153.353144
+        },
+        {
+          "date": "2026-01",
+          "value": 156.966065
+        },
+        {
+          "date": "2026-02",
+          "value": 161.56507
+        },
+        {
+          "date": "2026-03",
+          "value": 175.226082
+        },
+        {
+          "date": "2026-04",
+          "value": 177.763092
+        },
+        {
+          "date": "2026-05",
+          "value": 176.609049
+        },
+        {
+          "date": "2026-06",
+          "value": 173.272989
+        },
+        {
+          "date": "2026-07",
+          "value": 172.927411
+        },
+        {
+          "date": "2026-08",
+          "value": 176.852616
+        },
+        {
+          "date": "2026-09",
+          "value": 177.093868
+        }
+      ],
+      "trigger_date": "2026-03",
+      "trigger_value": 2.740782,
+      "threshold": 2.5,
+      "comparator": "abs_gte",
+      "verdict": "fired",
+      "unit": "zscore",
+      "gaps": [],
+      "gap_counts": {
+        "never_held": 0,
+        "gap_in_series": 0,
+        "not_applicable": 0
+      },
+      "never_held": null,
+      "closest": null,
+      "evaluated_points": 23,
+      "z_window": 12,
+      "z_basis": "滚动 z-score：前 z_window 个观测的均值/总体标准差，不含当前点",
+      "gap_note": "",
+      "provenance": "semantic_observations; concept=price.palm_oil.imf.monthly; source_used=imf-pcps; z_window=12",
+      "rejected_values": [],
+      "latest_period": "2026-09",
+      "current_fired": false,
+      "trigger_detail": {
+        "raw_value": 175.226082,
+        "rolling_mean": 155.014311,
+        "rolling_stdev": 7.374455,
+        "z_window": 12
+      },
+      "trigger_count": 2,
+      "triggers": [
+        {
+          "date": "2024-11",
+          "z": 3.925603,
+          "value": 177.053882
+        },
+        {
+          "date": "2026-03",
+          "z": 2.740782,
+          "value": 175.226082
+        }
+      ]
+    },
+    {
+      "rule": "price_spike",
+      "concept": "agri.pork.price.wholesale",
+      "source_used": "moa-hog-price",
+      "entity_type": "country",
+      "entity_id": 1,
+      "window": [
+        "2026-05-04",
+        "2026-10-26"
+      ],
+      "observed": [
+        {
+          "date": "2026-05-04",
+          "value": 15.01
+        },
+        {
+          "date": "2026-05-11",
+          "value": 14.83
+        },
+        {
+          "date": "2026-05-18",
+          "value": 14.76
+        },
+        {
+          "date": "2026-05-25",
+          "value": 14.72
+        },
+        {
+          "date": "2026-06-01",
+          "value": 14.64
+        },
+        {
+          "date": "2026-06-08",
+          "value": 14.53
+        },
+        {
+          "date": "2026-06-15",
+          "value": 14.5
+        },
+        {
+          "date": "2026-06-22",
+          "value": 14.33
+        },
+        {
+          "date": "2026-06-29",
+          "value": 14.5
+        },
+        {
+          "date": "2026-07-06",
+          "value": 15.57
+        },
+        {
+          "date": "2026-07-13",
+          "value": 15.89
+        },
+        {
+          "date": "2026-07-20",
+          "value": 15.93
+        },
+        {
+          "date": "2026-07-27",
+          "value": 15.81
+        },
+        {
+          "date": "2026-08-03",
+          "value": 15.73
+        },
+        {
+          "date": "2026-08-10",
+          "value": 15.8
+        },
+        {
+          "date": "2026-08-17",
+          "value": 16.11
+        },
+        {
+          "date": "2026-08-24",
+          "value": 16.22
+        },
+        {
+          "date": "2026-08-31",
+          "value": 16.32
+        },
+        {
+          "date": "2026-09-07",
+          "value": 16.28
+        },
+        {
+          "date": "2026-09-14",
+          "value": 16.4
+        },
+        {
+          "date": "2026-09-21",
+          "value": 16.27
+        },
+        {
+          "date": "2026-09-28",
+          "value": 16.22
+        },
+        {
+          "date": "2026-10-05",
+          "value": 15.92
+        },
+        {
+          "date": "2026-10-12",
+          "value": 15.83
+        },
+        {
+          "date": "2026-10-19",
+          "value": 15.7
+        },
+        {
+          "date": "2026-10-26",
+          "value": 15.49
+        }
+      ],
+      "trigger_date": null,
+      "trigger_value": null,
+      "threshold": 2.5,
+      "comparator": "abs_gte",
+      "verdict": "quiet",
+      "unit": "zscore",
+      "gaps": [],
+      "gap_counts": {
+        "never_held": 0,
+        "gap_in_series": 0,
+        "not_applicable": 0
+      },
+      "never_held": {
+        "from": "2024-11-01",
+        "to": "2026-05-03",
+        "attribution": "never_held",
+        "reason": "replay 窗口起点早于该序列首次观测；上游从未提供该区间数据（不补造）"
+      },
+      "closest": {
+        "date": "2026-10-26",
+        "value": -2.374994,
+        "distance": 0.125006,
+        "unit": "zscore",
+        "raw_value": 15.49
+      },
+      "evaluated_points": 14,
+      "z_window": 12,
+      "z_basis": "滚动 z-score：前 z_window 个观测的均值/总体标准差，不含当前点",
+      "gap_note": "周序列按 7 天步长核对连续周；当前库内仅 15 周（2026-07-20 起），未达 min_history=24，判 n/a 而非编造阈值",
+      "provenance": "semantic_observations; concept=agri.pork.price.wholesale; source_used=moa-hog-price; z_window=12",
+      "rejected_values": [],
+      "latest_period": "2026-10-26",
+      "current_fired": false,
+      "trigger_count": 0,
+      "triggers": []
+    }
+  ]
+}

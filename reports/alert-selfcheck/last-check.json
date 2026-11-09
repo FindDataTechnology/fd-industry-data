@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-08T08:21:49.638836+00:00",
+  "at": "2026-11-08T18:31:57.468662+00:00",
   "silent": [],
   "ticket": {
     "checked": true,
@@ -14,7 +14,7 @@
   "notify": {
     "sent": 0,
     "failed": 0,
-    "skipped": 1,
-    "reason": "dry-run（不发送）"
+    "skipped": 0,
+    "reason": "无变化"
   }
 }

@@ -1,5 +1,75 @@
 {
-  "_note": "2026-11-08 重置：此前 4 封告警基于『窗口内曾越阈』判据（replay 96 个月），触发期为 2022-12 / 2024-11，属历史越阈而非当期。判据已改为 latest_period 才告警，旧状态因此作废——清空以免把它们误当『已回落』发出 4 封假恢复。",
-  "at": "2026-11-08T08:32:08.377829+00:00",
-  "rules": {}
+  "at": "2026-11-08T17:15:21.972742+00:00",
+  "rules": {
+    "catering_yoy_negative|retail.cn.catering.yoy": {
+      "key": "catering_yoy_negative|retail.cn.catering.yoy",
+      "rule": "catering_yoy_negative",
+      "concept": "retail.cn.catering.yoy",
+      "state": "stale",
+      "verdict": "fired",
+      "latest_period": "2026-09",
+      "current_fired": false,
+      "trigger_date": "2022-12",
+      "trigger_value": -14.1,
+      "threshold": 0.0,
+      "comparator": "lt",
+      "reason": null
+    },
+    "cpi_scissors|price.cpi.us.food_away_from_home - price.cpi.us.food_at_home": {
+      "key": "cpi_scissors|price.cpi.us.food_away_from_home - price.cpi.us.food_at_home",
+      "rule": "cpi_scissors",
+      "concept": "price.cpi.us.food_away_from_home - price.cpi.us.food_at_home",
+      "state": "stale",
+      "verdict": "fired",
+      "latest_period": "2026-09",
+      "current_fired": false,
+      "trigger_date": "2024-11",
+      "trigger_value": 2.083653,
+      "threshold": 2.0,
+      "comparator": "abs_gte",
+      "reason": null
+    },
+    "price_spike|price.coffee.icip.daily": {
+      "key": "price_spike|price.coffee.icip.daily",
+      "rule": "price_spike",
+      "concept": "price.coffee.icip.daily",
+      "state": "stale",
+      "verdict": "fired",
+      "latest_period": "2026-11-05",
+      "current_fired": false,
+      "trigger_date": "2026-08-25",
+      "trigger_value": 2.743015,
+      "threshold": 2.5,
+      "comparator": "abs_gte",
+      "reason": null
+    },
+    "price_spike|price.palm_oil.imf.monthly": {
+      "key": "price_spike|price.palm_oil.imf.monthly",
+      "rule": "price_spike",
+      "concept": "price.palm_oil.imf.monthly",
+      "state": "stale",
+      "verdict": "fired",
+      "latest_period": "2026-09",
+      "current_fired": false,
+      "trigger_date": "2026-03",
+      "trigger_value": 2.740782,
+      "threshold": 2.5,
+      "comparator": "abs_gte",
+      "reason": null
+    },
+    "price_spike|agri.pork.price.wholesale": {
+      "key": "price_spike|agri.pork.price.wholesale",
+      "rule": "price_spike",
+      "concept": "agri.pork.price.wholesale",
+      "state": "quiet",
+      "verdict": "quiet",
+      "latest_period": "2026-10-26",
+      "current_fired": false,
+      "trigger_date": null,
+      "trigger_value": null,
+      "threshold": 2.5,
+      "comparator": "abs_gte",
+      "reason": null
+    }
+  }
 }
