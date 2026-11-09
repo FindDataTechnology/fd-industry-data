@@ -71,6 +71,72 @@ def load_and_align(manifest_path: Path, spider_path: Path) -> tuple[str, dict, s
     return src, data, spider_code, stripped
 
 
+SMOKE_LIMIT = 5
+
+
+def declared_columns(manifest: dict) -> list[str]:
+    """Column names the manifest promises for its first function."""
+    funcs = manifest.get("functions") or []
+    if not funcs or not isinstance(funcs[0], dict):
+        return []
+    cols = funcs[0].get("columns") or []
+    return [str(c.get("name")) for c in cols
+            if isinstance(c, dict) and c.get("name")]
+
+
+def smoke_fetch(unit: Path, src: str, manifest: dict,
+                limit: int = SMOKE_LIMIT) -> list[str]:
+    """Real fetch with a tiny limit; returns violation lines (empty = green).
+
+    Change harden-crawl-delivery 4.1. The three local checks only prove the unit
+    *compiles* and matches the schema; they say nothing about whether it can
+    fetch. Landing used to be silent about that until the first scheduled run —
+    a full cycle later. This calls the entry point exactly as the runner would,
+    with a small limit, and asserts shape: rows exist and every declared column
+    is present.
+
+    It calls the spider module directly, so nothing is written to ``crawl_runs``
+    and the upstream sees at most ``limit`` rows.
+    """
+    import importlib.util
+
+    spider = unit / "spider.py"
+    spec = importlib.util.spec_from_file_location(f"_smoke_{src.replace('-', '_')}", spider)
+    if spec is None or spec.loader is None:
+        return ["[smoke] cannot load spider.py"]
+    module = importlib.util.module_from_spec(spec)
+    sys.path.insert(0, str(unit))
+    try:
+        spec.loader.exec_module(module)
+    except Exception as exc:  # noqa: BLE001 - import failure is a landing failure
+        return [f"[smoke] spider.py failed to import: {type(exc).__name__}: {exc}"]
+    finally:
+        try:
+            sys.path.remove(str(unit))
+        except ValueError:
+            pass
+
+    entry = getattr(module, entry_name(src), None)
+    if not callable(entry):
+        return [f"[smoke] no callable {entry_name(src)} after import"]
+
+    try:
+        rows = entry(limit=limit) or []
+    except Exception as exc:  # noqa: BLE001
+        return [f"[smoke] {entry_name(src)}(limit={limit}) raised "
+                f"{type(exc).__name__}: {str(exc)[:300]}"]
+
+    if not isinstance(rows, list) or not rows:
+        return [f"[smoke] {entry_name(src)}(limit={limit}) returned no rows — "
+                "a source that cannot produce data must not land"]
+
+    missing = [c for c in declared_columns(manifest)
+               if not all(c in (r or {}) for r in rows if isinstance(r, dict))]
+    if missing:
+        return [f"[smoke] declared column(s) absent from every row: {missing}"]
+    return []
+
+
 def run_local_checks(repo_root: Path) -> list[str]:
     """The three local admission checks; returns violation lines (empty = green)."""
     violations: list[str] = []
@@ -86,7 +152,8 @@ def run_local_checks(repo_root: Path) -> list[str]:
     return violations
 
 
-def land(manifest_path: Path, spider_path: Path, repo_root: Path) -> str:
+def land(manifest_path: Path, spider_path: Path, repo_root: Path,
+         *, skip_smoke: bool = False) -> str:
     """Land + check + commit; returns the committed source name."""
     src, data, spider_code, stripped = load_and_align(manifest_path, spider_path)
 
@@ -107,6 +174,13 @@ def land(manifest_path: Path, spider_path: Path, repo_root: Path) -> str:
         violations = run_local_checks(repo_root)
         if violations:
             raise LandError("local admission checks failed:\n" + "\n".join(violations))
+
+        if not skip_smoke:
+            violations = smoke_fetch(unit, src, data)
+            if violations:
+                raise LandError(
+                    "smoke fetch failed (a unit that cannot fetch must not land):\n"
+                    + "\n".join(violations))
 
         proc = subprocess.run(
             ["git", "add", f"spiders/{src}"], cwd=repo_root, capture_output=True, text=True)
@@ -140,9 +214,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("spider", type=Path, help="spider .py file with run_<src>(limit)")
     ap.add_argument("--repo-root", type=Path,
                     default=Path(__file__).resolve().parents[1])
+    ap.add_argument("--skip-smoke", action="store_true",
+                    help="skip the real-fetch smoke check (offline/dev only; "
+                         "the landing then has no evidence it can fetch)")
     args = ap.parse_args(argv)
     try:
-        land(args.manifest, args.spider, args.repo_root)
+        if args.skip_smoke:
+            print("land_source: WARNING: --skip-smoke — this landing has no "
+                  "evidence the source can actually fetch", file=sys.stderr)
+        land(args.manifest, args.spider, args.repo_root,
+             skip_smoke=args.skip_smoke)
     except LandError as e:
         print(f"land_source: REJECTED — nothing committed\n{e}", file=sys.stderr)
         return 1
