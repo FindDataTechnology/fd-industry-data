@@ -1,0 +1,40 @@
+ticket_id: 20261107-sec-edgar-facts-e41262dc
+source: sec-edgar-facts
+unit: spiders/sec-edgar-facts/
+kind: generate
+created_at: '2026-11-07T15:38:34.840601+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-11-07T15:38:34.840422+00:00'
+    to: '2026-11-07T15:38:34.840422+00:00'
+  failing_runs: []
+  last_success: null
+  watermark:
+    latest: null
+    basis: n/a（生成单：目标单元尚不存在）
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261107-sec-edgar-facts-e41262dc.yaml
+golden:
+- spiders/sec-edgar-facts/golden/
+lifecycle:
+- at: '2026-11-07T15:38:34.840601+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json
+  expectations: 'SEC EDGAR XBRL company facts (whitelisted us-gaap tags: Revenues
+    / RevenueFromContractWithCustomerExcludingAssessedTax / OperatingIncomeLoss /
+    NetIncomeLoss) + submissions event face (10-Q/10-K/8-K filing dates) for the 12-company
+    US restaurant universe'
+  cadence: daily (8-K events are time-critical; facts update on each filing)
+  notes: restaurant-vertical wave2 US lane. Financial-lane extension with explicit
+    2026-10-07 scouting-ruling boundary note (ruling reason = overlap prevention;
+    no pre-existing US lane on the platform, so extension is not overlap). XBRL tag
+    availability differs per filer — the per-company tag map is recorded, never guessed.

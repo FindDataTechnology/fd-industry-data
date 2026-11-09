@@ -1,0 +1,39 @@
+ticket_id: 20261107-hkex-disclosure-82e7ef63
+source: hkex-disclosure
+unit: spiders/hkex-disclosure/
+kind: generate
+created_at: '2026-11-07T15:42:37.388127+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-11-07T15:42:37.387962+00:00'
+    to: '2026-11-07T15:42:37.387962+00:00'
+  failing_runs: []
+  last_success: null
+  watermark:
+    latest: null
+    basis: n/a（生成单：目标单元尚不存在）
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261107-hkex-disclosure-82e7ef63.yaml
+golden:
+- spiders/hkex-disclosure/golden/
+lifecycle:
+- at: '2026-11-07T15:42:37.388127+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://www1.hkexnews.hk/search/titleSearchServlet.do
+  expectations: 'HKEXnews title search: announcement events per stock (release date,
+    title, announcement type, 盈警/positive-profit-alert keyword class, document URL)
+    for the 10-company restaurant universe'
+  cadence: daily (announcements published intraday; results 盈警 are time-critical)
+  notes: restaurant-vertical wave2 HK lane. Financial-lane extension with explicit
+    2026-10-07 scouting-ruling boundary note (ruling reason = overlap prevention;
+    no pre-existing HK lane on the platform, so extension is not overlap). No schedule/golden-merge
+    until first trial passes.

@@ -1,0 +1,48 @@
+ticket_id: 20261106-nasa-firms-fff9c02b
+source: nasa-firms
+unit: spiders/nasa-firms/
+kind: repair
+created_at: '2026-11-06T04:46:53.548348+00:00'
+category: fallback
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 整段重生成（兜底）
+evidence:
+  window:
+    from: '2026-10-07 05:21:54.101865+00'
+    to: '2026-11-05 22:07:26.33122+00'
+  failing_runs:
+  - started_at: '2026-11-04 22:07:07.646132+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: nasa-firms: 快照无可用数据行（上游空窗或布局变更，转人工）'
+    http_status: null
+  - started_at: '2026-11-04 22:07:22.641689+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: nasa-firms: 快照无可用数据行（上游空窗或布局变更，转人工）'
+    http_status: null
+  - started_at: '2026-11-05 22:07:07.418986+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: nasa-firms: 快照无可用数据行（上游空窗或布局变更，转人工）'
+    http_status: null
+  - started_at: '2026-11-05 22:07:26.33122+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: nasa-firms: 快照无可用数据行（上游空窗或布局变更，转人工）'
+    http_status: null
+  last_success:
+    started_at: '2026-11-03 22:07:08.662328+00'
+    rows: 100
+  notes: 'rule9:fallback identical-unknown-fingerprint x4 (>=consecutive_failures=3)
+    fingerprint=''runtimeerror: nasa-firms: 快照无可用数据行（上游空窗或布局变更，转人工）'''
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261106-nasa-firms-fff9c02b.yaml
+golden:
+- spiders/nasa-firms/golden/001-nasa-firms.json
+lifecycle:
+- at: '2026-11-06T04:46:53.548348+00:00'
+  event: created
+terminal: null

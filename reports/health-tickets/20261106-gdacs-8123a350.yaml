@@ -1,0 +1,73 @@
+ticket_id: 20261106-gdacs-8123a350
+source: gdacs
+unit: spiders/gdacs/
+kind: repair
+created_at: '2026-11-06T04:46:53.548348+00:00'
+category: structure
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 定向修 parser
+evidence:
+  window:
+    from: '2026-10-07 05:28:42.887108+00'
+    to: '2026-11-05 21:34:29.085254+00'
+  failing_runs:
+  - started_at: '2026-10-28 21:34:04.356654+00'
+    status: failed
+    rows: 0
+    error_summary: 'TimeoutError: The read operation timed out'
+    http_status: null
+  - started_at: '2026-10-28 21:35:19.145948+00'
+    status: failed
+    rows: 0
+    error_summary: 'TimeoutError: The read operation timed out'
+    http_status: null
+  - started_at: '2026-11-03 21:34:05.726203+00'
+    status: failed
+    rows: 0
+    error_summary: 'json.decoder.JSONDecodeError: Expecting value: line 1 column 1
+      (char 0)'
+    http_status: null
+  - started_at: '2026-11-03 21:34:20.84274+00'
+    status: failed
+    rows: 0
+    error_summary: 'json.decoder.JSONDecodeError: Expecting value: line 1 column 1
+      (char 0)'
+    http_status: null
+  - started_at: '2026-11-04 21:34:05.214566+00'
+    status: failed
+    rows: 0
+    error_summary: 'json.decoder.JSONDecodeError: Expecting value: line 1 column 1
+      (char 0)'
+    http_status: null
+  - started_at: '2026-11-04 21:34:20.332978+00'
+    status: failed
+    rows: 0
+    error_summary: 'json.decoder.JSONDecodeError: Expecting value: line 1 column 1
+      (char 0)'
+    http_status: null
+  - started_at: '2026-11-05 21:34:09.257852+00'
+    status: failed
+    rows: 0
+    error_summary: 'json.decoder.JSONDecodeError: Expecting value: line 1 column 1
+      (char 0)'
+    http_status: null
+  - started_at: '2026-11-05 21:34:29.085254+00'
+    status: failed
+    rows: 0
+    error_summary: 'json.decoder.JSONDecodeError: Expecting value: line 1 column 1
+      (char 0)'
+    http_status: null
+  last_success:
+    started_at: '2026-11-02 21:34:04.871764+00'
+    rows: 10
+  notes: 'rule6:structure votes=6/6 labels={''structure'': 6}'
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261106-gdacs-8123a350.yaml
+golden:
+- spiders/gdacs/golden/001-gdacs.json
+lifecycle:
+- at: '2026-11-06T04:46:53.548348+00:00'
+  event: created
+terminal: null

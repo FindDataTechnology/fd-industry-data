@@ -1,0 +1,34 @@
+ticket_id: 20261107-nra-rpi-3a5952f4
+source: nra-rpi
+unit: spiders/nra-rpi/
+kind: generate
+created_at: '2026-11-07T14:42:19.107217+00:00'
+category: null
+needs_human: false
+suspected_anti_bot: false
+suggested_action: ''
+evidence:
+  window:
+    from: '2026-11-07T14:42:19.106912+00:00'
+    to: '2026-11-07T14:42:19.106912+00:00'
+  failing_runs: []
+  last_success: null
+  notes: 生成单（source-generation-flow）：目标单元尚不存在，按 brief 从零建立并交付 golden 样本
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261107-nra-rpi-3a5952f4.yaml
+golden:
+- spiders/nra-rpi/golden/
+lifecycle:
+- at: '2026-11-07T14:42:19.107217+00:00'
+  event: created
+terminal: null
+brief:
+  source_urls:
+  - https://restaurant.org/research-and-media/research/restaurant-economic-insights/restaurant-performance-index/
+  expectations: Monthly RPI + Current Situation Index + Expectations Index from NRA
+    monthly PDF component table (page 3), values for last ~5 months per issue
+  cadence: monthly (released last business day of month)
+  notes: 'restaurant-vertical wave1 source. PDF-only upstream (no CSV/API); online
+    archive starts 2024-03; parse via pdftotext -layout with column-cross-validation
+    (Robustas-style misalignment guard: RPI>=CSI,EMI within ~10 pts).'
