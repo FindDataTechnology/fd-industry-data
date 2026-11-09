@@ -117,3 +117,56 @@ git 里的 appset 只是历史快照。
 | 4 | （立项）appset 纳管 GitOps | 每次发布都要手工 bump，这次是第 N 次静默落后 |
 
 **只做第 1 步，等于把系统恢复到「48 小时前的旧代码 + 一堆没生效的改动」。**
+
+---
+
+## 附录二：zihan 站点更早的独立停摆（2026-11-09 19:25Z 取证）
+
+与 gitee token 无关，早 4 天，此前无人发现。
+
+### 事实
+
+```
+2026-11-05 05:00Z     inmetals / metal-com 最后一次正常 schedule-tick 入队并成功
+2026-11-06 04:49:46Z  commit e355220 摘掉这两个源的 schedule（改 parked: true）
+2026-11-06~11-09      每天 04:51 / 04:59 两个排期点，零入队、零 pending、零 run
+2026-11-09 15:30:11Z  zihan 最后一次心跳（与 tencent/xinru-server2 同一时刻）
+2026-11-09 19:15:02Z  全队列 sync 仍把两源写成 schedule='51 4 * * *'、enabled=t
+```
+
+主机**是活的**：`tailscale status` 显示 `100.64.0.4 guangzhou-zihan  linux`（在线），
+`ping` 78.9ms 通。所以不是机器掉线。
+
+### 三个叠加的问题
+
+**1. tick 没在排期分钟运行。** docker 站点没有集群调度器，排期完全靠站点本地 `*/5`
+tick 调 `enqueue_due`（`dispatch.py:442`，判据 `site=? AND enabled AND schedule IS NOT NULL`）。
+按 DB 状态，11-06~11-09 每天都该入队，实际一条都没有。
+
+**2. park 没有传导到 DB。** git HEAD 里两源已是 `parked: true` / `enabled: false` / 无
+schedule；而 `crawl_sources` 里仍是 `schedule='51 4 * * *'`、`enabled=t`。
+本该在 schedule 被写 NULL 时留痕的 `trg_catch_nuller`，其目标表
+`crawl_sources_write_log` **是空的**——传导链路既没生效也没有留痕
+（注意：该函数会吞 `insufficient_privilege`，故这是强证据但非铁证）。
+
+**3. park 让巡检豁免检查，形成静默死角。**
+
+```
+内容仓：parked → 巡检不管（agriculture_alerts.py:336-340 对 parked 源豁免）
+DB：    enabled + 有排期 → 调度认为"该跑"
+实际：  没人跑
+```
+
+`inmetals` 最后一张 health ticket 停在 `20261011`，之后不再生成——这正是
+「内容仓已停用、DB 仍启用、调度没在跑」这个矛盾态永远不被发现的原因。
+
+### 与本 change 的关系
+
+问题 2 与问题 3 是**可修的代码问题**，不依赖 token：
+
+- 问题 2：`sync_sources` 应当在 manifest 无 schedule 时把 schedule 写成 NULL；
+  需查 dispatcher 拿到的是不是过期 checkout（`last_commit` 为空时保留旧值，无法自证）
+- 问题 3：巡检应新增一条判据——`crawl_sources` 里 enabled 且有 schedule、
+  但 manifest 已 park → 报「状态不一致」，而不是豁免
+
+**未修**。记录在此，供后续立项。
