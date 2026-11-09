@@ -102,6 +102,11 @@ PARKED_SCHEDULE_CONFLICT = "parked-schedule-conflict"
 FIXES = {
     "unit-outside-spiders": "move to spiders/<slug>/",
     "missing-manifest": f"draft per {MANIFEST_PROTOCOL}",
+    "unthrottled-unit": (
+        "新单元必须接共享节流：`from fd_industry_data.http import throttle`，"
+        "在请求点用它（`gate = throttle(gate)`），别自己写 `time.sleep`。"
+        "既有单元列在 scripts/rate_limit_baseline.txt（只许缩不许长）"
+    ),
     "loose-spider-file": "move into its unit dir",
     "empty-nonstandard-dir": "delete",
     "adapter-dash-underscore-pair": "keep one form",
@@ -545,6 +550,47 @@ def _adjudication_ledger_violations(root: Path) -> list[tuple[str, str]]:
     return hits
 
 
+RATE_LIMIT_BASELINE = Path(__file__).resolve().parent / "rate_limit_baseline.txt"
+
+#: 自带 sleep 且未接共享 throttle 的写法（审计 05 §4）。
+_OWN_THROTTLE_RE = re.compile(r"time\.sleep\(|SAME_HOST_GAP")
+
+
+def _unthrottled_units(root: Path) -> list[str]:
+    """返回「自带 sleep、没接共享 throttle」的单元 slug（按基线豁免既有单元）。
+
+    审计 05 §4：平台提供了 `fd_industry_data.http.throttle`（同源 0.4s），但它自己的
+    文档写着「既有单元**不强制**迁移」，于是 164 个单元里只有 3 个接了、44 个各写各的
+    `time.sleep`。对新源来说限流等于不存在；被目标站封禁时，损失是整条出口 IP 上的
+    **所有**源，而不只是出问题的那个。
+
+    **为什么不一次性要求全部迁移**：44 个单元同时红会让闸门失去意义（没人会去修 44 个，
+    然后所有人学会无视它）。所以按基线收敛：`scripts/rate_limit_baseline.txt` 记录既有
+    的 44 个，它们暂时豁免；**新增单元必须接共享 throttle**，否则红。
+    基线只许缩不许长——删一行代表那个单元已迁移。
+    """
+    baseline: set[str] = set()
+    if RATE_LIMIT_BASELINE.exists():
+        baseline = {
+            line.strip()
+            for line in RATE_LIMIT_BASELINE.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        }
+    hits: list[str] = []
+    for spider in sorted((root / "spiders").glob("*/spider.py")):
+        slug = spider.parent.name
+        if slug in baseline:
+            continue
+        try:
+            src = spider.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        uses_shared = "from fd_industry_data.http import" in src
+        if _OWN_THROTTLE_RE.search(src) and not uses_shared:
+            hits.append(slug)
+    return hits
+
+
 def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
     """Return (violations as (type, path), scanned unit count). Zero writes."""
     violations: list[tuple[str, str]] = []
@@ -585,6 +631,9 @@ def collect(roots: list[Path]) -> tuple[list[tuple[str, str]], int]:
 
         for path in _inline_tabular_units(root, units):
             violations.append(("inline-tabular-parser", path))
+
+        for slug in _unthrottled_units(root):
+            violations.append(("unthrottled-unit", f"{root.name}/spiders/{slug}"))
 
         for path in _declared_param_units(root):
             violations.append((DECLARED_PARAM_REACHABILITY, path))

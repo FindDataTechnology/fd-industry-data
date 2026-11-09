@@ -1,0 +1,47 @@
+# 审计 05 §4 的基线：这些单元自带 sleep、未接共享 throttle。
+# 只允许缩不许长——新增单元必须 from fd_industry_data.http import throttle。
+# 删行 = 该单元已迁移；不要为了让闸门变绿而加行。
+cba-wealth-index
+census-eits
+chinabond-monthly
+chinamoney-lpr
+chinamoney-ncd-curve
+chinamoney-shibor
+chinawealth-reports
+cnia
+dagong-ratings
+dfjc-ratings
+eastmoney-data
+eastmoney-futures
+education_oa_fulltext
+education_oer_aggregators
+education_openalex
+education_podcast
+eia-v2
+ember
+entsoe-e
+fert-cn
+gb-standards
+gleif-lei
+hsgt-northbound
+jp-yahoo-events
+lh-ratings
+moa-machinery
+mysteel
+nfra-penalty
+openalex-works
+openchargemap
+pboc-credit-funds
+ratings-ccxi
+sec-edgar-8k-operating
+sec-edgar-facts
+shclearing-capital-notes
+shclearing-monthly
+steam-ccu
+ted-notices
+usda-psd
+usda-quickstats
+wire-finddatatech-cloud
+worldsteel
+xsj-ratings
+yindeng-npl-transfer
