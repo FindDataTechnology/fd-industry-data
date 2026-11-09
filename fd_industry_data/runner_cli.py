@@ -451,6 +451,55 @@ def _evaluate_accept(source: str, *, status: str, rows: int, env) -> dict | None
     return {"ok": ok, "checks": checks, "statusAtEvaluation": status}
 
 
+def _process_metrics(sample: dict | None = None) -> dict:
+    """Process-level cost facts (harden-crawl-delivery 5.1).
+
+    These are the numbers the structure/cost decision needs and the reason that
+    decision cannot be made from the current table: `crawl_runs` records the
+    runner's wall time only, so "one pod per source" cost is invisible — the
+    clone and the pod start happen *before* the runner exists.
+
+    ``runner_seconds`` is measured here; ``clone_seconds`` and
+    ``pod_start_to_first_row_seconds`` come from the entrypoint (it is the only
+    place that saw the pod start). ``peak_rss_mb`` is this process's high-water
+    mark — it bounds how many sources a shared pod could host.
+
+    Missing values stay absent rather than 0: a 0-second clone is a claim, and a
+    wrong claim is worse than "not measured".
+    """
+    import resource
+
+    out: dict = {}
+    usage = resource.getrusage(resource.RUSAGE_SELF)
+    peak_mb = usage.ru_maxrss / (1024 * 1024) if sys.platform == "darwin" else usage.ru_maxrss / 1024
+    if peak_mb > 0:
+        out["peak_rss_mb"] = round(peak_mb, 1)
+    for key in ("clone_seconds", "pod_start_to_first_row_seconds", "pod_start_seconds"):
+        raw = os.environ.get(f"FD_{key.upper()}")
+        if raw:
+            try:
+                out[key] = round(float(raw), 3)
+            except ValueError:
+                pass
+    # initContainer 写的 /content/.timings（AppSet 路径）。读不到就跳过。
+    # 优先级：这里是本 pod 自己的实测，压过上面可能继承来的环境变量。
+    timings = Path(os.environ.get("FD_CONTENT_DIR", "")).parent / ".timings"
+    if timings.is_file():
+        for line in timings.read_text().splitlines():
+            if "=" not in line:
+                continue
+            k, _, v = line.partition("=")
+            k = k.strip()
+            if k in ("clone_seconds", "pod_start_to_first_row_seconds", "pod_start_seconds"):
+                try:
+                    out[k] = round(float(v.strip()), 3)
+                except ValueError:
+                    pass
+    if sample is not None:
+        out["runner_seconds"] = round(time.time() - sample.get("started", time.time()), 3)
+    return out
+
+
 def _attribution(source: str, env) -> dict:
     """Who holds this run, and what upstream it reads. Never raises.
 
@@ -681,6 +730,12 @@ def main(argv: list[str] | None = None) -> int:
             "seen": wm.get("seen", 0),
             **({"reason": wm["reason"]} if wm.get("reason") else {}),
         }}
+
+    # 成本埋点（5.1）：clone / pod 启动 / 内存峰值 / runner 墙钟。只有真实 pod
+    # 跑起来才有值；没有的键就不写，不填 0。
+    cost = _process_metrics({"started": started})
+    if cost:
+        metrics = {**(metrics or {}), **cost}
 
     if accept_failures is not None:
         metrics = {**(metrics or {}), "accept": accept_failures}

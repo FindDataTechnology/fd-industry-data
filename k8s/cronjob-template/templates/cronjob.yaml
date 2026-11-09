@@ -86,6 +86,13 @@ spec:
                   # fd-industry-eastmoney-disclosure-plan 连续两次失败。
                   git sparse-checkout set spiders/ fd_industry_data/ universes/
                   git rev-parse HEAD > /content/.commit
+                  # 成本埋点（harden-crawl-delivery 5.1）：pod 启动与 clone 的耗时
+                  # 只有这里看得见 —— runner 起来时 clone 已经结束。写进 /content/.timings，
+                  # runner 读到就并入 crawl_runs.metrics，读不到就不写该键（不填 0）。
+                  {
+                    echo "pod_start_to_first_row_seconds=$SECONDS"
+                    echo "clone_seconds=$SECONDS"
+                  } > /content/.timings
               volumeMounts:
                 - name: content
                   mountPath: /content
