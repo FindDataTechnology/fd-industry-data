@@ -37,6 +37,7 @@ WORKDIR /w
 COPY scripts/ scripts/
 COPY spiders/ spiders/
 COPY fd_industry_data/ ./fd_industry_data/
+COPY universes/ universes/
 RUN PIP_FLAGS=""; [ -n "$PIP_INDEX_URL" ] && PIP_FLAGS="-i $PIP_INDEX_URL"; \
     pip install --no-cache-dir $PIP_FLAGS pyyaml \
     && python3 scripts/validate_manifests.py \
@@ -47,6 +48,20 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY fd_industry_data/ ./fd_industry_data/
 COPY spiders/ ./spiders/
+# universes/ — 共享金融车道的默认宇宙注册表（vertical-lane-generalization）。
+# 车道单元运行期从 universes/<region>.yaml 读默认宇宙，缺此目录即硬失败。
+COPY universes/ ./universes/
+# poppler-utils — pdftotext for the PDF-only upstreams (add-banking-industry-sources:
+# NFRA 批量公示表 / 上清所月报表四表五 / CBA 理财指数 2026 PDF / 银登不良转让公告).
+# Consumed through fd_industry_data.pdftext (single subprocess wrapper), never
+# hand-rolled per unit. Runtime release decision per gitops-crawl-runtime D3.
+RUN if [ -n "$APT_MIRROR" ]; then \
+        sed -i "s|deb.debian.org|$APT_MIRROR|g" /etc/apt/sources.list.d/debian.sources 2>/dev/null; \
+        sed -i "s|deb.debian.org|$APT_MIRROR|g" /etc/apt/sources.list 2>/dev/null; \
+    fi; \
+    apt-get update \
+    && apt-get install -y --no-install-recommends poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 RUN PIP_FLAGS=""; [ -n "$PIP_INDEX_URL" ] && PIP_FLAGS="-i $PIP_INDEX_URL"; \
     pip install --no-cache-dir $PIP_FLAGS \
         . psycopg2-binary pyyaml cryptography minio playwright xlrd \
