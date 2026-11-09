@@ -582,7 +582,7 @@ class DatacenterSpider(Spider):
     
     def _save_json(self, item):
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        path = os.path.join(OUTPUT_DIR, f"{name}_items.jsonl")
+        path = os.path.join(OUTPUT_DIR, f"{NAME}_items.jsonl")
         with open(path, "a", encoding="utf-8") as f:
             f.write(json.dumps(item, ensure_ascii=False) + "\n")
     
@@ -613,7 +613,7 @@ class DatacenterSpider(Spider):
         rows = cursor.fetchall()
         conn.close()
         
-        out_path = os.path.join(OUTPUT_DIR, f"{name}_complete.json")
+        out_path = os.path.join(OUTPUT_DIR, f"{NAME}_complete.json")
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump([dict(r) for r in rows], f, indent=2, ensure_ascii=False)
         
