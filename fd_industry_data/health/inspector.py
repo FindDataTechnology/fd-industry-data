@@ -20,6 +20,7 @@ import yaml
 
 from . import ticket as ticket_mod
 from . import triage
+from . import freshness
 from . import identity
 from .config import (
     VALID_DATA_PERIODS,
@@ -516,6 +517,91 @@ def nonterminal_sources(outdir: Path, within_days: int = 7) -> set[str]:
     return found
 
 
+def nonterminal_ticket_paths(outdir: Path, within_days: int = 7) -> list[tuple[Path, dict]]:
+    """(path, doc) for every open ticket — needed by the recovery pass, which
+    has to rewrite the file in place."""
+    found: list[tuple[Path, dict]] = []
+    if not outdir.is_dir():
+        return found
+    cutoff = datetime.now(timezone.utc) - timedelta(days=within_days)
+    for p in outdir.glob("*.yaml"):
+        try:
+            day = datetime.strptime(p.name[:8], "%Y%m%d").replace(tzinfo=timezone.utc)
+            doc = ticket_mod.load_ticket(p)
+        except (ValueError, Exception):
+            continue
+        if day < cutoff:
+            continue
+        if doc.get("terminal") in (None, "queued"):
+            found.append((p, doc))
+    return found
+
+
+def _latest_good_run(runs):
+    """最近一次「跑到了」的运行（ok/ok_empty，含旧的 partial/success）。"""
+    for run in reversed(list(runs or [])):
+        outcome = getattr(run, "outcome", None)
+        status = getattr(run, "status", None)
+        if outcome in ("ok", "ok_empty") or (outcome is None and status in ("success", "partial")):
+            return run
+    return None
+
+
+def reconcile_recovered(runs_by_source: dict, repo: Path, outdir: Path, now: datetime,
+                        config: "HealthConfig | None" = None,
+                        within_days: int = 14) -> list[dict]:
+    """Close the loop on tickets whose source recovered on its own (2.9).
+
+    Without this, an open ticket has no exit unless a human merges something —
+    11-09 实测 17 张未终态里，有的是源自己恢复了但单子还挂着。The bar is N
+    consecutive good runs *after the ticket was opened* (recovery.RECOVER_AFTER_RUNS);
+    the decision and the evidence both go into the ticket's lifecycle.
+    """
+    from . import recovery
+
+    results: list[dict] = []
+    for path, doc in nonterminal_ticket_paths(outdir, within_days=within_days):
+        source = str(doc.get("source") or "")
+        runs = runs_by_source.get(source) or []
+        # 新鲜度前置：按该源自身周期给「最近一次成功」一个容忍窗（至少 48h）。
+        # irregular 源的周期解析为 inf，会把窗放大成无限——再用 cron 周期判据兜底
+        # （拖欠 ≥2 个周期即不算恢复）。
+        period = expected_period_hours(repo, source, config) if config else None
+        max_age = (max(2.0 * period, 48.0)
+                   if period and period != float("inf") else 72.0)
+        stale_cycles = None
+        meta = scheduled_sources(repo).get(source)
+        if not (meta and meta.get("schedule")):
+            # 无排期的源谈不上「恢复」：它没有周期，跑那几次是人工/例外触发。
+            # 判 recovered 会把「只是没在调度」写成「已经好了」（同日 preflight 实测
+            # sec-edgar-facts / hkex-disclosure 即此形状）。
+            continue
+        if meta and meta.get("schedule"):
+            try:
+                data = yaml.safe_load(
+                    (repo / "spiders" / source / "manifest.yaml").read_text()) or {}
+            except (yaml.YAMLError, OSError):
+                data = {}
+            good = _latest_good_run(runs)
+            stale_cycles = freshness.cycles_since_last_good(
+                schedule=meta["schedule"], tz=data.get("schedule_tz"),
+                last_good_at=_parse_iso(good.started_at) if good else None,
+                created_at=None, now=now,
+            ).cycles
+        decided, evidence = recovery.should_recover(
+            doc, runs, now=now, max_age_hours=max_age, stale_cycles=stale_cycles)
+        if not decided:
+            continue
+        ticket_mod.set_terminal(
+            doc, "recovered",
+            note=(f"连续 {evidence['consecutive_good']} 次成功"
+                  f"（阈值 {evidence['threshold']}，自 {evidence['since']} 起算）"),
+        )
+        path.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
+        results.append({"ticket": path.name, **evidence})
+    return results
+
+
 def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: datetime) -> dict:
     """落单：去重（非终态存量）+ 日限额。返回统计。"""
     outdir.mkdir(parents=True, exist_ok=True)
@@ -858,7 +944,9 @@ def sync_status(outdir: Path, url: str, key: str, fetcher=None,
         ticket_mod.append_event(doc, "status", http_status=status, state=parsed["state"],
                                 note=parsed["note"], pr_url=parsed["pr_url"])
         if parsed["state"] in TERMINAL_MAP:
-            ticket_mod.set_terminal(doc, TERMINAL_MAP[parsed["state"]], note=parsed["note"])
+            # STATUS 回读的 "merged" 对应人工合并，故走人工路径（closed 是人工门）。
+            ticket_mod.set_terminal(doc, TERMINAL_MAP[parsed["state"]], note=parsed["note"],
+                                    human=(parsed["state"] == "merged"))
         p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
         results.append({"ticket": p.name, "http_status": status, **parsed})
     return results

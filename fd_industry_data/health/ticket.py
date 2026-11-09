@@ -57,8 +57,26 @@ TERMINALS = (
     "sample-update-pending-human",
     "manual",
     "retire-suggested",
+    # 源自愈（未实施修复而恢复）：由巡检尾巴在连续 N 次成功后自动置入。
+    # 补上这一格，是为了让「它自己好了」有一个合法落点——在此之前开口单只能
+    # 永远悬着，11-09 实测有 17 张因此没有终态（harden-crawl-delivery 2.9）。
+    "recovered",
+    # 被同身份单取代（归并）：同一源同类别同签名只保留一张，其余标记为此态并
+    # 指向保留单的 ticket_id。不是「修好了」，也不是「转人工」。
+    "superseded",
     # 已关闭（闭环结束）：仅由人工路径（合并/裁决）置入；自动路径不得自行置入
     "closed",
+)
+
+# 自动路径**允许**置入的终态。`closed` 不在其中，它是人工门。
+AUTO_TERMINALS = (
+    "queued",
+    "fixed-pending-human",
+    "sample-update-pending-human",
+    "manual",
+    "retire-suggested",
+    "recovered",
+    "superseded",
 )
 
 _REQUIRED = ("ticket_id", "source", "unit", "created_at", "evidence", "verify", "lifecycle")
@@ -273,11 +291,19 @@ def append_event(doc: dict, event: str, **fields) -> None:
     events.append(payload)
 
 
-def set_terminal(doc: dict, terminal: str, note: str = "") -> None:
-    """设置工单终态并追加生命周期事件；terminal 必须在 TERMINALS 内。"""
+def set_terminal(doc: dict, terminal: str, note: str = "", *, human: bool = False) -> None:
+    """设置工单终态并追加生命周期事件；terminal 必须在 TERMINALS 内。
+
+    ``human=True`` 仅用于人工路径（STATUS 回读「已合并」）。``closed`` 是人工门：
+    自动判定（含「看起来恢复了」）不得冒充验收，必须显式声明来源。
+    """
     if terminal not in TERMINALS:
         raise ValueError(
             f"terminal 非法: {terminal!r}，必须是 {TERMINALS} 之一"
+        )
+    if terminal == "closed" and not human:
+        raise ValueError(
+            "closed 只能由人工路径置入；自动路径请用 recovered / *_pending-human"
         )
     previous = doc.get("terminal")
     doc["terminal"] = terminal

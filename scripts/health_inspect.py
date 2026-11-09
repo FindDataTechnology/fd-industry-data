@@ -97,6 +97,9 @@ def main() -> int:
     plan = inspector.plan_tickets(runs_by_source, repo, config, now)
     if do_emit:
         stats = inspector.write_plan(plan, repo, outdir, config, now)
+        # 自愈收口（harden-crawl-delivery 2.9）：源在开单之后连续 N 次成功即置
+        # recovered。只改工单终态，不产生新单，也不触碰 closed（人工门）。
+        stats["recovered"] = inspector.reconcile_recovered(runs_by_source, repo, outdir, now, config)
     else:
         # 投递段不落单：统计沿用空账，避免同轮二次出单
         stats = {"written": [], "deferred": plan.deferred,
@@ -123,6 +126,8 @@ def main() -> int:
         # （add-flower-vertical 6.1）。现在逐条带原因落进 summary：
         # period-longer-than-window（窗内本就不该跑）/ no-run-in-window（调度面故障）。
         "absent_sources": getattr(plan, "absent", []),
+        # 自愈收口的工单（2.9）：连续 N 次成功后自动 recovered，可复盘。
+        "recovered": stats.get("recovered") or [],
         "master_switch": config.master_switch,
     }
 
