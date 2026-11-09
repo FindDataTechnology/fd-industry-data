@@ -14,7 +14,15 @@ so both empty and that sentinel must mean "off".
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: fd-industry-{{ .Values.source }}
+  {{- /*
+  `metadata.name` 必须是 RFC 1123 子域名：只允许小写字母/数字/`-`/`.`。
+  而 `source` 是 spiders 目录名，其中 9 个带下划线（education_openalex 等）——
+  直接拼进 name 会被 apiserver 拒绝（`Invalid value: "fd-industry-education_openalex"`），
+  于是那 5 个 education 应用长期卡在 `Missing`，从未真正部署过。
+  只在这里做替换：下面的 label 与 args 仍用原始 `source`（label 值允许下划线，
+  且 dispatcher 按 `fd-industry/source` 标签选 pod，改它会打断调度）。
+  */}}
+  name: fd-industry-{{ .Values.source | replace "_" "-" }}
   namespace: {{ .Values.namespace }}
   labels:
     app.kubernetes.io/managed-by: fd-industry-appset
