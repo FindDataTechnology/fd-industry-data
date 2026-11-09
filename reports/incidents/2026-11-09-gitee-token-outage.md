@@ -25,11 +25,19 @@ exit code 全部为 **128**（git 认证），无 OOM(137) 或脚本错误(1) �
 
 ## 影响
 
-- **行业线全线停止取数**：所有到点的 CronJob 在 init 阶段即失败，runner 从未启动
-- **dispatcher 同时失效**（同批失败 6 个）：例外触发、回填、Console trigger-now 全部不可用
+- **tencent 集群的 k8s 执行通道停摆**：所有到点的 CronJob 在 init 阶段即失败，runner 从未启动。
+  这是主力通道 —— `crawl_sources` 里 120 条有排期的源几乎全在 tencent
+- **tencent 的 dispatcher 同时失效**（同批失败 6 个）：该站点的例外触发、回填、
+  Console trigger-now 不可用
 - **`crawl_runs` 里没有任何记录** —— 这是本类故障最难发现之处：报到契约在 runner 内，
   而 runner 根本没起来
 - 191 个 `Completed` pod 全部早于 15:30Z，不构成「仍在正常运行」的证据
+- **docker 站点未受影响**（2026-11-09T18:40Z 核查）：`xinru-server1` 心跳 3 分钟前、
+  `sync_sources` 18:40:04 成功（241 条源清单完好，128 条有排期），说明它自己的
+  checkout 正常。另外两个 docker 站点（`xinru-server2`、`zihan`）心跳停在 15:30Z，
+  与 tencent 同一时刻，但它们的源只有 2-2 个，不足以补位
+  → **准确说法：停的是 tencent 的 k8s 执行通道，不是「全线」**。docker 站点合计仅
+  8 个有排期的源，主力 120 源全在 tencent
 
 受影响源（每次观测略有增加）：`eia-v2`、`dispatcher`、`nmc-weather`、`lhb-daily`、
 `dounan-flower-price`、`education-podcast`、`nifdc-batchcert`、`portwatch-imf`、`zgdypf-boxoffice`
