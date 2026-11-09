@@ -28,11 +28,19 @@
 - 评论端 ``success != 1`` 视为失败（实测正常恒为 1）。
 - 单 app 两请求（CCU+评论），app 间固定 0.2s 礼貌间隔；无重试、无频次放大。
 
+**2026-11-09 端点撤除（source-revision）**：``store.steampowered.com/appreviews/<id>
+?json=1`` 对匿名客户端一律 **302 跳回商店首页**（实测带 cookie / Referer /
+``cursor=*`` / 各种参数组合均如此；而同一主机的 ``/api/appdetails`` 与 CCU 端点
+仍 200 返 JSON，故不是网络也不是反爬）。评论聚合因此**不可得**：本单元降级为
+CCU-only，评论列置 null，并以 ``reviews_available=false`` 显式标出——不拿空值
+冒充正常，也不因评论缺失丢掉整行真数据。评论面若恢复，该字段自动回到 true。
+
 无工单：机器重启恢复直建（批次二 Wave C），入口函数与行数在 PR body 手工留证。
 """
 from __future__ import annotations
 
 import json
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -144,15 +152,24 @@ def run_steam_ccu(limit: int = 100) -> list[dict]:
     now = datetime.now(timezone.utc).isoformat()
     rows: list[dict] = []
     errors: list[str] = []
+    reviews_errors: list[str] = []
     for i, (appid, name) in enumerate(SEEDS):
         if i:
             time.sleep(INTER_REQUEST_SLEEP)
         try:
             ccu = _fetch_ccu(appid)
-            summary = _fetch_reviews(appid)
-        except Exception as exc:  # noqa: BLE001 - 单 app 失败只跳过并留痕
+        except Exception as exc:  # noqa: BLE001 - CCU 是主体，失败即跳过该 app
             errors.append(f"{appid}: {type(exc).__name__}: {exc}")
             continue
+        # 评论面自 2026-11-09 起对匿名客户端 302 回首页：缺失降级为 null 并显式标记，
+        # 不丢整行（「未知不是空」）。
+        reviews_available = True
+        try:
+            summary = _fetch_reviews(appid)
+        except Exception as exc:  # noqa: BLE001
+            reviews_errors.append(f"{appid}: {type(exc).__name__}: {exc}")
+            summary = {}
+            reviews_available = False
         total_positive = _num(summary, "total_positive")
         total_negative = _num(summary, "total_negative")
         total_reviews = _num(summary, "total_reviews")
@@ -173,12 +190,19 @@ def run_steam_ccu(limit: int = 100) -> list[dict]:
             "total_negative": total_negative,
             "total_reviews": total_reviews,
             "positive_ratio": positive_ratio,
+            "reviews_available": reviews_available,
             "url": f"{REVIEWS_URL.format(appid=appid)}",
             "source": SOURCE,
             "scraped_at": now,
         })
+    if reviews_errors:
+        print(
+            f"steam-ccu: 评论端点不可用（{len(reviews_errors)}/{len(SEEDS)} 个 app），"
+            f"本轮仅 CCU；首个错误: {reviews_errors[0]}",
+            file=sys.stderr,
+        )
     if not rows:
-        raise RuntimeError("steam-ccu: 全部种子 app 取数失败 — " + "; ".join(errors)[:300])
+        raise RuntimeError("steam-ccu: 全部种子 app CCU 取数失败 — " + "; ".join(errors)[:300])
     return rows[-limit:]
 
 

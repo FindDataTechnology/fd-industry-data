@@ -12,7 +12,7 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
   - command: run_steam_ccu
-    description: Fetch Steam concurrent player counts (CCU) plus review aggregates (score, positive/negative/review totals, positive ratio) for a fixed list of 12 seed titles via the keyless Steam Web API / store appreviews endpoints; CCU is a real-time number (never anchored)
+    description: Fetch Steam concurrent player counts (CCU) for a fixed list of 12 seed titles via the keyless Steam Web API; review aggregates were also fetched until 2026-11-09, when Steam started 302-ing the anonymous appreviews surface to the store homepage (columns stay, values go null, reviews_available reports it). CCU is a real-time number (never anchored)
     frequency: daily
     parameters:
       - name: limit
@@ -47,6 +47,9 @@ functions:
       - name: positive_ratio
         type: float
         description: total_positive / total_reviews * 100, rounded to 4 decimals (null when no reviews)
+      - name: reviews_available
+        type: boolean
+        description: Whether the review surface answered for this row. Since 2026-11-09 anonymous appreviews requests 302 to the store homepage, so this is false and every review_* column is null — the null means "not obtainable", not "no reviews"
       - name: url
         type: string
         description: Source request URL for the row (appreviews endpoint)

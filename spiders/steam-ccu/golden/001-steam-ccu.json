@@ -30,6 +30,7 @@
     "total_positive",
     "total_negative",
     "total_reviews",
-    "positive_ratio"
+    "positive_ratio",
+    "reviews_available"
   ]
 }
