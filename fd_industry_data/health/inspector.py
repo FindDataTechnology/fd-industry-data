@@ -424,11 +424,18 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
     existing = nonterminal_sources(outdir)
     written: list[str] = []
     for item in plan.emit:
+        # 顺延条目带上判词类别与规则名：只记 {source, reason} 时，"顺延 7 个"看不出
+        # 严重程度——这 7 个里可能有反爬或结构异常，也可能只是需要人工看一眼。
+        # 实测（2026-11-09 预演）：12 个发现里 5 个出单、7 个顺延，而顺延的类别
+        # 全是既有规则（rule2/3/6a），没有一个是新引入的下限误报——这类信息不该丢。
+        detail = {"source": item.source, "category": item.verdict.category,
+                  "rule": (item.verdict.rule_trace.split(":")[0]
+                           if item.verdict.rule_trace else None)}
         if item.source in existing:
-            plan.deferred.append({"source": item.source, "reason": "nonterminal ticket exists"})
+            plan.deferred.append({**detail, "reason": "nonterminal ticket exists"})
             continue
         if remaining <= 0:
-            plan.deferred.append({"source": item.source, "reason": "daily cap reached"})
+            plan.deferred.append({**detail, "reason": "daily cap reached"})
             continue
         doc = ticket_mod.new_ticket(
             source=item.source,

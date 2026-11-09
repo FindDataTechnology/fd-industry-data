@@ -812,3 +812,40 @@ class TestTelemetryLineValidation:
             monkeypatch,
             "bls\tsuccess\t2026-11-08T00:00:00+00:00\t12\t\n")   # 5 列 = 无 http_status
         assert len(records) == 1 and records[0]["source"] == "bls"
+
+
+class TestDeferredCarriesVerdict:
+    """顺延条目必须带判词类别：只记 {source, reason} 时看不出严重程度。
+
+    实测（2026-11-09 预演）：12 个发现里 5 个出单、7 个被每日 5 单上限顺延，
+    而顺延的 7 个类别全是既有规则——这恰恰是"上限有没有藏住新问题"的判据，
+    丢掉类别就只能看到"顺延 7 个"这一句。
+    """
+
+    def test_daily_cap_deferral_names_the_category_and_rule(self, tmp_path):
+        from fd_industry_data.health import inspector, triage
+        from fd_industry_data.health.config import HealthConfig
+
+        repo = tmp_path
+        (repo / "spiders").mkdir()
+        now = NOW
+        runs = {}
+        for name in ("aaa", "bbb"):
+            unit = repo / "spiders" / name
+            unit.mkdir()
+            (unit / "manifest.yaml").write_text(f"name: {name}\ndata_period: day\n",
+                                                encoding="utf-8")
+            runs[name] = [triage.Run(started_at=(now - timedelta(hours=2)).isoformat(),
+                                     status="success", rows=0)]
+            # 声明下限，让 rule1c 必然出单
+            (unit / "manifest.yaml").write_text(
+                f"name: {name}\ndata_period: day\nmin_rows_per_run: 5\n", encoding="utf-8")
+
+        cfg = HealthConfig(max_daily_tickets=1)
+        plan = inspector.plan_tickets(runs, repo, cfg, now)
+        stats = inspector.write_plan(plan, repo, tmp_path / "tickets", cfg, now)
+        deferred = stats["deferred"]
+        assert len(deferred) == 1, deferred
+        assert deferred[0]["reason"] == "daily cap reached"
+        assert deferred[0]["category"] == "structure"
+        assert deferred[0]["rule"] == "rule1c"
