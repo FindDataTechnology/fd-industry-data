@@ -76,6 +76,15 @@ spec:
                 - -c
                 - |
                   set -e
+                  # 成本埋点（harden-crawl-delivery 5.1）：clone 与 pod 启动的耗时
+                  # 只有这里看得见 —— runner 起来时 clone 已经结束。写进 /content/.timings，
+                  # runner 读到就并入 crawl_runs.metrics，读不到就不写该键（不填 0）。
+                  #
+                  # 必须用 POSIX 的 date +%s，不能用 bash 的 $SECONDS：init 容器跑的是
+                  # `sh -c`（dash），$SECONDS 在 dash 里为空，写出来是 `clone_seconds=`，
+                  # runner 端 float("") 抛错后静默跳过 —— 实测 2026-11-09 首版就是这样
+                  # 一条都没有落库。
+                  _T0=$(date +%s)
                   git clone --depth 1 --filter=blob:none --sparse \
                     "https://FindDataTechnology:${GITEE_TOKEN}@gitee.com/FindDataTechnology/fd-industry-data.git" /content
                   cd /content
@@ -86,13 +95,9 @@ spec:
                   # fd-industry-eastmoney-disclosure-plan 连续两次失败。
                   git sparse-checkout set spiders/ fd_industry_data/ universes/
                   git rev-parse HEAD > /content/.commit
-                  # 成本埋点（harden-crawl-delivery 5.1）：pod 启动与 clone 的耗时
-                  # 只有这里看得见 —— runner 起来时 clone 已经结束。写进 /content/.timings，
-                  # runner 读到就并入 crawl_runs.metrics，读不到就不写该键（不填 0）。
-                  {
-                    echo "pod_start_to_first_row_seconds=$SECONDS"
-                    echo "clone_seconds=$SECONDS"
-                  } > /content/.timings
+                  _T1=$(date +%s)
+                  printf 'clone_seconds=%s\npod_start_to_first_row_seconds=%s\n' \
+                    "$((_T1 - _T0))" "$((_T1 - _T0))" > /content/.timings
               volumeMounts:
                 - name: content
                   mountPath: /content
