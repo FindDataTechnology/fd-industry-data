@@ -456,6 +456,31 @@ samr-food-inspection / sec-edgar-8k-operating / sec-edgar-facts / tpex-monthly-r
 3. 每次"我发现了 X"都要先问一句"有没有一个更普通的解释"，尤其是
    "配置里已经写好的东西"（`health-scope.json` 就差点被我当成缺口报上去）。
 
+## 收口（2026-11-09 20:0x）
+
+这条线到这里可以收了，事实如下（都是实测，不是推断）：
+
+| 项 | 状态 |
+|---|---|
+| 45 条声明 | 已落，`validate_manifests.py` 162 manifests / 0 violations |
+| 规则 1c | 改为只看最近一次成功；真实数据 42/45 无误报 |
+| `metrics.limit` | 记录侧已上线；判定侧（7.1b）等窗口内全带 limit |
+| `unregistered_sources` | 已上线，实测 `['example-stock','yfinance']` |
+| 遥测解析器 | 已修（状态列校验）；`skipped_unknown_period` 实测归零 |
+| 顺延判词 | 已带 `category`/`rule`（提交 `85e1e5c`，比两个远程领先 1） |
+| 两个远程 | `7bc8a32`，含 45 声明与规则修正；`85e1e5c` 尚未推 |
+| 合并 | 并发会话已做 `merge: sync github/main`，7.4 的生效阻塞解除 |
+
+**今晚巡检的预期产出**（当前 HEAD + 真实 30 天遥测预演）：出单 5 / 顺延 7，共 12 个发现；
+其中只有 3 个由本 change 引入（`boxofficemojo`/`cisa`/`gb-standards`，都是 2026-11-06
+批量小 limit 波次留下的 20 行低产），其余 9 个走既有规则（rule2/3/5/6a）。
+
+**没做也不该我做的一件事**：`max_daily_tickets` 仍是 5。每多放一单就多一次修复 agent 回合，
+这是花钱的决定。现在至少顺延单会写明判词，能看出上限是在限速还是在藏事。
+
+**剩下的都是等**：3.2（一周误报率，盯 `eastmoney-data` 2/2、`eastmoney-futures` 1/1、
+`fangchan-market` 79/79 三个贴边项）、2.3（真跑抽查，写生产库需放行）、7.1b、7.5（生成态不进 git）。
+
 ## 下一步
 
 ### 还差提交（需要人定一件事）
