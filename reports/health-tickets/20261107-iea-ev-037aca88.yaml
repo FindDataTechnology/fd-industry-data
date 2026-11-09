@@ -73,4 +73,31 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-11-09T01:04:11.930415+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  response: '**结论：已入队 → 本回合处理完 → 终态 manual（转人工），未开 PR。**
+
+
+    | 项 | 结果 |
+
+    |---|---|
+
+    | 分诊 | kind=repair；category=null → 兜底类（证据不足）+ 实测落入「源死亡」 |
+
+    | 代码修复 | **无对象可修**：`api.iea.org` 整站 404（`/evs`、`/evs` 带参、`/evs/` 以及 spider docstring
+    里 2026-10-06 实测可用的 `/evs/list/region`、`/evs/list/mode` 全 404；`http→https` 301
+    说明主机活着但路径已撤） '
+- at: '2026-11-09T01:21:26.684006+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-11-09T01:21:26.684088+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual
