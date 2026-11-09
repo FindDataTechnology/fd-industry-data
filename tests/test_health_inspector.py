@@ -947,3 +947,55 @@ class TestErrorHeadMustBeOneLine:
         from fd_industry_data.writer import sanitize_error_head
         assert sanitize_error_head(None) is None
         assert sanitize_error_head("   \n\t ") is None
+
+
+class TestBlockedConfigSources:
+    """缺必需环境变量（runner 写 status=blocked-config）的源要单列。
+
+    不能落进 rule2「证据不足 / 需人工」——缺配置不是代码问题，runner 侧
+    （`requires_env` 预检，2026-11-10）的设计明写着「不催修复工单」；
+    也不能算健康——它确实没产出。所以单列：可见、不判定。
+    """
+
+    def _repo_with(self, tmp_path, name, body="data_period: day\n"):
+        unit = tmp_path / "spiders" / name
+        unit.mkdir(parents=True)
+        (unit / "manifest.yaml").write_text(f"name: {name}\n{body}", encoding="utf-8")
+        return tmp_path
+
+    def test_latest_blocked_config_is_listed_not_ticketed(self, tmp_path):
+        from fd_industry_data.health import inspector, triage
+        from fd_industry_data.health.config import HealthConfig
+        repo = self._repo_with(tmp_path, "needs-env")
+        runs = {"needs-env": [triage.Run(
+            started_at="2026-11-10T00:00:00+00:00", status="blocked-config", rows=0)]}
+        plan = inspector.plan_tickets(runs, repo, HealthConfig(), NOW)
+        assert plan.blocked_config == ["needs-env"]
+        assert plan.emit == [], "缺配置不该出单（那是修复 agent 会被误导的归因）"
+        assert plan.healthy == 0, "也不该计健康——确实没产出"
+
+    def test_earlier_success_then_blocked_config_still_listed(self, tmp_path):
+        """blocked-config 是最近一次 → 单列；不按"上次成功有点旧"去判静默。"""
+        from fd_industry_data.health import inspector, triage
+        from fd_industry_data.health.config import HealthConfig
+        repo = self._repo_with(tmp_path, "needs-env")
+        runs = {"needs-env": [
+            triage.Run(started_at="2026-11-08T00:00:00+00:00", status="success", rows=100),
+            triage.Run(started_at="2026-11-10T00:00:00+00:00", status="blocked-config", rows=0),
+        ]}
+        plan = inspector.plan_tickets(runs, repo, HealthConfig(), NOW)
+        assert plan.blocked_config == ["needs-env"]
+        assert plan.emit == []
+
+    def test_recovery_clears_the_listing(self, tmp_path):
+        """配好环境变量、恢复正常运行后，就不再单列。"""
+        from fd_industry_data.health import inspector, triage
+        from fd_industry_data.health.config import HealthConfig
+        repo = self._repo_with(tmp_path, "needs-env")
+        runs = {"needs-env": [
+            triage.Run(started_at="2026-11-10T00:00:00+00:00", status="blocked-config", rows=0),
+            triage.Run(started_at="2026-11-10T02:00:00+00:00", status="success", rows=100),
+        ]}
+        plan = inspector.plan_tickets(runs, repo, HealthConfig(), NOW)
+        assert plan.blocked_config == []
+        assert plan.healthy == 1

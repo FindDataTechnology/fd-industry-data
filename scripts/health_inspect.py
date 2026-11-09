@@ -107,7 +107,8 @@ def main() -> int:
         stats = {"written": [], "deferred": plan.deferred,
                  "healthy": plan.healthy,
                  "skipped_unknown_period": plan.skipped_unknown_period,
-                 "unregistered_sources": plan.unregistered}
+                 "unregistered_sources": plan.unregistered,
+                 "blocked_config_sources": plan.blocked_config}
 
     summary: dict = {
         "at": now.isoformat(),
@@ -123,6 +124,8 @@ def main() -> int:
         # （90 天口径 flk-law-backfill/polygon，30 天口径 example-stock/yfinance），
         # 说明"静默"不是稳定状态。单列出来，让新面孔在摘要里可见。
         "unregistered_sources": stats.get("unregistered_sources") or [],
+        # 缺必需环境变量、runner 不取数的源：可见但不判定（不是代码问题，不催修）
+        "blocked_config_sources": stats.get("blocked_config_sources") or [],
         # 在册（manifest 有 schedule、未 parked）但遥测窗内零运行的源。
         # 以前这些源在巡检面上**完全不可见**——年频源一过回看窗就静默消失
         # （add-flower-vertical 6.1）。现在逐条带原因落进 summary：

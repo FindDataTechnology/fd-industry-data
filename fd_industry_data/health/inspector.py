@@ -261,6 +261,12 @@ class Plan:
     # flk-law-backfill/polygon，30 天口径变成 example-stock/yfinance —— 名单会漂，
     # 说明"静默跳过"不是稳定状态。这里把它变成可见的一行字。
     unregistered: list[str] = field(default_factory=list)
+    # 最近一次运行是 `blocked-config` 的源（缺必需环境变量，runner 不取数）。
+    # 与 `unregistered` 的区别：这些是本仓在册的源，只是缺配置。
+    # 必须单列而不能落进 rule2「证据不足 / 需人工」——缺配置不是代码问题，
+    # runner 侧（`requires_env` 预检）的设计是「不催修复工单」；
+    # 但也不能算健康（没产出）。所以：可见、不判定。
+    blocked_config: list[str] = field(default_factory=list)
     # 遥测解析异常（harden-crawl-delivery 2.10）：非遥测行/非 slug 源名不再混进
     # skipped_unknown_period，单独成列。空列表 = 本轮输入干净。
     parse_errors: list[str] = field(default_factory=list)
@@ -400,6 +406,7 @@ def reconcile_absent(runs_by_source: dict, repo: Path, config: HealthConfig) -> 
 def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config: HealthConfig,
                  now: datetime) -> Plan:
     emit, deferred, healthy, unknown, unregistered = [], [], 0, [], []
+    blocked_config: list[str] = []
     plan_parse_errors: list[str] = []
     absent = reconcile_absent(runs_by_source, repo, config)
     # 遥测里没有的源补成空列表再走同一条分诊链，避免「巡检面 = 遥测里出现过的源」
@@ -431,6 +438,12 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
         if not (repo / "spiders" / source / "manifest.yaml").is_file():
             unregistered.append(source)
             continue
+        # 最近一次是 blocked-config ⇒ 缺环境变量、runner 根本没取数。
+        # 按「源静默」催修是错的归因（那会让修复 agent 去查代码），
+        # 但也不该计健康（确实没产出）。单列，可见但不判定。
+        if runs and runs[-1].status == "blocked-config":
+            blocked_config.append(source)
+            continue
         period = expected_period_hours(repo, source, config)
         if period is None:
             unknown.append(source)
@@ -444,6 +457,7 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
         emit.append(Emit(source=source, unit=f"spiders/{source}/", verdict=verdict, runs=runs))
     return Plan(emit=emit, deferred=deferred, healthy=healthy,
                 skipped_unknown_period=unknown, absent=absent, unregistered=unregistered,
+                blocked_config=blocked_config,
                 freshness_shadow=shadow_freshness(runs_by_source, repo, now),
                 parse_errors=plan_parse_errors)
 
@@ -693,6 +707,7 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
     return {"written": written, "deferred": plan.deferred, "healthy": plan.healthy,
             "skipped_unknown_period": plan.skipped_unknown_period,
             "unregistered_sources": plan.unregistered,
+            "blocked_config_sources": plan.blocked_config,
             "absent_sources": plan.absent,
             # 影子模式（1.8）：新判据的逐源结果只落在这里，不进工单队列。
             "parse_errors": plan.parse_errors,
