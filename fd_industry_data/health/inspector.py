@@ -35,6 +35,9 @@ STATE_WORDS = ("queued", "working", "pr-open", "done", "manual")
 # 去重回执 = 投递成功（agent 已受理，不重试）；拒收回执 = 投递失败（须重试）。
 # 判定按「结论首段」而非全文——回执正文常引述历史错误，全文匹配会误判。
 DEDUP_WORDS = ("已见过", "已入队", "重复提交", "已处理")
+#: 读不懂的回执允许重投几次。agent 侧按工单路径去重，重投安全；但无限重投会每轮
+#: 都打一次门面，所以要有个上限。
+_SUBMIT_UNKNOWN_MAX = 3
 REFUSAL_WORDS = (
     "拒绝入队", "未入队", "不可读", "不认领", "拒绝并转人工",
     "拒绝", "未通过", "无法读取", "不存在",
@@ -796,45 +799,98 @@ def _conclusion_segment(message: str) -> str:
     return seg.lower().strip()
 
 
-def _looks_failed(status: int, raw_text: str, message: str) -> bool:
-    """判定 SUBMIT 回执是否失败：HTTP 非 2xx / JSON-RPC error 信封 / 结论首段的拒收语义。
+def parse_submit_verdict(status: int, raw_text: str, message: str) -> dict:
+    """把 SUBMIT 回执解析成**结构化裁决**（harden-crawl-delivery 2.11）。
 
-    拒收语义（2026-10-11 实测烧单后补）：agent 读不到工单时回复「拒绝入队」
-    「未入队」「不认领」等——**这类回执必须判失败**才会在下一轮重试。此前它们
-    被判成功并记 `ok: true`，工单被永久跳过（inmetals/metal-com/flower-auction
-    各有实例）。去重回执（已见过/已入队）仍判成功，不误伤既有幂等语义。
+    此前只判「是不是失败」并把回执全文当结论存下来。2026-11-09 实测
+    `last-run.json` 里就有这样一条：response 是 agent 的思维过程——
+
+        "The quoting broke. Let me write the python to a file in /tmp ..."
+
+    ——它既不是「已受理」也不是「拒收」，却被记为成功，工单从此不再重投。
+    这里把回执分成五类，自由文本只作为原文留档，不充当结论：
+
+    - ``accepted``：明确受理（含状态词 queued/working/pr-open）
+    - ``duplicate``：去重回执（已见过/已入队/已处理）——视为已受理
+    - ``refused``：明确拒收（拒绝入队/不认领/未通过 …）
+    - ``error``：HTTP 非 2xx 或 JSON-RPC error 信封
+    - ``unknown``：读不懂。**不算受理**，有限次重试后停手（agent 侧按路径去重，
+      重投安全；但无限重投会每轮打一次门面）。
     """
-    if status >= 400:
-        return True
-    try:
-        doc = json.loads(raw_text)
-        if isinstance(doc, dict) and doc.get("error"):
-            return True
-    except (json.JSONDecodeError, TypeError):
-        pass
     head = _conclusion_segment(message)
-    if any(k in head for k in DEDUP_WORDS):
-        return False                      # 去重回执 = 已受理，非失败
-    if any(k in head for k in REFUSAL_WORDS):
-        return True
-    return head.startswith(("invalid request", "unauthorized", "not allowed", "未通过"))
+    verdict = "unknown"
+    reason = ""
+    state = None
+    if status >= 400:
+        verdict, reason = "error", f"HTTP {status}"
+    else:
+        try:
+            doc = json.loads(raw_text)
+            if isinstance(doc, dict):
+                if doc.get("error"):
+                    verdict, reason = "error", "JSON-RPC error envelope"
+                else:
+                    # 裸的 JSON-RPC 错误对象：`{"code": -32003, "message": "..."}` ——
+                    # 没有 error 外层键。2026-11-09 回放 7 条历史回执里，有 2 条是
+                    # 这个形状，此前都被当成「受理成功」，工单从此不再重投。
+                    code = doc.get("code")
+                    if isinstance(code, int) and code < 0:
+                        verdict, reason = "error", f"JSON-RPC code {code}"
+                    elif doc.get("result") is not None:
+                        verdict, reason = "accepted", "JSON-RPC result envelope"
+        except (json.JSONDecodeError, TypeError):
+            pass
+        if verdict != "error":
+            if any(k in head for k in DEDUP_WORDS):
+                verdict, reason = "duplicate", "dedup receipt"
+            elif any(k in head for k in REFUSAL_WORDS):
+                verdict, reason = "refused", "refusal receipt"
+            elif head.startswith(("invalid request", "unauthorized", "not allowed", "未通过")):
+                verdict, reason = "refused", "gate rejection"
+            else:
+                for word in STATE_WORDS:
+                    if word in head:
+                        verdict, reason, state = "accepted", f"state {word}", word
+                        break
+    return {
+        "verdict": verdict,
+        "reason": reason,
+        "state": state,
+        "http_status": status,
+        # 原文留档：看不懂的回执也要能复盘，但它是证据、不是结论。
+        "response_excerpt": (message or "").strip()[:300],
+    }
+
+
+def _looks_failed(status: int, raw_text: str, message: str) -> bool:
+    """兼容旧调用点：failed 等价于 verdict ∈ {refused, error}。
+
+    ``unknown`` 不再算成功（那正是本 change 修的缺陷），由调用点按次数上限处理。
+    """
+    return parse_submit_verdict(status, raw_text, message)["verdict"] in ("refused", "error")
 
 
 def _submit_recorded(doc: dict) -> bool:
     """是否已有成功的 SUBMIT 记录（失败回执允许重试）。
 
-    存量的 `ok: true` 记录也会按现行拒收语义重判（fix-health-ticket-landing-race）：
+    存量的 `ok: true` 记录也会按现行语义重判（fix-health-ticket-landing-race）：
     历史上有拒收回执被误记为成功，若只信 `ok` 字段，这些单永远不会被重投。
+    ``unknown``（读不懂的回执）不算受理，但重试有上限——见 ``_SUBMIT_UNKNOWN_MAX``。
     """
+    attempts = 0
     for e in doc.get("lifecycle") or []:
-        if e.get("event") != "submitted":
+        if e.get("event") not in ("submitted", "submit-failed"):
+            continue
+        attempts += 1
+        if e.get("event") == "submit-failed" or e.get("ok") is False:
             continue
         resp = str(e.get("response", ""))
-        if e.get("ok") is False:
-            continue
-        if _looks_failed(200, resp, resp):
-            continue
-        return True
+        verdict = parse_submit_verdict(200, resp, resp)["verdict"]
+        if verdict in ("accepted", "duplicate"):
+            return True
+        # unknown：允许有限重试，超过上限就停手（别每轮都打门面）。
+        if attempts >= _SUBMIT_UNKNOWN_MAX:
+            return True
     return False
 
 
@@ -871,10 +927,20 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
             try:
                 status, text = poster(url, key, idem, f"SUBMIT {repo_slug} {rel}")
                 message = extract_message_text(text)
-                failed = _looks_failed(status, text, message)
-                entry.update({"submitted": not failed, "http_status": status, "response": message[:500]})
-                ticket_mod.append_event(doc, "submitted", http_status=status, ok=not failed,
-                                        response=message[:300])
+                verdict = parse_submit_verdict(status, text, message)
+                ok = verdict["verdict"] in ("accepted", "duplicate")
+                entry.update({
+                    "submitted": ok,
+                    "http_status": status,
+                    "verdict": verdict["verdict"],
+                    "verdict_reason": verdict["reason"],
+                    "state": verdict["state"],
+                    # 原文只作留档：看不懂的回执不再冒充结论。
+                    "response": verdict["response_excerpt"],
+                })
+                ticket_mod.append_event(doc, "submitted", http_status=status, ok=ok,
+                                        verdict=verdict["verdict"],
+                                        response=verdict["response_excerpt"])
             except Exception as e:  # noqa: BLE001 — 网络失败留痕不炸
                 entry.update({"reason": f"submit failed: {type(e).__name__}: {e}"[:300]})
                 ticket_mod.append_event(doc, "submit-failed", error=str(e)[:300])
