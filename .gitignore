@@ -35,6 +35,14 @@ reports/flower-alerts/publication-*.json
 reports/flower-alerts/rules-*.json
 reports/flower-alerts/events-*.json
 
+# 巡检摘要（每次运行覆写）：纯生成态，**已无读者**——alert_selfcheck 自 2026-11-10 起
+# 改从工单 lifecycle 的 submitted/submit-failed 事件取 http_status（工单仍在 git 里）。
+# 进 git 只会和巡检机器人自己的提交反复冲突——2026-11-10 实测分叉：
+# bot 在 10:48 提交工单，本地/gitee 是另一条线，两边各 rebase 一次后 sha 全不同。
+# **工单 YAML 仍留在 git**：`_submit_body` 的 `SUBMIT <repo> <path>` 协议原形要用它，
+# 且还有部署按路径读；只有确认所有消费方都改用 SUBMIT-INLINE 才可移出（见 runbook）。
+reports/health-tickets/last-run.json
+
 # 知识图谱缓存（graphify 产物，37M，可再生）
 graphify-out/
 
