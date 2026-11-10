@@ -57,5 +57,18 @@ golden:
 lifecycle:
 - at: '2026-11-10T03:45:12.803618+00:00'
   event: created
+- at: '2026-11-10T03:52:41.195620+00:00'
+  event: submitted
+  http_status: 409
+  ok: false
+  verdict: error
+  response: '{"code": "TURN_IN_FLIGHT", "message": "a turn for this caller and agent
+    is already running; retry after the hint"}'
+- at: '2026-11-10T03:52:47.316211+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: a4aaaf3e3191

@@ -42,6 +42,13 @@ lifecycle:
   verdict: error
   response: '{"code": "TURN_IN_FLIGHT", "message": "a turn for this caller and agent
     is already running; retry after the hint"}'
+- at: '2026-11-10T03:52:12.491357+00:00'
+  event: submitted
+  http_status: 409
+  ok: false
+  verdict: error
+  response: '{"code": "TURN_IN_FLIGHT", "message": "a turn for this caller and agent
+    is already running; retry after the hint"}'
 terminal: null
 brief:
   source_urls:
