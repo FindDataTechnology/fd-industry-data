@@ -37,3 +37,6 @@
 {"kind": "firing", "rule_id": "bank-penalty-new", "key": "1228124", "at": "2026-11-08T13:06:14.099530+08:00", "value": null, "threshold": null, "detail": "新增事件"}
 {"kind": "firing", "rule_id": "bank-penalty-new", "key": "1276890", "at": "2026-11-08T13:06:14.099530+08:00", "value": null, "threshold": null, "detail": "新增事件"}
 {"kind": "firing", "rule_id": "bank-penalty-new", "key": "1277566", "at": "2026-11-08T13:06:14.099530+08:00", "value": null, "threshold": null, "detail": "新增事件"}
+{"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278495", "at": "2026-11-10T20:48:24.657301+00:00", "value": null, "threshold": null, "detail": "新增事件"}
+{"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278463", "at": "2026-11-10T20:48:24.657301+00:00", "value": null, "threshold": null, "detail": "新增事件"}
+{"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278511", "at": "2026-11-10T20:48:24.657301+00:00", "value": null, "threshold": null, "detail": "新增事件"}
