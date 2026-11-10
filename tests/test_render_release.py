@@ -23,22 +23,32 @@ _spec = importlib.util.spec_from_file_location("render_release", SCRIPT)
 rr = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(rr)
 
-# The migration invariant (task 2.1): the manifest's repo:tag values must stay
-# byte-identical to the tags that were live in the clusters when release.yaml
-# was introduced — a bump here means a real release (task 2.3 drills it).
-# 2026-11-06 三站点演练实况对账后校正（out-of-band 漂移三连）：
-# 建档时取的是仓内旧文件值，集群实况才是真值。测试断言跟着清单走，
-# 但清单的 tag 是动态读取的（bump 即真实发布，不锁死旧值）。
-EXPECTED_COMPONENTS = {
-    "runner": ("ccr.ccs.tencentyun.com/finddata/fd-industry-runner", "sha-d84cc82"),
-    "runner-xinru": ("ccr.ccs.tencentyun.com/finddata/fd-industry-runner", "sha-8f734c7"),
-    "observer": ("ccr.ccs.tencentyun.com/finddata/fd-industry-runner", "sha-ea21592"),
+# The migration invariant (task 2.1): 组件集合与它们指向的仓不可漂移。
+#
+# 这里**刻意不写死 tag**。原先是 {runner: sha-d84cc82, runner-xinru: sha-8f734c7,
+# observer: sha-ea21592}，注释还写着「测试断言跟着清单走…不锁死旧值」—— 但常量本身
+# 就是快照，于是每次真发版都变成假红：2026-11-06 三站点滚动到 sha-750da3f 之后，
+# 这条断言一直红到 2026-11-10，谁也没去动它。
+#
+# 换成三条真正的不变量（都不是自证，也不是「找不到占位符」那种橡皮章）：
+#   1. 四个组件必须都在、且指向同一个 ccr 仓；
+#   2. 四个组件的 tag **必须完全相同** —— 一次发布一条线，部分 bump 正是历史上
+#      真实发生过的漂移形态（out-of-band 三连），这条能抓住它；
+#   3. 登记面 runner-tencent-cron 的 tag 必须等于 fd-infra-deploy 里 chengsi AppSet
+#      的实际值（同仓并列检出时才校验，CI 单仓 checkout 自动跳过，不假装通过）。
+EXPECTED_REPOS = {
+    "runner": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
+    "runner-xinru": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
+    "observer": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
+    "runner-tencent-cron": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
 }
 EXPECTED_CONSUMPTION = {
     "k8s/dispatcher.yaml": "runner",
     "k8s/xinru-dispatcher.yaml": "runner-xinru",
     "k8s/federation-observer.yaml": "observer",
 }
+# 登记面的真源在另一个仓（AppSet 无消费文件可比对）
+APPSET = REPO.parent / "fd-infra-deploy" / "argocd" / "industry-appset" / "applicationset.yaml"
 
 HARBOR = "100.64.0.8:30880/finddata/fd-industry-runner"
 CCR = "ccr.ccs.tencentyun.com/finddata/fd-industry-runner"
@@ -83,18 +93,33 @@ def make_tree(tmp_path: Path, manifest: str = MANIFEST,
 
 # ---------------------------------------------------------------- real repo
 
-def test_real_manifest_components_match_pre_change_tags():
+def test_real_manifest_components_share_one_tag_per_release():
+    """四条不变量，替代原先会逐版腐烂的 tag 快照。"""
     comps, consumption = rr.parse_manifest(REPO / "k8s" / "release.yaml")
-    # runner-tencent-cron 是登记面（AppSet 在 fd-infra-deploy 仓，无消费文件），
-    # 不参与 --check 消费比对，但 tag 必须如实登记
-    assert comps["runner-tencent-cron"] == {
-        "repo": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
-        "tag": "sha-ea21592",
-    }
-    consuming = {k: v for k, v in comps.items() if k in EXPECTED_COMPONENTS}
-    assert consuming == {name: {"repo": repo, "tag": tag}
-                         for name, (repo, tag) in EXPECTED_COMPONENTS.items()}
+
+    # 1. 组件集合与仓库不可漂移
+    assert set(comps) == set(EXPECTED_REPOS)
+    for name, repo in EXPECTED_REPOS.items():
+        assert comps[name]["repo"] == repo, name
+
+    # 2. 一次发布一条线：四个消费/登记面必须同一个 tag。
+    #    这是历史上真实翻车过的形态（out-of-band 三连、部分 bump），
+    #    而不是从清单里读出来再跟自己比的那种自证。
+    tags = {comps[name]["tag"] for name in comps}
+    assert len(tags) == 1, f"四个面必须同 tag，实际 {sorted(tags)}"
+
+    # 3. 消费映射固定（谁是哪个组件的消费面）
     assert consumption == EXPECTED_CONSUMPTION
+
+    # 4. 登记面 == chengsi AppSet 实际值（同仓并列检出时才校验）
+    if APPSET.is_file():
+        import re as _re
+        text = APPSET.read_text(encoding="utf-8")
+        m = _re.search(r"name:\s*image\s*\n\s*value:\s*\S+:(sha-[0-9a-f]+)", text)
+        assert m, "AppSet 里找不到 image 参数，登记面无从对账"
+        assert comps["runner-tencent-cron"]["tag"] == m.group(1), (
+            "登记面与 chengsi AppSet 不一致：release.yaml=%s appsetset=%s"
+            % (comps["runner-tencent-cron"]["tag"], m.group(1)))
 
 
 def test_real_repo_consumption_files_carry_their_own_placeholder():
@@ -104,7 +129,7 @@ def test_real_repo_consumption_files_carry_their_own_placeholder():
     for rel, component in EXPECTED_CONSUMPTION.items():
         text = (REPO / rel).read_text(encoding="utf-8")
         phs = rr.PH_RE.findall(text)
-        repo = EXPECTED_COMPONENTS[component][0]
+        repo = EXPECTED_REPOS[component]
         concrete = rr.concrete_tags(text, repo)
         if phs:
             assert phs == [component], rel
