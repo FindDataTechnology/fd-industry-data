@@ -39,7 +39,18 @@ LINES = {
     "restaurant": ("reports/restaurant-alerts", 2),
 }
 
-TICKETS_LAST_RUN = "reports/health-tickets/last-run.json"
+TICKETS_DIR = "reports/health-tickets"
+#: `last-run.json` 已于 2026-11-10 移出 git（生成态，每次运行覆写，只会与巡检机器人
+#: 自己的提交反复冲突）。**本检查不再依赖它**：SUBMIT 的 http_status 本来就逐条记在
+#: 工单的 `lifecycle` 里，那才是原始数据；而工单 YAML 仍留在 git（`SUBMIT <repo> <path>`
+#: 协议要用它）。
+#:
+#: 为什么不能只删掉这检查：它是唯一会发现"整批 401 → 工单链断了"的地方
+#: （2026-11-07 那次就是靠它定位的）。
+TICKETS_DIR_LEGACY_NOTE = "（last-run.json 已不再跟踪，见 .gitignore）"
+#: 一轮 SUBMIT 的时间跨度上界（秒）。巡检每轮把未终态工单一次性投完，实测在 1 分钟内；
+#: 取 30 分钟留出重试与限速的余量，避免把相邻两轮混成一批。
+SUBMIT_BATCH_WINDOW_SECONDS = 1800
 STATE_PATH = "reports/alert-selfcheck/state.json"
 
 DATE_PREFIX = 10  # "YYYY-MM-DD"
@@ -85,28 +96,67 @@ def check_silence(repo: Path, today: date, lines: dict | None = None) -> list[di
     return silent
 
 
-def check_ticket_auth(repo: Path) -> dict:
-    """工单链最近一轮的 SUBMIT 是否整批鉴权失败。"""
-    path = repo / TICKETS_LAST_RUN
-    if not path.exists():
-        return {"checked": False, "reason": "no last-run.json"}
+def _submit_events(repo: Path) -> list[dict]:
+    """从工单 YAML 的 lifecycle 里收集所有 SUBMIT 尝试：(at, http_status)。
+
+    数据源选工单而不是巡检摘要：摘要（`last-run.json`）已移出 git，而工单里
+    `submitted` / `submit-failed` 事件的 `http_status` 是同一事实的原始记录。
+    """
+    import yaml
+
+    out: list[dict] = []
+    base = repo / TICKETS_DIR
+    if not base.is_dir():
+        return out
+    for p in sorted(base.glob("*.yaml")):
+        try:
+            doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        except (yaml.YAMLError, OSError):
+            continue
+        for e in doc.get("lifecycle") or []:
+            if e.get("event") not in ("submitted", "submit-failed"):
+                continue
+            at = _parse_iso(e.get("at"))
+            if at is None:
+                continue
+            out.append({"at": at, "code": e.get("http_status")})
+    out.sort(key=lambda x: x["at"])
+    return out
+
+
+def _parse_iso(value: object) -> datetime | None:
+    if not value:
+        return None
     try:
-        doc = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        return {"checked": False, "reason": f"last-run.json 不可解析：{exc}"}
-    submits = doc.get("submit") or []
-    if not submits:
-        return {"checked": True, "at": doc.get("at"), "total": 0, "auth_failed": 0,
-                "broken": False}
-    codes = [s.get("http_status") for s in submits]
+        d = datetime.fromisoformat(str(value).replace(" ", "T"))
+    except ValueError:
+        return None
+    return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
+
+
+def check_ticket_auth(repo: Path) -> dict:
+    """工单链最近一轮的 SUBMIT 是否整批鉴权失败。
+
+    判定对象是**最近一批**投递（时间上相邻的 SUBMIT 尝试），不是全部历史：
+    历史上偶发的 401 不该让今天永远报警。
+    """
+    events = _submit_events(repo)
+    if not events:
+        return {"checked": True, "at": None, "total": 0, "auth_failed": 0,
+                "broken": False,
+                "note": "no submit events in tickets " + TICKETS_DIR_LEGACY_NOTE}
+    latest = events[-1]["at"]
+    batch = [e for e in events
+             if (latest - e["at"]).total_seconds() <= SUBMIT_BATCH_WINDOW_SECONDS]
+    codes = [e["code"] for e in batch]
     auth_failed = sum(1 for c in codes if c in (401, 403))
     return {
         "checked": True,
-        "at": doc.get("at"),
-        "total": len(submits),
+        "at": latest.isoformat(),
+        "total": len(batch),
         "auth_failed": auth_failed,
         # 整批鉴权失败才算"链断了"；个别单失败属业务问题，不在此报
-        "broken": auth_failed > 0 and auth_failed == len(submits),
+        "broken": auth_failed > 0 and auth_failed == len(batch),
     }
 
 

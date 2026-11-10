@@ -97,26 +97,37 @@ def test_suffixed_date_dirs_are_parsed(tmp_path):
 # ── 2. 工单链鉴权 ────────────────────────────────────────────────────
 
 
-def _write_last_run(repo: Path, statuses):
-    p = repo / selfcheck.TICKETS_LAST_RUN
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps({"at": "2026-11-08T00:00:00Z",
-                             "submit": [{"http_status": s} for s in statuses]}),
-                 encoding="utf-8")
+def _write_submits(repo: Path, statuses, *, base="2026-11-08T00:00:00+00:00", spread_s=0):
+    """把 SUBMIT 结果写进**工单 lifecycle**（不再是 last-run.json）。
+
+    2026-11-10 起 last-run.json 移出 git，检查改为读工单里的 submitted 事件。
+    """
+    import yaml
+    from datetime import datetime, timedelta
+
+    d = repo / selfcheck.TICKETS_DIR
+    d.mkdir(parents=True, exist_ok=True)
+    t0 = datetime.fromisoformat(base)
+    for i, code in enumerate(statuses):
+        at = (t0 + timedelta(seconds=i * spread_s)).isoformat()
+        (d / f"20261108-src{i}-{i:08x}.yaml").write_text(yaml.safe_dump({
+            "source": f"src{i}",
+            "lifecycle": [{"at": at, "event": "submitted", "http_status": code}],
+        }), encoding="utf-8")
 
 
 def test_all_401_is_broken(tmp_path):
-    _write_last_run(tmp_path, [401, 401, 401])
+    _write_submits(tmp_path, [401, 401, 401])
     assert selfcheck.check_ticket_auth(tmp_path)["broken"] is True
 
 
 def test_mixed_statuses_are_not_broken(tmp_path):
-    _write_last_run(tmp_path, [200, 401])
+    _write_submits(tmp_path, [200, 401])
     assert selfcheck.check_ticket_auth(tmp_path)["broken"] is False
 
 
 def test_no_submissions_is_not_broken(tmp_path):
-    _write_last_run(tmp_path, [])
+    _write_submits(tmp_path, [])
     assert selfcheck.check_ticket_auth(tmp_path)["broken"] is False
 
 
@@ -166,7 +177,7 @@ def test_dry_run_does_not_advance_state(smtp_env, tmp_path):
 
 def test_known_ticket_issue_is_labelled_not_silenced(tmp_path):
     """已知的走廊搬迁仍被检查到，但标成 ticket_auth:route_moved，不算新问题。"""
-    _write_last_run(tmp_path, [401, 401])
+    _write_submits(tmp_path, [401, 401])
     (tmp_path / "config").mkdir(exist_ok=True)
     (tmp_path / "config/alert-selfcheck-known.json").write_text(
         json.dumps({"ticket_auth": ["route_moved"]}), encoding="utf-8")
@@ -177,13 +188,13 @@ def test_known_ticket_issue_is_labelled_not_silenced(tmp_path):
 
 
 def test_unknown_ticket_failure_still_reported(tmp_path):
-    _write_last_run(tmp_path, [401, 401])
+    _write_submits(tmp_path, [401, 401])
     report = selfcheck.evaluate(tmp_path, TODAY)  # 没有 known 配置
     assert "ticket_auth" in report["findings"]
 
 
 def test_unknown_issue_id_in_config_is_ignored(tmp_path):
-    _write_last_run(tmp_path, [401, 401])
+    _write_submits(tmp_path, [401, 401])
     (tmp_path / "config").mkdir(exist_ok=True)
     (tmp_path / "config/alert-selfcheck-known.json").write_text(
         json.dumps({"ticket_auth": ["made-up-id"]}), encoding="utf-8")
@@ -231,3 +242,53 @@ def test_agriculture_recipients_come_from_config(monkeypatch):
 
     monkeypatch.setenv("FD_ALERT_SMTP_TO", "override@example.com")
     assert ag._smtp_config()["to"] == ["override@example.com"]
+
+
+# ── 2b. 新数据源（工单 lifecycle）的边界 ─────────────────────────────
+
+
+def test_only_the_latest_batch_counts(tmp_path):
+    """历史批次的 401 不该让今天永远报警——只判最近一批。
+
+    2026-11-07 那次整批 401 是已定性的"路由搬迁"，若把全部历史算进来，
+    检查会永久报 broken，等于又造一个天天喊的假警。
+    """
+    from datetime import datetime, timedelta
+    import yaml
+
+    d = tmp_path / selfcheck.TICKETS_DIR
+    d.mkdir(parents=True, exist_ok=True)
+    old = datetime.fromisoformat("2026-11-07T00:00:00+00:00")
+    new = datetime.fromisoformat("2026-11-08T03:00:00+00:00")
+    (d / "20261107-old.yaml").write_text(yaml.safe_dump({
+        "source": "old",
+        "lifecycle": [{"at": (old + timedelta(seconds=i)).isoformat(),
+                       "event": "submitted", "http_status": 401} for i in range(3)],
+    }), encoding="utf-8")
+    (d / "20261108-new.yaml").write_text(yaml.safe_dump({
+        "source": "new",
+        "lifecycle": [{"at": (new + timedelta(seconds=i)).isoformat(),
+                       "event": "submitted", "http_status": 200} for i in range(2)],
+    }), encoding="utf-8")
+    got = selfcheck.check_ticket_auth(tmp_path)
+    assert got["checked"] is True
+    assert got["total"] == 2, got        # 只算最近那批
+    assert got["broken"] is False
+
+
+def test_no_tickets_at_all_is_checked_but_not_broken(tmp_path):
+    """工单目录为空 → checked 但仍不 broken，且说明数据源已换。"""
+    got = selfcheck.check_ticket_auth(tmp_path)
+    assert got["checked"] is True and got["broken"] is False
+    assert got["total"] == 0
+    assert "no submit events" in (got.get("note") or "")
+
+
+def test_last_run_json_is_no_longer_read(tmp_path):
+    """把 last-run.json 放回去也不能影响判定——它已移出 git，不该再被依赖。"""
+    p = tmp_path / "reports/health-tickets/last-run.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({"submit": [{"http_status": 401}] * 5}), encoding="utf-8")
+    got = selfcheck.check_ticket_auth(tmp_path)
+    assert got["total"] == 0, "不得再从 last-run.json 读 submit"
+    assert got["broken"] is False

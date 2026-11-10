@@ -366,8 +366,15 @@ dispatcher 侧避免因一次数据不足就判任务失败、连带罚掉共享
 | `absent_sources` | 在册但遥测窗内零运行 |
 | `master_switch` / `config_source` / `at` / `source` | 总闸、配置来源、时间、读取方式 |
 
-`alert_selfcheck.py` 只读 `submit[]`（整批 401/403 才是"链断了"），不看 `deferred`，
-所以上面两次扩字段没有改变它的判断。
+**2026-11-10 变更**：`alert_selfcheck.py` **不再读 `last-run.json`**（该文件已移出 git，
+见 `.gitignore`）。它改为从**工单 YAML 的 `lifecycle`** 里取 `submitted` / `submit-failed`
+事件的 `http_status`——那才是同一事实的原始记录，而工单仍在 git 里。
+
+判定口径不变：**最近一批**投递（相邻 SUBMIT 间隔 ≤30 分钟）里整批 401/403 才算"链断了"；
+个别单失败属业务问题不报。取"最近一批"而不是全部历史，是因为 2026-11-07 那次整批 401
+已定性为路由搬迁，把历史算进来会永久报警。
+
+它仍然不看 `deferred`，所以上面两次扩字段没有改变它的判断。
 
 ### 巡检面 ≠ 交付面（2026-11-09 实测，务必记住）
 
