@@ -86,6 +86,12 @@ lifecycle:
 
 
     **工单诊断**：kind=generate（greenfield 新建单元），source=fred-cpi，unit=spiders/fred-cpi/，'
+- at: '2026-11-10T12:51:37.878217+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:

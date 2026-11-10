@@ -76,7 +76,18 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32003, "message": "Connection error."}'
-terminal: null
+- at: '2026-11-10T13:02:46.976567+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-11-10T13:02:46.976694+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual
 brief:
   source_urls:
   - https://ico.org/documents/I-CIP.pdf

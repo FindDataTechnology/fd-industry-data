@@ -80,6 +80,12 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-10T12:55:01.308608+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:
