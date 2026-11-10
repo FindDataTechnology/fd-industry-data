@@ -128,4 +128,10 @@ lifecycle:
     拒绝：工单文件不存在于本地工作区（/app/reports/health-tickets/20261108-socrata-ny-383ced01.yaml）。SUBMIT
     要求工单已落盘在仓的 reports/health-tickets/ 目录下；若工单仅在远端仓，请先在本地同步该文件，或改用 SUBMIT-INLINE 直接把
     YAML 内容贴在消息里。'
+- at: '2026-11-10T10:46:13.872797+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null

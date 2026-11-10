@@ -70,6 +70,12 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-10T10:37:51.246805+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32003, "message": "Connection error."}'
 terminal: null
 brief:
   source_urls:

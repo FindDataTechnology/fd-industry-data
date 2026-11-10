@@ -76,5 +76,17 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-10T10:45:59.992512+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32003, "message": "Connection error."}'
+- at: '2026-11-10T10:46:11.022680+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: a4aaaf3e3191

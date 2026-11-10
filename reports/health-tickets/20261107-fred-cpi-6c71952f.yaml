@@ -73,6 +73,19 @@ lifecycle:
 - at: '2026-11-10T05:50:26.513808+00:00'
   event: submit-failed
   error: Remote end closed connection without response
+- at: '2026-11-10T10:32:44.144401+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: accepted
+  response: 'Now I''ll respond with the submission receipt as per protocol. The ticket
+    has been added to the queue at position 2.
+
+    已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261107-fred-cpi-6c71952f.yaml（队列第
+    2 位）
+
+
+    **工单诊断**：kind=generate（greenfield 新建单元），source=fred-cpi，unit=spiders/fred-cpi/，'
 terminal: null
 brief:
   source_urls:
