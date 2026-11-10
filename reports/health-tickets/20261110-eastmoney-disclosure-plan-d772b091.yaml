@@ -113,5 +113,18 @@ lifecycle:
   verdict: error
   response: '{"code": "PLAN_EXHAUSTED", "message": "the caller''s serving plan has
     no minutes left — ask the operator to adjust the plan"}'
+- at: '2026-11-10T19:18:58.064878+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32003, "message": "502: {\"message\":\"Upstream service temporarily
+    unavailable\",\"type\":\"upstream_error\"}"}'
+- at: '2026-11-10T19:21:00.608777+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: a4aaaf3e3191
