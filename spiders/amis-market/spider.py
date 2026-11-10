@@ -39,6 +39,8 @@
 from __future__ import annotations
 
 import json
+import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -67,16 +69,41 @@ ORDER BY d.product_code, d.element_code, c.region_name, d.year
 """
 
 UPSTREAM_ROW_CAP = 50000  # 服务端单响应行硬上限（实测恰好 50000 截断）
-TIMEOUT = 90  # 秒；实测带 JOIN 全面 ~17s，超时即失败（不重试、不加频次）
+TIMEOUT = 90  # 秒；实测带 JOIN 全面 ~17s
+
+# 网络层有界重试参数（工单 20261107-amis-market-0b865e05：URLError timeout 抖动）
+# 仅在瞬时错误（连接超时、DNS 失败、5xx）上重试；不重试 4xx / 业务异常。
+MAX_ATTEMPTS = 3
+BASE_DELAY = 2.0  # 秒，指数退避基数
+MAX_DELAY = 30.0  # 秒，退避上限
 
 CONTEXT_FIELDS = ("product_code", "region_code", "element_code")
 
 
+def _is_transient(exc: Exception) -> bool:
+    """瞬时网络错误判定：仅这些错误值得重试（抖动类），其余一律不重试。
+
+    - ``URLError``：连接超时 / DNS / 拒绝连接（工单里的 Errno 60 超时即此类）
+    - ``HTTPError`` 5xx：上游网关/服务端瞬时故障
+    - ``TimeoutError`` / ``socket.timeout``：读超时
+    4xx（含 SQL 报错 400）属于确定性错误，重试无意义 → 不重试。
+    """
+    if isinstance(exc, urllib.error.HTTPError):
+        return int(getattr(exc, "code", 0) or 0) >= 500
+    if isinstance(exc, urllib.error.URLError):
+        return True
+    return isinstance(exc, (TimeoutError, OSError)) and not isinstance(exc, (ValueError, KeyError))
+
+
 def _post_query(sql: str) -> list:
-    """POST 一条 SQL 到 fetch 端点（仅 https 固定主机；无鉴权、无重试放大）。
+    """POST 一条 SQL 到 fetch 端点（仅 https 固定主机；瞬时错误有界重试）。
 
     代理出口由环境变量 ``HTTPS_PROXY``/``HTTP_PROXY`` 提供（urllib 缺省
-    行为），本函数不硬编码代理地址；无代理出口时连接失败 → 抛错。
+    行为），本函数不硬编码代理地址；无代理出口时连接失败 → 有界重试后抛错。
+
+    重试策略（网络层参数，非对抗性频次）：最多 ``MAX_ATTEMPTS`` 次，指数退避
+    ``BASE_DELAY * 2**n`` 封顶 ``MAX_DELAY``；只重试瞬时错误，4xx/业务错误直抛。
+    重试进度写 stderr（不污染 stdout 的 JSON 输出），便于失败诊断。
     """
     req = urllib.request.Request(
         FETCH_URL,
@@ -84,8 +111,25 @@ def _post_query(sql: str) -> list:
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
-        raw = resp.read()
+    last_exc: Exception | None = None
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
+                raw = resp.read()
+            break
+        except Exception as exc:  # noqa: BLE001 - 先分类再决定是否重试
+            last_exc = exc
+            if attempt >= MAX_ATTEMPTS or not _is_transient(exc):
+                raise
+            delay = min(MAX_DELAY, BASE_DELAY * (2 ** (attempt - 1)))
+            print(
+                f"amis-market: transient {type(exc).__name__} on attempt "
+                f"{attempt}/{MAX_ATTEMPTS} ({exc}); retry in {delay:.0f}s",
+                file=sys.stderr,
+            )
+            time.sleep(delay)
+    else:  # pragma: no cover - 循环必然 break 或 raise
+        raise last_exc if last_exc else RuntimeError("amis-market: retry loop exhausted")
     try:
         payload = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
