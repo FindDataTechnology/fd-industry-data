@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-10T05:04:43.332757+00:00",
+  "at": "2026-11-10T05:24:08.672951+00:00",
   "source": "psql",
   "config_source": "file:config/health-scope.json",
   "sources_seen": 136,
@@ -101,10 +101,44 @@
       "ticket": "20261107-fred-cpi-6c71952f.yaml",
       "submitted": false,
       "reason": "submit failed: RemoteDisconnected: Remote end closed connection without response",
-      "attempt": 5
+      "attempt": 6
     },
     {
       "ticket": "20261107-fred-cpi-a0b0e467.yaml",
+      "submitted": true,
+      "reason": "",
+      "attempt": 5,
+      "http_status": 200,
+      "verdict": "accepted",
+      "verdict_reason": "JSON-RPC result envelope",
+      "state": null,
+      "response": "该工单尚未在队列中。但当前工作区找不到 `reports/health-tickets/20261107-fred-cpi-a0b0e467.yaml` 文件（也非 fd-industry-data 仓库根目录）。\n\n请提供工单 YAML 内容（可直接粘贴），或确认是否已在仓库中——我需读取其 `kind`、`slug` 等字段才能入队分诊。"
+    },
+    {
+      "ticket": "20261107-fred-cpi-ba279d6a.yaml",
+      "submitted": false,
+      "reason": "submit failed: URLError: <urlopen error TLS/SSL connection has been closed (EOF) (_ssl.c:992)>",
+      "attempt": 5
+    },
+    {
+      "ticket": "20261107-hkex-disclosure-82e7ef63.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 5,
+      "http_status": 200,
+      "verdict": "error",
+      "verdict_reason": "JSON-RPC error envelope",
+      "state": null,
+      "response": "{\"code\": -32003, \"message\": \"Connection error.\"}"
+    },
+    {
+      "ticket": "20261107-ico-coffee-price-39ecc097.yaml",
+      "submitted": false,
+      "reason": "submit failed: RemoteDisconnected: Remote end closed connection without response",
+      "attempt": 5
+    },
+    {
+      "ticket": "20261107-nra-rpi-15ef6fc0.yaml",
       "submitted": false,
       "reason": "",
       "attempt": 5,
@@ -116,55 +150,57 @@
   ],
   "status": [
     {
-      "ticket": "20261107-sec-edgar-facts-e41262dc.yaml",
+      "ticket": "20261108-socrata-ny-383ced01.yaml",
       "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261109-boxofficemojo-38feca08.yaml",
-      "http_status": 200,
+      "ticket": "20261107-amis-market-0b865e05.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261109-cisa-10eec66b.yaml",
-      "http_status": 200,
+      "ticket": "20261107-socrata-chicago-a563e620.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261109-education_podcast-ce803d9c.yaml",
-      "state": null,
-      "error": "<urlopen error TLS/SSL connection has been closed (EOF) (_ssl.c:992)>"
-    },
-    {
-      "ticket": "20261109-gb-standards-e6083859.yaml",
-      "http_status": 200,
+      "ticket": "20261025-steam-ccu-36a30c20.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261109-iea-ev-de18f48e.yaml",
-      "http_status": 200,
+      "ticket": "20261106-gdacs-8123a350.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261109-usaspending-awards-2d72e624.yaml",
-      "http_status": 200,
+      "ticket": "20261106-nasa-firms-fff9c02b.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261110-eastmoney-disclosure-plan-d772b091.yaml",
-      "http_status": 200,
+      "ticket": "20261107-fred-cpi-6c71952f.yaml",
+      "http_status": 409,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261107-fred-cpi-a0b0e467.yaml",
+      "http_status": 409,
       "state": null,
       "note": "",
       "pr_url": ""

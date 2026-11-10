@@ -62,6 +62,9 @@ lifecycle:
   verdict: refused
   response: 拒绝：工单路径 `reports/health-tickets/20261107-fred-cpi-ba279d6a.yaml` 在仓中不存在（`/app/reports/`
     目录不存在，亦无同名文件）。请确认路径或仓库正确后再提交。
+- at: '2026-11-10T05:31:43.592988+00:00'
+  event: submit-failed
+  error: <urlopen error TLS/SSL connection has been closed (EOF) (_ssl.c:992)>
 terminal: null
 brief:
   source_urls:

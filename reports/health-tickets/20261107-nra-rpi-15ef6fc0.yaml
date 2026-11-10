@@ -58,6 +58,10 @@ lifecycle:
 - at: '2026-11-10T04:34:15.387886+00:00'
   event: submit-failed
   error: Remote end closed connection without response
+- at: '2026-11-10T05:36:10.733477+00:00'
+  event: submit-deferred
+  reason: turn in flight (409)
+  waited_s: 90
 terminal: null
 brief:
   source_urls:

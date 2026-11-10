@@ -62,6 +62,22 @@ lifecycle:
   event: submit-deferred
   reason: turn in flight (409)
   waited_s: 90
+- at: '2026-11-10T05:31:37.974218+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: accepted
+  response: '该工单尚未在队列中。但当前工作区找不到 `reports/health-tickets/20261107-fred-cpi-a0b0e467.yaml`
+    文件（也非 fd-industry-data 仓库根目录）。
+
+
+    请提供工单 YAML 内容（可直接粘贴），或确认是否已在仓库中——我需读取其 `kind`、`slug` 等字段才能入队分诊。'
+- at: '2026-11-10T05:36:26.961455+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:
