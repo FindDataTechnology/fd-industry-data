@@ -40,11 +40,25 @@ def _case_block() -> str:
     return run[i:j]
 
 
-def message_for(rc: int) -> str:
+#: 固定用 **UTF-8** locale 跑 bash：这才是会露馅的那一侧。
+#:
+#: 2026-11-11 实测（bash 3.2.57 / macOS，逐 locale 对照 `（rc=$rc）` 的输出）：
+#:   LC_ALL=C          → `rc=9`   正常
+#:   LC_ALL=C.UTF-8    → `rc=<274 211>` 残片，变量名把全角 `）` 的首字节吞了
+#:   无 locale（空）     → `rc=9`   正常
+#: 也就是说坏在 **UTF-8** locale，不在 C——与直觉相反。CI runner 默认就是 UTF-8，
+#: 所以用例必须钉 UTF-8 才能复现；钉 C 反而会放过这个 bug。
+#: 结论：变量后紧跟非 ASCII 字符时一律写 `${var}` 定界。
+_STRICT_ENV = {"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"}
+
+
+def message_for(rc: int, env: dict | None = None) -> str:
     """把抽出的 case 块交给 bash 执行，返回它会打印的那一行（无输出则空串）。"""
+    import os
     out = subprocess.run(
         ["bash", "-c", f'rc={rc}\n{_case_block()}'],
         capture_output=True, text=True, encoding="utf-8", errors="replace",
+        env={**os.environ, **(_STRICT_ENV if env is None else env)},
         check=False,
     )
     return out.stdout.strip()
@@ -83,6 +97,17 @@ class ExitCodeBranchTests(unittest.TestCase):
     def test_three_codes_are_distinct(self):
         msgs = {message_for(rc) for rc in (2, 3, 9)}
         self.assertEqual(len(msgs), 3, "三种非零码必须是三句不同的话，否则分支没起作用")
+
+    def test_messages_do_not_depend_on_locale(self):
+        """同一段 case 在 C 与 UTF-8 两种 locale 下必须打出同样的字。
+
+        `$rc` 紧贴全角括号的写法只在 C locale 下坏——2026-11-11 就是这么漏过去的。
+        这条用例把「locale 无关」变成一条会红的断言，而不是靠运气。
+        """
+        for rc in (0, 2, 3, 9):
+            strict = message_for(rc)
+            utf8 = message_for(rc, env={"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"})
+            self.assertEqual(strict, utf8, f"rc={rc} 的文案随 locale 变了")
 
     def test_step_is_still_non_blocking(self):
         """回归前提：该步不阻断（末尾 exit 0）。若哪天改成阻断，判定树的语义就变了。"""
