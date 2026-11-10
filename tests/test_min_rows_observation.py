@@ -76,6 +76,24 @@ class Rule1cTicketTests(unittest.TestCase):
         self.ticket("20261109-ccc-3333.yaml", "ccc", "rule1c:x")
         self.assertEqual(self.m.rule1c_tickets(self.tmp, "2026-11-10"), ["aaa"])
 
+    def test_cst_day_wins_over_utc_filename_prefix(self):
+        """00:00–08:00 CST 的单带的是前一天的 UTC 文件名，必须仍算进 CST 当天。
+
+        2026-11-10 实测：三张 rule1c 单 created_at=2026-11-09T22:30Z（CST 11-10 06:30），
+        文件名 `20261109-*`。按前缀匹配时观察表 11-10 那行记成 0，实际 3 张。
+        """
+        (self.tmp / "20261109-ddd-4444.yaml").write_text(yaml.safe_dump(
+            {"source": "ddd", "created_at": "2026-11-09T22:30:30.114511+00:00",
+             "evidence": {"notes": "rule1c:success-but-too-few-rows"}}), encoding="utf-8")
+        (self.tmp / "20261110-eee-5555.yaml").write_text(yaml.safe_dump(
+            {"source": "eee", "created_at": "2026-11-10T03:45:00+00:00",
+             "evidence": {"notes": "rule1c:success-but-too-few-rows"}}), encoding="utf-8")
+        # 11-09T15:59Z = CST 11-09 23:59，属前一天，不该算进 11-10
+        (self.tmp / "20261109-fff-6666.yaml").write_text(yaml.safe_dump(
+            {"source": "fff", "created_at": "2026-11-09T15:59:00+00:00",
+             "evidence": {"notes": "rule1c:x"}}), encoding="utf-8")
+        self.assertEqual(self.m.rule1c_tickets(self.tmp, "2026-11-10"), ["ddd", "eee"])
+
 
 class AppendTests(unittest.TestCase):
     def setUp(self):

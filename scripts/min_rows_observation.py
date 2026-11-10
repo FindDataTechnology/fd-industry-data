@@ -48,18 +48,33 @@ def _parse(s: object) -> datetime | None:
 
 
 def rule1c_tickets(outdir: Path, day: str) -> list[str]:
-    """当天落盘、且判词是 rule1c 的工单源（去重、排序）。"""
+    """当天（**CST**）落盘、且判词是 rule1c 的工单源（去重、排序）。
+
+    按 `created_at` 的 CST 日期判，**不能按文件名前缀**：工单文件名是
+    `now.strftime("%Y%m%d")`，而 `scripts/health_inspect.py:87` 的 `now` 是 **UTC**。
+    于是 00:00–08:00 CST 生成的单带的是**前一天**的 UTC 前缀，按前缀筛选会整天漏掉。
+    2026-11-10 实测：三张 rule1c 单 `created_at=2026-11-09T22:30Z`（CST 11-10 06:30），
+    文件名一律 `20261109-*`，观察表 11-10 那行因此记成 0 张——实际是 3 张。
+    """
     import yaml
 
     out: set[str] = set()
-    for p in sorted(outdir.glob(f"{day.replace('-', '')}-*.yaml")):
+    for p in sorted(outdir.glob("*.yaml")):
         try:
             doc = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
         except (yaml.YAMLError, OSError):
             continue
         notes = str(((doc.get("evidence") or {}).get("notes")) or "")
-        if "rule1c" in notes:
-            out.add(str(doc.get("source") or "?"))
+        if "rule1c" not in notes:
+            continue
+        at = _parse(doc.get("created_at"))
+        if at is None:
+            # 早期没有 created_at 的单只能退回文件名（同为 UTC 口径，近似）
+            if not p.name.startswith(day.replace("-", "")):
+                continue
+        elif at.astimezone(CST).strftime("%Y-%m-%d") != day:
+            continue
+        out.add(str(doc.get("source") or "?"))
     return sorted(out)
 
 
