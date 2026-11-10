@@ -146,6 +146,33 @@ jobs:
           fi
           exit 0
 
+      # §12「一周误报率观察」的每日核对（2026-11-11 接入）：把 rule1c 单的
+      # 「单数 / 最近一张 / 下限 / 出单后达标次数」摆出来，供人按 §12.1 判 E1/E2。
+      # 只读：不写工单、不改 manifest、不碰观察表——它只把原料打进 step summary。
+      # 不阻断：判读是人的事，脚本失败不该挡住工单落仓。
+      - name: 误报率核对（§12，不阻断）
+        working-directory: src
+        env:
+          FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
+        run: |
+          set +e
+          python3 scripts/min_rows_false_positive_report.py --days 7 --from-pg \
+            2>&1 | tee /tmp/fp.log
+          rc=${PIPESTATUS[0]}
+          {
+            echo "### 一周误报率核对（近 7 天 rule1c）"
+            echo '```'
+            sed -n '1,20p' /tmp/fp.log
+            echo '```'
+            echo ""
+            echo "判读口径见 docs/min-rows-withdrawn-states-plan.md §12.1（E1 不可比运行 /"
+            echo "E2 无干预自愈）；「出单后达标次数 > 0」只是 E2 的**候选**，还要查 git 有无修复提交。"
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          if [ "$rc" != "0" ]; then
+            echo "::warning::误报率核对失败（rc=$rc），不影响落仓"
+          fi
+          exit 0
+
       # 渲染对账（harden-crawl-delivery 6.2 守卫）：内容仓说"停用"、集群却仍在调度
       # 的源必须每天被抓出来。2026-11-09 实测：bls / cncotton 在 11-08 就被 park，
       # 但 CronJob 一直 suspend=false 照常每天跑，直到人工发现。

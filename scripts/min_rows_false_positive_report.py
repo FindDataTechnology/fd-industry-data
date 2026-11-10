@@ -34,6 +34,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+# 与 min_rows_observation.py 同一条理由：workflow 在 working-directory: src 下跑
+# `python3 scripts/xxx.py` 时 sys.path[0] 是 src/scripts、不含 src/，不插仓库根就会
+# ModuleNotFoundError: No module named 'fd_industry_data'（2026-11-11 那次就是这个坑，
+# 而且因为步骤「不阻断」在 UI 上完全看不出来）。
+sys.path.insert(0, str(REPO))
+
 TICKETS = REPO / "reports" / "health-tickets"
 RULE = "rule1c"
 
