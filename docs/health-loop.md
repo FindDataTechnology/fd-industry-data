@@ -339,6 +339,63 @@ markdown 文件，不碰 `poster` / `submit` / 工单，且在 Deliver 之前就
 主链路），改错会让 STATUS 回读静默停摆、工单停在旧状态等下一轮——那是比干跑变慢贵得多的
 故障。改前需要一次真跑对照。
 
+#### 具体改法（待授权，尚未实施）
+
+三处，全是加法，不改既有请求逻辑：
+
+```python
+# 1) inspector.py:1344 — 签名加 dry_run（必须默认 False，理由见下）
+def sync_status(outdir: Path, url: str, key: str, fetcher=None,
+                max_reads: int = STATUS_MAX_PER_RUN,
+                dry_run: bool = False) -> list[dict]:
+    ...
+
+    # 2) 收集完 pending、真正发请求之前短路
+    if dry_run:
+        # pending 的三元组是 (_last_read_at(doc), path, doc)：首元素只是排序键，
+        # 第二元素才是 Path。别写成 (rel, p, doc) —— 实测形状见 inspector.py:1356/1361。
+        return [{"ticket": path.name, "skipped": True, "reason": "dry-run"}
+                for _, path, _ in pending]
+
+    # 3) 原有请求逻辑一行不动
+```
+
+```python
+# scripts/health_inspect.py:158 — 把已有的 args.dry_run 传下去
+summary["status"] = inspector.sync_status(outdir, url, key, dry_run=args.dry_run)
+```
+
+**默认值必须是 False**：主链路 `--deliver --submit-new --sync-status` 不带 `--dry-run`，
+默认值一变就把日常巡检的 STATUS 回读关掉；而"回读没跑"在步骤结论上仍然是绿的。
+
+#### 对照验证步骤（A/B）
+
+**A 组 · 干跑确实变干（性能侧，容易过）**
+
+1. `gh workflow run health-inspect.yml --ref main -f dry_run=true`
+2. 量 Deliver 耗时：
+   ```bash
+   gh run view <id> --json jobs -q \
+     '[.jobs[].steps[]|select(.name|test("Deliver"))|((.completedAt|fromdateiso8601)-(.startedAt|fromdateiso8601))]|.[0]'
+   ```
+3. 判据：**从 999s 量级降到秒级（≤30s）**。若仍是数百秒，说明短路没生效或还有别的网络路径。
+
+**B 组 · 真跑的回读没被关掉（功能侧，比 A 重要）**
+
+1. 改后跑一次**不带** `dry_run` 的巡检（等自然 cron，或直接 `gh workflow run health-inspect.yml --ref main`）
+2. **判据不能只看步骤绿**——"探针通过"与"探针根本没跑"在步骤结论上完全同形（本仓
+   2026-11-08 栽过一次）。要看实物，`sync_status` 的唯一产物是工单 lifecycle 里的
+   `status` 事件：
+   ```bash
+   # 改前先记基线
+   grep -l "$(date -u +%Y-%m-%d)" reports/health-tickets/*.yaml \
+     | xargs grep -l "event: status" 2>/dev/null | wc -l
+   ```
+3. 改后该数字 **≥ 基线且不为 0**；为 0 说明回读停了，必须回滚。
+   **改前基线（2026-11-10 实测）= 24**（当天有 `status` 事件的工单数），命令已验证可跑。
+
+**红线**：A 绿 + B 红 = 修坏了，回滚。宁可干跑慢，不可回读停。
+
 ### 同一事实的三处信号：`rows < min_rows_per_run` 会发生什么
 
 一个源写了行数低于声明的下限，会同时惊动三层。**它们不是重复机制，但关系一直没人写下来**——
