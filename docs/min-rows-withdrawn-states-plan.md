@@ -225,3 +225,60 @@ def window_states(records: list[dict], now: datetime,
 
 `check_withdrawn_sources.py` 改为 import 单一真源后仍正常：live 全 `pending` rc=0；
 喂真实 Job 产物 + `--now 11-13` → `gb-standards` 标红、rc=1。
+
+---
+
+## 10. A10 核对（2026-11-11）
+
+### 10.1 先说结论：03:17 那次还没到期，但顺手查出**这一步从上线起就没成功过**
+
+核对发生在 **2026-11-11 00:24 CST**，距 03:17 还有近 3 小时，所以"03:17 那次"无法核。
+改为**主动触发一次 dispatch**（`dry_run=true`，run `42855093033`）在真环境验同一条路径。
+
+拉上一次真跑（`42817406652`，11-10 20:37 CST）的日志，发现它**失败了**：
+
+```
+ModuleNotFoundError: No module named 'fd_industry_data'
+##[warning]观察表追加失败（rc=1），工单照常落仓
+```
+
+而该步骤设了「不阻断」（`set +e` + 末尾 `exit 0`），所以**步骤结论显示 `success`**——
+这就是"探针通过"与"探针根本没跑"在步骤色上同形的又一例。表里那行 `2026-11-10`
+是 `c4574c5`（我 11-10 19:49 本地跑脚本）写进去的，**不是 CI 写的**。
+
+**根因**：workflow 在 `working-directory: src` 下跑 `python3 scripts/xxx.py`，
+`sys.path[0]` 是 `src/scripts`、**不含 `src/`**。同目录的 `health_inspect.py` /
+`adjudicate.py` / `reconcile_render.py` 都自己 `sys.path.insert(0, REPO)`，
+只有 `min_rows_observation.py` 漏了这一行（丙案新增 import 后暴露出来）。
+修复：`ad2aa16`。
+
+### 10.2 修复后的真环境结果（run `42855093033`）
+
+| 观测点 | 证据 | 结果 |
+|---|---|---|
+| 该次**带 `--from-pg`** | workflow 第 135 行：`python3 scripts/min_rows_observation.py --from-pg --append ...`；只有这一条调用路径 | ✓ |
+| 脚本**真跑通**（不再 ImportError） | 落库门提交 `5513888` 在 `docs/min-rows-observation-log.md` 追加**恰好一行** `\| 2026-11-11 \| 118 \| 0 \| — \| — \| month(840h) \|` | ✓ `healthy=118` 只有读到库才可能算出来 |
+| **表格未被小节隔断** | `git show 5513888 -- docs/min-rows-observation-log.md` → 1 行新增，紧跟 11-10 行之后，位于最后一个表格块内 | ✓ |
+| 三行窗口态 | 三行在 `--append` **之前**打印，行写进去了说明已打印；三窗口（11-12/15/17）当时均未到 → 全 `pending` | ✓（推断，见下） |
+| 退出码 | 同上：全 `pending` → `rc=0`，故该步骤没有出 `::warning::` | **0（推断，日志待取）** |
+
+**"推断"标出来的原因（不含糊）**：`Deliver` 步骤还在跑（就是 `—dry-run` 未覆盖
+`sync_status` 那个已知缺陷，约 999s），run 未结束 → GitHub 的 job log 还取不到，
+所以三行的原文与 `rc=` 我**没有**拿到字面证据。等 run 结束后可补：
+
+```bash
+gh api repos/FindDataTechnology/fd-industry-data/actions/jobs/129965862309/logs \
+  | grep -E "三源窗口态|窗口 11-|rc="
+```
+
+已确证的是**功能链通了**（读库成功 → 算出行 → 落库门提交），这与"步骤色绿"是两件事：
+本次证据取的是**产物**（那一行提交），不是结论。
+
+### 10.3 这个缺陷的教训（值得单独记）
+
+- **非阻断步骤必须看产物，不能看结论**。`set +e` + `exit 0` 让失败在 UI 上完全隐身。
+- **脚本要自带 `sys.path` 引导**：`python3 scripts/x.py` 的 `sys.path[0]` 是 `scripts/`，
+  不是仓库根。同目录 4 个脚本里 3 个有这行，缺的那个静默失败了两天。
+- **我的第一次验证是假证明**：用 `python3 -c` 验 import，而 `-c` 的 `sys.path[0]` 是
+  **cwd**——正好落在仓库根，所以"移除引导也成功"。改成按真形态跑**脚本文件**、
+  cwd 不在仓库根，才复现出 `ModuleNotFoundError`。
