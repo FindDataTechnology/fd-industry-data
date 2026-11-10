@@ -89,6 +89,20 @@ class MinRowsReportTests(unittest.TestCase):
         self.assertIsNone(rows[0]["successes_after_last_ticket"])
         self.assertIn("未声明", self.m.render(rows, 7, 1))
 
+    def test_withdrawn_sources_fall_back_to_recorded_floors(self) -> None:
+        """撤了声明的源必须回退到 withdrawn.py 里的原值，否则观察报表对它们失明。
+
+        2026-11-11 实测：manifest 里那三行已删，`min_rows_floor` 返回 None，
+        报表就把它们显示成「下限 —」「出单后达标 未声明」——恰恰是最该判的三个源。
+        """
+        got = self.m.resolve_floors(["boxofficemojo", "cisa", "gb-standards"])
+        self.assertEqual(got, {"boxofficemojo": 25, "cisa": 25, "gb-standards": 30})
+
+    def test_withdrawn_fallback_does_not_override_a_declared_floor(self) -> None:
+        """还在声明中的源仍以 manifest 为准，回退只兜「读不到」的情况。"""
+        got = self.m.resolve_floors(["nasa-firms"])
+        self.assertEqual(got, {"nasa-firms": 20}, "nasa-firms 的 manifest 是 20")
+
     def test_partial_counts_as_a_reach_for_recovery(self) -> None:
         self.ticket("aaa", "2026-11-08", "rule1c:... rows=2 < 25")
         records = [{"source": "aaa", "status": "partial", "rows": 30,

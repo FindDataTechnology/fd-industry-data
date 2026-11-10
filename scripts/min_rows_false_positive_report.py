@@ -91,6 +91,28 @@ def qualifying_successes(records: list[dict], floor: int) -> dict[str, list[dict
     return by
 
 
+def resolve_floors(sources, repo: Path = REPO) -> dict[str, int]:
+    """每个源的下限：先读 manifest；**暂撤了声明的源回退到 withdrawn.py 记下的原值**。
+
+    为什么需要回退：2026-11-10 撤了 boxofficemojo / cisa / gb-standards 的
+    `min_rows_per_run`，manifest 里已经没有那一行。而这三个源正是观察对象——
+    不回退的话，报表对它们一律显示「下限 —」「出单后达标 未声明」，
+    等于在最需要判定的地方失明（2026-11-11 实测）。
+    """
+    from fd_industry_data.health import inspector
+    from fd_industry_data.health.withdrawn import WITHDRAWN
+
+    withdrawn_floors = {w.source: w.floor for w in WITHDRAWN}
+    out: dict[str, int] = {}
+    for s in sources:
+        f = inspector.min_rows_floor(repo, s)
+        if f is None:
+            f = withdrawn_floors.get(s)
+        if f is not None:
+            out[s] = f
+    return out
+
+
 def build_rows(tickets: list[Ticket], records: list[dict], floors: dict[str, int]) -> list[dict]:
     """把工单与遥测对齐：每源出单数、出单后是否又达标。"""
     per_source: dict[str, list[Ticket]] = defaultdict(list)
@@ -171,8 +193,7 @@ def main(argv: list[str]) -> int:
         records = []
 
     sources = {t.source for t in tickets}
-    floors = {s: inspector.min_rows_floor(REPO, s) for s in sources}
-    floors = {s: f for s, f in floors.items() if f is not None}
+    floors = resolve_floors(sources)
 
     rows = build_rows(tickets, records, floors)
     if args.json:
