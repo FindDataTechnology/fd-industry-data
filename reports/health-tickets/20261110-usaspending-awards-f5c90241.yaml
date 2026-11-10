@@ -25,6 +25,19 @@ golden:
 lifecycle:
 - at: '2026-11-10T17:58:46.569707+00:00'
   event: created
+- at: '2026-11-10T18:05:50.086476+00:00'
+  event: submitted
+  http_status: 402
+  ok: false
+  verdict: error
+  response: '{"code": "PLAN_EXHAUSTED", "message": "the caller''s serving plan has
+    no minutes left — ask the operator to adjust the plan"}'
+- at: '2026-11-10T18:05:58.305046+00:00'
+  event: status
+  http_status: 402
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:
