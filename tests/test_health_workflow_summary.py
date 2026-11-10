@@ -91,5 +91,39 @@ class SummaryCapTests(unittest.TestCase):
                                 f"截断 {summary_cap()} < 实际输出 {len(lines)} 行，尾巴会被切掉")
 
 
+class ObservationStepContractTests(unittest.TestCase):
+    """观察步骤的两条结构性不变量——改坏任一条，观察面都会静默失效。"""
+
+    def test_must_use_from_pg(self):
+        """必须带 `--from-pg`。
+
+        去掉它 → 脚本拿不到遥测 → rc=2 拒绝写表 → 观察表永远不增长，而步骤
+        「不阻断」，UI 上仍是绿的（只有一行 warning）。2026-11-10 那次
+        ModuleNotFoundError 就是这么藏了两天。
+        """
+        run = _obs_step()["run"]
+        self.assertIn("--from-pg", run, "观察步骤没带 --from-pg：会静默退化成「不写表」")
+
+    def test_must_run_before_landing_gate(self):
+        """必须在「落库门」之前。
+
+        观察表那一行是靠落库门的 `git add` + commit 进仓库的；把这一步挪到落库门
+        之后，行会写进容器里的文件却永远不会被提交——看起来「每天都在追加」，
+        实际远端一行没变。
+        """
+        steps = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))["jobs"]["inspect"]["steps"]
+        names = [(s.get("name") or "") for s in steps]
+        obs = next(i for i, n in enumerate(names) if STEP_NAME in n)
+        gate = next((i for i, n in enumerate(names) if "landing gate" in n.lower()), None)
+        self.assertIsNotNone(gate, "找不到落库门步骤")
+        self.assertLess(obs, gate, "观察步骤排到落库门之后了：行写得进去但提交不了")
+
+    def test_landing_gate_stages_the_log(self):
+        """落库门必须 `git add` 观察表这个文件，否则前面那条也没意义。"""
+        steps = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))["jobs"]["inspect"]["steps"]
+        gate = next(s for s in steps if "landing gate" in (s.get("name") or "").lower())
+        self.assertIn("docs/min-rows-observation-log.md", gate["run"])
+
+
 if __name__ == "__main__":
     unittest.main()
