@@ -531,6 +531,26 @@ prompt 在磁盘上读不到），它跑的就是本仓这条 workflow 的同一
 撤声明时记下的原值（25/25/30）；两条用例钉住「回退生效」与「不覆盖仍在声明的源」，
 反向移除回退 → 1 条红。
 
+**一条命令取三行**（自带判空：rc=0 取到、rc=3 该 run 里没有这一步、rc=2 取不到 job）：
+
+```bash
+ID=$(gh run list --workflow=health-inspect.yml --event=schedule --limit 1 \
+       --json databaseId -q '.[0].databaseId')
+JOB=$(gh api "repos/FindDataTechnology/fd-industry-data/actions/runs/$ID/jobs" \
+       -q '.jobs[0].id')
+OUT=$(gh api "repos/FindDataTechnology/fd-industry-data/actions/jobs/$JOB/logs" 2>/dev/null \
+  | sed 's/\x1b\[[0-9;]*m//g' \
+  | sed -E 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z //' \
+  | grep -A6 "近 7 天的 rule1c" | grep -vE "^$|^读法" | head -6)
+[ -z "$OUT" ] && { echo "run $ID 里没有「近 7 天的 rule1c」：未到点或步骤没跑到，不要填" >&2; exit 3; }
+echo "$OUT"
+```
+
+**这条命令验过两向**（2026-11-11 01:33 CST）：
+- 对已知含该步骤的 run `42864611853` → 取到 4 行（表头 + 三源），rc=0；
+- 对步骤上线前的 schedule run `42740120332` → **取不到**并打印「该 run 不含此步骤」，rc=3。
+  说明"空输出"能被区分出来，不会把"没跑到"当成"零误报"。
+
 | 项 | 实测 | 结论 |
 |---|---|---|
 | `--days 7`（无 DSN） | 3 张单、3 个源，最后一列全"未声明" | 可跑，但**不能判 E2** |
@@ -538,4 +558,4 @@ prompt 在磁盘上读不到），它跑的就是本仓这条 workflow 的同一
 | 无 DSN 直接 `--from-pg` | `ValueError: FD_CENTRAL_PG_DSN is required`，rc=1 | 退化行为已写明，别当"零误报" |
 | **接入巡检后的首次真跑**（run `42862732510`，2026-11-11 01:17 CST，真 DSN） | 3 张单、3 个源；下限 25/25/30；出单后达标全 0；无 `##[warning]误报率核对失败` | 步骤跑通，分子分母可算：**观察期内新增 0 张**，全历史仍 3 张（全 E1），工单级 100%（3/3，分母 3 不可外推） |
 | **`49b292a` 定点验证**（run `42864611853`，2026-11-11 01:28 CST，`headSha=49b292a`） | `conclusion=success`；摘要输出同上（3 张 / 3 源 / 25·25·30 / 达标全 0）；workflow `state=active` | **49b292a 在 Actions 上解析并通过绿跑**——不是靠"1f832d6 绿过所以它也绿"的推断，而是用该 SHA 直接 dispatch 跑出来的（另：`git diff 1f832d6 49b292a -- .github/ scripts/` 为空，两版工作流一字未变） |
-| **次日 03:17 CST 的定时 run** | ⏳ **未落地**（2026-11-11 01:40 CST 核对时，最新 schedule run 仍是 `42740120332` / 11-10T02:03Z） | 待补。定时触发实测延迟 3.4–6.8h（见 §11.4），预计落在 **06:30–10:00 CST**；补法：`gh run list --workflow=health-inspect.yml --event=schedule --limit 1 --json databaseId,createdAt` 取 id，再读该 job 日志里「近 7 天的 rule1c」那段，补进本表 |
+| **次日 03:17 CST 的定时 run** | ⏳ **未落地**（2026-11-11 01:33 CST 核对，最新 schedule run 仍是 `42740120332` / 11-10T02:03Z） | 待补。定时触发实测延迟 3.4–6.8h（见 §11.4），预计落在 **06:30–10:00 CST**。到点用上方「一条命令取三行」：rc=0 即拿到、rc=3 说明该 run 里没有这一步（未到点/步骤没跑到），此时**不要**填 |
