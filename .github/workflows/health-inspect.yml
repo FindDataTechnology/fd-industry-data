@@ -116,6 +116,29 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
           python3 scripts/health_inspect.py --from-pg --emit $ARGS
 
+      # 渲染对账（harden-crawl-delivery 6.2 守卫）：内容仓说"停用"、集群却仍在调度
+      # 的源必须每天被抓出来。2026-11-09 实测：bls / cncotton 在 11-08 就被 park，
+      # 但 CronJob 一直 suspend=false 照常每天跑，直到人工发现。
+      #
+      # 只在**有漂移时**报红，交给下一步的工单落仓处理；平时绿，不产生噪音。
+      # 说明：--skip-cluster 不用——对账的价值就在于看集群实际形态；GHA runner 有
+      # fd-industry 的 kubeconfig（secrets.KUBECONFIG_TENCENT）。
+      - name: Render reconciliation — 停用源是否仍在集群里调度
+        working-directory: src
+        env:
+          FD_CRAWL_DB_URL: ${{ secrets.FD_CENTRAL_PG_DSN }}
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG_TENCENT }}
+        run: |
+          if [ -z "${KUBECONFIG_DATA:-}" ]; then
+            echo "::warning::KUBECONFIG_TENCENT 未配置，跳过集群侧对账（只查源清单）"
+            python3 scripts/reconcile_render.py --skip-cluster --db || true
+            exit 0
+          fi
+          mkdir -p "$HOME/.kube"
+          printf '%%s' "$KUBECONFIG_DATA" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          python3 scripts/reconcile_render.py --db
+
       # 落仓门（fix-health-ticket-landing-race）：工单必须先推到远端可见。
       # 此前同一进程既写盘又投递，agent 回 GitHub 读到 404 → 拒收转人工，
       # 2026-10-06 / 10-11 各烧掉一批工单。
