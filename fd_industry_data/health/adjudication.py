@@ -462,7 +462,19 @@ def apply_freeze(plan, repo) -> list[str]:
         source = getattr(item, "source", None)
         if source in frozen:
             blocked.append(source)
-            plan.deferred.append({"source": source, "reason": FREEZE_DEFER_REASON})
+            # 顺延条目必须带判词（category/rule）——与 write_plan 里日限额/去重那几条
+            # 同一口径。2026-11-11 实测发现这条路径漏了：观察脚本的指纹 ③
+            # 「deferred 带 category/rule」因此长期是 ✗（1 条），把"新代码在跑"的
+            # 自检信号搞成常红。verdict 用 getattr 取，保持本函数对 plan 的鸭子类型
+            # 契约（单测会传只有 source 的假 item）。
+            verdict = getattr(item, "verdict", None)
+            rule_trace = (getattr(verdict, "rule_trace", "") or "") if verdict else ""
+            plan.deferred.append({
+                "source": source,
+                "category": getattr(verdict, "category", None) if verdict else None,
+                "rule": (rule_trace.split(":")[0] or None) if rule_trace else None,
+                "reason": FREEZE_DEFER_REASON,
+            })
         else:
             kept.append(item)
     plan.emit[:] = kept

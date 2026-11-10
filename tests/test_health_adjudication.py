@@ -11,7 +11,7 @@ import yaml
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from fd_industry_data.health import adjudication  # noqa: E402
+from fd_industry_data.health import adjudication, triage  # noqa: E402
 from fd_industry_data.health import inspector  # noqa: E402
 from fd_industry_data.health.ticket import (  # noqa: E402
     dump_ticket,
@@ -177,8 +177,36 @@ def test_apply_freeze_blocks_new_tickets_for_escalated_source(tmp_path):
     blocked = adjudication.apply_freeze(plan, repo)
     assert blocked == ["alpha"]
     assert [e.source for e in plan.emit] == ["beta"]          # 新单只留未冻结源
-    assert plan.deferred == [
-        {"source": "alpha", "reason": adjudication.FREEZE_DEFER_REASON}]
+    assert plan.deferred == [{
+        "source": "alpha", "category": None, "rule": None,
+        "reason": adjudication.FREEZE_DEFER_REASON,
+    }]
+
+
+def test_apply_freeze_deferral_carries_verdict(tmp_path):
+    """冻结顺延也要带判词（category/rule），与日限额/去重那几条同口径。
+
+    2026-11-11 实测：这条路径原本只写 {source, reason}，导致观察脚本的指纹 ③
+    「deferred 带 category/rule」长期 ✗——把"新代码在跑"的自检信号搞成常红。
+    """
+    repo, tickets = _mk_repo(tmp_path)
+    _mk_ticket(tickets, "alpha", "20261101")
+    _mk_ticket(tickets, "alpha", "20261103")
+    adjudication.scan_escalations(tickets, repo, now=NOW)
+
+    plan = inspector.Plan(
+        emit=[inspector.Emit(source="alpha", unit="spiders/alpha/",
+                             verdict=triage.Verdict(category="structure", needs_human=False,
+                                                    suspected_anti_bot=False,
+                                                    suggested_action="x",
+                                                    rule_trace="rule1c:success-but-too-few-rows"),
+                             runs=[])],
+        deferred=[], healthy=0, skipped_unknown_period=[])
+    adjudication.apply_freeze(plan, repo)
+    entry = plan.deferred[0]
+    assert entry["category"] == "structure"
+    assert entry["rule"] == "rule1c", "取 rule_trace 冒号前那段，与 write_plan 一致"
+    assert entry["reason"] == adjudication.FREEZE_DEFER_REASON
 
 
 def test_apply_freeze_does_not_touch_inflight_tickets(tmp_path):

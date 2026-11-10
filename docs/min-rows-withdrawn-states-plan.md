@@ -259,22 +259,46 @@ ModuleNotFoundError: No module named 'fd_industry_data'
 | 该次**带 `--from-pg`** | workflow 第 135 行：`python3 scripts/min_rows_observation.py --from-pg --append ...`；只有这一条调用路径 | ✓ |
 | 脚本**真跑通**（不再 ImportError） | 落库门提交 `5513888` 在 `docs/min-rows-observation-log.md` 追加**恰好一行** `\| 2026-11-11 \| 118 \| 0 \| — \| — \| month(840h) \|` | ✓ `healthy=118` 只有读到库才可能算出来 |
 | **表格未被小节隔断** | `git show 5513888 -- docs/min-rows-observation-log.md` → 1 行新增，紧跟 11-10 行之后，位于最后一个表格块内 | ✓ |
-| 三行窗口态 | 三行在 `--append` **之前**打印，行写进去了说明已打印；三窗口（11-12/15/17）当时均未到 → 全 `pending` | ✓（推断，见下） |
-| 退出码 | 同上：全 `pending` → `rc=0`，故该步骤没有出 `::warning::` | **0（推断，日志待取）** |
+| 三行窗口态 | job log 原文（run 结束后取到） | ✓ 见下 |
+| 退出码 | 日志里**没有** `##[warning]观察表追加失败`（唯一出现的那句是 workflow 源码回显） | **0** |
 
-**"推断"标出来的原因（不含糊）**：`Deliver` 步骤还在跑（就是 `—dry-run` 未覆盖
-`sync_status` 那个已知缺陷，约 999s），run 未结束 → GitHub 的 job log 还取不到，
-所以三行的原文与 `rc=` 我**没有**拿到字面证据。等 run 结束后可补：
+三行原文（`gh api .../actions/jobs/129965862309/logs`，已去 ANSI）：
 
-```bash
-gh api repos/FindDataTechnology/fd-industry-data/actions/jobs/129965862309/logs \
-  | grep -E "三源窗口态|窗口 11-|rc="
+```
+已追加到 docs/min-rows-observation-log.md
+四项上线指纹：
+  ① unregistered_sources 字段: 有 ✓ ['example-stock', 'yfinance']
+  ② skipped_unknown_period 无调用栈: ✓ []
+  ③ deferred 带 category/rule: ✗（1 条）
+  ④ blocked_config_sources 字段: 有 ✓ []
+三源窗口态（暂撤声明）：
+  gb-standards   窗口 11-12 02:25  …pending     窗口未到（还有 25.9h）
+  cisa           窗口 11-15 01:29  …pending     窗口未到（还有 96.9h）
+  boxofficemojo  窗口 11-17 03:14  …pending     窗口未到（还有 146.7h）
 ```
 
-已确证的是**功能链通了**（读库成功 → 算出行 → 落库门提交），这与"步骤色绿"是两件事：
-本次证据取的是**产物**（那一行提交），不是结论。
+`rc=0` 的判据不是"步骤绿"，而是日志里没有那句 warning——`set +e` 下这行只是
+`::warning`，步骤结论永远是 success。
 
-### 10.3 这个缺陷的教训（值得单独记）
+### 10.3 顺带查出的第二个缺陷：**冻结路径的顺延条目没有判词**
+
+上面 `③ deferred 带 category/rule: ✗（1 条）` 不是新代码没生效，是真的缺字段。
+顺延条目有两条产生路径：
+
+| 路径 | 位置 | 判词 |
+|---|---|---|
+| 日限额 / 去重 / 非终态 | `inspector.write_plan`（`872-880`） | ✓ 有 `category` + `rule` |
+| **裁决冻结** | `adjudication.apply_freeze`（原 `465`） | ✗ **只写 `{source, reason}`** |
+
+这正是 11-09「顺延条目必须说清它本该是什么」那条修复**漏掉的第二条路径**。后果不是
+"少了点信息"，而是**指纹 ③ 变成常红**——一个设计用来证明"新代码在跑"的信号，被一个
+与部署无关的字段缺口长期点亮，久了就没人看它了。
+
+已修（`apply_freeze` 从 `item.verdict` 取 `category` 与 `rule_trace` 冒号前那段，
+与 `write_plan` 同口径，并用 `getattr` 保持鸭子类型契约）；新用例
+`test_apply_freeze_deferral_carries_verdict` 断言三件事，反向还原旧实现 → **2 条红**。
+
+### 10.4 这一轮的三条教训
 
 - **非阻断步骤必须看产物，不能看结论**。`set +e` + `exit 0` 让失败在 UI 上完全隐身。
 - **脚本要自带 `sys.path` 引导**：`python3 scripts/x.py` 的 `sys.path[0]` 是 `scripts/`，
@@ -282,3 +306,14 @@ gh api repos/FindDataTechnology/fd-industry-data/actions/jobs/129965862309/logs 
 - **我的第一次验证是假证明**：用 `python3 -c` 验 import，而 `-c` 的 `sys.path[0]` 是
   **cwd**——正好落在仓库根，所以"移除引导也成功"。改成按真形态跑**脚本文件**、
   cwd 不在仓库根，才复现出 `ModuleNotFoundError`。
+- **自检信号被无关缺口长期点亮＝信号报废**：指纹 ③ 常红不是"新代码没上"，而是冻结路径
+  少两个字段。红灯太久就没人看了，所以指纹类断言也要定期问"它红的原因是我的目标变量吗"。
+
+### 10.5 仍待办
+
+| 项 | 状态 |
+|---|---|
+| 11-11 03:17 的**定时** run（非 dispatch） | 未到（核对时 00:24 CST）；dispatch 已验同一条路径，定时只是触发方式不同 |
+| gb-standards 11-12 02:25 窗口 | 待到期，到点看 `check_withdrawn_sources.py` 或观察表的窗口态三行 |
+| cisa 11-15 / boxofficemojo 11-17 | 同上 |
+| 指纹 ③ 下一次运行是否转绿 | 待下一次巡检（修复已提交，代码从 github 浅克隆进入运行环境） |
