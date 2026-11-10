@@ -56,5 +56,11 @@ lifecycle:
   verdict: error
   response: '{"code": "TURN_IN_FLIGHT", "message": "a turn for this caller and agent
     is already running; retry after the hint"}'
+- at: '2026-11-10T04:46:34.773264+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: accepted
+  response: 我先加载工单协议和修复流程技能。
 terminal: null
 evidence_signature: 98c4b7d37a4c

@@ -55,5 +55,15 @@ lifecycle:
   verdict: error
   response: '{"code": "TURN_IN_FLIGHT", "message": "a turn for this caller and agent
     is already running; retry after the hint"}'
+- at: '2026-11-10T04:49:11.350464+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: duplicate
+  response: '已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261109-cisa-10eec66b.yaml（队列第
+    1 位）
+
+
+    > 状态文件降级至 /tmp/.spider-heal/inbox.json（$DSH_HOME/spider-heal/ 不可写）'
 terminal: null
 evidence_signature: 98c4b7d37a4c

@@ -59,5 +59,8 @@ lifecycle:
   verdict: error
   response: '{"code": "TURN_IN_FLIGHT", "message": "a turn for this caller and agent
     is already running; retry after the hint"}'
+- at: '2026-11-10T04:52:17.744420+00:00'
+  event: submit-failed
+  error: Remote end closed connection without response
 terminal: null
 evidence_signature: 98c4b7d37a4c
