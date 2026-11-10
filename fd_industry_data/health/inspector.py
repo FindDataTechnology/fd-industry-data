@@ -52,6 +52,8 @@ _SUBMIT_TURN_BUDGET_S = 90.0   # 单张单的等待预算（实测 agent 回合 
 # 吞吐实测（2026-11-10）：turn 串行，单张 20–150s；workflow 窗口 45 分钟、常规步 9 分钟，
 # 故批量等待预算取 30 分钟（20 分钟余量），一轮可清 20 张上下。此前 420s 太保守，
 # 一轮只推进 2 张，54 张积压要排一个月。
+_SUBMIT_INLINE = True          # SUBMIT 是否附工单全文（现役 agent 无仓读取权限）
+
 _POSTER_RETRY_BACKOFF_S = 3.0  # 连接层失败重试退避（3s/6s 两跳）
 
 _SUBMIT_MAX_TICKETS_PER_RUN = 24
@@ -1041,6 +1043,14 @@ def parse_submit_verdict(status: int, raw_text: str, message: str) -> dict:
     verdict = "unknown"
     reason = ""
     state = None
+    # hollow-ok 前置判据（2026-11-10 实录）：agent 收下了消息但**读不到工单实体**，
+    # 回执里明说「工作区不含该仓库 / 无法读取该工单文件 / 请贴 SUBMIT-INLINE」。
+    # 这种回执此前因为带「我理解了协议」被判 accepted，工单从此不再重投——
+    # 54 张 generate 单就是这样整整一个月没入队。判 refused（可重投）而不是 error，
+    # 因为重投是有意义的：正文内联后同一张单就能被处理。
+    if status < 400 and _looks_hollow(message or raw_text):
+        return {"verdict": "refused", "reason": "hollow receipt: agent 读不到工单实体",
+                "state": None, "response_excerpt": (raw_text or "")[:300]}
     if status >= 400:
         verdict, reason = "error", f"HTTP {status}"
     else:
@@ -1088,6 +1098,49 @@ def _looks_failed(status: int, raw_text: str, message: str) -> bool:
     ``unknown`` 不再算成功（那正是本 change 修的缺陷），由调用点按次数上限处理。
     """
     return parse_submit_verdict(status, raw_text, message)["verdict"] in ("refused", "error")
+
+
+def _submit_body(repo_slug: str, rel: str, path: Path, inline: bool) -> str:
+    """构造 SUBMIT 正文。
+
+    **为什么必须内联**（2026-11-10 实测）：协议原形是 ``SUBMIT <repo> <path>``，
+    agent 按路径去读仓；但现役 spider-heal agent 的工作区是平台工作区（/app），
+    **不含 fd-industry-data 仓库**——它回执原文说「无法直接读取该工单文件，能否用
+    SUBMIT-INLINE 把 YAML 发我」。而我们把这种回执判成了 accepted（hollow-ok），
+    于是 54 张 generate 单自 2026-10-04 起从未真正入队、也永不重投。
+
+    现在两种都发：先给路径（兼容有仓的部署），再附完整 YAML（给无仓的部署）。
+    """
+    head = f"SUBMIT {repo_slug} {rel}"
+    if not inline:
+        return head
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError:
+        return head
+    return (
+        f"{head}\n\n"
+        f"SUBMIT-INLINE {repo_slug} {rel}\n"
+        "（若你的工作区不含该仓库、无法按路径读取，请直接用下面的工单全文，"
+        "不要索要更多信息。）\n"
+        "```yaml\n" + raw.strip() + "\n```"
+    )
+
+
+HOLLOW_MARKERS = (
+    "无法直接读取该工单", "无法读取该工单", "不包含", "无法访问", "读不到",
+    "submit-inline", "SUBMIT-INLINE", "工作区", "请在消息中提供", "把工单内容",
+)
+
+
+def _looks_hollow(text: str) -> bool:
+    """回执是不是「收到了但读不到工单实体」（hollow-ok 形态）。
+
+    判据取**两条以上**标记同时出现，避免把正常受理回执里偶然出现的「工作区」误判。
+    """
+    low = (text or "").lower()
+    hits = sum(1 for m in HOLLOW_MARKERS if m.lower() in low)
+    return hits >= 2
 
 
 def _is_turn_in_flight(status: int, raw_text: str) -> bool:
@@ -1181,7 +1234,8 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
             idem = f"{p.name[:-5]}-try{prior + 1}"
             entry["attempt"] = prior + 1
             try:
-                status, text = poster(url, key, idem, f"SUBMIT {repo_slug} {rel}")
+                body = _submit_body(repo_slug, rel, p, inline=_SUBMIT_INLINE)
+                status, text = poster(url, key, idem, body)
                 # turn 被占：有界等待后重试同一张单；预算耗尽则本批停手
                 waited = 0.0
                 turn_budget = min(_SUBMIT_TURN_BUDGET_S,
@@ -1190,8 +1244,7 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                     time.sleep(_SUBMIT_TURN_POLL_S)
                     waited += _SUBMIT_TURN_POLL_S
                     batch_waited += _SUBMIT_TURN_POLL_S
-                    status, text = poster(url, key, f"{idem}-w{int(waited)}",
-                                          f"SUBMIT {repo_slug} {rel}")
+                    status, text = poster(url, key, f"{idem}-w{int(waited)}", body)
                 if _is_turn_in_flight(status, text):
                     entry.update({
                         "submitted": False,

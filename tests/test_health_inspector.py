@@ -421,7 +421,10 @@ def test_submit_calls_once_with_idempotency(tmp_path):
     res1 = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS, poster=poster)
     assert res1[0]["submitted"] is True
     assert calls[0][2] == f"{p.name[:-5]}-try1"               # 幂等键按次递增
-    assert calls[0][3] == f"SUBMIT Org/repo reports/health-tickets/{p.name}"
+    # 正文首行仍是原协议（兼容有仓的部署），其后附 SUBMIT-INLINE 全文——
+    # 现役 agent 工作区不含该仓，只给路径它读不到（2026-11-10 实录，hollow-ok）。
+    assert calls[0][3].startswith(f"SUBMIT Org/repo reports/health-tickets/{p.name}")
+    assert "SUBMIT-INLINE" in calls[0][3] and "kind:" in calls[0][3]
     res2 = inspector.submit_new_tickets(outdir, "Org/repo", "https://x", "k", DEFAULTS, poster=poster)
     assert res2 == [] and len(calls) == 1                   # 已提交不重复
 

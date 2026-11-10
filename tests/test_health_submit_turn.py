@@ -200,3 +200,38 @@ def test_poster_does_not_retry_http_error(monkeypatch):
     assert status == 409
     assert "TURN_IN_FLIGHT" in text
     assert len(calls) == 1, "HTTPError 不得重试"
+
+
+def test_submit_body_carries_inline_yaml(tmp_path):
+    """SUBMIT 必须内联工单全文：现役 agent 工作区不含该仓（2026-11-10 回执原文）。"""
+    doc = tm.new_ticket(source="inline", unit="spiders/inline/", kind="generate",
+                        brief={"source_urls": ["https://e.com"], "expectations": "x"},
+                        evidence=EV, verify_commands=["true"])
+    f = tmp_path / "20261110-inline.yaml"
+    f.write_text(tm.dump_ticket(doc), encoding="utf-8")
+
+    body = ins._submit_body("org/repo", "reports/health-tickets/20261110-inline.yaml", f, True)
+    assert body.startswith("SUBMIT org/repo reports/health-tickets/20261110-inline.yaml")
+    assert "SUBMIT-INLINE" in body
+    assert "```yaml" in body
+    assert "kind: generate" in body, "工单全文必须在正文里"
+    # 关掉内联时退回原协议（兼容有仓的部署）
+    plain = ins._submit_body("org/repo", "x.yaml", f, False)
+    assert plain == "SUBMIT org/repo x.yaml"
+
+
+def test_hollow_receipt_is_not_accepted():
+    """「读不到工单」的回执不得判成 accepted——它是 hollow-ok，会让工单永不重投。
+
+    原文字（2026-11-10 实录）：「我理解了协议。…但当前工作区（/app）是平台工作区，
+    不包含 fd-industry-data 仓库，因此无法直接读取该工单文件。」
+    """
+    hollow = (
+        '{"result": {"parts": [{"kind": "text", "text": "我理解了协议。您提交了一张工单。'
+        '但当前工作区（/app）是平台工作区，不包含 fd-industry-data 仓库，因此无法直接读取该工单文件。'
+        '请问您能否通过 SUBMIT-INLINE 方式把工单 YAML 内容直接发给我？"}]}}'
+    )
+    verdict = ins.parse_submit_verdict(200, hollow, ins.extract_message_text(hollow))
+    assert verdict["verdict"] != "accepted", (
+        f"读不到工单的回执被判成 {verdict['verdict']}；这会让工单永不重投"
+    )
