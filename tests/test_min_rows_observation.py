@@ -116,6 +116,19 @@ class AppendTests(unittest.TestCase):
         self.assertIn("`cisa`", row)
         self.assertIn("`cisa`:3", row)
 
+    def test_append_refuses_without_telemetry(self):
+        """没遥测就不许写表：空 records 会写出一行「全绿假行」。
+
+        2026-11-10 实测：不带 --from-pg 直接 `--append`，脚本照常打印
+        `| 2026-11-10 | — | 0 | — | — | ...`，只要当天还没有记录就会写进去。
+        那次没暴露是因为当日行已由 workflow 写过——靠"恰好已有记录"兜底不算兜底。
+        """
+        before = self.log.write_text(self.m.HEADER, encoding="utf-8")
+        rc = self.m.main(["--append", str(self.log)])
+        self.assertEqual(rc, 2, "无遥测时必须拒绝，返回 2")
+        self.assertEqual(self.log.read_text(encoding="utf-8"), self.m.HEADER,
+                         "拒绝时文件必须一字不改")
+
 
 if __name__ == "__main__":
     unittest.main()

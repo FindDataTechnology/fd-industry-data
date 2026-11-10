@@ -210,6 +210,16 @@ def main(argv: list[str]) -> int:
     else:
         records = []
 
+    # 没有遥测就拒绝写表：空 records 会产出一行 healthy=`—`、rule1c=0、超窗=`—`
+    # 的**全绿假行**——比不写更糟，读表的人只会看到「今天没问题」，而其实什么都没测。
+    # 2026-11-10 实测：不带 --from-pg 直接 `--append` 就是这种形态（脚本照常打印一行，
+    # 只要当天还没有记录就会被写进去）。同日行早先由 workflow 用 --from-pg 写过，
+    # 所以那次没暴露出来——靠"恰好已有记录"兜底不算兜底。
+    if args.append and not records:
+        print("拒绝追加：没有遥测（需要 --from-pg 或 --snapshot）。"
+              "空记录只能写出「全绿假行」，宁可不写。", file=sys.stderr)
+        return 2
+
     repo = REPO
     floors = {}
     for p in sorted((repo / "spiders").glob("*/manifest.yaml")):
