@@ -34,11 +34,30 @@ import urllib.request
 from datetime import datetime, timezone
 
 SOURCE = "nasa-firms"
-CSV_URL = (
+SUOMI_URL = (
     "https://firms.modaps.eosdis.nasa.gov/data/active_fire/"
     "suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv"
 )
-INSTRUMENT = "VIIRS"  # 产品身份 SUOMI_VIIRS_C2 的传感器常量（上游 CSV 无此列）
+# 候选平台阶梯（按优先级）。上游按平台发布同名 CSV，某个平台停更/发空时换下一个
+# 活着的平台，而不是让整条源天天失败。
+#
+# 2026-11-10 实测（这就是加阶梯的原因）：
+#   S-NPP(SUOMI)  24h → 200 但只有表头；同产品 7d → 35,261 行，**全部是 2026-11-02**，
+#                 而文件本身今天 04:53 还在重新生成 —— 停更 8 天，但「200 + 有行」
+#                 照样成立。只看有没有行会静默灌进 8 天前的数据。
+#   NOAA-20(N20)  24h → 67,702 行，acq_date = 11-09/11-10（当日）
+#   NOAA-21(N21)  24h → 42,970 行，acq_date = 11-09
+PLATFORMS = (
+    ("N20", "https://firms.modaps.eosdis.nasa.gov/data/active_fire/"
+            "noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv"),
+    ("N21", "https://firms.modaps.eosdis.nasa.gov/data/active_fire/"
+            "noaa-21-viirs-c2/csv/J2_VIIRS_C2_Global_24h.csv"),
+    ("N",   SUOMI_URL),
+)
+# 快照里最新 acq_date 距今超过这么多天 → 判为「陈」，换下一个平台。
+# 24h 窗口天然跨两天（UTC 日界），2 天留一格余量，再宽就会把停更当正常。
+MAX_SNAPSHOT_AGE_DAYS = 2
+INSTRUMENT = "VIIRS"  # VIIRS 传感器常量（上游 CSV 无此列；各平台的 satellite 码不同）
 
 # 实测 13 列：浮点列 / 字符串列
 FLOAT_COLS = ("latitude", "longitude", "bright_ti4", "scan", "track",
@@ -56,11 +75,75 @@ HEADERS = {
 TIMEOUT = 120  # 秒；快照约 8.7 MB，给足带宽余量，不重试、不加频次
 
 
-def _fetch_csv() -> str:
+def _fetch_csv(url: str) -> str:
     """拉取快照 CSV 文本（仅固定 https 产品文件；无鉴权、无重试放大）。"""
-    req = urllib.request.Request(CSV_URL, headers=HEADERS)
+    req = urllib.request.Request(url, headers=HEADERS)
     with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
         return resp.read().decode("utf-8", "replace")
+
+
+def _snapshot_freshness(text: str) -> tuple[int, str | None]:
+    """快照里 (可用行数, 最新 acq_date)。只读两列，不做完整解析。"""
+    reader = csv.DictReader(io.StringIO(text))
+    header = reader.fieldnames or []
+    if "acq_date" not in header:
+        return 0, None
+    rows = 0
+    newest: str | None = None
+    for raw in reader:
+        if not _text(raw.get("acq_date")):
+            continue
+        rows += 1
+        date = str(raw["acq_date"]).strip()
+        if newest is None or date > newest:      # yyyy-mm-dd 字典序即时序
+            newest = date
+    return rows, newest
+
+
+def _snapshot_age_days(newest: str | None, now: datetime) -> int | None:
+    if not newest:
+        return None
+    try:
+        stamp = datetime.strptime(newest, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+    return (now.date() - stamp.date()).days
+
+
+def _pick_snapshot(now: datetime | None = None) -> tuple[str, str]:
+    """按 ``PLATFORMS`` 顺序挑第一份**有行且不陈**的快照，返回 (url, 文本)。
+
+    两个失败形态都要挡，缺一不可：
+    * 文件只有表头（上游把该平台发布成空）；
+    * 文件有行但内容停留在几天前（文件每天重生成，行数照旧）——2026-11-10
+      S-NPP 就是这种：35,261 行全是 8 天前。
+    全部不可用时抛 ``RuntimeError``，逐平台写清原因（转人工）。
+    """
+    now = now or datetime.now(timezone.utc)
+    reasons: list[str] = []
+    for code, url in PLATFORMS:
+        try:
+            text = _fetch_csv(url)
+        except Exception as exc:  # noqa: BLE001 - 逐个平台降级，最后统一报
+            reasons.append(f"{code}: 拉取失败 {type(exc).__name__}: {exc}")
+            continue
+        rows, newest = _snapshot_freshness(text)
+        if rows == 0:
+            reasons.append(f"{code}: 快照无数据行")
+            continue
+        age = _snapshot_age_days(newest, now)
+        if age is None:
+            reasons.append(f"{code}: acq_date 不可解析（最新={newest!r}）")
+            continue
+        if age > MAX_SNAPSHOT_AGE_DAYS:
+            reasons.append(f"{code}: 快照陈旧 {age} 天（最新 acq_date={newest}）")
+            continue
+        if code != PLATFORMS[0][0]:
+            print(f"{SOURCE}: 首选平台不可用，改用 {code}；原因 {reasons}", file=sys.stderr)
+        return url, text
+    raise RuntimeError(
+        f"{SOURCE}: 全部平台无可用快照（上游空窗/停更或布局变更，转人工）；{reasons}"
+    )
 
 
 def _num(value):
@@ -90,7 +173,7 @@ def run_nasa_firms(limit: int = 100) -> list[dict]:
     if limit <= 0:
         return []
 
-    text = _fetch_csv()
+    url, text = _pick_snapshot()
     reader = csv.DictReader(io.StringIO(text))
     header = reader.fieldnames or []
     missing = [c for c in FLOAT_COLS + STR_COLS if c not in header]
@@ -122,7 +205,7 @@ def run_nasa_firms(limit: int = 100) -> list[dict]:
             "confidence": _text(raw.get("confidence")),
             "version": _text(raw.get("version")),
             "daynight": _text(raw.get("daynight")),
-            "url": CSV_URL,
+            "url": url,
             "source": SOURCE,
             "scraped_at": datetime.now(timezone.utc).isoformat(),
         })

@@ -1,4 +1,4 @@
-# nasa-firms —— NASA FIRMS 全球 24h 活跃火点（S-NPP VIIRS C2）
+# nasa-firms —— NASA FIRMS 全球 24h 活跃火点（VIIRS，平台阶梯）
 
 新源接入档案。工单：`reports/health-tickets/20261006-nasa-firms-1bd9e18a.yaml`
 （`kind=generate`，brief 侦察簿 W1-I）。
@@ -7,7 +7,9 @@
 
 | 用途 | 端点 | 说明 |
 |---|---|---|
-| 24h 火点快照 | `GET https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv` | 静态产品 CSV，免 key（MAP_KEY 仅 FIRMS API 需要），约 8.7 MB / 10 万+ 行，每日滚动 |
+| 24h 火点快照（首选） | `GET .../noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv` | 静态产品 CSV，免 key（MAP_KEY 仅 FIRMS API 需要），每日滚动 |
+| 24h 火点快照（备选 1） | `GET .../noaa-21-viirs-c2/csv/J2_VIIRS_C2_Global_24h.csv` | 同上 |
+| 24h 火点快照（备选 2） | `GET .../suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv` | 同上；**2026-11-10 实测该产品已停更**，排最后 |
 
 入口：`run_nasa_firms(limit=100) -> list[dict]`（`spider.py`）。仅用标准库
 `urllib` + `csv`，无新依赖。
@@ -22,8 +24,8 @@
 | `frp` | 同名列 | 火辐射功率（MW） |
 | `acq_date` | 同名列 | 过境日期 `yyyy-mm-dd`（**每日滚动**） |
 | `acq_time` | 同名列 | 过境时刻 HHMM **保留字符串**（不丢前导零，如 `0117`） |
-| `satellite` | 同名列 | `N` = Suomi NPP（该产品常量） |
-| `instrument` | 派生常量 | 上游 CSV **无此列**；按产品身份 `SUOMI_VIIRS_C2` 补 `VIIRS` |
+| `satellite` | 同名列 | 服务该快照的平台：`N20` = NOAA-20 / `N21` = NOAA-21 / `N` = Suomi NPP |
+| `instrument` | 派生常量 | 上游 CSV **无此列**；各平台产品同为 VIIRS C2，补常量 `VIIRS` |
 | `confidence` | 同名列 | l / n / h |
 | `version` | 同名列 | 处理版本（如 `2.0NRT`） |
 | `daynight` | 同名列 | D / N |
@@ -31,8 +33,16 @@
 
 ## 坑位与容错（brief.notes 逐条落实）
 
-- **每日滚动**：快照每天全量换血——golden 只锚经常量列（`instrument`/`satellite`/
-  `source`/`url`，即列名集合）+ `min_rows`，**绝不锚**日期/计数/坐标/当期数值。
+- **每日滚动**：快照每天全量换血——golden 只锚经常量列（`instrument`/`source`，
+  即列名集合）+ `min_rows`，**绝不锚**日期/计数/坐标/当期数值。`satellite`/`url`
+  随平台阶梯变化，**不再进 golden**（2026-11-10 起）。
+- **快照可用性三条判据**（缺一条就会静默灌脏数据）：
+  1. 有数据行（只有表头 = 上游把该平台发空）；
+  2. 最新 `acq_date` 距今不超过 `MAX_SNAPSHOT_AGE_DAYS = 2`（24h 窗口跨 UTC 日界）；
+  3. 逐平台降级，全废才 `RuntimeError`，错误里逐条写清每个平台的原因。
+  **实测教训（2026-11-10）**：S-NPP 的 7d 文件有 35,261 行、HTTP 200、文件当天还在
+  重新生成，但 `acq_date` **全部是 2026-11-02** —— 停更 8 天。只判「有没有行」会把
+  8 天前的火点当今日快照写进库。
 - **`instrument` 列上游缺失**：由产品 URL 身份派生常量，README/manifest 双处注明。
 - **表头校验**：实测 13 列缺一即抛 `RuntimeError`（上游布局变更转人工，不硬解）。
 - **单行脏数据跳过留痕**（stderr 计数）；快照拉取失败 / 零可用行 → `RuntimeError`
@@ -51,8 +61,8 @@ python3 scripts/conformance_gate.py --roots .
 
 ## golden 断言口径（跨期稳定）
 
-`golden/001-nasa-firms.json`：`params={"limit":5}`（快照恒有 10 万+ 行，min_rows 5
-极保守）；锚 `instrument == VIIRS`、`satellite == N`、`source == nasa-firms`、
-`url == <固定产品 CSV>`——即「列名集合 + instrument 常量」口径。
+`golden/001-nasa-firms.json`：`params={"limit":5}`（快照恒有数万行，min_rows 5
+极保守）；锚 `instrument == VIIRS`、`source == nasa-firms`——即「列名集合 +
+instrument 常量」口径。`satellite`/`url` 已移出 golden：平台阶梯会让它们变化。
 **绝不锚** `acq_date`/坐标/亮温/FRP/行数规模等任何滚动值；
 `scraped_at`/`timestamp` 进 `whitelist_fields`。

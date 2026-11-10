@@ -1,7 +1,10 @@
 version: "2"
 name: nasa-firms               # = spiders/nasa-firms/ 目录名，运行时标识符，合入后不可改名
-label: NASA FIRMS Active Fire Detections (S-NPP VIIRS, 24h)
-source_url: https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_24h.csv
+label: NASA FIRMS Active Fire Detections (VIIRS, 24h)
+# 平台阶梯（见 spider.py PLATFORMS）：NOAA-20 → NOAA-21 → Suomi-NPP。
+# 2026-11-10 实测 S-NPP 产品已停更（7d 文件 35,261 行全是 11-02），故排最后；
+# source_url 记首选平台。
+source_url: https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_Global_24h.csv
 # site: tencent              # 缺省 tencent；本单元只访问 firms.modaps.eosdis.nasa.gov 静态产品文件，无需换执行位
 schedule: "7 6 * * *"   # 点亮（批次二）：06:07 取 24h 火点快照，覆盖完整前日窗口
 data_period: day
@@ -47,10 +50,10 @@ functions:
         description: Acquisition time HHMM as string (leading zeros preserved)
       - name: satellite
         type: string
-        description: Satellite id (N = Suomi NPP, constant for this product)
+        description: 服务该快照的平台码（N20 = NOAA-20 / N21 = NOAA-21 / N = Suomi NPP）；平台阶梯会让它变化，不保证恒定
       - name: instrument
         type: string
-        description: Sensor constant VIIRS (derived from product identity SUOMI_VIIRS_C2; column absent upstream)
+        description: Sensor constant VIIRS (all ladder platforms are VIIRS C2; column absent upstream)
       - name: confidence
         type: string
         description: Detection confidence (l / n / h)
