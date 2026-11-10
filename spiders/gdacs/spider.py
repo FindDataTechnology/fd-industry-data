@@ -17,15 +17,25 @@
 - 事件 id 全局唯一但响应顺序由检索排序决定（实测两次全等），golden 只锚**成员资格**
   （固定事件 id 出现）而非顺序。
 - 默认窗口 = 截至今天的**近 30 天**（daily 节奏）；golden 显式传 2020-01 固定窗。
-- 容错：单次取数失败/空特征集 → 抛 ``RuntimeError``（失败即红，不静默返回空列表）。
+- **工单 20261106 诊断补强**：上游 SEARCH 存在瞬时抖动（读超时 / HTTP 200 但响应体为空或
+  非 JSON → ``TimeoutError``/``JSONDecodeError char 0``），实测窗口重放多次全绿。故对
+  **瞬时故障**限次重试：≤3 次尝试、5s/10s 退避，不并发、不加频次；重试耗尽或空特征集 →
+  抛 ``RuntimeError``（失败即红，不静默返回空列表），报错带响应体前缀留证。
+- 请求点接平台共享节流（``fd_industry_data.http.throttle``，同源 ≥0.4s 间隔），
+  不用自制限速。
 
 工单：``reports/health-tickets/20261006-gdacs-8149dca4.yaml``（``kind=generate``）
 """
 from __future__ import annotations
 
+import http.client
 import json
+import time
+import urllib.error
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
+
+from fd_industry_data.http import throttle
 
 SOURCE = "gdacs"
 SEARCH_URL = (
@@ -39,22 +49,55 @@ HEADERS = {
         "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     ),
 }
-TIMEOUT = 60  # 秒；单次检索一窗，超时即红（不重试、不加频次）
+TIMEOUT = 60  # 秒；单次尝试的读超时
+FETCH_ATTEMPTS = 3  # 瞬时故障总尝试次数（含首次）；不并发、不加频次
+RETRY_BACKOFF_SECONDS = 5  # 第 n 次重试前退避 n * RETRY_BACKOFF_SECONDS 秒（5s/10s）
 DEFAULT_WINDOW_DAYS = 30
 
 _DATE_LEN = 10  # ISO 日期前缀长度（fromdate = YYYY-MM-DDTHH:MM:SS）
 
 
+_TRANSIENT_ERRORS = (
+    urllib.error.URLError,  # 含 HTTPError（5xx/连接失败）；4xx 极罕见且重试后照常红
+    TimeoutError,  # py3.10+ 与 socket.timeout 同类：读超时
+    ConnectionError,  # 连接被重置/中断
+    http.client.IncompleteRead,  # 响应体中途截断
+    json.JSONDecodeError,  # 空响应体或非 JSON 页面（char 0）
+)
+
+
 def _fetch_window(from_date: str, to_date: str) -> list[dict]:
-    """取一窗 GeoJSON 并返回原始 feature 列表（响应异常/空集抛错）。"""
+    """取一窗 GeoJSON 并返回原始 feature 列表（瞬时故障限次重试，重试耗尽抛错）。"""
     url = SEARCH_URL.format(from_date=from_date, to_date=to_date)
-    req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
-        payload = json.loads(resp.read().decode("utf-8", "replace"))
-    features = (payload.get("features") or []) if isinstance(payload, dict) else []
-    if not features:
-        raise RuntimeError(f"gdacs: empty feature set for {from_date}..{to_date}")
-    return features
+    last_err = ""
+    raw = b""
+    last_at = time.monotonic()  # 请求点共享节流：保证同源 ≥ SAME_HOST_GAP_S 间隔
+    for attempt in range(1, FETCH_ATTEMPTS + 1):
+        raw = b""
+        if attempt > 1:
+            time.sleep(RETRY_BACKOFF_SECONDS * (attempt - 1))  # 瞬时故障退避 5s/10s
+        try:
+            last_at = throttle(last_at)
+            req = urllib.request.Request(url, headers=HEADERS)
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
+                raw = resp.read()
+            payload = json.loads(raw.decode("utf-8", "replace"))
+        except _TRANSIENT_ERRORS as exc:
+            # 上游瞬时抖动（工单 20261106：读超时 / 200 空体 → JSONDecodeError char 0）。
+            # 退避后重试；报错带响应体前缀，留证分诊。
+            prefix = f" body[:120]={raw[:120]!r}" if raw else ""
+            last_err = f"{type(exc).__name__}: {exc}{prefix}"
+            if attempt < FETCH_ATTEMPTS:
+                continue  # 顶部统一退避后重试
+            raise RuntimeError(
+                f"gdacs: upstream transient failure after {FETCH_ATTEMPTS} attempts "
+                f"for {from_date}..{to_date}: {last_err}"
+            ) from exc
+        features = (payload.get("features") or []) if isinstance(payload, dict) else []
+        if not features:
+            raise RuntimeError(f"gdacs: empty feature set for {from_date}..{to_date}")
+        return features
+    raise RuntimeError(f"gdacs: unreachable retry loop exit: {last_err}")  # pragma: no cover
 
 
 def _num(value):
