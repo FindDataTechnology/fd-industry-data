@@ -116,6 +116,36 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="--dry-run"; fi
           python3 scripts/health_inspect.py --from-pg --emit $ARGS
 
+      # 一周误报率观察（2026-11-10 起 7 天）：每天把「rule1c 出单源 + 超窗天数」
+      # 追加到 docs/min-rows-observation-log.md，并核对四项"新代码在跑"的指纹。
+      #
+      # 为什么放在这里：`last-run.json` 已移出 git（生成态），四指纹失去读取来源；
+      # `scripts/min_rows_observation.py` 改为从**遥测 + manifest** 现算，因此必须在
+      # 同一环境里读一次库，不能靠事后 clone 里翻文件。
+      #
+      # 失败**不阻断**工单落仓：观察表是 7 天的实验，工单链是生产。故 exit 0，
+      # 只把输出写进 step summary 与 warning。
+      - name: 观察表追加 + 四项指纹（不阻断）
+        working-directory: src
+        env:
+          FD_CENTRAL_PG_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
+          FD_HEALTH_CONFIG: ${{ vars.FD_HEALTH_CONFIG || 'config/health-scope.json' }}
+        run: |
+          set +e
+          python3 scripts/min_rows_observation.py --from-pg \
+            --append docs/min-rows-observation-log.md 2>&1 | tee /tmp/obs.log
+          rc=${PIPESTATUS[0]}
+          {
+            echo "### 一周误报率观察"
+            echo '```'
+            sed -n '1,24p' /tmp/obs.log
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          if [ "$rc" != "0" ]; then
+            echo "::warning::观察表追加失败（rc=$rc），工单照常落仓"
+          fi
+          exit 0
+
       # 渲染对账（harden-crawl-delivery 6.2 守卫）：内容仓说"停用"、集群却仍在调度
       # 的源必须每天被抓出来。2026-11-09 实测：bls / cncotton 在 11-08 就被 park，
       # 但 CronJob 一直 suspend=false 照常每天跑，直到人工发现。
@@ -147,7 +177,10 @@ jobs:
         run: |
           git config user.name  "fd-health-bot"
           git config user.email "fd-health-bot@finddatatech.cloud"
+          # 观察表与工单进同一个提交：多一次推送就多一次分叉机会，
+          # 而它们本来就同一轮产生。
           git add reports/health-tickets
+          [ -f docs/min-rows-observation-log.md ] && git add docs/min-rows-observation-log.md
           if git diff --cached --quiet; then
             echo "no ticket changes"
             exit 0
