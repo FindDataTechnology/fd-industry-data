@@ -107,6 +107,67 @@ HEADER = """# 行数下限 · 一周误报率观察表
 """
 
 
+def _deferred_carry_verdict(deferred: list[dict]) -> bool:
+    """顺延条目是否每条都带 `category` 与 `rule`。
+
+    抽成纯函数是为了**能两向测**：既断言"真实顺延里确实带着"，
+    也断言"缺字段时必须返回 False"。只测前者的话，把判据硬编码成 True 也照样绿
+    ——2026-11-10 实测过这个坑：反向验证时 11 条测试全过，说明根本没测到那一行。
+    """
+    return all("category" in d and "rule" in d for d in deferred)
+
+
+def collect_fingerprints(records: list[dict], repo: Path, cfg, now: datetime) -> dict:
+    """四项上线指纹：判断"新代码是否真的在跑"。
+
+    为什么不读 `last-run.json`：该文件 2026-11-10 已移出 git（生成态，每次覆写），
+    而没有它就判不了部署是否生效——这四项目前只能从**遥测 + manifest** 现算。
+    每一项都是旧代码在结构上产不出来的形态：
+
+    1. `unregistered_sources` 字段存在（旧代码没有这个概念，缺 manifest 的源会被
+       并进 `skipped_unknown_period` 静默跳过）；
+    2. `skipped_unknown_period` 不含 `TCPConnectWrap`（解析器修复前，调用栈续行会被
+       补成一条假记录，源名取到那段文字）；
+    3. `deferred[]` 每条都带 `category` 与 `rule`（旧代码只记 source+reason，
+       "顺延 N 个"看不出严重程度）；
+    4. `blocked_config_sources` 字段存在（旧代码不认识 `blocked-config` 状态）。
+    """
+    import tempfile
+    from fd_industry_data.health import inspector
+
+    runs_by = inspector.group_runs(records)
+    plan = inspector.plan_tickets(runs_by, repo, cfg, now, dsn="")
+
+    # 顺延条目带判词是 write_plan 的产物（它在写盘时补 category/rule），
+    # 所以落一遍临时目录取真实形态；临时目录用完即弃，不碰仓里的工单。
+    with tempfile.TemporaryDirectory(prefix="obs-fp-") as td:
+        stats = inspector.write_plan(plan, repo, Path(td), cfg, now)
+    deferred = stats.get("deferred") or []
+
+    unreg = getattr(plan, "unregistered", None)
+    blocked = getattr(plan, "blocked_config", None)
+    skipped = plan.skipped_unknown_period or []
+
+    return {
+        "unregistered_sources": {
+            "present": unreg is not None,
+            "value": sorted(unreg or []),
+        },
+        "skipped_unknown_period_clean": {
+            "clean": not any("TCPConnectWrap" in str(s) for s in skipped),
+            "value": skipped,
+        },
+        "deferred_carry_verdict": {
+            "ok": _deferred_carry_verdict(deferred),
+            "count": len(deferred),
+        },
+        "blocked_config_sources": {
+            "present": blocked is not None,
+            "value": sorted(blocked or []),
+        },
+    }
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -141,7 +202,12 @@ def main(argv: list[str]) -> int:
         if f is not None:
             floors[p.parent.name] = f
 
-    cfg = load_config(None)
+    # 必须加载**生产巡检范围**（config/health-scope.json），否则 excluded_sources 为空：
+    # 那些按裁决排除的跨仓 Job（akshare / ccdi-* / flk-law-* / wbgapi …）会被算进
+    # unregistered_sources，看起来像"该登记没登记"，其实是早就定了不归本巡检判。
+    # 2026-11-10 实测：用默认配置时该项列出 16 个源，用生产 scope 后应为 2 个。
+    scope = repo / "config" / "health-scope.json"
+    cfg = load_config(scope if scope.is_file() else None)
     # 已声明源里最常用的是 month 频：容忍窗 = 336h × 2.5 = 840h。逐源按自身周期算，
     # 这里只取一个统一口径做"超窗"基线，避免把 day 频源也按 month 判。
     per_source_window = {}
@@ -159,19 +225,33 @@ def main(argv: list[str]) -> int:
 
     # healthy：用真实判词算，而不是读摘要（摘要可能来自别的窗口）
     healthy = None
+    fps = None
     if records:
         runs_by = inspector.group_runs(records)
         plan = inspector.plan_tickets(runs_by, repo, cfg, now, dsn="")
         healthy = plan.healthy
+        fps = collect_fingerprints(records, repo, cfg, now)
 
     window = f"month(840h)"
     row = build_row(day, healthy, tickets, over, window)
 
     if args.json:
         print(json.dumps({"day": day, "healthy": healthy, "rule1c_sources": tickets,
-                          "over_window_days": over}, ensure_ascii=False, indent=2))
+                          "over_window_days": over, "fingerprints": fps},
+                         ensure_ascii=False, indent=2))
     else:
         print(row)
+        if fps:
+            print()
+            print("四项上线指纹：")
+            a = fps["unregistered_sources"]
+            b = fps["skipped_unknown_period_clean"]
+            c = fps["deferred_carry_verdict"]
+            d = fps["blocked_config_sources"]
+            print(f"  ① unregistered_sources 字段: {'有 ✓' if a['present'] else '缺 ✗'} {a['value']}")
+            print(f"  ② skipped_unknown_period 无调用栈: {'✓' if b['clean'] else '✗'} {b['value']}")
+            print(f"  ③ deferred 带 category/rule: {'✓' if c['ok'] else '✗'}（{c['count']} 条）")
+            print(f"  ④ blocked_config_sources 字段: {'有 ✓' if d['present'] else '缺 ✗'} {d['value']}")
 
     if args.append:
         path = Path(args.append)

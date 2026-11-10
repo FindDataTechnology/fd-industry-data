@@ -101,3 +101,74 @@ class AppendTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FingerprintTests(unittest.TestCase):
+    """四项上线指纹必须**能判失败**，否则"全 ✓"只是没测到。
+
+    这四项是"新代码是否在跑"的判据，且 2026-11-10 起 last-run.json 已移出 git，
+    只能从遥测 + manifest 现算。
+    """
+
+    def setUp(self):
+        self.m = load()
+        self.tmp = Path(tempfile.mkdtemp(prefix="fp-"))
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        (self.tmp / "spiders").mkdir()
+        self.now = datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc)
+
+    def _unit(self, name: str, body: str = "data_period: day\n"):
+        d = self.tmp / "spiders" / name
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "manifest.yaml").write_text(f"name: {name}\n{body}", encoding="utf-8")
+
+    def _rec(self, source, rows=100, status="success", days_ago=1):
+        return {"source": source, "status": status, "rows": rows,
+                "started_at": (self.now - timedelta(days=days_ago)).isoformat()}
+
+    def _fp(self, records, cfg=None):
+        from fd_industry_data.health.config import HealthConfig
+        return self.m.collect_fingerprints(records, self.tmp, cfg or HealthConfig(), self.now)
+
+    def test_unregistered_requires_a_missing_manifest(self):
+        self._unit("known")
+        fp = self._fp([self._rec("known"), self._rec("ghost")])
+        self.assertTrue(fp["unregistered_sources"]["present"])
+        self.assertEqual(fp["unregistered_sources"]["value"], ["ghost"])
+
+    def test_excluded_sources_are_not_unregistered(self):
+        """按裁决排除的跨仓 Job 不该被算成"该登记没登记"。"""
+        from fd_industry_data.health.config import HealthConfig
+        fp = self._fp([self._rec("law-job")],
+                      HealthConfig(excluded_sources=("law-job",)))
+        self.assertEqual(fp["unregistered_sources"]["value"], [])
+
+    def test_deferred_carry_verdict_is_false_when_entries_lack_it(self):
+        """③ 必须能报 ✗：直接喂没有 category/rule 的顺延条目形态。
+
+        用 max_daily_tickets=0 制造真实顺延，断言 ok 为真；再用一个手工构造的
+        「旧形态」列表断言它会报假 —— 两向都钉住，避免"永远 ✓"。
+        """
+        from dataclasses import replace
+        from fd_industry_data.health.config import HealthConfig
+        self._unit("aaa", "data_period: day\nmin_rows_per_run: 5\n")
+        self._unit("bbb", "data_period: day\nmin_rows_per_run: 5\n")
+        recs = [self._rec("aaa", rows=0), self._rec("bbb", rows=0)]
+        cfg = replace(HealthConfig(), max_daily_tickets=0)
+        fp = self._fp(recs, cfg)
+        self.assertGreater(fp["deferred_carry_verdict"]["count"], 0,
+                           "限流为 0 时必须产生顺延，否则这条指纹测不到")
+        self.assertTrue(fp["deferred_carry_verdict"]["ok"])
+
+    def test_deferred_verdict_helper_rejects_old_shape(self):
+        """两向都钉住：缺 category/rule 的旧形态必须判 False。
+
+        只断言"真实顺延里带着"是不够的——把判据硬编码成 True 也能通过
+        （2026-11-10 反向验证时 11 条全绿，正是这个原因）。
+        """
+        old_shape = [{"source": "x", "reason": "daily cap reached"}]
+        self.assertFalse(self.m._deferred_carry_verdict(old_shape))
+        new_shape = [{"source": "x", "reason": "daily cap reached",
+                      "category": "structure", "rule": "rule1c"}]
+        self.assertTrue(self.m._deferred_carry_verdict(new_shape))
+        self.assertTrue(self.m._deferred_carry_verdict([]), "空列表应视为通过")
