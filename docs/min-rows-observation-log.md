@@ -109,7 +109,7 @@ gb-standards     ✗no_new_job  11-12 02:25      窗口后无新 Job（最新是
 | 凭据 | **零新增**：用的就是已经在跑的只读账号 `fd_health_ro` |
 | 依据 | `writer.py` 是**每次执行写一行** `crawl_runs`（含 `status='failed'`，两阶段还有 `'running'`）。已发生的两个实例都覆盖得到：`nasa-firms` 抛 `RuntimeError` → 写 failed；`boxofficemojo` `BackoffLimitExceeded`（退出码 3）同样是容器跑完后失败 → 写 failed |
 | 风险（必须写明） | **盲区是"runner 还没来得及写行就死了"**：拉镜像失败、init 容器 git clone 失败、调度失败——这些在 `crawl_runs` 里**完全没记录**，会显示成 `no_new_job`，与"调度没触发"同形。甲乙两案能区分这一种，丙案不能。<br>缓解：`no_new_job` 时同时报"该源最近一次 `lastScheduleTime` 距今多久"，超过一个周期仍无记录就升级为"疑似根本没起 Pod"，人工看一眼 Job 即可 |
-| 结论 | 覆盖已观测到的全部真实失败形态，零凭据、零出片、零新写入方。**建议先上丙**；若后续真出现"Pod 起不来"这类，再按乙案加 Job 层兜底 |
+| 结论 | 覆盖已观测到的全部真实失败形态，零凭据、零出片、零新写入方。**建议先上丙**；若后续真出现"Pod 起不来"这类，再按乙案加 Job 层兜底。<br>**落地清单见 [min-rows-withdrawn-states-plan.md](min-rows-withdrawn-states-plan.md)**（逐文件改动、10 条验收断言、回滚点；只写未改） |
 
 **决定记录**：本案涉及"同一事实在三处以不同口径观测"（k8s Job 三态 / crawl_runs 四态 /
 排期时间），按项目硬约束③取**可验证更严的一侧**——判据一律锚"窗口后是否有一条**成功且
