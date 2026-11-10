@@ -214,6 +214,26 @@ python3 scripts/health_new_generation_ticket.py --slug nmc-weather \
 新增健康级缺口（排期在册却整窗零运行、跨源缺席对账）见 `inspector.reconcile_absent()` 与
 `absent_source_policy`（默认 `report` = 零回归）。
 
+### 已知隐患：`freshness_shadow` 按 UTC 解释 cron，生产按 CST（2026-11-10 实测）
+
+`health/freshness.py` 的 `_zone()` 在 `tz` 缺省时返回 **UTC**；而生产 CronJob 未声明
+`timeZone` 时按**控制器本地（CST）**解释 cron —— 两者差 8 小时。
+
+实测范围：**123 个有 `schedule` 的源，`schedule_tz` 全部未声明**，所以这个偏差覆盖全部在册源。
+
+**当前不构成危害**，因为它是 shadow（影子）：
+
+| 检查 | 结果 |
+|---|---|
+| 消费者 | `shadow_freshness()` → `Plan.freshness_shadow` → 摘要 `freshness_shadow` / `freshness_shadow_alerting` |
+| 影响出单？ | **否**——`triage.py` 不读它，`emit` 只看 `classify()` |
+
+**转正前必须先修**：一旦 `freshness_shadow` 真的用于判定，"欠了几个周期"会整体偏 8 小时，
+那时它会变成真实的误报/漏报。修法二选一——让 `_zone()` 缺省按 CST，或在生成侧把
+`schedule_tz: Asia/Shanghai` 显式写进 manifest（后者更彻底，但 123 份要逐个加）。
+
+写在这里是因为它容易被当成"shadow 就没关系"而一路带下去。
+
 ### 同一事实的三处信号：`rows < min_rows_per_run` 会发生什么
 
 一个源写了行数低于声明的下限，会同时惊动三层。**它们不是重复机制，但关系一直没人写下来**——
