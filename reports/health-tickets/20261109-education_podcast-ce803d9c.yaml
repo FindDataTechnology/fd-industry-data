@@ -62,5 +62,8 @@ lifecycle:
 - at: '2026-11-10T04:52:17.744420+00:00'
   event: submit-failed
   error: Remote end closed connection without response
+- at: '2026-11-10T05:11:28.663310+00:00'
+  event: status-failed
+  error: <urlopen error TLS/SSL connection has been closed (EOF) (_ssl.c:992)>
 terminal: null
 evidence_signature: 98c4b7d37a4c

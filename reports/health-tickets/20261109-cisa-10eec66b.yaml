@@ -65,5 +65,11 @@ lifecycle:
 
 
     > 状态文件降级至 /tmp/.spider-heal/inbox.json（$DSH_HOME/spider-heal/ 不可写）'
+- at: '2026-11-10T05:11:23.004413+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 98c4b7d37a4c

@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-10T04:08:29.493049+00:00",
+  "at": "2026-11-10T05:04:43.332757+00:00",
   "source": "psql",
   "config_source": "file:config/health-scope.json",
   "sources_seen": 136,
@@ -98,144 +98,73 @@
   "master_switch": true,
   "submit": [
     {
-      "ticket": "20261106-steam-ccu-7836daef.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
       "ticket": "20261107-fred-cpi-6c71952f.yaml",
       "submitted": false,
-      "reason": "dry-run"
+      "reason": "submit failed: RemoteDisconnected: Remote end closed connection without response",
+      "attempt": 5
     },
     {
       "ticket": "20261107-fred-cpi-a0b0e467.yaml",
       "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261107-fred-cpi-ba279d6a.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261107-hkex-disclosure-82e7ef63.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261107-ico-coffee-price-39ecc097.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261107-nra-rpi-15ef6fc0.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261107-nra-rpi-3a5952f4.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261107-sec-edgar-facts-e41262dc.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261108-socrata-ny-383ced01.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261109-boxofficemojo-38feca08.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261109-cisa-10eec66b.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261109-education_podcast-ce803d9c.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261109-gb-standards-e6083859.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261109-iea-ev-de18f48e.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261109-usaspending-awards-2d72e624.yaml",
-      "submitted": false,
-      "reason": "dry-run"
-    },
-    {
-      "ticket": "20261110-eastmoney-disclosure-plan-d772b091.yaml",
-      "submitted": false,
-      "reason": "dry-run"
+      "reason": "",
+      "attempt": 5,
+      "http_status": 409,
+      "verdict": "deferred",
+      "verdict_reason": "turn in flight (409) — 等待预算耗尽，本批停手",
+      "waited_s": 90
     }
   ],
   "status": [
     {
-      "ticket": "20261106-steam-ccu-7836daef.yaml",
+      "ticket": "20261107-sec-edgar-facts-e41262dc.yaml",
+      "http_status": 409,
+      "state": null,
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261109-boxofficemojo-38feca08.yaml",
       "http_status": 200,
-      "state": "manual",
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261107-fred-cpi-6c71952f.yaml",
-      "http_status": 502,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-fred-cpi-a0b0e467.yaml",
-      "http_status": 409,
+      "ticket": "20261109-cisa-10eec66b.yaml",
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-fred-cpi-ba279d6a.yaml",
-      "http_status": 409,
+      "ticket": "20261109-education_podcast-ce803d9c.yaml",
+      "state": null,
+      "error": "<urlopen error TLS/SSL connection has been closed (EOF) (_ssl.c:992)>"
+    },
+    {
+      "ticket": "20261109-gb-standards-e6083859.yaml",
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-hkex-disclosure-82e7ef63.yaml",
-      "http_status": 409,
+      "ticket": "20261109-iea-ev-de18f48e.yaml",
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-ico-coffee-price-39ecc097.yaml",
-      "http_status": 409,
+      "ticket": "20261109-usaspending-awards-2d72e624.yaml",
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-nra-rpi-15ef6fc0.yaml",
-      "http_status": 409,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261107-nra-rpi-3a5952f4.yaml",
-      "http_status": 409,
+      "ticket": "20261110-eastmoney-disclosure-plan-d772b091.yaml",
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
