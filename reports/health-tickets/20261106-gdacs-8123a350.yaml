@@ -79,4 +79,14 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-10T02:10:22.006416+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: duplicate
+  response: '已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261106-gdacs-8123a350.yaml（队列第
+    1 位）
+
+
+    状态文件降级至 /tmp/.spider-heal/inbox.json'
 terminal: null
