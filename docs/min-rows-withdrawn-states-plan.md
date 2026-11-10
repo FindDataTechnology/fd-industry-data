@@ -67,11 +67,17 @@ def window_states(records: list[dict], now: datetime,
 
 | 锚点 | 改动 |
 |---|---|
-| 顶部 import 区 | `from fd_industry_data.health.withdrawn import WITHDRAWN, RED, window_states` |
+| 顶部 import 区 | `from fd_industry_data.health.withdrawn import window_states` |
 | `main()` 指纹段之后（现 `271-279`） | 打印三行窗口态；无遥测时不打印（与指纹同条件） |
 | `263-266` 的 `--json` payload | 加 `"withdrawn": withdrawn_rows` |
+| **参数区** | 加 `--now`（ISO8601）——**预演时发现的缺口，见下方注** |
 | 末尾 `291` `return 0` | 改为：有红 → `return 3`（`2` 已被"无遥测"占用） |
 | 表结构 | **不动**：不加列、不改 `HEADER`、不改 `build_row` |
+
+> **`--now` 为什么必须加（预演实测）**：`--day` 只决定**行里的日期**，不决定"现在"。
+> 而窗口态判据依赖真正的当前时刻，所以 A6「构造一条红」在原来的清单里**根本构造不出来**
+> ——测试只能等到 11-17 之后才可能红。加了 `--now` 之后，`--now 2026-11-20` 立刻能造出
+> `no_new_job` 并验证 `rc=3`。这与 `check_withdrawn_sources.py` 已有的 `--now` 保持对称。
 
 打印样例（**三行**，与指令口径一致）：
 
@@ -118,6 +124,28 @@ def window_states(records: list[dict], now: datetime,
 `datetime(2026, 11, 12, ...)`——那个断言**改之前就是 0**，改与不改都绿，等于没测。
 已改成按真实写法计数（现在必须为 3，落地后必须为 0）。凡"做之前就已经通过"的断言，
 一律视为没写。
+
+---
+
+## 8. 预演结果（2026-11-10，分支 `rehearsal/bing-plan`，未并入 main）
+
+照本清单在独立 worktree 里实施了一遍，A1–A9 实测：
+
+| 断言 | 结果 |
+|---|---|
+| A1 四态可达 | ✓（14 条用例全过，含 `low_rows` 与 `pending`） |
+| A2 `low_rows` 必须红 | ✓；反向注入"并进 complete" → **2 条红**，证明这条真在测 |
+| A3 窗口前成功不算 | ✓ |
+| A4 边界按 `>=` | ✓（恰等于窗口时刻算窗口内） |
+| A5 `--json` 带 `withdrawn` | ✓ |
+| A6 rc=3 与 rc=2 区分 | ✓（需 `--now`，见 §2.2 注） |
+| A7 日期单一真源 | ✓ check 脚本 0 命中、`withdrawn.py` 3 命中 |
+| A8 不回归 | ✓ **325 passed**（基线 308 + 新增 17） |
+| A9 观察表零改动 | ✓ 0 行 diff，表结构正常 |
+| A10 真环境冒烟 | 未跑（要 `FD_CENTRAL_PG_DSN`，只有 runner 有） |
+
+产出保留在本地分支 `rehearsal/bing-plan`（`f1eb50a`），**未推送、未并入 main**。
+裁决为丙时，`git merge rehearsal/bing-plan` 即可，A10 交给 11-11 03:17 那次巡检自然验。
 
 ---
 
