@@ -49,8 +49,11 @@ _SUBMIT_TURN_BUDGET_S = 90.0   # 单张单的等待预算（实测 agent 回合 
 # 整批上限：不加这两条实测会撞 workflow 45 分钟超时（2026-11-10 首版修复
 # 18 张 × 120s ≈ 36min + 常规 9min = 49m30s，被超时掐成 cancelled，一张都没交成）。
 # 有界地做：每轮最多 N 张、批量等待总预算 ≤ B，剩下的下一轮接手。
-_SUBMIT_MAX_TICKETS_PER_RUN = 8
-_SUBMIT_BATCH_BUDGET_S = 420.0
+# 吞吐实测（2026-11-10）：turn 串行，单张 20–150s；workflow 窗口 45 分钟、常规步 9 分钟，
+# 故批量等待预算取 30 分钟（20 分钟余量），一轮可清 20 张上下。此前 420s 太保守，
+# 一轮只推进 2 张，54 张积压要排一个月。
+_SUBMIT_MAX_TICKETS_PER_RUN = 24
+_SUBMIT_BATCH_BUDGET_S = 1800.0
 REFUSAL_WORDS = (
     "拒绝入队", "未入队", "不可读", "不认领", "拒绝并转人工",
     "拒绝", "未通过", "无法读取", "不存在",
@@ -1119,15 +1122,20 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
         return results
     handled = 0
     batch_waited = 0.0
-    # 排序：生成单优先，其余按文件名（=日期）先后。理由：turn 是串行的、每轮只能推进
-    # 两三张（实测 2026-11-10），而 repair 单每轮巡检都会重新生成、generate 单是业务
-    # 决定只此一张（过期就没意义）。不加这条，业务单会永远排在自动单后面。
+    # 排序：generate 优先且**最新优先**，repair 保持先来先到。
+    #  - generate 排在 repair 前：repair 每轮巡检都会重新生成，generate 是业务决定只此一张。
+    #  - generate 内部最新优先：生成单携带**时效性证据**（端点实测、参数白名单），一个月前的
+    #    侦察结论很可能已过期；旧单不该抢占 turn。实测 2026-11-10：54 张 generate 积压
+    #    自 2026-10-04 起从未投出（被 409 卡死），按先来先到要排一个月。
     def _submit_order(path: Path) -> tuple:
         try:
             kind = str(ticket_mod.load_ticket(path).get("kind") or "repair")
         except Exception:  # noqa: BLE001 - 读不了就按 repair 排，别让排序拖垮投递
             kind = "repair"
-        return (0 if kind == "generate" else 1, path.name)
+        if kind == "generate":
+            # 文件名以 YYYYMMDD 开头 → 反序即最新优先
+            return (0, tuple(-ord(c) for c in path.name[:8]), path.name)
+        return (1, (), path.name)
 
     for p in sorted(outdir.glob("*.yaml"), key=_submit_order):
         if handled >= _SUBMIT_MAX_TICKETS_PER_RUN or batch_waited >= _SUBMIT_BATCH_BUDGET_S:
