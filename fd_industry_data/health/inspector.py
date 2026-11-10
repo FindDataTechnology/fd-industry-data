@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 import subprocess
 import sys
 import urllib.request
@@ -38,6 +39,13 @@ DEDUP_WORDS = ("已见过", "已入队", "重复提交", "已处理")
 #: 读不懂的回执允许重投几次。agent 侧按工单路径去重，重投安全；但无限重投会每轮
 #: 都打一次门面，所以要有个上限。
 _SUBMIT_UNKNOWN_MAX = 3
+
+# SUBMIT 的 turn 是**每 caller+agent 串行**的：实测（2026-11-10）批量提交时第 2 条起
+# 全部 HTTP 409 `TURN_IN_FLIGHT`——18 条里 17 条每天重试每天 409，工单永久卡死。
+# error 类此前无重试上限，所以这个状态会一直重打。处置：轮到别人占着就等，
+# 等不到就**本批停手**（继续捶剩余单只会各自 409），下一个巡检周期接手。
+_SUBMIT_TURN_POLL_S = 15.0     # 轮询间隔
+_SUBMIT_TURN_BUDGET_S = 120.0  # 单张单的等待预算（实测 agent 回合 20–150s）
 REFUSAL_WORDS = (
     "拒绝入队", "未入队", "不可读", "不认领", "拒绝并转人工",
     "拒绝", "未通过", "无法读取", "不存在",
@@ -1063,6 +1071,16 @@ def _looks_failed(status: int, raw_text: str, message: str) -> bool:
     return parse_submit_verdict(status, raw_text, message)["verdict"] in ("refused", "error")
 
 
+def _is_turn_in_flight(status: int, raw_text: str) -> bool:
+    """这次 SUBMIT 回执是不是「本 caller+agent 的 turn 正被占用」。
+
+    409 且带 TURN_IN_FLIGHT 才是；其它 409（例如冲突语义）照常按 error 记。
+    """
+    if status != 409:
+        return False
+    return "TURN_IN_FLIGHT" in (raw_text or "").upper()
+
+
 def _submit_recorded(doc: dict) -> bool:
     """是否已有成功的 SUBMIT 记录（失败回执允许重试）。
 
@@ -1119,6 +1137,26 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
             entry["attempt"] = prior + 1
             try:
                 status, text = poster(url, key, idem, f"SUBMIT {repo_slug} {rel}")
+                # turn 被占：有界等待后重试同一张单；预算耗尽则本批停手
+                waited = 0.0
+                while _is_turn_in_flight(status, text) and waited < _SUBMIT_TURN_BUDGET_S:
+                    time.sleep(_SUBMIT_TURN_POLL_S)
+                    waited += _SUBMIT_TURN_POLL_S
+                    status, text = poster(url, key, f"{idem}-w{int(waited)}",
+                                          f"SUBMIT {repo_slug} {rel}")
+                if _is_turn_in_flight(status, text):
+                    entry.update({
+                        "submitted": False,
+                        "http_status": status,
+                        "verdict": "deferred",
+                        "verdict_reason": "turn in flight (409) — 等待预算耗尽，本批停手",
+                        "waited_s": int(waited),
+                    })
+                    ticket_mod.append_event(doc, "submit-deferred",
+                                            reason="turn in flight (409)", waited_s=int(waited))
+                    p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
+                    results.append(entry)
+                    break  # 后面每张都会各自 409，继续只会白打门面
                 message = extract_message_text(text)
                 verdict = parse_submit_verdict(status, text, message)
                 ok = verdict["verdict"] in ("accepted", "duplicate")
