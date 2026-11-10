@@ -299,6 +299,46 @@ python3 scripts/health_new_generation_ticket.py --slug nmc-weather \
 
 写在这里是因为它容易被当成"shadow 就没关系"而一路带下去。
 
+### 已知缺陷（待修）：`--dry-run` 没有覆盖 `--sync-status`
+
+`--dry-run` 只挡住 **SUBMIT**，没挡住 **STATUS 回读**，所以"干跑"仍会真的打门面。
+
+判据在 `fd_industry_data/health/inspector.py:1221-1228`（`if not config.master_switch` / `elif dry_run` / `else`）：
+
+```python
+if not config.master_switch:
+    entry["reason"] = "master switch off (inspect-only)"   # 总闸关 → 跳过
+elif dry_run:
+    entry["reason"] = "dry-run"                            # dry-run → 跳过 poster
+else:
+    ... poster(url, key, idem, body)                       # 真投递
+```
+
+而 `sync_status()`（定义在 `inspector.py:1344`，函数体内 `dry_run` 出现 **0 次**，已实测 `grep -c` 为 0）——它逐张回读
+未终态工单的 STATUS，每张都走网络且受 `STATUS_READ_TIMEOUT` 约束，单轮上限
+`STATUS_MAX_PER_RUN`。于是 `--dry-run --sync-status` 的实际效果是"不投递、但仍然逐张
+问门面"。
+
+**时长证据（2026-11-10 实测）**：
+
+| 运行 | Deliver 步骤耗时 | 说明 |
+|---|---|---|
+| run 42799574292（真实巡检，成功） | **999s** | 正常投递 + STATUS 回读 |
+| run 42817406652（`dry_run=true` 手动触发） | **1150s 时仍未结束** | 已确认 submit 被挡住（`elif dry_run` 短路 `poster`），时间几乎全花在 STATUS 回读上；读数取自 21:00 CST，Deliver 自 12:41:03Z 起 |
+
+两者同量级，说明**干跑并没有真的"干"**。
+
+**为什么这不是回归**：这两个数字都来自 `--dry-run` 只挡一半的既有行为，
+与当天新增的「观察表追加 + 四项指纹」步骤无关——那一步只 `--from-pg` 读库并写一个
+markdown 文件，不碰 `poster` / `submit` / 工单，且在 Deliver 之前就已 `success` 结束。
+
+**要修就一句话**：`sync_status()` 加一个 `dry_run` 形参，`--dry-run` 时直接返回
+（或只返回"本应回读 N 张"，不真发请求）。
+
+**暂不改**：它影响生产投递路径（`--deliver --submit-new --sync-status` 是每日巡检的
+主链路），改错会让 STATUS 回读静默停摆、工单停在旧状态等下一轮——那是比干跑变慢贵得多的
+故障。改前需要一次真跑对照。
+
 ### 同一事实的三处信号：`rows < min_rows_per_run` 会发生什么
 
 一个源写了行数低于声明的下限，会同时惊动三层。**它们不是重复机制，但关系一直没人写下来**——
