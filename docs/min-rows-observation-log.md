@@ -85,10 +85,11 @@ gb-standards     ✗no_new_job  11-12 02:25      窗口后无新 Job（最新是
 
 | 项 | 内容 |
 |---|---|
-| 最小改动 | ① tencent/fd-industry 建 SA `fd-health-jobcheck` + Role（**仅** `get,list` on `jobs`）+ RoleBinding；② 用 TokenRequest 铸一枚长效 token 并落成 GHA secret `FD_TENCENT_KUBECONFIG`；③ runner 镜像需有 `kubectl`（镜像里确定有 `psql`——巡检就是靠它读库；`kubectl` 未验证，大概率为无，补它要一次出片）；④ workflow 加一步跑 `check_withdrawn_sources.py`；⑤ 脚本加 `--kubeconfig` 入参 |
+| 最小改动 | ① tencent/fd-industry 建 SA `fd-health-jobcheck` + Role（**仅** `get,list` on `jobs`）+ RoleBinding；② 用 TokenRequest 铸一枚长效 token 并落成 GHA secret `FD_TENCENT_KUBECONFIG`；③ **runner 镜像必须重新出片**——已实测**没有** `kubectl`（见下）；④ workflow 加一步跑 `check_withdrawn_sources.py`；⑤ 脚本加 `--kubeconfig` 入参 |
+| 镜像实测（2026-11-10 23:35 CST，只读） | 跑着的 `fd-prod/fd-health-runner`（`ccr.ccs.tencentyun.com/finddata/fd-health-runner:sha-d1028f8`，与 `runner/Dockerfile` 的 `d1028f8` 同源）里：`kubectl` → **NONE**；`psql` → `/usr/bin/psql`；`python3` → `/usr/bin/python3`；`git` → `/usr/bin/git`；`/root/.kube`、`/home/runner/.kube` → **都不存在**。`runner/Dockerfile` 的 apt 列表也印证：`ca-certificates curl git jq libicu72 postgresql-client python3 python3-yaml tzdata`——本来就没装 kubectl |
 | 依赖 | cheap→tencent API 网络可达（未验证）；kubectl 进镜像要走一次出片 |
 | 优点 | 结果直接进现有 GHA 的 step summary 与运行日志，和别的巡检信号在同一处看 |
-| 风险 | **凭据离开集群**：一枚长效 token 存在 GitHub secrets，泄露面比给集群内 SA 大一档（虽只 read jobs）；两集群版本/CA 漂移要维护；镜像加二进制要重新出片并验证 |
+| 风险 | **凭据离开集群**：一枚长效 token 存在 GitHub secrets，泄露面比给集群内 SA 大一档（虽只 read jobs）；两集群版本/CA 漂移要维护；**必过的前置是重新出片**（镜像里没有 kubectl，已实测），出片后还得在真 runner 上验一次 `kubectl get jobs` 能通——否则会变成"步骤常红"而不是"源红了" |
 
 #### 乙案 · tencent 上每日 07:00 CronJob 自跑
 
