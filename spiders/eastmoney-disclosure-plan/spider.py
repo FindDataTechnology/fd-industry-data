@@ -48,25 +48,36 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
-try:
-    from fd_industry_data import universes
-except ImportError:  # 运行镜像早于该模块（实测 fd-industry-runner:sha-750da3f）
-    # 兜底：从**本次 checkout** 加载 universes.py。runner 会把内容仓克隆到 /content，
-    # 而 universes.py 的 registry_root() 是从自身位置向上找 universes/ 目录——所以
-    # 从 checkout 加载后正好落在 /content/universes，与仓库里的注册表一致。
-    # 镜像更新后上面的 try 会先命中，这段自动失效（不是长期分叉）。
+def _load_universes_from_repo():
+    """从 checkout 的 fd_industry_data/universes.py 加载模块（镜像旧包兜底）。"""
     import importlib.util as _ilu
     import sys as _sys
     from pathlib import Path as _Path
 
     _mod_path = _Path(__file__).resolve().parents[2] / "fd_industry_data" / "universes.py"
     if not _mod_path.is_file():
-        raise
+        raise FileNotFoundError(_mod_path)
     _spec = _ilu.spec_from_file_location("fd_industry_data.universes", _mod_path)
     _mod = _ilu.module_from_spec(_spec)
     _sys.modules["fd_industry_data.universes"] = _mod
     _spec.loader.exec_module(_mod)
-    universes = _mod
+    return _mod
+
+
+try:
+    from fd_industry_data import universes
+except ImportError:
+    # 镜像未安装该包 —— 从 checkout 加载
+    universes = _load_universes_from_repo()
+else:
+    # 镜像已安装，但可能是**旧版**（无 cwd 兜底），registry_root() 会抛 UniverseRegistryError
+    # 实测 fd-industry-runner:sha-e6f5f01：universes/ 只在 /app，pod workingDir=/content
+    # 旧版只从 __file__ 向上找，永远命不中 → 四次 UniverseRegistryError。
+    # 单元侧自愈：捕获 UniverseRegistryError 并回退到 checkout 副本。
+    try:
+        universes.registry_root()
+    except universes.UniverseRegistryError:
+        universes = _load_universes_from_repo()
 
 SOURCE = "eastmoney-disclosure-plan"
 
