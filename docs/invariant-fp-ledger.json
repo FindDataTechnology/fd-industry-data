@@ -1,0 +1,8 @@
+{
+  "_comment": "三条结构不变量（tests/test_health_workflow_summary.py）的误报账本。每条误报手动登记一次，来源见 note。判定规则由 scripts/invariant_fp_count.py 执行。",
+  "window_start": "2026-11-11",
+  "horizon_days": 21,
+  "switch_threshold": 2,
+  "premise": "每晚巡检不跑单测（health-inspect.yml 无 pytest，runner 镜像也没装），所以连续产出本身不产生误报计数；计数只能来自用例实际失败的场合（本地全量回归 / 其它仓 CI）。",
+  "entries": []
+}

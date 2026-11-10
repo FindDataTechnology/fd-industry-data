@@ -540,3 +540,8 @@ dispatcher 侧避免因一次数据不足就判任务失败、连带罚掉共享
 这三条是**文本/结构断言**，不是行为断言；合法重构（把 flag 挪进包装脚本、两步合并、
 改用目录级 `git add`）会让它们误报。误报时怎么改见
 `docs/min-rows-observation-log.md` 的「观测项登记」。
+
+**误报计数怎么攒**：`python3 scripts/invariant_fp_count.py`（账本
+`docs/invariant-fp-ledger.json`；窗口 2026-11-11 → 2026-12-02，满窗零误报维持文本断言、
+任一条 ≥2 次换行为断言，退出码 3 表示该换）。注意**巡检本身不跑单测**——`health-inspect.yml`
+无 pytest、runner 镜像也没装，所以这个计数来自"用例真正失败的场合"，不会由每晚巡检自行累积。
