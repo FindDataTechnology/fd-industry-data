@@ -74,5 +74,15 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-11-10T06:22:44.507224+00:00'
+  event: terminal
+  terminal: closed
+  previous: null
+  note: 误报关闭（人工判定）：最近一次成功 rows=20 来自 2026-11-06 的一次性小 limit 批量动作，不是源低产。五条独立证据：①三个源历史行数恒定（boxofficemojo
+    100×5、cisa 200/100×4、gb-standards 100×6），仅 11-06 一次为 20；②三次 20 行落在 11-06 09:54–09:59
+    的 5 分钟内；③当日全库 48 个源各跑一次、每次恰好 20 行；④那三次的 image_tag 均为 unknown（非 k8s dispatcher
+    启动），而这些源平时都是 fd-industry-runner:sha-*；⑤crawl_items 恰好 20 条，首两条是查询首页（boxofficemojo.com/year/2026/、chinaisa.org.cn/gxportal/、std.samr.gov.cn/gb/search/gbQueryPage），即被
+    limit 截断的首屏。该源本身健康，无需修复；下一轮正常调度（cisa 11-15/11-25、gb-standards 周四、boxofficemojo
+    周二）应回到 ~100 行。防范：`metrics.limit` 已上线，规则 1c 会跳过上限低于下限的运行，此类历史误判不再产生。
+terminal: closed
 evidence_signature: 98c4b7d37a4c
