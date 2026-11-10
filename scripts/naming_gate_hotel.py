@@ -98,7 +98,18 @@ MCT_LEVEL_ONLY_REASON = (
     "不得画趋势线"
 )
 
-#: 价量对照对的缺失侧（EU 无住宿价格指数；中国无住宿业 CPI 类目）
+#: 价量对照对的缺失侧。
+#:
+#: ⚠️ **2026-11-10 更正（未改取值，改库需另单）**：本常量的 EU 半已不成立——
+#: 实测 `prc_hicp_midx` 的 `coicop=CP112`（住宿服务）+ `unit=I15` 有 **301 期**
+#: （2000-12→2025-12），CP11/CP111 亦均有值；原「CP11/CP112 均 404」是当时用了
+#: 未发布的参数组合（`unit=RCH_A` 时三 code 皆 0 期）。故：
+#:   · EU 侧缺口（原 D5）**已解锁**，`hotel.eu.nights*` 的 counterpart 实际可得；
+#:   · 仍缺的只有 **CN 侧（D1）**：`nbs-stats` 的 INDICATOR_CATEGORIES 无住宿业类目。
+#: 取值保持不变的理由：改 `state`/`debt` 会让下次跑本门把新 provenance 写进库、
+#: 并牵动板面价量背离的渲染与规则，属写入动作，须另立 change 执行。
+#: 定谳证据见 `docs/hotel-series-curation.md` 口径注记 3 与
+#: finddata `data-source-scouting/INDUSTRY-DATA-SOURCES.md`「Eurostat 住宿价格指数可得」。
 PAIRING = {
     "counterpart": "accommodation_price_index",
     "state": "missing",
