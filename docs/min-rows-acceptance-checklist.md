@@ -24,7 +24,7 @@
 | 源 | 11-10 之前 | 11-10 之后 |
 |---|---|---|
 | `cninfo-operating`/`portwatch-imf`/`nbs-stats`/`cpcaauto-monthly`/`eastmoney-futures`/`eastmoney-data`/`fangchan-market` | 可能有 rule1c 单 | **不应再有**；若仍出现，说明撤除未生效（或没拉到最新 main） |
-| `boxofficemojo`/`cisa`/`gb-standards` | 可能有（11-06 波次） | 仍可能有；等它们下次正常调度后自愈 |
+| `boxofficemojo`/`cisa`/`gb-standards` | 可能有（11-06 波次） | **已关单+暂撤声明（11-10）**，此后不应再出单；若又出现，说明声明被恢复了但源仍未重跑 |
 
 `healthy` 预期也会略降（少了 7 个声明带去的影响，但它们是健康源为主，变化应在个位数内）。
 

@@ -26,7 +26,9 @@
 ### 1. 观察一周（任务 3.2）—— 只有时间
 - 工具：`python3 scripts/min_rows_false_positive_report.py --days 7 --from-pg`
 - 基线：`docs/min-rows-observation-baseline.md`
-- **预期**：`boxofficemojo`/`cisa`/`gb-standards` 三张单会在它们下次正常调度后自愈
+- **已了结（2026-11-10，`14d9634`）**：那三张单是 11-06 09:40–10:20 的批量探针误报（48 源各一次、
+  恰好 20 行、`image_tag=unknown`），已 `closed` 并**暂撤三源声明**。理由：关单是终态，
+  不撤声明下一轮会重新开单（已实测复现）。恢复日 gb-standards 11-12 / cisa 11-15 / boxofficemojo 11-17
   （成因是 11-06 平台小 limit 波次：48 源各跑一次、恰好 20 行、`image_tag=unknown`）
 - 回退判据：某源出现「出单 → 立即恢复 → 再出单」的反复，才说明阈值过敏；**单纯"出单后又达标"不算误报**
 
