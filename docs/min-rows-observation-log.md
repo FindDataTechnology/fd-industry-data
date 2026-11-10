@@ -11,6 +11,25 @@
 （CST 11-10 06:30），文件名一律 `20261109-*`，于是被漏掉。
 `scripts/min_rows_observation.py` 已改为按 `created_at` 的 CST 日期判，并加了反向验证用例。
 
+## 三源恢复跟踪（每轮巡检核对一次）
+
+暂撤声明的三个源，恢复条件 = **在自己的排期上真跑成功过**，不是"日期到了"。
+本轮核对：**2026-11-10 22:25 CST**，证据取自 tencent 集群 CronJob/Job 状态（只读），
+不是照排期表推算。
+
+| source | 本轮状态 | 最近一次 Job | 下次排期 | 判定 |
+|---|---|---|---|---|
+| `boxofficemojo` | **触发了但失败** | `29904194` Failed（`BackoffLimitExceeded`，11-10 03:14 CST） | 11-17 03:14（周二） | 未恢复 |
+| `cisa` | 未触发 | `29896889` Complete（11-05 01:29） | 11-15 01:29（cron 5,15,25） | 未恢复 |
+| `gb-standards` | 未触发 | `29896945` Complete（11-05 02:25） | 11-12 02:25（周四） | 未恢复 |
+
+**`boxofficemojo` 这条是真故障，不是"还没到日子"**：11-10 03:14 的 Job 重试到
+`backoffLimit` 才判失败；Pod 与日志已随历史清理（`failedJobsHistoryLimit=3`）丢弃，
+现在查不到失败原因，只能确认「触发过、没成功」。下次窗口 11-17。
+
+三个源都还没恢复重跑，所以 `restore_min_rows.py --require-fresh-run` 会继续拒绝恢复——
+这是它该做的，不是它坏了。下一轮巡检由 workflow 自动跑（每日 03:17 CST）并追加当日行。
+
 | 日期 | healthy | rule1c 单数 | 出单源 | 超窗天数（源:天） | 容忍窗 |
 |---|---|---|---|---|---|
 | 2026-11-10 | 118 | 3 | `boxofficemojo`, `cisa`, `gb-standards` | — | month(840h) |
