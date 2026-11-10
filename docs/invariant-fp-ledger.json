@@ -3,6 +3,6 @@
   "window_start": "2026-11-11",
   "horizon_days": 21,
   "switch_threshold": 2,
-  "premise": "每晚巡检不跑单测（health-inspect.yml 无 pytest，runner 镜像也没装），所以连续产出本身不产生误报计数；计数只能来自用例实际失败的场合（本地全量回归 / 其它仓 CI）。",
+  "premise": "每晚巡检会跑 scripts/run_invariant_checks.py（python3 -m unittest，不需要 pytest），失败时只写「待复核候选」到 docs/invariant-fp-candidates.jsonl——候选**不计入**误报，需人判定真回归还是误报后才登记到这里。",
   "entries": []
 }

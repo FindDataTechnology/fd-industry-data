@@ -541,7 +541,14 @@ dispatcher 侧避免因一次数据不足就判任务失败、连带罚掉共享
 改用目录级 `git add`）会让它们误报。误报时怎么改见
 `docs/min-rows-observation-log.md` 的「观测项登记」。
 
-**误报计数怎么攒**：`python3 scripts/invariant_fp_count.py`（账本
-`docs/invariant-fp-ledger.json`；窗口 2026-11-11 → 2026-12-02，满窗零误报维持文本断言、
-任一条 ≥2 次换行为断言，退出码 3 表示该换）。注意**巡检本身不跑单测**——`health-inspect.yml`
-无 pytest、runner 镜像也没装，所以这个计数来自"用例真正失败的场合"，不会由每晚巡检自行累积。
+**误报计数怎么攒**：巡检每晚跑「三条结构不变量」这一步（`scripts/run_invariant_checks.py`，
+`python3 -m unittest`，**不需要 pytest**——镜像只有 `python3` + `python3-yaml`）。失败只写
+**待复核候选** `docs/invariant-fp-candidates.jsonl`（随落库门提交），不进误报计数。
+人复核后：
+
+```bash
+python3 scripts/invariant_fp_count.py     # 误报计数 + 待复核候选
+```
+
+窗口 2026-11-11 → 2026-12-02：满窗零误报 → 维持文本断言；任一条 ≥2 次 → 换行为断言
+（退出码 3 表示该换）。

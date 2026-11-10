@@ -39,6 +39,8 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
 LEDGER = REPO / "docs" / "invariant-fp-ledger.json"
+#: 巡检每晚可能写进来的**待复核候选**（不是误报，只是"用例失败了，请判一下"）
+CANDIDATES = REPO / "docs" / "invariant-fp-candidates.jsonl"
 
 #: 三条不变量的稳定标识（账本里用这些名字登记，别用测试函数名——改个名就断）
 INVARIANTS = {
@@ -54,6 +56,27 @@ SWITCH_BEHAVIORAL = "switch_behavioral"
 
 def load_ledger(path: Path = LEDGER) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_candidates(path: Path | None = None) -> list[dict]:
+    """待复核候选（巡检写的那份）。读不到就当没有——它不是判据，只是待办。
+
+    `path` 默认值写成 None 而不是 `= CANDIDATES`：默认参数在**定义时**求值，
+    直接写 `= CANDIDATES` 会让用例把模块常量替换成临时文件后仍读旧路径
+    （2026-11-11 实测踩到，断言 0 != 1）。
+    """
+    path = CANDIDATES if path is None else path
+    if not path.is_file():
+        return []
+    out: list[dict] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            out.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return [c for c in out if c.get("status", "unreviewed") == "unreviewed"]
 
 
 def summarise(ledger: dict, now: date) -> list[dict]:
@@ -114,6 +137,12 @@ def render(rows: list[dict], ledger: dict, now: date) -> str:
         lines.append(f"{r['invariant']:28} {r['false_positives']:>4} "
                      f"{r['last_at'] or '—':>12} {r['days_left']:>6}  "
                      f"{label[r['verdict']]}")
+    pend = load_candidates()
+    if pend:
+        lines += ["", f"待复核候选 {len(pend)} 条（**不计入误报**，需人判定是真回归还是误报）："]
+        for c in pend:
+            lines.append(f"  {c.get('date')}  {c.get('invariant')}  {c.get('test', '')}")
+        lines.append("  确认是误报 → 登记进 docs/invariant-fp-ledger.json 的 entries，并从这里删掉该行")
     if not (ledger.get("entries") or []):
         lines += ["", "账本为空：还没有登记过误报。（空账本 = 零误报，不是「没在观察」。）"]
     lines += ["", "登记方式：误报是人工判断——在 docs/invariant-fp-ledger.json 的 entries 里"

@@ -118,6 +118,34 @@ class ObservationStepContractTests(unittest.TestCase):
         self.assertIsNotNone(gate, "找不到落库门步骤")
         self.assertLess(obs, gate, "观察步骤排到落库门之后了：行写得进去但提交不了")
 
+    def test_invariant_step_exists_and_is_non_blocking(self):
+        """巡检里要有「结构不变量」这一步，且不阻断（失败只出 warning）。
+
+        这一步的产出是「待复核候选」，不是误报计数——所以它不能阻断工单链。
+        """
+        steps = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))["jobs"]["inspect"]["steps"]
+        inv = [s for s in steps if "不变量" in (s.get("name") or "")]
+        self.assertEqual(len(inv), 1, "应恰有一个「结构不变量」步骤")
+        run = inv[0]["run"]
+        self.assertIn("scripts/run_invariant_checks.py", run)
+        self.assertEqual([l.strip() for l in run.strip().splitlines() if l.strip()][-1], "exit 0",
+                         "结构不变量步骤必须不阻断")
+        self.assertNotIn("pytest", run, "巡检镜像没有 pytest，这一步不能依赖它")
+
+    def test_invariant_step_before_landing_gate(self):
+        """候选是落库门提交上去的，所以这一步也必须在落库门之前。"""
+        steps = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))["jobs"]["inspect"]["steps"]
+        names = [(s.get("name") or "") for s in steps]
+        inv = next(i for i, n in enumerate(names) if "不变量" in n)
+        gate = next(i for i, n in enumerate(names) if "landing gate" in n.lower())
+        self.assertLess(inv, gate)
+
+    def test_landing_gate_stages_the_candidates(self):
+        """落库门必须也 add 候选文件，否则候选只活在容器里（每次都全新浅克隆）。"""
+        steps = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))["jobs"]["inspect"]["steps"]
+        gate = next(s for s in steps if "landing gate" in (s.get("name") or "").lower())
+        self.assertIn("docs/invariant-fp-candidates.jsonl", gate["run"])
+
     def test_landing_gate_stages_the_log(self):
         """落库门必须 `git add` 观察表这个文件，否则前面那条也没意义。"""
         steps = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))["jobs"]["inspect"]["steps"]

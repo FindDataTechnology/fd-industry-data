@@ -122,7 +122,10 @@ class CliTests(unittest.TestCase):
         doc = self.m.load_ledger()
         self.assertEqual(doc["entries"], [])
         self.assertEqual(doc["window_start"], "2026-11-11")
-        self.assertIn("不跑单测", doc["premise"], "前提必须写在账本里，别只写在文档里")
+        # 前提必须写在账本里（别只写在文档里）：这份账本要能自证"计数从哪来"
+        self.assertIn("待复核候选", doc["premise"], "账本要说明候选与误报的区别")
+        self.assertIn("不计入", doc["premise"], "必须写明候选不计入误报计数")
+        self.assertIn("pytest", doc["premise"], "要写明不依赖 pytest（镜像没装）")
 
 
 if __name__ == "__main__":

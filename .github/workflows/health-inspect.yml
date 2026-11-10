@@ -154,6 +154,34 @@ jobs:
           esac
           exit 0
 
+      # 三条结构不变量的每晚自检（2026-11-11 接入）。
+      #
+      # 不用 pytest：巡检镜像只有 python3 + python3-yaml，没有 pytest、也没有 pip；
+      # 而这三条用例本来只用 unittest（stdlib）+ yaml，`python3 -m unittest` 就够。
+      # 为它重新出片不划算（要多一次镜像发布 + 部署滚动）。
+      #
+      # 失败时**只记「待复核候选」**，不直接记误报——用例失败可能是真回归（有人删了
+      # --from-pg），也可能是合法重构让文本断言误报，机器分不出。候选不进误报计数，
+      # 否则一次真回归就能把「≥2 次换行为断言」提前触发。
+      - name: 三条结构不变量（不阻断）
+        working-directory: src
+        run: |
+          set +e
+          python3 scripts/run_invariant_checks.py 2>&1 | tee /tmp/inv.log
+          rc=${PIPESTATUS[0]}
+          {
+            echo "### 三条结构不变量"
+            echo '```'
+            sed -n '1,20p' /tmp/inv.log
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          if [ "$rc" = "3" ]; then
+            echo "::warning::结构不变量有用例失败（rc=3）——已记为待复核候选，请判定真回归还是误报"
+          elif [ "$rc" != "0" ]; then
+            echo "::warning::结构不变量步骤异常（rc=${rc}）"
+          fi
+          exit 0
+
       # §12「一周误报率观察」的每日核对（2026-11-11 接入）：把 rule1c 单的
       # 「单数 / 最近一张 / 下限 / 出单后达标次数」摆出来，供人按 §12.1 判 E1/E2。
       # 只读：不写工单、不改 manifest、不碰观察表——它只把原料打进 step summary。
@@ -216,6 +244,9 @@ jobs:
           # 而它们本来就同一轮产生。
           git add reports/health-tickets
           [ -f docs/min-rows-observation-log.md ] && git add docs/min-rows-observation-log.md
+          # 结构不变量的「待复核候选」也随这次提交进仓；不 add 的话候选只活在容器里，
+          # 下一次全新浅克隆就没了（本 workflow 每次都 rm -rf src 重克隆）。
+          [ -f docs/invariant-fp-candidates.jsonl ] && git add docs/invariant-fp-candidates.jsonl
           if git diff --cached --quiet; then
             echo "no ticket changes"
             exit 0
