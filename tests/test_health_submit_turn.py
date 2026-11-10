@@ -141,3 +141,62 @@ def test_generation_tickets_submitted_before_repairs(tmp_path, cfg, monkeypatch)
     real = [r for r in res if r["ticket"] != "__batch_limit__"]
     assert len(real) == 1
     assert real[0]["ticket"] == "20261109-z-generate.yaml", "generate 单必须优先"
+
+
+def test_poster_retries_connection_errors(monkeypatch):
+    """连接层抖动重试：实测一轮 10 次 SUBMIT 里 7 次 RemoteDisconnected/URLError。
+
+    只重试连接层异常（URLError/ConnectionError/TimeoutError）——HTTPError 是有答复的，
+    不该重试；重试沿用同一 idem，agent 侧 inbox 去重保证安全。
+    """
+    import urllib.error
+
+    monkeypatch.setattr(ins, "_POSTER_RETRY_BACKOFF_S", 0)
+    calls: list[int] = []
+    real_urlopen = ins.urllib.request.urlopen
+
+    class _Resp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self, n):
+            return b'{"status":"queued"}'
+
+    def fake_urlopen(req, timeout=None):
+        calls.append(1)
+        if len(calls) == 1:
+            raise urllib.error.URLError("connection reset")
+        return _Resp()
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
+    try:
+        status, text = ins._default_poster("http://x", "k", "idem-1", "SUBMIT x y")
+    finally:
+        monkeypatch.setattr(ins.urllib.request, "urlopen", real_urlopen)
+    assert status == 200
+    assert len(calls) == 2, "连接层失败应重试一次后成功"
+
+
+def test_poster_does_not_retry_http_error(monkeypatch):
+    """HTTPError 不重试：4xx/5xx 是服务端的明确答复（含 409 TURN_IN_FLIGHT）。"""
+    import io
+    import urllib.error
+
+    monkeypatch.setattr(ins, "_POSTER_RETRY_BACKOFF_S", 0)
+    calls: list[int] = []
+
+    def fake_urlopen(req, timeout=None):
+        calls.append(1)
+        raise urllib.error.HTTPError("http://x", 409, "Conflict", {},
+                                     io.BytesIO(b'{"code":"TURN_IN_FLIGHT"}'))
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
+    status, text = ins._default_poster("http://x", "k", "idem-2", "SUBMIT x y")
+    assert status == 409
+    assert "TURN_IN_FLIGHT" in text
+    assert len(calls) == 1, "HTTPError 不得重试"

@@ -52,6 +52,8 @@ _SUBMIT_TURN_BUDGET_S = 90.0   # 单张单的等待预算（实测 agent 回合 
 # 吞吐实测（2026-11-10）：turn 串行，单张 20–150s；workflow 窗口 45 分钟、常规步 9 分钟，
 # 故批量等待预算取 30 分钟（20 分钟余量），一轮可清 20 张上下。此前 420s 太保守，
 # 一轮只推进 2 张，54 张积压要排一个月。
+_POSTER_RETRY_BACKOFF_S = 3.0  # 连接层失败重试退避（3s/6s 两跳）
+
 _SUBMIT_MAX_TICKETS_PER_RUN = 24
 _SUBMIT_BATCH_BUDGET_S = 1800.0
 REFUSAL_WORDS = (
@@ -940,11 +942,20 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
             "Idempotency-Key": idem,
         },
     )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.status, resp.read(8000).decode("utf-8", "replace")
-    except urllib.error.HTTPError as e:  # noqa: BLE001
-        return e.code, e.read(8000).decode("utf-8", "replace")
+    # 网络层失败重试：实测（2026-11-10）一轮 10 次 SUBMIT 里有 7 次直接
+    # RemoteDisconnected / URLError，成功率被打到 30%——而每次失败都白占一个 turn 窗口。
+    # 只对**连接层**异常重试（HTTPError 是有答复的，不重试）；idem 不变，安全。
+    attempts = 3
+    for i in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.status, resp.read(8000).decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:  # noqa: BLE001
+            return e.code, e.read(8000).decode("utf-8", "replace")
+        except (urllib.error.URLError, ConnectionError, TimeoutError):
+            if i >= attempts:
+                raise
+            time.sleep(_POSTER_RETRY_BACKOFF_S * i)
 
 
 def _part_texts(result: dict) -> list[str]:
