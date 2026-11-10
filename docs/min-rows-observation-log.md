@@ -75,6 +75,46 @@ gb-standards     ✗no_new_job  11-12 02:25      窗口后无新 Job（最新是
 巡检既不会出 rule1c 单（没有"行数不足的成功运行"可判），也不会报超期（离 35 天还远）
 ——11-12 03:17 那次巡检即便 gb-standards 挂了，报告面也是全绿的。
 
+### 窗口核对自动化：三案对比（待裁决，未实施）
+
+现在的状态是：**脚本有了，但要人/agent 在窗口后手动跑一次**。本节把"让它自己跑"的三条路
+摆齐，含最小改动清单与风险，供裁决后实施。三案判据完全一致（`check_withdrawn_sources.py`
+的四态），差别只在**谁来跑、凭什么权限、结果落在哪**。
+
+#### 甲案 · 跨集群只读 RBAC（GHA runner 直接读 tencent）
+
+| 项 | 内容 |
+|---|---|
+| 最小改动 | ① tencent/fd-industry 建 SA `fd-health-jobcheck` + Role（**仅** `get,list` on `jobs`）+ RoleBinding；② 用 TokenRequest 铸一枚长效 token 并落成 GHA secret `FD_TENCENT_KUBECONFIG`；③ runner 镜像需有 `kubectl`（镜像里确定有 `psql`——巡检就是靠它读库；`kubectl` 未验证，大概率为无，补它要一次出片）；④ workflow 加一步跑 `check_withdrawn_sources.py`；⑤ 脚本加 `--kubeconfig` 入参 |
+| 依赖 | cheap→tencent API 网络可达（未验证）；kubectl 进镜像要走一次出片 |
+| 优点 | 结果直接进现有 GHA 的 step summary 与运行日志，和别的巡检信号在同一处看 |
+| 风险 | **凭据离开集群**：一枚长效 token 存在 GitHub secrets，泄露面比给集群内 SA 大一档（虽只 read jobs）；两集群版本/CA 漂移要维护；镜像加二进制要重新出片并验证 |
+
+#### 乙案 · tencent 上每日 07:00 CronJob 自跑
+
+| 项 | 内容 |
+|---|---|
+| 最小改动 | ① 同一 namespace 建 SA + Role（`get,list` jobs）+ RoleBinding；② 建 CronJob `fd-health-withdrawn-check`，`schedule: "0 7 * * *"`、`timeZone: Asia/Shanghai`、`backoffLimit: 0`、跑脚本；③ **输出通道（关键，见风险）** |
+| 依赖 | 无跨集群凭据；但要一条"红了怎么办"的路 |
+| 优点 | **零新增凭据面**：SA 就在本集群本 namespace，读自己的 Job；不碰入网、不碰 runner、不重新出片 |
+| 风险 | **它自己不会喊**。Job 红了只是 `kubectl get jobs` 里多一行，没人看等于没做。要真闭环必须接输出：<br>· 乙-1 复用集群里已有的 `fd-industry-gitee-token`（每个爬虫的 init 容器都在用）推一行到本文件 —— 代价是**给仓库加了第二个写入方**，与多会话 git 协定直接冲突（bot 与 CronJob 抢 push）<br>· 乙-2 走 SMTP 邮件（`alerts_core/notify.py`，DirectMail 465）—— 但 `FD_ALERT_SMTP_*` 这套**在集群里不存在**（实测：tencent 与 cheap 两个集群都没有该前缀的 env）。`fd-wire-api` 有一套自己的 `SMTP_*`，属另一服务，复用等于跨服务借凭据<br>· 乙-3 不输出，靠人每天看 —— 那和现在手动跑一次没区别，只是把"记得跑"换成了"记得看" |
+
+#### 丙案 · 用已有遥测代替 Job 状态（零新增凭据）— **推荐**
+
+| 项 | 内容 |
+|---|---|
+| 做法 | 在**现有** GHA 巡检里给三源各打一行"窗口后最近一次运行"：`started_at` / `status` / `rows`。判据同构：窗口后无记录 → `no_new_job`；有 `failed` → `failed`；有 `running` 或未终态 → `incomplete`；`success/partial` 且 `rows ≥ floor` → `complete` |
+| 最小改动 | 只改 `scripts/min_rows_observation.py`（多算三行的窗口态）+ 一行 workflow 无需改（已注入 `FD_CENTRAL_PG_DSN`） |
+| 凭据 | **零新增**：用的就是已经在跑的只读账号 `fd_health_ro` |
+| 依据 | `writer.py` 是**每次执行写一行** `crawl_runs`（含 `status='failed'`，两阶段还有 `'running'`）。已发生的两个实例都覆盖得到：`nasa-firms` 抛 `RuntimeError` → 写 failed；`boxofficemojo` `BackoffLimitExceeded`（退出码 3）同样是容器跑完后失败 → 写 failed |
+| 风险（必须写明） | **盲区是"runner 还没来得及写行就死了"**：拉镜像失败、init 容器 git clone 失败、调度失败——这些在 `crawl_runs` 里**完全没记录**，会显示成 `no_new_job`，与"调度没触发"同形。甲乙两案能区分这一种，丙案不能。<br>缓解：`no_new_job` 时同时报"该源最近一次 `lastScheduleTime` 距今多久"，超过一个周期仍无记录就升级为"疑似根本没起 Pod"，人工看一眼 Job 即可 |
+| 结论 | 覆盖已观测到的全部真实失败形态，零凭据、零出片、零新写入方。**建议先上丙**；若后续真出现"Pod 起不来"这类，再按乙案加 Job 层兜底 |
+
+**决定记录**：本案涉及"同一事实在三处以不同口径观测"（k8s Job 三态 / crawl_runs 四态 /
+排期时间），按项目硬约束③取**可验证更严的一侧**——判据一律锚"窗口后是否有一条**成功且
+不低于下限**的运行记录"，不以"触发过"或"文件有行"替代。丙案的盲区已显式登记，不允许
+在报告里把 `no_new_job` 说成"源健康"。
+
 ### 待核对窗口：nasa-firms 2026-11-11 06:07 CST
 
 **必须先拆一个口径，否则会误判**：`106,838` 是**快照总行数**，不是**落库行数**。
