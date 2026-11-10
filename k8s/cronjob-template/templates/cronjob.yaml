@@ -109,6 +109,15 @@ spec:
               env:
                 - name: FD_CONTENT_DIR
                   value: /content/spiders
+                # 注册表显式指到 checkout，而不是靠 registry_root() 自己摸：
+                # pip 安装后 fd_industry_data 在 site-packages，而 universes/ 只存在于
+                # /content（initContainer sparse-checkout）与镜像的 /app —— 从 __file__
+                # 向上找永远命不中 site-packages 那一串。实测 2026-11-08/09/10
+                # eastmoney-disclosure-plan 连续四次 UniverseRegistryError。
+                # 代码侧也已让 registry_root() 追加「进程工作目录祖先」，此变量是
+                # 对现役镜像（尚未含该修复）的兜底，出片后可保留无害。
+                - name: FD_UNIVERSE_DIR
+                  value: /content/universes
                 - name: FD_CONTENT_COMMIT
                   value: /content/.commit
                 - name: FD_IMAGE_TAG

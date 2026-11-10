@@ -45,6 +45,62 @@ def test_registry_root_is_repo_universes_dir():
     assert U.registry_root().is_dir()
 
 
+def test_registry_root_falls_back_to_cwd_tree(tmp_path, monkeypatch):
+    """pip 安装的镜像里包在 site-packages、注册表在镜像工作目录（/app/universes）。
+
+    2026-11-10 实测 fd-industry-runner:sha-e6f5f01：``/app/universes`` 齐备
+    （cn-a/hk/us.yaml），但 ``registry_root()`` 只从 ``__file__`` 向上找，
+    永远落在 site-packages 那串里 → ``eastmoney-disclosure-plan`` 连续四次
+    ``UniverseRegistryError``。这条用例把「从进程工作目录也能找到」钉住。
+
+    ``__file__`` 一并挪到临时树，否则本仓祖先里的 ``universes/`` 会先命中，
+    这条路径就永远测不到。
+    """
+
+    pkg = tmp_path / "site-packages" / "fd_industry_data"
+    pkg.mkdir(parents=True)
+    (tmp_path / "universes").mkdir()
+    (tmp_path / "universes" / "hk.yaml").write_text(
+        textwrap.dedent(
+            """\
+            region: HK
+            entities:
+              - ticker: "06862"
+                name_zh: 海底捞
+                segment: main
+                verticals: [restaurant]
+            """
+        )
+    )
+    monkeypatch.setattr(U, "__file__", str(pkg / "universes.py"))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv(U.ENV_OVERRIDE, raising=False)
+    assert U.registry_root() == (tmp_path / "universes").resolve()
+    assert [e.ticker for e in U.load_region("HK")] == ["06862"]
+
+
+def test_registry_root_env_override_still_wins(tmp_path, monkeypatch):
+    """FD_UNIVERSE_DIR 优先于任何自动发现（测试与非常规部署的逃生口）。"""
+
+    (tmp_path / "universes").mkdir()
+    monkeypatch.setenv(U.ENV_OVERRIDE, str(tmp_path / "universes"))
+    assert U.registry_root() == (tmp_path / "universes").resolve()
+
+
+def test_missing_registry_still_fails_loudly(tmp_path, monkeypatch):
+    """两棵树都没有就必须抛 —— 不能静默回落到内置公司列表。"""
+
+    pkg = tmp_path / "site-packages" / "fd_industry_data"
+    pkg.mkdir(parents=True)
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.setattr(U, "__file__", str(pkg / "universes.py"))
+    monkeypatch.chdir(work)
+    monkeypatch.delenv(U.ENV_OVERRIDE, raising=False)
+    with pytest.raises(U.UniverseRegistryError):
+        U.registry_root()
+
+
 @pytest.mark.parametrize(
     "region,expected",
     [("HK", 10), ("US", 17), ("CN-A", 49)],

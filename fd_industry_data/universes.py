@@ -45,11 +45,36 @@ class Entity:
     verticals: tuple[str, ...]
 
 
+def _registry_roots() -> tuple[Path, ...]:
+    """按优先级列出所有待查的「容器目录」。
+
+    两棵树都要查，因为**发行形态把包和注册表分开了**：
+
+    * 源码树 / checkout —— ``universes.py`` 与 ``universes/`` 同根，从 ``__file__``
+      向上即可命中（开发机、以及把内容仓 clone 到 /content 的 pod）；
+    * pip 安装的镜像 —— ``fd_industry_data`` 落在 site-packages，而 ``universes/``
+      被 COPY 到镜像工作目录（``/app/universes``）。从 ``__file__`` 向上**永远**
+      命不中，只会看到 site-packages 那一串。
+
+    2026-11-10 实测：``fd-industry-runner:sha-e6f5f01`` 里 ``/app/universes`` 齐备
+    （cn-a/hk/us.yaml），但 ``registry_root()`` 硬失败，``eastmoney-disclosure-plan``
+    连续四次 ``UniverseRegistryError``。补上进程工作目录这条查找路径后，pod
+    （``workingDir: /content``）与镜像默认（``WORKDIR /app``）都能自洽解析。
+    """
+
+    seen: list[Path] = []
+    for start in (Path(__file__).resolve(), Path.cwd().resolve()):
+        for parent in start.parents:
+            if parent not in seen:
+                seen.append(parent)
+    return tuple(seen)
+
+
 def registry_root() -> Path:
     """定位注册表目录。
 
-    优先 ``FD_UNIVERSE_DIR``（测试与非常规部署用），否则从本文件向上找到第一个
-    含 ``universes/`` 的祖先目录（仓库根或镜像 ``/app``）。
+    优先级：``FD_UNIVERSE_DIR`` > 本文件祖先 > 进程工作目录祖先。找不到就硬报——
+    **不静默回落**到任何内置公司列表（缺注册表与注册表为空必须可区分）。
     """
 
     override = os.environ.get(ENV_OVERRIDE)
@@ -61,13 +86,14 @@ def registry_root() -> Path:
             )
         return path
 
-    for parent in Path(__file__).resolve().parents:
+    for parent in _registry_roots():
         candidate = parent / REGISTRY_DIRNAME
         if candidate.is_dir():
             return candidate
 
     raise UniverseRegistryError(
-        f"no {REGISTRY_DIRNAME}/ directory found above {Path(__file__).resolve()}; "
+        f"no {REGISTRY_DIRNAME}/ directory found above "
+        f"{Path(__file__).resolve()} nor above {Path.cwd()}; "
         f"set {ENV_OVERRIDE} or ship the registry with the image"
     )
 
