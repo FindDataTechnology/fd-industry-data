@@ -33,6 +33,8 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from fd_industry_data.health.withdrawn import window_states
+
 REPO = Path(__file__).resolve().parent.parent
 TICKETS = REPO / "reports" / "health-tickets"
 DEFAULT_LOG = REPO / "docs" / "min-rows-observation-log.md"
@@ -193,13 +195,19 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--append", nargs="?", const=str(DEFAULT_LOG),
                     help="追加到观察表（默认 docs/min-rows-observation-log.md）")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--now", help="覆盖当前时刻（ISO8601，测试用；窗口态判据依赖它）")
     args = ap.parse_args(argv)
 
     import os
     from fd_industry_data.health import inspector
     from fd_industry_data.health.config import load_config
 
-    now = datetime.now(CST)
+    # `--day` 只决定行里的日期，不决定"现在"；窗口态判据要用真正的当前时刻，
+    # 所以单独给一个入口——否则"构造一条红"在测试里做不到（只能靠等时钟）。
+    now = (_parse(args.now) if args.now else datetime.now(CST))
+    if now is None:
+        print(f"--now 解析失败：{args.now!r}", file=sys.stderr)
+        return 2
     day = args.day or now.strftime("%Y-%m-%d")
 
     if args.snapshot:
@@ -257,12 +265,16 @@ def main(argv: list[str]) -> int:
         healthy = plan.healthy
         fps = collect_fingerprints(records, repo, cfg, now)
 
+    # 三源窗口态：从同一批遥测算，判据见 fd_industry_data/health/withdrawn.py
+    withdrawn_rows = window_states(records, now) if records else []
+
     window = f"month(840h)"
     row = build_row(day, healthy, tickets, over, window)
 
     if args.json:
         print(json.dumps({"day": day, "healthy": healthy, "rule1c_sources": tickets,
-                          "over_window_days": over, "fingerprints": fps},
+                          "over_window_days": over, "fingerprints": fps,
+                          "withdrawn": withdrawn_rows},
                          ensure_ascii=False, indent=2))
     else:
         print(row)
@@ -278,6 +290,14 @@ def main(argv: list[str]) -> int:
             print(f"  ③ deferred 带 category/rule: {'✓' if c['ok'] else '✗'}（{c['count']} 条）")
             print(f"  ④ blocked_config_sources 字段: {'有 ✓' if d['present'] else '缺 ✗'} {d['value']}")
 
+    if not args.json and withdrawn_rows:
+        print()
+        print("三源窗口态（暂撤声明）：")
+        for r in withdrawn_rows:
+            mark = "✗" if r["red"] else ("…" if r["verdict"] == "pending" else "✓")
+            print(f"  {r['source']:14} 窗口 {r['window'][5:16].replace('T', ' ')}  "
+                  f"{mark}{r['verdict']:11} {r['why']}")
+
     if args.append:
         path = Path(args.append)
         if not path.exists():
@@ -288,7 +308,8 @@ def main(argv: list[str]) -> int:
         else:
             path.write_text(body.rstrip("\n") + "\n" + row + "\n", encoding="utf-8")
             print(f"已追加到 {path}", file=sys.stderr)
-    return 0
+    # 3 = 有源未恢复（2 已被「无遥测，拒绝追加」占用）；workflow 那步非阻断，只出 warning
+    return 3 if any(r["red"] for r in withdrawn_rows) else 0
 
 
 if __name__ == "__main__":

@@ -40,17 +40,14 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from fd_industry_data.health.withdrawn import RED, WITHDRAWN
+
 CST = timezone(timedelta(hours=8))
 
 #: 恢复窗口 = 该源下一次排期。窗口之后新建的 Job 才算数——窗口之前那次跑
 #: （哪怕成功）证明不了"上游恢复了"，它跑的还是撤声明之前的状态。
-WINDOWS: dict[str, datetime] = {
-    "gb-standards": datetime(2026, 11, 12, 2, 25, tzinfo=CST),    # 周四 02:25
-    "cisa":         datetime(2026, 11, 15, 1, 29, tzinfo=CST),    # 5/15/25 01:29
-    "boxofficemojo": datetime(2026, 11, 17, 3, 14, tzinfo=CST),   # 周二 03:14
-}
-
-RED = {"no_new_job", "failed", "incomplete"}
+#: 窗口与 floor 的唯一真源在 health/withdrawn.py——两个脚本共用，避免各自漂移。
+WINDOWS: dict[str, datetime] = {w.source: w.at for w in WITHDRAWN}
 
 
 def _ts(s: str | None) -> datetime | None:

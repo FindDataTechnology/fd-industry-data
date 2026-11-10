@@ -116,6 +116,40 @@ class AppendTests(unittest.TestCase):
         self.assertIn("`cisa`", row)
         self.assertIn("`cisa`:3", row)
 
+    def test_json_includes_withdrawn_section(self):
+        """A5：--json 必须带 withdrawn 段（3 条，含 verdict/red/why）。"""
+        tel = self.tmp / "tel.json"
+        tel.write_text('[{"source":"cisa","status":"success","rows":100,'
+                       '"started_at":"2026-11-09T00:00:00+00:00"}]', encoding="utf-8")
+        import contextlib, io, json as _json
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            self.m.main(["--snapshot", str(tel), "--json", "--day", "2026-11-10",
+                         "--now", "2026-11-10T12:00:00+08:00"])
+        data = _json.loads(buf.getvalue())
+        self.assertIn("withdrawn", data)
+        self.assertEqual(len(data["withdrawn"]), 3)
+        for row in data["withdrawn"]:
+            self.assertEqual(set(row) >= {"source", "verdict", "window", "red", "why"}, True)
+
+    def test_red_exits_three(self):
+        """A6：有源未恢复 → rc=3（2 已被「无遥测」占用），两者不能混。"""
+        tel = self.tmp / "tel.json"
+        # cisa 窗口 11-15；用 11-20 当"现在"，窗口后无记录 → no_new_job → 红
+        tel.write_text('[{"source":"cisa","status":"success","rows":100,'
+                       '"started_at":"2026-11-09T00:00:00+00:00"}]', encoding="utf-8")
+        rc = self.m.main(["--snapshot", str(tel), "--day", "2026-11-20",
+                          "--now", "2026-11-20T00:00:00+08:00"])
+        self.assertEqual(rc, 3)
+
+    def test_pending_exits_zero(self):
+        tel = self.tmp / "tel.json"
+        tel.write_text('[{"source":"cisa","status":"success","rows":100,'
+                       '"started_at":"2026-11-09T00:00:00+00:00"}]', encoding="utf-8")
+        rc = self.m.main(["--snapshot", str(tel), "--day", "2026-11-10",
+                          "--now", "2026-11-10T12:00:00+08:00"])
+        self.assertEqual(rc, 0, "三个窗口都没到 → 不能报红")
+
     def test_append_refuses_without_telemetry(self):
         """没遥测就不许写表：空 records 会写出一行「全绿假行」。
 
