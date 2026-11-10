@@ -33,9 +33,16 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fd_industry_data.health.withdrawn import window_states
-
 REPO = Path(__file__).resolve().parent.parent
+# 必须自己把仓库根塞进 sys.path：workflow 在 `working-directory: src` 下跑
+# `python3 scripts/min_rows_observation.py`，此时 sys.path[0] 是 `src/scripts`，
+# **不含 `src/`**，于是 `import fd_industry_data` 直接 ModuleNotFoundError。
+# 2026-11-10 实测：run 42817406652 的这一步就是这么失败的——而该步骤设了「不阻断」，
+# 步骤结论仍是 success，只有日志里一行 `##[warning]观察表追加失败（rc=1）`。
+# 同目录的 health_inspect.py / adjudicate.py / reconcile_render.py 都有这行，只有本脚本漏了。
+sys.path.insert(0, str(REPO))
+
+from fd_industry_data.health.withdrawn import window_states  # noqa: E402
 TICKETS = REPO / "reports" / "health-tickets"
 DEFAULT_LOG = REPO / "docs" / "min-rows-observation-log.md"
 CST = timezone(timedelta(hours=8))
