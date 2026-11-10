@@ -1,9 +1,9 @@
 {
-  "at": "2026-11-10T05:45:40.310265+00:00",
+  "at": "2026-11-10T10:32:14.751720+00:00",
   "source": "psql",
   "config_source": "file:config/health-scope.json",
-  "sources_seen": 136,
-  "healthy": 113,
+  "sources_seen": 137,
+  "healthy": 118,
   "written": [],
   "deferred": [],
   "skipped_unknown_period": [],
@@ -20,11 +20,6 @@
     },
     {
       "source": "chinabond-monthly",
-      "reason": "period-longer-than-window",
-      "data_period": "month"
-    },
-    {
-      "source": "chinawealth-reports",
       "reason": "period-longer-than-window",
       "data_period": "month"
     },
@@ -101,53 +96,40 @@
       "ticket": "20261109-usaspending-awards-2d72e624.yaml",
       "submitted": true,
       "reason": "",
-      "attempt": 2,
-      "http_status": 200,
-      "verdict": "accepted",
-      "verdict_reason": "JSON-RPC result envelope",
-      "state": null,
-      "response": "我理解了协议。您提交了一张工单：`FindDataTechnology/fd-industry-data reports/health-tickets/20261109-usaspending-awards-2d72e624.yaml`。\n\n但当前工作区（/app）是平台工作区，不包含 `fd-industry-data` 仓库，因此无法直接读取该工单文件。\n\n请问您能否通过 **SUBMIT-INLINE** 方式把工单 YAML 内容直接发给我？或者确认该仓库已在某个可访问路径？\n\n如果方便，您可以把工单内容贴在下一条消息里（格式同 SUBMIT-INLINE），我会立即按协议入队并开始分"
-    },
-    {
-      "ticket": "20261107-fred-cpi-6c71952f.yaml",
-      "submitted": false,
-      "reason": "submit failed: RemoteDisconnected: Remote end closed connection without response",
-      "attempt": 7
-    },
-    {
-      "ticket": "20261107-fred-cpi-ba279d6a.yaml",
-      "submitted": false,
-      "reason": "submit failed: URLError: <urlopen error TLS/SSL connection has been closed (EOF) (_ssl.c:992)>",
-      "attempt": 6
-    },
-    {
-      "ticket": "20261107-hkex-disclosure-82e7ef63.yaml",
-      "submitted": true,
-      "reason": "",
-      "attempt": 6,
+      "attempt": 3,
       "http_status": 200,
       "verdict": "duplicate",
       "verdict_reason": "dedup receipt",
       "state": null,
-      "response": "已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261107-hkex-disclosure-82e7ef63.yaml（队列第 1 位）\n\n**状态文件降级至 /tmp/spider-heal/inbox.json**（$DSH_HOME/spider-heal/ 不可写，已按协议降级至可写位置）"
+      "response": "已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261109-usaspending-awards-2d72e624.yaml（队列第 1 位）\n\n状态文件降级至 /tmp/.spider-heal/inbox.json"
+    },
+    {
+      "ticket": "20261107-fred-cpi-6c71952f.yaml",
+      "submitted": true,
+      "reason": "",
+      "attempt": 8,
+      "http_status": 200,
+      "verdict": "accepted",
+      "verdict_reason": "JSON-RPC result envelope",
+      "state": null,
+      "response": "Now I'll respond with the submission receipt as per protocol. The ticket has been added to the queue at position 2.\n已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261107-fred-cpi-6c71952f.yaml（队列第 2 位）\n\n**工单诊断**：kind=generate（greenfield 新建单元），source=fred-cpi，unit=spiders/fred-cpi/，"
+    },
+    {
+      "ticket": "20261107-fred-cpi-ba279d6a.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 7,
+      "http_status": 200,
+      "verdict": "error",
+      "verdict_reason": "JSON-RPC error envelope",
+      "state": null,
+      "response": "{\"code\": -32032, \"message\": \"fetch failed\"}"
     },
     {
       "ticket": "20261107-ico-coffee-price-39ecc097.yaml",
       "submitted": false,
-      "reason": "submit failed: RemoteDisconnected: Remote end closed connection without response",
-      "attempt": 6
-    },
-    {
-      "ticket": "20261107-nra-rpi-15ef6fc0.yaml",
-      "submitted": false,
-      "reason": "submit failed: URLError: <urlopen error TLS/SSL connection has been closed (EOF) (_ssl.c:992)>",
-      "attempt": 5
-    },
-    {
-      "ticket": "20261107-nra-rpi-3a5952f4.yaml",
-      "submitted": false,
       "reason": "",
-      "attempt": 5,
+      "attempt": 7,
       "http_status": 200,
       "verdict": "error",
       "verdict_reason": "JSON-RPC error envelope",
@@ -155,89 +137,117 @@
       "response": "{\"code\": -32003, \"message\": \"Connection error.\"}"
     },
     {
-      "ticket": "20261108-socrata-ny-383ced01.yaml",
+      "ticket": "20261107-nra-rpi-15ef6fc0.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 6,
+      "http_status": 200,
+      "verdict": "error",
+      "verdict_reason": "JSON-RPC error envelope",
+      "state": null,
+      "response": "{\"code\": -32032, \"message\": \"fetch failed\"}"
+    },
+    {
+      "ticket": "20261107-nra-rpi-3a5952f4.yaml",
       "submitted": true,
       "reason": "",
-      "attempt": 8,
+      "attempt": 6,
       "http_status": 200,
       "verdict": "duplicate",
       "verdict_reason": "dedup receipt",
       "state": null,
-      "response": "已见过 FindDataTechnology/fd-industry-data#reports/health-tickets/20261108-socrata-ny-383ced01.yaml，状态：invalid\n\n拒绝：工单文件不存在于本地工作区（/app/reports/health-tickets/20261108-socrata-ny-383ced01.yaml）。SUBMIT 要求工单已落盘在仓的 reports/health-tickets/ 目录下；若工单仅在远端仓，请先在本地同步该文件，或改用 SUBMIT-INLINE 直接把 YAML 内容贴在消息里。"
+      "response": "已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261107-nra-rpi-3a5952f4.yaml（队列第 1 位）\n\n状态文件降级至 /tmp/spider-heal/inbox.json"
     },
     {
       "ticket": "20261109-education_podcast-ce803d9c.yaml",
       "submitted": false,
-      "reason": "submit failed: RemoteDisconnected: Remote end closed connection without response",
-      "attempt": 5
+      "reason": "",
+      "attempt": 6,
+      "http_status": 200,
+      "verdict": "error",
+      "verdict_reason": "JSON-RPC error envelope",
+      "state": null,
+      "response": "{\"code\": -32003, \"message\": \"Connection error.\"}"
     },
     {
-      "ticket": "20261109-gb-standards-e6083859.yaml",
-      "submitted": false,
+      "ticket": "20261109-iea-ev-de18f48e.yaml",
+      "submitted": true,
       "reason": "",
       "attempt": 5,
-      "http_status": 409,
-      "verdict": "deferred",
-      "verdict_reason": "turn in flight (409) — 等待预算耗尽，本批停手",
-      "waited_s": 90
+      "http_status": 200,
+      "verdict": "duplicate",
+      "verdict_reason": "dedup receipt",
+      "state": null,
+      "response": "**已入队 → 处理完毕 → 转人工（manual）**\n\n- 工单：`FindDataTechnology/fd-industry-data#reports/health-tickets/20261109-iea-ev-de18f48e.yaml`（kind=repair，新单，无同源未合并 PR）\n- 分诊：兜底/证据不足类（`rule2:insufficient-evidence`，仅 1 条失败样本 < `min_runs_for_verdict=3`，无成功史）\n- 本回合独立只读复测（每口 1 次 GET）：`https://api.iea.org/evs?...`、`/evs/l"
+    },
+    {
+      "ticket": "20261110-eastmoney-disclosure-plan-d772b091.yaml",
+      "submitted": false,
+      "reason": "",
+      "attempt": 2,
+      "http_status": 200,
+      "verdict": "error",
+      "verdict_reason": "JSON-RPC error envelope",
+      "state": null,
+      "response": "{\"code\": -32003, \"message\": \"Connection error.\"}"
     }
   ],
   "status": [
     {
-      "ticket": "20261107-fred-cpi-ba279d6a.yaml",
-      "http_status": 409,
+      "ticket": "20261109-education_podcast-ce803d9c.yaml",
+      "http_status": 200,
+      "state": "queued",
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261109-iea-ev-de18f48e.yaml",
+      "http_status": 200,
+      "state": "manual",
+      "note": "",
+      "pr_url": ""
+    },
+    {
+      "ticket": "20261109-usaspending-awards-2d72e624.yaml",
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-hkex-disclosure-82e7ef63.yaml",
-      "http_status": 409,
+      "ticket": "20261110-eastmoney-disclosure-plan-d772b091.yaml",
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-ico-coffee-price-39ecc097.yaml",
-      "http_status": 409,
+      "ticket": "20261108-socrata-ny-383ced01.yaml",
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-nra-rpi-15ef6fc0.yaml",
-      "http_status": 409,
+      "ticket": "20261107-amis-market-0b865e05.yaml",
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-nra-rpi-3a5952f4.yaml",
-      "http_status": 409,
+      "ticket": "20261107-socrata-chicago-a563e620.yaml",
+      "http_status": 200,
       "state": null,
       "note": "",
       "pr_url": ""
     },
     {
-      "ticket": "20261107-sec-edgar-facts-e41262dc.yaml",
-      "http_status": 409,
-      "state": null,
+      "ticket": "20261025-steam-ccu-36a30c20.yaml",
+      "http_status": 200,
+      "state": "pr-open",
       "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261109-boxofficemojo-38feca08.yaml",
-      "http_status": 409,
-      "state": null,
-      "note": "",
-      "pr_url": ""
-    },
-    {
-      "ticket": "20261109-cisa-10eec66b.yaml",
-      "http_status": 409,
-      "state": null,
-      "note": "",
-      "pr_url": ""
+      "pr_url": "https://github.com/FindDataTechnology/fd-industry-data/pull/62)：`state=open`、`merged=false`，head"
     }
   ]
 }
