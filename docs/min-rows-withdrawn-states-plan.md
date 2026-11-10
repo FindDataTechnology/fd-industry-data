@@ -21,7 +21,7 @@
 | `failed` | 窗口后有 `status='failed'` | ✗ | 跑过没成，看 `error` |
 | `incomplete` | 窗口后有 `status='running'` 且无终态 | ✗ | 还在跑，或卡住 |
 | `no_new_job` | 窗口后**一条记录都没有** | ✗ | 调度没触发 **或** Pod 没起来（盲区，见 §5） |
-| `pending` | 窗口未到 | ✗ 不算 | 提前报红＝天天误报 |
+| `pending` | 窗口未到 | **不算红** | 提前报红＝天天误报 |
 
 **floor 从哪来**：撤声明时 manifest 里的那三行已被删掉，所以 floor 必须**随窗口一起
 写进常量**（`boxofficemojo` 25 / `cisa` 25 / `gb-standards` 30），不能运行时去读
@@ -332,3 +332,97 @@ ModuleNotFoundError: No module named 'fd_industry_data'
 | **gb-standards 11-12 02:25 窗口** | ⏳ **未到期**（复核时距 25.6h） | `date` + 窗口常量比对；当前最新 Job 仍是 `29896945 Complete`（11-05） |
 | cisa 11-15 01:29 / boxofficemojo 11-17 03:14 | ⏳ 未到期（96.6h / 146.4h） | 同上 |
 | 11-11 03:17 的**定时** run | ⏳ 未到（复核时 00:50 CST，还有 2.5h） | dispatch 已把同一条代码路径验完，定时只是触发方式不同 |
+
+---
+
+## 11. 四个待期窗口 · 到期判定清单（下一轮照此核）
+
+每条都**只有一个命令**，且都验过可跑（2026-11-11 00:5x CST 实跑，见 §11.5）。
+判据统一：**窗口之后新建的那次运行必须成功且不低于下限**——不看"触发过"、不看步骤色。
+
+### 11.1 gb-standards · 2026-11-12 02:25 CST（周四）
+
+```bash
+python3 scripts/check_withdrawn_sources.py --json | python3 -c "
+import json,sys
+r=[x for x in json.load(sys.stdin)['rows'] if x['source']=='gb-standards'][0]
+print(r['verdict'], r['red'], '|', r['why'], '|', r['latest_job'])"
+```
+
+| 项 | 内容 |
+|---|---|
+| **通过判据** | `verdict == complete` 且 `red is False`，且 `latest_job.state == complete`、`latest_job.created` 晚于 `2026-11-12T02:25+08:00`；**floor = 30**（撤声明时的原值） |
+| **证据来源** | tencent 集群 `fd-industry-gb-standards` 的 Job `.status.conditions[Complete]`（脚本直接读，非排期表推算） |
+| **旁证** | 当次巡检 job log 的三行窗口态里该行应为 `✓complete`；观察表当日行仍由 workflow 追加 |
+| **不通过处置** | `no_new_job` / `failed` / `incomplete` → **保持暂撤**，不动 manifest；写到 §10.5；连续两个周期都失败才升级人工 |
+
+### 11.2 cisa · 2026-11-15 01:29 CST
+
+```bash
+python3 scripts/check_withdrawn_sources.py --json | python3 -c "
+import json,sys
+r=[x for x in json.load(sys.stdin)['rows'] if x['source']=='cisa'][0]
+print(r['verdict'], r['red'], '|', r['why'], '|', r['latest_job'])"
+```
+
+判据 / 证据 / 处置同 11.1，窗口换成 `2026-11-15T01:29+08:00`，**floor = 25**。
+**注意**：cisa 的 cron 是 `5,15,25`（每月三天）。所以：
+- **11-15 01:29 之前**跑，得到的是 `pending`（窗口未到，不能判）——不是 `no_new_job`；
+- **11-15 01:29 之后**若仍 `no_new_job`，那是真的调度没触发（这个源每月只有 3 次机会，
+  错过 11-15 就要等到 11-25，所以这条要盯紧）；
+- 11-15 那次跑成功且 `rows ≥ 25` 才算 `complete`。
+
+### 11.3 boxofficemojo · 2026-11-17 03:14 CST（周二）
+
+```bash
+python3 scripts/check_withdrawn_sources.py --json | python3 -c "
+import json,sys
+r=[x for x in json.load(sys.stdin)['rows'] if x['source']=='boxofficemojo'][0]
+print(r['verdict'], r['red'], '|', r['why'], '|', r['latest_job'])"
+```
+
+判据 / 证据 / 处置同 11.1，窗口换成 `2026-11-17T03:14+08:00`，**floor = 25**。
+**特别提示**：这个源 11-10 那次是 **Failed（`BackoffLimitExceeded`）**，所以当前
+`latest_job.state == failed` 但 `verdict == pending`——**pending 优先于 latest_job**，
+窗口未到前不要因为看到 failed 就提前判"没恢复"。窗口到了若仍 failed，才算未恢复。
+
+### 11.4 11-11 03:17 CST 的**定时** run（不是 dispatch）
+
+```bash
+gh run list --workflow=health-inspect.yml --event=schedule --limit 1 \
+  --json databaseId,createdAt,conclusion -q '.[0]|"\(.databaseId) \(.createdAt) \(.conclusion)"'
+```
+
+| 项 | 内容 |
+|---|---|
+| **通过判据** | 存在 `event=schedule`、`createdAt > 2026-11-10T19:17:00Z`、`conclusion=success` 的 run |
+| **证据来源** | 该 run 的 job log 里 `③ deferred 带 category/rule: ✓` 那行 + 三行窗口态 |
+| **别急着判"没跑"** | 定时触发实测**延迟 3.4–6.8h**（cron `19:17Z`，实际落在 `22:42Z`–`02:03Z`；见下表），所以 03:20 CST 没看到 run 是正常的，等到 06:30–10:00 CST 再看 |
+| **不通过处置** | 若到 10:00 CST 仍无 schedule run → 查 `concurrency: health-inspect` 是否被一次长跑（999s 的 `sync_status`）占着，或 runner pod 是否在 |
+
+历史延迟实测（`gh run list --event=schedule`）：
+
+| run 落地时刻 (UTC) | 对应 cron | 延迟 |
+|---|---|---|
+| 2026-11-10T02:03:52Z | 11-09 19:17Z | 6.8h |
+| 2026-11-08T22:51:59Z | 11-08 19:17Z | 3.6h |
+| 2026-11-07T22:42:53Z | 11-07 19:17Z | 3.4h |
+| 2026-11-06T23:43:19Z | 11-06 19:17Z | 4.4h |
+
+### 11.5 本清单自身的实跑记录（2026-11-11 00:5x CST）
+
+| 命令 | 实测输出 | 结论 |
+|---|---|---|
+| 11.1 的 gb-standards 单源命令 | `pending False \| 窗口 11-12 02:25 CST 未到 \| {'name': 'fd-industry-gb-standards-29896945', 'created': '2026-11-05T02:25:00+08:00', 'state': 'complete'}` | 命令可跑、判据可读 |
+| 11.4 的 schedule 查询 | `[.[]\|select(.createdAt > "2026-11-10T19:17:00Z")]\|length` → **0** | 11-11 那次确实还没落地 |
+| 三源 label 选择器 | `-l fd-industry/source=<src>` 三源全部有命中；`boxofficemojo-29904194` 无 `Complete` 条件（它是 Failed） | 选择器不靠猜，Failed 与 Complete 可区分 |
+| **三条单源命令逐条照抄实跑** | gb-standards / cisa / boxofficemojo 三条都返回 `pending … latest_job`，其中 boxofficemojo 带出 `state: failed`（11-10 那次） | 命令不是只测一条，三条都通 |
+| **判据真的会红**（`--now` 推过各窗口） | 11-13 → gb-standards `no_new_job red=True`；11-16 → cisa 同；11-18 → boxofficemojo `no_new_job red=True`（其 `latest_job` 是 11-10 failed） | 三条各自在**自己的**窗口后才翻红，不是一推全红或永不红 |
+
+**写这一节时踩的坑（记下来免得下一轮重踩）**：
+1. `for pair in "src 时间"` + `set -- $pair` 在 **zsh** 下不拆词——`$1` 拿到整串、
+   `$2` 为空，于是 `--now ""` 让脚本直接退出、JSON 为空。zsh 不自动分词，要用
+   `${=pair}` 或干脆写三条显式命令。
+2. 用 `bash -c "… python -c "…" …"` 三层引号嵌 python 时极易把内层引号吃掉，
+   表现为「命令没输出」。这类一次性脚本宁可落文件再读（`> /tmp/x.json`），
+   和退出码那条是同一个道理。
