@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""声明 `min_rows_per_run`（change: declare-health-min-rows 任务 2.1）。
+"""声明 `min_rows_per_run`。
+
+出处：change `declare-health-min-rows`（已于 2026-11-10 归档为
+`openspec/changes/archive/2026-11-10-declare-health-min-rows`，
+规格落在 `openspec/specs/source-output-floor/`）。
 
 为什么要脚本而不是手改 19 个文件
 --------------------------------

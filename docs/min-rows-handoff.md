@@ -2,6 +2,18 @@
 
 给接手的人。只写「你现在需要知道的」，不重复历史。
 
+## 状态：已归档（2026-11-10）
+
+change `declare-health-min-rows` 已归档为 `openspec/changes/archive/2026-11-10-declare-health-min-rows`，
+能力落在 **`openspec/specs/source-output-floor/`**（9 条 requirement / 16 个场景）。
+全域 `openspec validate --specs` = 343 passed / 0 failed。
+
+**后续约束都在这份 spec 里**，不需要再翻 change：
+- 阈值必须按可接受误报率反解（且 `n×ε<1` 时不得署 ε）；
+- 有合法零行质量的源不得用行数下限（需跨轮判据）；
+- 撞上限型取上限的一个比例；
+- 增量型源不得用行数下限。
+
 ## 一句话现状
 
 45 个声明 → **最终 38 个**（撤了 7 个结构性误报的），规则 1c 判「最近一次可比成功」，
