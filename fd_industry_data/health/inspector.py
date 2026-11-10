@@ -45,7 +45,12 @@ _SUBMIT_UNKNOWN_MAX = 3
 # error 类此前无重试上限，所以这个状态会一直重打。处置：轮到别人占着就等，
 # 等不到就**本批停手**（继续捶剩余单只会各自 409），下一个巡检周期接手。
 _SUBMIT_TURN_POLL_S = 15.0     # 轮询间隔
-_SUBMIT_TURN_BUDGET_S = 120.0  # 单张单的等待预算（实测 agent 回合 20–150s）
+_SUBMIT_TURN_BUDGET_S = 90.0   # 单张单的等待预算（实测 agent 回合 20–150s）
+# 整批上限：不加这两条实测会撞 workflow 45 分钟超时（2026-11-10 首版修复
+# 18 张 × 120s ≈ 36min + 常规 9min = 49m30s，被超时掐成 cancelled，一张都没交成）。
+# 有界地做：每轮最多 N 张、批量等待总预算 ≤ B，剩下的下一轮接手。
+_SUBMIT_MAX_TICKETS_PER_RUN = 8
+_SUBMIT_BATCH_BUDGET_S = 420.0
 REFUSAL_WORDS = (
     "拒绝入队", "未入队", "不可读", "不认领", "拒绝并转人工",
     "拒绝", "未通过", "无法读取", "不存在",
@@ -1112,7 +1117,18 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
     results: list[dict] = []
     if not outdir.is_dir():
         return results
+    handled = 0
+    batch_waited = 0.0
     for p in sorted(outdir.glob("*.yaml")):
+        if handled >= _SUBMIT_MAX_TICKETS_PER_RUN or batch_waited >= _SUBMIT_BATCH_BUDGET_S:
+            results.append({
+                "ticket": "__batch_limit__",
+                "submitted": False,
+                "verdict": "deferred",
+                "verdict_reason": (f"本批已达上限（{handled} 张 / 等待 {int(batch_waited)}s），"
+                                   "其余下一轮接手"),
+            })
+            break
         doc = ticket_mod.load_ticket(p)
         if doc.get("terminal") is not None:
             continue  # 已终态工单不重投
@@ -1139,9 +1155,12 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                 status, text = poster(url, key, idem, f"SUBMIT {repo_slug} {rel}")
                 # turn 被占：有界等待后重试同一张单；预算耗尽则本批停手
                 waited = 0.0
-                while _is_turn_in_flight(status, text) and waited < _SUBMIT_TURN_BUDGET_S:
+                turn_budget = min(_SUBMIT_TURN_BUDGET_S,
+                                  _SUBMIT_BATCH_BUDGET_S - batch_waited)
+                while _is_turn_in_flight(status, text) and waited < turn_budget:
                     time.sleep(_SUBMIT_TURN_POLL_S)
                     waited += _SUBMIT_TURN_POLL_S
+                    batch_waited += _SUBMIT_TURN_POLL_S
                     status, text = poster(url, key, f"{idem}-w{int(waited)}",
                                           f"SUBMIT {repo_slug} {rel}")
                 if _is_turn_in_flight(status, text):
@@ -1177,6 +1196,7 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                 ticket_mod.append_event(doc, "submit-failed", error=str(e)[:300])
         p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
         results.append(entry)
+        handled += 1
     return results
 
 
