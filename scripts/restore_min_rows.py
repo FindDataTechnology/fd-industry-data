@@ -40,8 +40,12 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 SPIDERS = REPO / "spiders"
 
-#: 暂撤日期。晚于它的成功运行才算"重新跑过"。
-WITHDRAWN_AT = "2026-11-10"
+#: 暂撤的**时刻**（工单 closed 那一瞬，UTC）。晚于它的成功运行才算"重新跑过"。
+#:
+#: 用完整时刻而不是日期：撤除发生在 11-10 14:22 CST 前后，若当天稍晚有人手动跑了一次
+#: 验证，那是**撤除之后**的有效运行、足以支撑恢复；拿日期比（`at[:10] <= "2026-11-10"`）
+#: 会把当天全部排除，导致恢复被无故拒绝——一个只在"当天跑过"时才现形的静默阻塞。
+WITHDRAWN_AT = "2026-11-10T06:22:44+00:00"
 
 #: source -> 恢复时写回的那一行（原值取自 2026-11-10 撤除时的注释）
 RESTORE: dict[str, str] = {
@@ -69,7 +73,7 @@ def fresh_success_since(records: list[dict], source: str) -> dict | None:
         if r.get("status") not in ("success", "partial"):
             continue
         at = str(r.get("started_at") or "")
-        if at[:10] <= WITHDRAWN_AT:
+        if at <= WITHDRAWN_AT:      # 两个都是定长 ISO8601 前缀，字典序即时间序
             continue
         if best is None or at > str(best.get("started_at")):
             best = r

@@ -43,7 +43,7 @@ class RestoreTests(unittest.TestCase):
         (self.tmp / "spiders").mkdir()
         self.m.SPIDERS = self.tmp / "spiders"
         self.m.RESTORE = {"demo": "min_rows_per_run: 25    # runs=6 p10=60，取 25"}
-        self.m.WITHDRAWN_AT = "2026-11-10"
+        self.m.WITHDRAWN_AT = "2026-11-10T06:22:44+00:00"
 
     def manifest(self, body: str) -> Path:
         d = self.tmp / "spiders" / "demo"
@@ -75,6 +75,27 @@ class RestoreTests(unittest.TestCase):
         lines = body.splitlines()
         idx = next(i for i, l in enumerate(lines) if l.startswith("data_period:"))
         self.assertTrue(lines[idx + 1].startswith("min_rows_per_run"))
+
+    def test_run_later_on_the_withdrawal_day_counts_as_rerun(self):
+        """撤除当天稍晚的运行必须被认可。
+
+        原先判据是 `at[:10] <= "2026-11-10"`（按**日期**），会把 11-10 全天的运行
+        都排除——若当天有人手动跑一次验证，那是撤除**之后**的有效运行，恢复却被
+        无故拒绝。这类阻塞只在"当天跑过"时才现形，很难被发现。
+        """
+        self.manifest(WITHDRAWN.format(src="demo"))
+        records = [{"source": "demo", "status": "success", "rows": 100,
+                    "started_at": "2026-11-10T15:30:00+00:00"}]   # 撤除之后、当天
+        edits, notes = self.m.plan(records, require_fresh=True)
+        self.assertEqual(len(edits), 1, notes)
+
+    def test_run_before_the_withdrawal_moment_does_not_count(self):
+        """撤除**之前**的运行不算重跑——那时"最新可比成功"仍是那条探针。"""
+        self.manifest(WITHDRAWN.format(src="demo"))
+        records = [{"source": "demo", "status": "success", "rows": 100,
+                    "started_at": "2026-11-10T02:00:00+00:00"}]
+        edits, notes = self.m.plan(records, require_fresh=True)
+        self.assertEqual(edits, [], notes)
 
     def test_idempotent_when_already_declared(self):
         self.manifest("name: demo\ndata_period: month\nmin_rows_per_run: 25\n")
