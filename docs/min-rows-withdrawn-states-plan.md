@@ -537,3 +537,5 @@ prompt 在磁盘上读不到），它跑的就是本仓这条 workflow 的同一
 | `--days 7 --from-pg`（假 psql） | 3 张单，下限 25/25/30，达标次数 0 | 命令跑通，比值可算 |
 | 无 DSN 直接 `--from-pg` | `ValueError: FD_CENTRAL_PG_DSN is required`，rc=1 | 退化行为已写明，别当"零误报" |
 | **接入巡检后的首次真跑**（run `42862732510`，2026-11-11 01:17 CST，真 DSN） | 3 张单、3 个源；下限 25/25/30；出单后达标全 0；无 `##[warning]误报率核对失败` | 步骤跑通，分子分母可算：**观察期内新增 0 张**，全历史仍 3 张（全 E1），工单级 100%（3/3，分母 3 不可外推） |
+| **`49b292a` 定点验证**（run `42864611853`，2026-11-11 01:28 CST，`headSha=49b292a`） | `conclusion=success`；摘要输出同上（3 张 / 3 源 / 25·25·30 / 达标全 0）；workflow `state=active` | **49b292a 在 Actions 上解析并通过绿跑**——不是靠"1f832d6 绿过所以它也绿"的推断，而是用该 SHA 直接 dispatch 跑出来的（另：`git diff 1f832d6 49b292a -- .github/ scripts/` 为空，两版工作流一字未变） |
+| **次日 03:17 CST 的定时 run** | ⏳ **未落地**（2026-11-11 01:40 CST 核对时，最新 schedule run 仍是 `42740120332` / 11-10T02:03Z） | 待补。定时触发实测延迟 3.4–6.8h（见 §11.4），预计落在 **06:30–10:00 CST**；补法：`gh run list --workflow=health-inspect.yml --event=schedule --limit 1 --json databaseId,createdAt` 取 id，再读该 job 日志里「近 7 天的 rule1c」那段，补进本表 |
