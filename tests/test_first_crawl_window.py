@@ -363,6 +363,29 @@ def run_plaindemo(limit: int = 100):
 """)
 
 
+#: metrics 允许出现的键（**闭集**，与 tests/test_cost_instrumentation.py 的白名单同步维护）。
+#: 2026-11-10 修正：原断言用「精确等于 {owner,upstreams,limit}」，而 ca8686d 给 metrics
+#: 加了 peak_rss_mb / runner_seconds（成本埋点 5.1）→ 集合合法变大后两条老断言过期。
+#: 改成「必备键 ⊆ metrics ⊆ 本白名单」：既容纳合法新增，又不放过意外键
+#: （真有新键时必须同时改这里，逼一次显式决定）。
+_METRICS_ALLOWED = {
+    "owner", "upstreams", "limit", "dropped_params",
+    "window_start", "window_end",
+    "peak_rss_mb", "runner_seconds",
+}
+_METRICS_REQUIRED = {"owner", "upstreams", "limit"}
+
+
+def _assert_metrics_shape(metrics: dict, *, extra_required: set[str] | None = None) -> None:
+    required = _METRICS_REQUIRED | (extra_required or set())
+    assert required <= set(metrics), f"缺必备键: {sorted(required - set(metrics))}"
+    unexpected = set(metrics) - _METRICS_ALLOWED
+    assert not unexpected, (
+        f"出现未登记 metric 键 {sorted(unexpected)}；"
+        f"若属合法新增，请同步更新 _METRICS_ALLOWED 与 test_cost_instrumentation.py"
+    )
+
+
 class TestRunnerEndToEnd:
     """窗口经 runner 注入 spider 调用上下文（kwargs + env）并入 metrics。"""
 
@@ -426,7 +449,7 @@ class TestRunnerEndToEnd:
         metrics = reports[0]["metrics"]
         assert metrics["window_start"] == "2025-11-01"
         assert metrics["window_end"] == "2026-11-06"
-        assert set(metrics) - {"window_start", "window_end"} == {"owner", "upstreams", "limit"}
+        _assert_metrics_shape(metrics, extra_required={"window_start", "window_end"})
 
     def test_no_window_keeps_legacy_context(self, runner_env):
         from fd_industry_data import runner_cli
@@ -478,7 +501,7 @@ class TestRunnerEndToEnd:
         assert metrics["dropped_params"] == ["nope"]
         assert metrics["window_start"] == "2025-11-01"
         assert metrics["window_end"] == "2026-11-06"
-        assert set(metrics) - {"dropped_params", "window_start", "window_end"} == {"owner", "upstreams", "limit"}
+        _assert_metrics_shape(metrics, extra_required={"dropped_params", "window_start", "window_end"})
 
     def test_plain_spider_ignores_window_without_typeerror(self, runner_env):
         """未声明窗口的 spider：零改动、零失败（kwargs 未注入）。"""

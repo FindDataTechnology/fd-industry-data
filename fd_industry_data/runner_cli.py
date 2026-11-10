@@ -551,6 +551,27 @@ def _commit_sha() -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """CLI 入口：把 `_run` 包一层，保证 **进程 cwd 在返回前还原**。
+
+    `_load_entry` 会 `os.chdir(spiders/<src>)`（spider 可能要读同级 data/ 文件），
+    且这个 cwd 必须一直保持到 spider 跑完——但**不能泄漏到调用方**。
+    泄漏的实证（2026-11-10）：全量跑 `pytest tests/` 时
+    `test_writer_cap::test_window_run_lifts_cap_via_env` 用相对路径读
+    `fd_industry_data/runner_cli.py`，而前面任何调用过 runner 的用例把 cwd 留在了
+    某个 tmp 目录里 → `FileNotFoundError`；单跑该文件却绿（顺序依赖的假红）。
+    `_run` 里有 6 个以上 early return，逐处还原必漏，故在唯一出口兜。
+    """
+    prev_cwd = os.getcwd()
+    try:
+        return _run(argv)
+    finally:
+        try:
+            os.chdir(prev_cwd)
+        except OSError:  # 原 cwd 被删（tmp 清理）时不能反过来炸掉真实退出码
+            pass
+
+
+def _run(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="fd-runner")
     ap.add_argument("source", help="source id, i.e. spiders/<src>/ directory name")
     ap.add_argument("--limit", type=int, default=100)
