@@ -130,7 +130,6 @@ def window_states(records: list[dict], now: datetime,
 ## 8. 预演结果（2026-11-10，分支 `rehearsal/bing-plan`，未并入 main）
 
 照本清单在独立 worktree 里实施了一遍，A1–A9 实测：
-
 | 断言 | 结果 |
 |---|---|
 | A1 四态可达 | ✓（14 条用例全过，含 `low_rows` 与 `pending`） |
@@ -194,3 +193,35 @@ def window_states(records: list[dict], now: datetime,
 - `restore_min_rows.py`（它读遥测判"是否已重跑"，逻辑已经是对的；本清单只补"看得见"）
 - 观察表的列结构与 `HEADER`
 - workflow 的步骤集合（丙案不需要新 step，现有步骤里就会打印）
+
+---
+
+## 9. 落地记录（2026-11-10 裁决：丙案）
+
+已合并到 main（`4aafc0c`），预演分支 `rehearsal/bing-plan`（`f1eb50a`）为其祖先。
+复跑 A1–A9：**全部通过**。
+
+| 断言 | 复跑结果 |
+|---|---|
+| A1 / A3 / A4 | ✓ `tests/test_withdrawn_states.py` 14 passed |
+| A2 `low_rows` 红 | ✓ 反向注入"并进 complete" → **2 failed, 12 passed**，还原后 14 passed |
+| A5 / A6 | ✓ 3 passed；手工复核三种退出码 |
+| A7 | ✓ check 脚本 0 命中、`withdrawn.py` 3 命中 |
+| A8 | ✓ **325 passed**（基线 308 + 新增 17） |
+| A9 | ✓ `git show --stat HEAD -- docs/min-rows-observation-log.md` 为空 |
+| A10 | 待 11-11 03:17 那次巡检（含 `--from-pg`）自然验 |
+
+**退出码实测**（`| tail` 会把 `$?` 换成 tail 的退出码，必须用 `PIPESTATUS` 或落文件）：
+
+| 场景 | rc（落文件 `$?`） | rc（`PIPESTATUS[0]`，bash） |
+|---|---|---|
+| 窗口未到（`--now 2026-11-10T23:59+08:00`） | 0 | 0 |
+| 窗口已过且无记录（`--now 2026-11-20T00:00+08:00`） | **3** | **3** |
+| 无遥测（`--append` 且不带 `--snapshot/--from-pg`） | **2** | **2** |
+
+> **另一个坑（2026-11-11 实测）**：本机默认 shell 是 **zsh**，`${PIPESTATUS[0]}` 在 zsh 里
+> **是空的**（不报错，只是取不到），要写 `${pipestatus[1]}`（小写、1 起）。要么显式
+> `bash -c '...'`，要么干脆落文件再 `tail`——后一种与 shell 无关，最稳。
+
+`check_withdrawn_sources.py` 改为 import 单一真源后仍正常：live 全 `pending` rc=0；
+喂真实 Job 产物 + `--now 11-13` → `gb-standards` 标红、rc=1。
