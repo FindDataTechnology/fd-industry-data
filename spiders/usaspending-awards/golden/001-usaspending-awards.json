@@ -1,0 +1,19 @@
+{
+  "sample_id": "001-usaspending-awards",
+  "created": "2026-11-11",
+  "target": "run_usaspending_awards",
+  "params": {
+    "limit": 5
+  },
+  "expect": {
+    "min_rows": 1,
+    "rows_contains": [
+      { "field": "source", "equals": "usaspending-awards" },
+      {
+        "field": "url",
+        "equals": "https://api.usaspending.gov/api/v2/search/spending_by_award/"
+      }
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "timestamp"]
+}
