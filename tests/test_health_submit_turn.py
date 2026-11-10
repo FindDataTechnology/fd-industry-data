@@ -111,3 +111,33 @@ def test_status_sync_is_not_bounded_by_submit_limits(tmp_path, monkeypatch):
 
     res = ins.sync_status(d, "http://x", "k", fetcher=fetcher, max_reads=3)
     assert len(res) == 3, "STATUS 应读满自己的 max_reads，不被 SUBMIT 的 1 张上限约束"
+
+
+def test_generation_tickets_submitted_before_repairs(tmp_path, cfg, monkeypatch):
+    """turn 串行、每轮只能推进两三张：generate 单必须排在 repair 前面。
+
+    不加这条，业务单永远排在每天自动重生成的 repair 单后面（实测 2026-11-10：
+    18 张积压，每轮只推进 2 张，业务单排在队尾）。
+    """
+    monkeypatch.setattr(ins, "_SUBMIT_MAX_TICKETS_PER_RUN", 1)
+    monkeypatch.setattr(ins, "_SUBMIT_BATCH_BUDGET_S", 999)
+    # 文件名顺序：repair 的单在字典序上更早（a-）但仍应排在 generate 之后
+    for name, slug, kind in (
+        ("20261101-a-repair.yaml", "aaa", "repair"),
+        ("20261109-z-generate.yaml", "zzz", "generate"),
+    ):
+        doc = tm.new_ticket(source=slug, unit=f"spiders/{slug}/", kind=kind,
+                            brief={"source_urls": ["https://e.com"], "expectations": "x"},
+                            evidence=EV, verify_commands=["true"])
+        (tmp_path / name).write_text(tm.dump_ticket(doc), encoding="utf-8")
+
+    calls: list[str] = []
+
+    def poster(url, key, idem, text):
+        calls.append(text)
+        return 200, '{"status": "queued"}'
+
+    res = ins.submit_new_tickets(tmp_path, "org/repo", "http://x", "k", cfg, poster=poster)
+    real = [r for r in res if r["ticket"] != "__batch_limit__"]
+    assert len(real) == 1
+    assert real[0]["ticket"] == "20261109-z-generate.yaml", "generate 单必须优先"

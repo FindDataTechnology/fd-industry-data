@@ -1119,7 +1119,17 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
         return results
     handled = 0
     batch_waited = 0.0
-    for p in sorted(outdir.glob("*.yaml")):
+    # 排序：生成单优先，其余按文件名（=日期）先后。理由：turn 是串行的、每轮只能推进
+    # 两三张（实测 2026-11-10），而 repair 单每轮巡检都会重新生成、generate 单是业务
+    # 决定只此一张（过期就没意义）。不加这条，业务单会永远排在自动单后面。
+    def _submit_order(path: Path) -> tuple:
+        try:
+            kind = str(ticket_mod.load_ticket(path).get("kind") or "repair")
+        except Exception:  # noqa: BLE001 - 读不了就按 repair 排，别让排序拖垮投递
+            kind = "repair"
+        return (0 if kind == "generate" else 1, path.name)
+
+    for p in sorted(outdir.glob("*.yaml"), key=_submit_order):
         if handled >= _SUBMIT_MAX_TICKETS_PER_RUN or batch_waited >= _SUBMIT_BATCH_BUDGET_S:
             results.append({
                 "ticket": "__batch_limit__",
