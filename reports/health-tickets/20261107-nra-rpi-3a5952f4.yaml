@@ -61,6 +61,18 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32003, "message": "Connection error."}'
+- at: '2026-11-10T06:00:49.218794+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32003, "message": "Connection error."}'
+- at: '2026-11-10T06:06:30.743783+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:

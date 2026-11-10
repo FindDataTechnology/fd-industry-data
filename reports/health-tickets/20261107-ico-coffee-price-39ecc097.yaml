@@ -61,6 +61,15 @@ lifecycle:
 - at: '2026-11-10T05:34:23.873995+00:00'
   event: submit-failed
   error: Remote end closed connection without response
+- at: '2026-11-10T05:56:27.302498+00:00'
+  event: submit-failed
+  error: Remote end closed connection without response
+- at: '2026-11-10T06:06:26.149122+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:

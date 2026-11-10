@@ -70,6 +70,9 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-10T05:50:26.513808+00:00'
+  event: submit-failed
+  error: Remote end closed connection without response
 terminal: null
 brief:
   source_urls:

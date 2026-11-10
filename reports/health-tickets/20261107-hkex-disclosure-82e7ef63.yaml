@@ -67,6 +67,22 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32003, "message": "Connection error."}'
+- at: '2026-11-10T05:53:42.270460+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: duplicate
+  response: '已入队 FindDataTechnology/fd-industry-data#reports/health-tickets/20261107-hkex-disclosure-82e7ef63.yaml（队列第
+    1 位）
+
+
+    **状态文件降级至 /tmp/spider-heal/inbox.json**（$DSH_HOME/spider-heal/ 不可写，已按协议降级至可写位置）'
+- at: '2026-11-10T06:06:24.573281+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:
