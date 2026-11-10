@@ -83,6 +83,12 @@ lifecycle:
 
 
     状态文件降级至 /tmp/spider-heal/inbox.json'
+- at: '2026-11-10T16:39:35.521283+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:

@@ -74,7 +74,18 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-11-10T16:41:30.723735+00:00'
+  event: status
+  http_status: 200
+  state: manual
+  note: ''
+  pr_url: ''
+- at: '2026-11-10T16:41:30.724326+00:00'
+  event: terminal
+  terminal: manual
+  previous: null
+  note: ''
+terminal: manual
 brief:
   source_urls:
   - https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json
