@@ -53,6 +53,20 @@ python3 scripts/invariant_fp_count.py --now 2026-12-02   # 到点回检（演练
 `invariant` 只能取 `from_pg` / `before_gate` / `gate_stages_log`（写错会直接炸出来，
 不允许静默算成 0）。退出码 `3` = 有条目已该换行为断言。
 
+### 首夜实跑（2026-11-11 08:01 CST，run `42928085614` / `headSha=319db47`）
+
+判据**不是步骤色绿**——这一步 `set +e` + 末尾 `exit 0`，失败也绿。只看产物：
+
+| 核什么 | 实测 | 判定 |
+|---|---|---|
+| 步骤在不在 | 「三条结构不变量（不阻断）」→ `success` | 在 |
+| 三条真跑了吗 | 日志三行全 `✓`：`gate_stages_log` / `before_gate` / `from_pg`，末尾「三条结构不变量全部通过。」 | 跑了，全过 |
+| 有没有写候选 | `docs/invariant-fp-candidates.jsonl` 在 **origin / github / gitee 三端都不存在** | 0 条候选（与「全过」一致） |
+| 同日窗口态自洽吗 | 三源全 `pending`：gb-standards 还有 18.3h、cisa 89.4h、boxofficemojo 139.2h | 与 run 时刻 08:01 CST 相符 |
+
+**结论：按预期登记 0 条候选**，账本 `entries` 仍为空（= 零误报）。下一个看点：
+11-12 02:25 CST 之后 gb-standards 的 Job 是否 `Complete 1/1`。
+
 ## 三源恢复跟踪（每轮巡检核对一次）
 
 暂撤声明的三个源，恢复条件 = **在自己的排期上真跑成功过**，不是"日期到了"。
