@@ -1,0 +1,786 @@
+{
+  "rule": "cpi_scissors",
+  "description": "美国外食 CPI 同比 − 在家食品 CPI 同比 的剪刀差（百分点），绝对值跨阈",
+  "asof": "2026-11-11",
+  "replay_from": "2018-11-01",
+  "generated_at": "2026-11-11T18:52:56.405970+00:00",
+  "config": "config/restaurant-alerts.json",
+  "evidence": [
+    {
+      "rule": "cpi_scissors",
+      "concept": "price.cpi.us.food_away_from_home - price.cpi.us.food_at_home",
+      "source_used": "fred-cpi",
+      "entity_type": "country",
+      "entity_id": 2,
+      "window": [
+        "2018-11",
+        "2026-09"
+      ],
+      "observed": [
+        {
+          "date": "2018-11",
+          "value": 2.099744,
+          "yoy_away": 2.638373,
+          "yoy_home": 0.538629
+        },
+        {
+          "date": "2018-12",
+          "value": 2.061237,
+          "yoy_away": 2.799004,
+          "yoy_home": 0.737767
+        },
+        {
+          "date": "2019-01",
+          "value": 2.069121,
+          "yoy_away": 2.789143,
+          "yoy_home": 0.720021
+        },
+        {
+          "date": "2019-02",
+          "value": 1.680592,
+          "yoy_away": 2.903067,
+          "yoy_home": 1.222474
+        },
+        {
+          "date": "2019-03",
+          "value": 1.585123,
+          "yoy_away": 2.978815,
+          "yoy_home": 1.393692
+        },
+        {
+          "date": "2019-04",
+          "value": 2.362618,
+          "yoy_away": 3.063125,
+          "yoy_home": 0.700506
+        },
+        {
+          "date": "2019-05",
+          "value": 1.782913,
+          "yoy_away": 2.937448,
+          "yoy_home": 1.154535
+        },
+        {
+          "date": "2019-06",
+          "value": 2.17866,
+          "yoy_away": 3.084755,
+          "yoy_home": 0.906094
+        },
+        {
+          "date": "2019-07",
+          "value": 2.580656,
+          "yoy_away": 3.174649,
+          "yoy_home": 0.593993
+        },
+        {
+          "date": "2019-08",
+          "value": 2.723522,
+          "yoy_away": 3.202264,
+          "yoy_home": 0.478742
+        },
+        {
+          "date": "2019-09",
+          "value": 2.64083,
+          "yoy_away": 3.241746,
+          "yoy_home": 0.600916
+        },
+        {
+          "date": "2019-10",
+          "value": 2.324307,
+          "yoy_away": 3.343267,
+          "yoy_home": 1.01896
+        },
+        {
+          "date": "2019-11",
+          "value": 2.175259,
+          "yoy_away": 3.215525,
+          "yoy_home": 1.040266
+        },
+        {
+          "date": "2019-12",
+          "value": 2.373202,
+          "yoy_away": 3.09893,
+          "yoy_home": 0.725729
+        },
+        {
+          "date": "2020-01",
+          "value": 2.324357,
+          "yoy_away": 3.123261,
+          "yoy_home": 0.798904
+        },
+        {
+          "date": "2020-02",
+          "value": 2.125377,
+          "yoy_away": 2.988204,
+          "yoy_home": 0.862827
+        },
+        {
+          "date": "2020-03",
+          "value": 1.909292,
+          "yoy_away": 2.95473,
+          "yoy_home": 1.045438
+        },
+        {
+          "date": "2020-04",
+          "value": -1.308288,
+          "yoy_away": 2.77265,
+          "yoy_home": 4.080939
+        },
+        {
+          "date": "2020-05",
+          "value": -1.861446,
+          "yoy_away": 2.934078,
+          "yoy_home": 4.795524
+        },
+        {
+          "date": "2020-06",
+          "value": -2.448732,
+          "yoy_away": 3.131375,
+          "yoy_home": 5.580107
+        },
+        {
+          "date": "2020-07",
+          "value": -1.163148,
+          "yoy_away": 3.407619,
+          "yoy_home": 4.570767
+        },
+        {
+          "date": "2020-08",
+          "value": -1.172454,
+          "yoy_away": 3.478023,
+          "yoy_home": 4.650477
+        },
+        {
+          "date": "2020-09",
+          "value": -0.256832,
+          "yoy_away": 3.784856,
+          "yoy_home": 4.041689
+        },
+        {
+          "date": "2020-10",
+          "value": -0.113202,
+          "yoy_away": 3.871112,
+          "yoy_home": 3.984314
+        },
+        {
+          "date": "2020-11",
+          "value": 0.269497,
+          "yoy_away": 3.828654,
+          "yoy_home": 3.559157
+        },
+        {
+          "date": "2020-12",
+          "value": -0.053205,
+          "yoy_away": 3.919425,
+          "yoy_home": 3.972629
+        },
+        {
+          "date": "2021-01",
+          "value": 0.180908,
+          "yoy_away": 3.88916,
+          "yoy_home": 3.708251
+        },
+        {
+          "date": "2021-02",
+          "value": 0.182091,
+          "yoy_away": 3.712804,
+          "yoy_home": 3.530713
+        },
+        {
+          "date": "2021-03",
+          "value": 0.449566,
+          "yoy_away": 3.680362,
+          "yoy_home": 3.230796
+        },
+        {
+          "date": "2021-04",
+          "value": 2.627082,
+          "yoy_away": 3.846696,
+          "yoy_home": 1.219614
+        },
+        {
+          "date": "2021-05",
+          "value": 3.319579,
+          "yoy_away": 4.035529,
+          "yoy_home": 0.71595
+        },
+        {
+          "date": "2021-06",
+          "value": 3.297938,
+          "yoy_away": 4.234037,
+          "yoy_home": 0.936099
+        },
+        {
+          "date": "2021-07",
+          "value": 1.98213,
+          "yoy_away": 4.556703,
+          "yoy_home": 2.574573
+        },
+        {
+          "date": "2021-08",
+          "value": 1.743993,
+          "yoy_away": 4.704556,
+          "yoy_home": 2.960563
+        },
+        {
+          "date": "2021-09",
+          "value": 0.188031,
+          "yoy_away": 4.68426,
+          "yoy_home": 4.49623
+        },
+        {
+          "date": "2021-10",
+          "value": -0.072121,
+          "yoy_away": 5.270013,
+          "yoy_home": 5.342134
+        },
+        {
+          "date": "2021-11",
+          "value": -0.631907,
+          "yoy_away": 5.776304,
+          "yoy_home": 6.408211
+        },
+        {
+          "date": "2021-12",
+          "value": -0.499878,
+          "yoy_away": 6.013649,
+          "yoy_home": 6.513527
+        },
+        {
+          "date": "2022-01",
+          "value": -1.024092,
+          "yoy_away": 6.354908,
+          "yoy_home": 7.379
+        },
+        {
+          "date": "2022-02",
+          "value": -1.896776,
+          "yoy_away": 6.767818,
+          "yoy_home": 8.664594
+        },
+        {
+          "date": "2022-03",
+          "value": -3.132179,
+          "yoy_away": 6.910006,
+          "yoy_home": 10.042185
+        },
+        {
+          "date": "2022-04",
+          "value": -3.605861,
+          "yoy_away": 7.202993,
+          "yoy_home": 10.808854
+        },
+        {
+          "date": "2022-05",
+          "value": -4.546116,
+          "yoy_away": 7.404417,
+          "yoy_home": 11.950534
+        },
+        {
+          "date": "2022-06",
+          "value": -4.602045,
+          "yoy_away": 7.655889,
+          "yoy_home": 12.257934
+        },
+        {
+          "date": "2022-07",
+          "value": -5.568797,
+          "yoy_away": 7.570539,
+          "yoy_home": 13.139336
+        },
+        {
+          "date": "2022-08",
+          "value": -5.54425,
+          "yoy_away": 8.041741,
+          "yoy_home": 13.585991
+        },
+        {
+          "date": "2022-09",
+          "value": -4.452894,
+          "yoy_away": 8.480173,
+          "yoy_home": 12.933068
+        },
+        {
+          "date": "2022-10",
+          "value": -3.81359,
+          "yoy_away": 8.59078,
+          "yoy_home": 12.40437
+        },
+        {
+          "date": "2022-11",
+          "value": -3.464641,
+          "yoy_away": 8.49021,
+          "yoy_home": 11.954852
+        },
+        {
+          "date": "2022-12",
+          "value": -3.493321,
+          "yoy_away": 8.2512,
+          "yoy_home": 11.744521
+        },
+        {
+          "date": "2023-01",
+          "value": -3.044373,
+          "yoy_away": 8.202935,
+          "yoy_home": 11.247308
+        },
+        {
+          "date": "2023-02",
+          "value": -1.677591,
+          "yoy_away": 8.410932,
+          "yoy_home": 10.088524
+        },
+        {
+          "date": "2023-03",
+          "value": 0.471701,
+          "yoy_away": 8.783328,
+          "yoy_home": 8.311627
+        },
+        {
+          "date": "2023-04",
+          "value": 1.37437,
+          "yoy_away": 8.554236,
+          "yoy_home": 7.179866
+        },
+        {
+          "date": "2023-05",
+          "value": 2.429393,
+          "yoy_away": 8.265021,
+          "yoy_home": 5.835627
+        },
+        {
+          "date": "2023-06",
+          "value": 2.987992,
+          "yoy_away": 7.662453,
+          "yoy_home": 4.674461
+        },
+        {
+          "date": "2023-07",
+          "value": 3.498194,
+          "yoy_away": 7.098406,
+          "yoy_home": 3.600212
+        },
+        {
+          "date": "2023-08",
+          "value": 3.577799,
+          "yoy_away": 6.54405,
+          "yoy_home": 2.966251
+        },
+        {
+          "date": "2023-09",
+          "value": 3.586331,
+          "yoy_away": 5.9635,
+          "yoy_home": 2.377169
+        },
+        {
+          "date": "2023-10",
+          "value": 3.223699,
+          "yoy_away": 5.371595,
+          "yoy_home": 2.147896
+        },
+        {
+          "date": "2023-11",
+          "value": 3.66259,
+          "yoy_away": 5.293251,
+          "yoy_home": 1.630662
+        },
+        {
+          "date": "2023-12",
+          "value": 3.933573,
+          "yoy_away": 5.24073,
+          "yoy_home": 1.307157
+        },
+        {
+          "date": "2024-01",
+          "value": 3.919527,
+          "yoy_away": 5.083358,
+          "yoy_home": 1.163831
+        },
+        {
+          "date": "2024-02",
+          "value": 3.533003,
+          "yoy_away": 4.520955,
+          "yoy_home": 0.987951
+        },
+        {
+          "date": "2024-03",
+          "value": 2.997415,
+          "yoy_away": 4.172668,
+          "yoy_home": 1.175253
+        },
+        {
+          "date": "2024-04",
+          "value": 2.975991,
+          "yoy_away": 4.149904,
+          "yoy_home": 1.173913
+        },
+        {
+          "date": "2024-05",
+          "value": 2.956992,
+          "yoy_away": 4.025878,
+          "yoy_home": 1.068885
+        },
+        {
+          "date": "2024-06",
+          "value": 2.889799,
+          "yoy_away": 4.056797,
+          "yoy_home": 1.166998
+        },
+        {
+          "date": "2024-07",
+          "value": 3.002517,
+          "yoy_away": 4.092013,
+          "yoy_home": 1.089496
+        },
+        {
+          "date": "2024-08",
+          "value": 3.094456,
+          "yoy_away": 4.006088,
+          "yoy_home": 0.911633
+        },
+        {
+          "date": "2024-09",
+          "value": 2.693428,
+          "yoy_away": 3.948664,
+          "yoy_home": 1.255236
+        },
+        {
+          "date": "2024-10",
+          "value": 2.657178,
+          "yoy_away": 3.807438,
+          "yoy_home": 1.15026
+        },
+        {
+          "date": "2024-11",
+          "value": 2.083653,
+          "yoy_away": 3.648063,
+          "yoy_home": 1.56441
+        },
+        {
+          "date": "2024-12",
+          "value": 1.889566,
+          "yoy_away": 3.617617,
+          "yoy_home": 1.72805
+        },
+        {
+          "date": "2025-01",
+          "value": 1.536656,
+          "yoy_away": 3.381427,
+          "yoy_home": 1.844771
+        },
+        {
+          "date": "2025-02",
+          "value": 1.875775,
+          "yoy_away": 3.684034,
+          "yoy_home": 1.808258
+        },
+        {
+          "date": "2025-03",
+          "value": 1.447976,
+          "yoy_away": 3.790194,
+          "yoy_home": 2.342218
+        },
+        {
+          "date": "2025-04",
+          "value": 1.895776,
+          "yoy_away": 3.888872,
+          "yoy_home": 1.993097
+        },
+        {
+          "date": "2025-05",
+          "value": 1.595491,
+          "yoy_away": 3.848826,
+          "yoy_home": 2.253335
+        },
+        {
+          "date": "2025-06",
+          "value": 1.412734,
+          "yoy_away": 3.834343,
+          "yoy_home": 2.421609
+        },
+        {
+          "date": "2025-07",
+          "value": 1.701331,
+          "yoy_away": 3.905161,
+          "yoy_home": 2.20383
+        },
+        {
+          "date": "2025-08",
+          "value": 1.239793,
+          "yoy_away": 3.931707,
+          "yoy_home": 2.691915
+        },
+        {
+          "date": "2025-09",
+          "value": 1.030824,
+          "yoy_away": 3.726279,
+          "yoy_home": 2.695455
+        },
+        {
+          "date": "2025-11",
+          "value": 1.749139,
+          "yoy_away": 3.660215,
+          "yoy_home": 1.911075
+        },
+        {
+          "date": "2025-12",
+          "value": 1.740026,
+          "yoy_away": 4.069196,
+          "yoy_home": 2.32917
+        },
+        {
+          "date": "2026-01",
+          "value": 1.799316,
+          "yoy_away": 3.97809,
+          "yoy_home": 2.178774
+        },
+        {
+          "date": "2026-02",
+          "value": 1.320909,
+          "yoy_away": 3.903276,
+          "yoy_home": 2.582367
+        },
+        {
+          "date": "2026-03",
+          "value": 1.755735,
+          "yoy_away": 3.776532,
+          "yoy_home": 2.020797
+        },
+        {
+          "date": "2026-04",
+          "value": 0.602337,
+          "yoy_away": 3.554109,
+          "yoy_home": 2.951772
+        },
+        {
+          "date": "2026-05",
+          "value": 0.806603,
+          "yoy_away": 3.541188,
+          "yoy_home": 2.734585
+        },
+        {
+          "date": "2026-06",
+          "value": 0.661596,
+          "yoy_away": 3.365905,
+          "yoy_home": 2.704309
+        },
+        {
+          "date": "2026-07",
+          "value": 0.786952,
+          "yoy_away": 3.400398,
+          "yoy_home": 2.613446
+        },
+        {
+          "date": "2026-08",
+          "value": 1.241213,
+          "yoy_away": 3.36677,
+          "yoy_home": 2.125557
+        },
+        {
+          "date": "2026-09",
+          "value": 1.693261,
+          "yoy_away": 3.458805,
+          "yoy_home": 1.765545
+        }
+      ],
+      "trigger_date": "2024-11",
+      "trigger_value": 2.083653,
+      "threshold": 2.0,
+      "comparator": "abs_gte",
+      "verdict": "fired",
+      "unit": "percentage_points",
+      "gaps": [
+        {
+          "date": "2025-10",
+          "attribution": "gap_in_series",
+          "reason": "窗口内该期无观测（真实缺测，未插值）"
+        }
+      ],
+      "gap_counts": {
+        "never_held": 0,
+        "gap_in_series": 1,
+        "not_applicable": 0
+      },
+      "never_held": null,
+      "closest": null,
+      "evaluated_points": 94,
+      "components": [
+        {
+          "key": "food_away_from_home",
+          "concept": "price.cpi.us.food_away_from_home",
+          "source_used": "fred-cpi",
+          "entity_id": 2,
+          "observations": 884
+        },
+        {
+          "key": "food_at_home",
+          "concept": "price.cpi.us.food_at_home",
+          "source_used": "fred-cpi",
+          "entity_id": 2,
+          "observations": 896
+        }
+      ],
+      "yoy_skipped": [
+        {
+          "date": "1953-01",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-01 水平缺失，无法算同比（不插值）"
+        },
+        {
+          "date": "1953-02",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-02 水平缺失，无法算同比（不插值）"
+        },
+        {
+          "date": "1953-03",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-03 水平缺失，无法算同比（不插值）"
+        },
+        {
+          "date": "1953-04",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-04 水平缺失，无法算同比（不插值）"
+        },
+        {
+          "date": "1953-05",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-05 水平缺失，无法算同比（不插值）"
+        },
+        {
+          "date": "1953-06",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-06 水平缺失，无法算同比（不插值）"
+        },
+        {
+          "date": "1953-07",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-07 水平缺失，无法算同比（不插值）"
+        },
+        {
+          "date": "1953-08",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-08 水平缺失，无法算同比（不插值）"
+        },
+        {
+          "date": "1953-09",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-09 水平缺失，无法算同比（不插值）"
+        },
+        {
+          "date": "1953-10",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-10 水平缺失，无法算同比（不插值）"
+        },
+        {
+          "date": "1953-11",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-11 水平缺失，无法算同比（不插值）"
+        },
+        {
+          "date": "1953-12",
+          "attribution": "gap_in_series",
+          "reason": "上年同月 1952-12 水平缺失，无法算同比（不插值）"
+        }
+      ],
+      "rejected_values": [],
+      "provenance": "semantic_observations; yoy(food_away)-yoy(food_at_home); yoy_lag_months=12; source_used=fred-cpi",
+      "latest_period": "2026-09",
+      "current_fired": false,
+      "trigger_count": 47,
+      "trigger_detail": {
+        "yoy_away": 3.648063,
+        "yoy_home": 1.56441,
+        "levels": {
+          "food_away_from_home": 373.53,
+          "food_at_home": 309.093
+        },
+        "base_month": "2023-11",
+        "base_levels": {
+          "food_away_from_home": 360.383,
+          "food_at_home": 304.332
+        }
+      },
+      "triggers": [
+        {
+          "date": "2023-01",
+          "value": -3.044373
+        },
+        {
+          "date": "2023-05",
+          "value": 2.429393
+        },
+        {
+          "date": "2023-06",
+          "value": 2.987992
+        },
+        {
+          "date": "2023-07",
+          "value": 3.498194
+        },
+        {
+          "date": "2023-08",
+          "value": 3.577799
+        },
+        {
+          "date": "2023-09",
+          "value": 3.586331
+        },
+        {
+          "date": "2023-10",
+          "value": 3.223699
+        },
+        {
+          "date": "2023-11",
+          "value": 3.66259
+        },
+        {
+          "date": "2023-12",
+          "value": 3.933573
+        },
+        {
+          "date": "2024-01",
+          "value": 3.919527
+        },
+        {
+          "date": "2024-02",
+          "value": 3.533003
+        },
+        {
+          "date": "2024-03",
+          "value": 2.997415
+        },
+        {
+          "date": "2024-04",
+          "value": 2.975991
+        },
+        {
+          "date": "2024-05",
+          "value": 2.956992
+        },
+        {
+          "date": "2024-06",
+          "value": 2.889799
+        },
+        {
+          "date": "2024-07",
+          "value": 3.002517
+        },
+        {
+          "date": "2024-08",
+          "value": 3.094456
+        },
+        {
+          "date": "2024-09",
+          "value": 2.693428
+        },
+        {
+          "date": "2024-10",
+          "value": 2.657178
+        },
+        {
+          "date": "2024-11",
+          "value": 2.083653
+        }
+      ]
+    }
+  ]
+}
