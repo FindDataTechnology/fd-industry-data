@@ -45,7 +45,13 @@ AWARD_TYPE_CODES = ("A", "B", "C", "D")  # 合同类 award_type_codes（契约�
 FIELDS = ["Award ID", "Award Amount", "Awarding Agency", "NAICS"]
 PAGE_SIZE = 100  # 端点单页上限（实测）
 MAX_PAGES_PER_BATCH = 3  # 每 award_type × 每月页数上限——信号层取头部，不做全量翻页
-MAX_MONTHS = 12  # 窗口最多展开 12 个整月（与首爬回补的滚动 12 整月对齐）
+# 窗口最多展开的月桶数。**13 而不是 12**——2026-11-11 首爬实测纠正：
+# dispatcher 的首爬窗口是「起点回溯 12 个月取当月 1 号 + 终点 = 点亮日」，当点亮日落在
+# 月中时，这会跨 **13 个月桶**（例：点亮日 2026-11-11 → 2025-11-01..2026-11-11 → 13 桶）。
+# 原先写 12 会把平台自己的契约判成违规，首爬直接 ValueError 失败（实测日志：
+# "window spans 13 months > MAX_MONTHS=12"，window 2025-11-01..2026-11-11）。
+# 这个上限的作用只是拦住"荒唐的大窗口"（如五年），不是为了卡死平台契约。
+MAX_MONTHS = 13
 # 缺省窗口的**月数**（不含 window 参数时的滚动窗口，终点 = 上一个完整自然月）。
 # 为什么不是 1（只取上个月）：2026-11-11 实测上游回填滞后——同一 API 按月计数
 # （spending_by_award_count，award_type A/B/C/D）：
@@ -167,7 +173,7 @@ def _month_buckets(
         cursor = _add_months(cursor, 1)
     # 超窗报错，**不静默截断**：截断切掉的是最新月份（信号层最值钱的部分），
     # 而调用方拿到的行看起来仍像"全窗口结果"。静默丢数据比明确失败更坏。
-    # 正常路径不会触发：首爬窗口恰为滚动 12 个整月 = MAX_MONTHS。
+    # 正常路径不会触发：首爬窗口 = 回溯 12 个月取月首 + 终点=点亮日 = 至多 13 桶 = MAX_MONTHS。
     if len(buckets) > MAX_MONTHS:
         raise ValueError(
             f"usaspending-awards: window spans {len(buckets)} months > "
