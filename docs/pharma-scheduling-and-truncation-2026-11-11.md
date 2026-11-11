@@ -242,3 +242,49 @@ worker 机 `FD_NBS_CRON=0`，本来就不写巡检 cron。已在 master 上完�
 实测 6 个 run 累加 16272 行——一次被 writer cap 截到 1000 行的 run（5387）被历史
 run 完全盖住，阈值抬多高都照样绿。改成只取最近一次成功 run 后，它立刻显形
 （5398 → 3911 < 4800，报缺 889），代码上线后（5427 → 4835）缺口消失。
+
+## 8. 观测层落账（change `add-pharma-observation-extraction`）
+
+补上链路的最后一环：**概念观测**。此前医药域在观测层是零行——
+
+```
+select count(*) from semantic_observations
+ where source_used in ('clinicaltrials-cn','nrdl-national-catalog');   -- 0
+```
+
+而同时 `crawl_items` 有 48xx 行、概念播了 4 条、`pharma_facts.py` 只有测试在 import。
+结果是**产品面上这个域不存在**：MCP 按概念检索，没有观测就没有医药。
+
+新增 `scripts/extract_pharma.py`，四个概念：
+
+| 概念 | 粒度 | 实体 | 实测值 |
+|---|---|---|---|
+| `trial.new` | month | country/CN | 464 + 508 + 409 = 1381（= 唯一试验数） |
+| `trial.enrollment.planned` | month | trial/实体 id | 1381 条（逐试验） |
+| `catalog.drug.entries` | year | country/CN | 4803（可支付行，黑名单 32 不计） |
+| `catalog.drug.class_a_share` | year | country/CN | 15.97%（甲类 767/4803） |
+
+**三个必须记住的实现点**
+
+1. `semantic_observations.entity_id` 是**整型外键指向 `entities.id`**，不是外部编号。
+   直接写 `NCT...` 会 `invalid input syntax for type integer`（本批实测踩了一次）。
+   逐实体观测要先幂等登记实体（`ON CONFLICT ON CONSTRAINT uq_entity_type_code`）再替换。
+2. 试验源是**增量月窗**：只读最近一次 run，序列每期只剩一个月（那次 `--limit 1` 就只
+   覆盖 1 个月）。必须跨全部成功 run 合并、按注册号取 `scraped_at` 最新。目录相反，
+   它是年度全量快照，只读最近一次。
+3. 写完必须**对账**：四个概念都要能被 `crawl_items` 复算。口径漂移不会让写入失败，
+   只会让数字静默偏大（例如把黑名单 32 行也算进条目数）。
+
+**聚合度量的实体粒度**：计数与占比是「范围内该期总量」，实体是范围（`country/CN`），
+不是样本实体。挂到单个药品上会让同一概念在 4803 个实体上各有一条同名值。
+`concepts.yaml` 里三条种子的 `entity_type` 已随之修正（`drug`/`trial` → `country`）；
+逐实体的 `planned_enrollment` 保持 `trial`。
+
+**播种脚本加了守卫**：五元组含 `entity_type`，改声明粒度会**静默新增同 code 的第二条
+变量**。现在「同 code 不同五元组」直接失败并给出迁移提示，只有
+`--migrate-entity-type` 且该概念零观测时才就地迁移（实测第二次运行 +0/+0）。
+
+**巡检面**：新增基线 `pharma-observations.yaml`，用 `missing_entity` 以概念 code 为
+"实体"检查四概念各至少一条观测。反向验证（把 where 收窄到只含试验源）报 2 条 critical
+并点名两个目录概念。部署时又踩了一次「合并不等于生效」：**baselines 是烤进镜像的**，
+只更新宿主树不重建镜像不生效——重建后八份基线全 success。
