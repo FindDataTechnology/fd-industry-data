@@ -1,0 +1,45 @@
+{
+  "sample_id": "003-nrdl-herbal-slice",
+  "created": "2026-11-11",
+  "target": "run_nrdl_national_catalog",
+  "params": {
+    "limit": 0
+  },
+  "expect": {
+    "min_rows": 4800,
+    "rows_contains": [
+      {
+        "field": "section",
+        "equals": "中药饮片"
+      },
+      {
+        "field": "drug_name",
+        "equals": "一枝黄花"
+      },
+      {
+        "field": "drug_name",
+        "equals": "龟鹿二仙胶"
+      },
+      {
+        "field": "drug_name",
+        "equals": "穿山甲"
+      },
+      {
+        "field": "coverage_restriction",
+        "equals": "限临床危重患者抢救"
+      },
+      {
+        "field": "payment_scope",
+        "equals": "excluded"
+      },
+      {
+        "field": "kind",
+        "equals": "category"
+      }
+    ]
+  },
+  "whitelist_fields": [
+    "scraped_at"
+  ],
+  "note": "专测中药饮片段（与 001/002 分开：该段解析坏掉时前两条仍绿，故障定位才不会指错地方）。四条锚都是只有这一段才有的形态：①标题项 一枝黄花=序号1；②龟鹿二仙胶=原文被断行劈成「龟」+「鹿二仙胶」，能拼回来说明按行拼接生效；③限临床危重患者抢救=仅 284/285 两条的折行备注，能绑到正确条目说明按最近行绑定+距离护栏生效；④穿山甲=括号别名条目的父项名（别名断言在单元内做硬检查，因为 rows_contains 是字符串化比较、匹配不了列表值）；⑤excluded/category=黑名单段与类目行各自单列。硬判据在单元内：饮片序号唯一数必须=892 且覆盖 1..892 无缺无重、名称不得重复，任一不满足即抛。实测总行数 4835（3911 + 892 + 31 黑名单药名 + 1 类目），min_rows=4800 为下行护栏。"
+}

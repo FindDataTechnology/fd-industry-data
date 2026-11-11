@@ -43,7 +43,7 @@ CATALOG_YEAR = 2025
 TIMEOUT = 60
 
 # 凡例宣告的条目数 —— 解析结果的唯一硬判据（见模块文档）
-EXPECTED = {"西药": 1446, "中成药": 1335, "谈判药品": 472}
+EXPECTED = {"西药": 1446, "中成药": 1335, "谈判药品": 472, "中药饮片": 892}
 # 解析路径分两种版面：
 #   - 西药 / 中成药：版面干净（甲乙类/编号/名称/剂型/备注），走 ``-layout`` 文本切栏；
 #   - 谈判药品：六列混排且内嵌「医保支付标准」金额列，走 **bbox 列坐标**（见
@@ -293,9 +293,14 @@ def counts(rows: list[dict]) -> dict[str, int]:
 
     谈判药品段必须带 ``subsection`` 一起做键：该段含「竞价药品部分」子段，且子段
     编号从 1 重启，只按 item_no 去重会把两段撞成一段（实测 472 行只剩 399 个编号）。
+
+    饮片段的「不得纳入基金支付范围」黑名单行没有品种编号（``payment_scope='excluded'``），
+    它们不是目录条目，MUST 不参与本计数——否则会多出一个 ``item_no=None`` 的伪编号。
     """
     out: dict[str, set] = {}
     for row in rows:
+        if row.get("payment_scope") == "excluded":
+            continue
         # 三段各自从 1 编号；谈判段内部还有「西药 / 中成药 / 竞价」三套 1 起编号
         # （凡例 472 = 西药 399 + 竞价 12 + 中成药 61）。所以键必须同时含分部与渠道。
         key = (row.get("subsection"), row.get("pricing_channel"), row["item_no"])
@@ -304,14 +309,17 @@ def counts(rows: list[dict]) -> dict[str, int]:
 
 
 def run_nrdl_national_catalog(limit: int = 0) -> list[dict]:
-    """下载当年目录 PDF 并解析成全部三段条目行。
+    """下载当年目录 PDF 并解析成全部四段条目行。
 
     两条硬判据任一不满足即抛（失败即红）：
-    1. 各段唯一品种编号数必须等于官方凡例（``EXPECTED``，含谈判段 472）；
+    1. 各段唯一品种编号数必须等于官方凡例（``EXPECTED``，含谈判段 472、饮片 892）；
     2. **任何字段都不得含金额形态**（价格红线，见 ``_PRICE_RE``）。
 
-    三段走两条解析路径：西药/中成药走 ``-layout`` 文本切栏；谈判药品走 bbox 列坐标，
-    其「医保支付标准」列整列丢弃（见 ``parse_negotiated_words``）。
+    四段走三条解析路径：西药/中成药走 ``-layout`` 文本切栏；谈判药品走 bbox 列坐标，
+    其「医保支付标准」列整列丢弃（见 ``parse_negotiated_words``）；中药饮片走 bbox
+    双栏切半（见 ``parse_herbal_slice``），其「(二) 不得纳入基金支付范围」黑名单
+    另走文本解析（见 ``parse_excluded_slice``）——黑名单不是目录条目，用
+    ``payment_scope='excluded'`` 区分。
     """
     if not pdftext.available():
         raise pdftext.PdfTextError("nrdl: 镜像缺 pdftotext（poppler-utils），无法抽取文本层")
@@ -326,9 +334,25 @@ def run_nrdl_national_catalog(limit: int = 0) -> list[dict]:
         payload, first_page=NEGOTIATED_PAGE_FIRST, last_page=NEGOTIATED_PAGE_LAST
     )
     rows.extend(parse_negotiated_words(words))
+    herbal_words = pdftext.extract_words(
+        payload, first_page=HERBAL_PAGE_FIRST, last_page=HERBAL_PAGE_LAST
+    )
+    rows.extend(parse_herbal_slice(herbal_words))
+    pages = text.split("\f")
+    # PDF 页号 - 1 = 列表下标；(二) 黑名单在饮片正文后一页（PDF 202）。
+    excluded_pdf_page = HERBAL_PAGE_LAST + 1
+    if excluded_pdf_page - 1 >= len(pages):
+        raise RuntimeError(
+            f"nrdl: PDF 页数不足（{len(pages)}），取不到饮片黑名单页 {excluded_pdf_page}"
+        )
+    rows.extend(parse_excluded_slice(pages[excluded_pdf_page - 1]))
     for row in rows:
         row.setdefault("agreement_valid_from", None)
         row.setdefault("agreement_valid_to", None)
+        row.setdefault("payable_standalone", None)
+        row.setdefault("payment_scope", "payable")
+        row.setdefault("kind", "drug")
+        row.setdefault("aliases", None)
     got = counts(rows)
     drift = {k: (v, got.get(k, 0)) for k, v in EXPECTED.items() if got.get(k, 0) != v}
     if drift:
@@ -339,13 +363,15 @@ def run_nrdl_national_catalog(limit: int = 0) -> list[dict]:
     _check_address_uniqueness(rows)
     for row in rows:
         for field in ("drug_name", "dosage_form", "coverage_restriction", "category",
-                      "agreement_valid_from", "agreement_valid_to"):
+                      "agreement_valid_from", "agreement_valid_to", "aliases"):
             value = row.get(field)
-            if isinstance(value, str) and _PRICE_RE.search(value):
-                raise RuntimeError(
-                    f"nrdl: 价格越界 —— {field} 含金额形态（section={row['section']}, "
-                    f"item_no={row['item_no']}）：{value[:60]}"
-                )
+            values = value if isinstance(value, list) else [value]
+            for item in values:
+                if isinstance(item, str) and _PRICE_RE.search(item):
+                    raise RuntimeError(
+                        f"nrdl: 价格越界 —— {field} 含金额形态（section={row['section']}, "
+                        f"item_no={row['item_no']}）：{item[:60]}"
+                    )
     return rows[:limit] if limit and limit > 0 else rows
 
 
@@ -576,3 +602,314 @@ def _parse_validity(text: str) -> tuple[str | None, str | None]:
         return None, None
     y1, m1, d1, y2, m2, d2 = m.groups()
     return f"{int(y1):04d}-{int(m1):02d}-{int(d1):02d}", f"{int(y2):04d}-{int(m2):02d}-{int(d2):02d}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 中药饮片段（change add-nrdl-herbal-slice）
+#
+# 与前三部分都不同构：**左右双栏并列**（每页两组 序号/名称/备注）、**无甲乙类**、
+# 备注以 ``□`` 标记为主。文本层会把同一条水平线上的两栏拼成一行，所以必须按 x 切半。
+#
+# 列边界来自实测（2026-11-11，PDF 192–201 页全量 token 归类）：
+#   左半  序号 80–90 / 名称 108–235 / 备注 228–236
+#   右半  序号 314–320 / 名称 345–450 / 备注 448–460
+# 判据是「全段未归类 token = 0」，且最长的名称（天然冰片(右旋龙脑) 等）也未越进备注列。
+# **不要用表头 x**：表头居中、数据左对齐，两者不同（与谈判段同一个坑）。
+#
+# 页号：PDF 页号 = 页脚「第 N 页」+ 1。饮片段正文在 PDF 192–201，(二) 黑名单在 202。
+HERBAL_PAGE_FIRST = 192
+HERBAL_PAGE_LAST = 201
+HERBAL_CUT = 300.0          # 左右半栏分界（实测左半最右 236、右半最左 314，取中点偏左）
+HERBAL_EXPECTED = 892
+# 黑名单段的顶层药名数（实测 2026-11-11，另有 1 条类目行）。
+HERBAL_EXCLUDED_DRUGS = 31
+# 名称/备注列带（实测，见上）：超出任一带即失败，让版面漂移立刻可见。
+_HERBAL_NAME_BAND = {0: (100.0, 226.0), 1: (340.0, 446.0)}
+_HERBAL_NOTE_BAND = {0: (226.0, 245.0), 1: (446.0, 470.0)}
+
+
+def _herbal_band(half: int, x: float) -> str | None:
+    """把半栏内的 token 归到 name / note 带；都不在则返回 None（由调用方失败）。"""
+    lo, hi = _HERBAL_NAME_BAND[half]
+    if lo <= x < hi:
+        return "name"
+    lo, hi = _HERBAL_NOTE_BAND[half]
+    if lo <= x <= hi:
+        return "note"
+    return None
+# 备注行与条目行的最大允许距离（pt）。实测本行 6.1–6.3、最近的非本行 ≥19；
+# 超过这条线说明版面漂移，必须失败而不是猜着绑。
+HERBAL_NOTE_MAX_DIST = 8.0
+_BOX = "□"
+
+
+def _herbal_note_text(raw: str) -> tuple[bool, str | None]:
+    """把备注列原文拆成 (单独使用不予支付, 附加条件文本)。
+
+    凡例原文：标注「□」的指单独使用时统筹基金不予支付，且全部由这些饮片组成的处方
+    也不予支付。所以 ``□`` 是语义标记，不是备注文本。实测另有 ``□；限临床危重患者抢救``
+    这种「标记 + 附加条件」形态（红参 / 红参片 两条）。
+    """
+    if not raw:
+        return False, None
+    marked = _BOX in raw
+    text = raw.replace(_BOX, "").lstrip("；;，,、 ").strip()
+    return marked, (text or None)
+
+
+def parse_herbal_slice(words, year: int = CATALOG_YEAR) -> list[dict]:
+    """解析「（一）基金予以支付的中药饮片」段（双栏，序号 1..892 连续）。
+
+    硬判据（任一不满足即抛）：
+    1. 唯一序号数 == ``HERBAL_EXPECTED``，且序号集合恰好覆盖 ``1..N``（缺号/重号分列）；
+    2. 名称互不重复——重名只可能是切栏把两条并成一条。
+
+    备注折行：**逐行按最近的条目行绑定**，并设最大距离护栏。实测红参/红参片的备注
+    两行分别距本行 6.1/6.3pt、距相邻行 19.0pt，按「上一行」绑定会错挂给前一条。
+    """
+    by_line: dict[tuple, list[tuple[float, str]]] = {}
+    for page, x0, y0, _x1, _y1, word in words:
+        by_line.setdefault((page, round(y0, 1)), []).append((round(x0, 1), word))
+
+    entries: list[dict] = []                       # 待绑定备注的条目
+    notes: list[tuple[int, float, int, str]] = []  # (page, y, half, text)
+    unclassified: list[tuple[int, float, float, str]] = []
+    for key in sorted(by_line):
+        page, y = key
+        tokens = sorted(by_line[key])
+        joined = "".join(w for _, w in tokens)
+        if not joined or "序号" in joined or "中药饮片部分" in joined or "（一）" in joined:
+            continue
+        if re.match(r"^第\d+页$", joined):          # 页脚
+            continue
+        if "不得纳入基金支付范围" in joined:          # (二) 黑名单页，另行解析
+            continue
+        for half, part in enumerate(
+            ([(x, w) for x, w in tokens if x < HERBAL_CUT],
+             [(x, w) for x, w in tokens if x >= HERBAL_CUT])
+        ):
+            if not part:
+                continue
+            # 同一条水平线上，备注列（``□`` 或折行备注的首行）与名称列是**分开的两格**：
+            # 只按「数字开头 → 其余全是名称」会把 ``□`` 并进药名（实测会把 114 条标记
+            # 全吞成名字的一部分，而且名称唯一性检查还能通过）。
+            seq_tok = part[0][1]
+            if not seq_tok.isdigit():
+                note_text = "".join(w for _, w in part)
+                notes.append((page, y, half, note_text))
+                continue
+            name_toks, note_toks = [], []
+            for x, w in part[1:]:
+                band = _herbal_band(half, x)
+                if band == "name":
+                    name_toks.append(w)
+                elif band == "note":
+                    note_toks.append(w)
+                else:
+                    unclassified.append((page, y, x, w))
+            entries.append({
+                "page": page, "y": y, "half": half,
+                "item_no": int(seq_tok),
+                "drug_name": "".join(name_toks).strip(),
+                "_notes": ["".join(note_toks)] if note_toks else [],
+            })
+    if unclassified:
+        sample = "; ".join(f"p{p} y={y} x={x} {w!r}" for p, y, x, w in unclassified[:5])
+        raise RuntimeError(
+            f"nrdl: 饮片段有 {len(unclassified)} 个 token 落在已知列带之外"
+            f"（列边界需按实测重定）：{sample}"
+        )
+
+    if not entries:
+        raise RuntimeError("nrdl: 饮片段未解析到任何条目（版面或页范围变了）")
+
+    # 备注逐行绑定到同页同半栏最近的条目行
+    by_half: dict[tuple[int, int], list[dict]] = {}
+    for entry in entries:
+        by_half.setdefault((entry["page"], entry["half"]), []).append(entry)
+    unbound = 0
+    for page, y, half, text in notes:
+        candidates = by_half.get((page, half)) or []
+        if not candidates:
+            unbound += 1
+            continue
+        best = min(candidates, key=lambda e: abs(e["y"] - y))
+        dist = abs(best["y"] - y)
+        if dist > HERBAL_NOTE_MAX_DIST:
+            raise RuntimeError(
+                f"nrdl: 饮片备注无法绑定（page={page} y={y} 最近条目 {dist:.1f}pt > "
+                f"{HERBAL_NOTE_MAX_DIST}）：{text[:40]}"
+            )
+        best["_notes"].append(text)
+    if unbound:
+        raise RuntimeError(f"nrdl: 饮片段有 {unbound} 行备注找不到同页条目（版面漂移）")
+
+    # 序号连续性与名称唯一性
+    nums = sorted(e["item_no"] for e in entries)
+    dup_nums = sorted({n for n in nums if nums.count(n) > 1})
+    missing = [n for n in range(1, HERBAL_EXPECTED + 1) if n not in set(nums)]
+    extra = [n for n in set(nums) if n > HERBAL_EXPECTED]
+    if dup_nums or missing or extra or len(set(nums)) != HERBAL_EXPECTED:
+        raise RuntimeError(
+            f"nrdl: 饮片序号异常（唯一 {len(set(nums))} ≠ {HERBAL_EXPECTED}）"
+            f" 缺号={missing[:10]}{'…' if len(missing) > 10 else ''}"
+            f" 重号={dup_nums[:10]} 越界={extra[:10]}"
+        )
+    names = [e["drug_name"] for e in entries]
+    dup_names = sorted({n for n in names if names.count(n) > 1})
+    if dup_names:
+        raise RuntimeError(f"nrdl: 饮片名称重复（切栏可能把两条并成一条）：{dup_names[:5]}")
+
+    # 附加条件的内容判据：饮片段的备注是「限定条件」，官方写法以「限」起（实测仅 2 条：
+    # 「限临床危重患者抢救」）。这条不只为了格式一致——折行备注**少拼一行**时剩下的
+    # 「重患者抢救」仍然是非空文本，数量和序号都没变，只有内容判据能发现它。
+    for entry in entries:
+        _, note = _herbal_note_text("".join(entry["_notes"]))
+        if note and not note.startswith("限"):
+            raise RuntimeError(
+                f"nrdl: 饮片备注不像限定条件（item_no={entry['item_no']}）：{note[:40]}"
+                f" —— 折行可能只拼了一半"
+            )
+
+    scraped = datetime.now(timezone.utc).isoformat()
+    rows: list[dict] = []
+    for entry in sorted(entries, key=lambda e: e["item_no"]):
+        marked, note = _herbal_note_text("".join(entry["_notes"]))
+        rows.append({
+            "catalog_year": year,
+            "section": "中药饮片",
+            "subsection": None,
+            "pricing_channel": None,
+            "category": None,
+            "class_ab": None,
+            "item_no": entry["item_no"],
+            "is_variant": False,
+            "drug_name": entry["drug_name"] or None,
+            "dosage_form": None,
+            "coverage_restriction": note,
+            "payable_standalone": not marked,
+            "payment_scope": "payable",
+            "kind": "drug",
+            "aliases": None,
+            "source": SOURCE,
+            "scraped_at": scraped,
+        })
+    return rows
+
+
+def parse_excluded_slice(page_text: str, year: int = CATALOG_YEAR) -> list[dict]:
+    """解析「(二) 不得纳入基金支付范围的中药饮片」——黑名单，非目录条目。
+
+    三个必须处理的形态（实测）：
+    1. **断行把词劈开**：``龟`` + ``鹿二仙胶`` → ``龟鹿二仙胶``，所以先按行拼接；
+    2. **括号内也有顿号**：``穿山甲(醋山甲、炮山甲)``，括号内不切分，别名归并到父项；
+    3. **末行是类目不是药名**：``各种动物脏器(鸡内金除外)和胎、鞭、尾、筋、骨``
+       MUST 作为 ``kind='category'`` 单列，不得拆成 5 个药名。
+
+    实测输出：31 个 ``kind='drug'`` + 1 个 ``kind='category'``。
+    """
+    body = page_text
+    marker = "不得纳入基金支付范围的中药饮片"
+    if marker in body:
+        body = body.split(marker, 1)[1]
+    body = re.split(r"注[:：]", body, maxsplit=1)[0]
+    body = re.sub(r"第\s*\d+\s*页", "", body)
+    joined = "".join(line.strip() for line in body.splitlines() if line.strip())
+    if not joined:
+        raise RuntimeError("nrdl: 饮片黑名单段为空（版面或页范围变了）")
+
+    category = None
+    cat_match = re.search(r"各种动物脏器.*$", joined)
+    if cat_match:
+        category = cat_match.group(0)
+        joined = joined[: cat_match.start()]
+    joined = joined.rstrip("、。； ")
+
+    items: list[str] = []
+    buf, depth = "", 0
+    for ch in joined:
+        if ch in "(（":
+            depth += 1
+        elif ch in ")）":
+            depth = max(0, depth - 1)
+        if ch == "、" and depth == 0:
+            items.append(buf)
+            buf = ""
+        else:
+            buf += ch
+    if buf:
+        items.append(buf)
+
+    scraped = datetime.now(timezone.utc).isoformat()
+    rows: list[dict] = []
+    for raw in items:
+        name = raw.strip()
+        if not name:
+            continue
+        base, _, inner = name.partition("(")
+        if not inner:
+            base, _, inner = name.partition("（")
+        aliases = [a.strip() for a in re.split(r"[、,，]", inner.strip(")）")) if a.strip()] if inner else []
+        rows.append({
+            "catalog_year": year,
+            "section": "中药饮片",
+            "subsection": None,
+            "pricing_channel": None,
+            "category": None,
+            "class_ab": None,
+            "item_no": None,
+            "is_variant": False,
+            "drug_name": base.strip() or name,
+            "dosage_form": None,
+            "coverage_restriction": None,
+            # 黑名单条目谈不上"单独使用是否不予支付"（它们根本不纳入支付），
+            # 该字段留 None 而不是 False，避免与 892 条的 False（= 有 □ 标记）混为一谈。
+            "payable_standalone": None,
+            "payment_scope": "excluded",
+            "kind": "drug",
+            "aliases": aliases or None,
+            "source": SOURCE,
+            "scraped_at": scraped,
+        })
+    if category:
+        rows.append({
+            "catalog_year": year,
+            "section": "中药饮片",
+            "subsection": None,
+            "pricing_channel": None,
+            # 类目行没有药名；排除类目的原文放 category（本就是"分类"语义），
+            # 用 kind='category' 与具体药名区分，不新造列。
+            "category": category,
+            "class_ab": None,
+            "item_no": None,
+            "is_variant": False,
+            "drug_name": None,
+            "dosage_form": None,
+            "coverage_restriction": None,
+            "payable_standalone": None,
+            "payment_scope": "excluded",
+            "kind": "category",
+            "aliases": None,
+            "source": SOURCE,
+            "scraped_at": scraped,
+        })
+    if not rows:
+        raise RuntimeError("nrdl: 饮片黑名单段解析出 0 条")
+    drugs = [r for r in rows if r["kind"] == "drug"]
+    if len(drugs) != HERBAL_EXCLUDED_DRUGS:
+        raise RuntimeError(
+            f"nrdl: 饮片黑名单条目数与实测不符（期望 {HERBAL_EXCLUDED_DRUGS}，"
+            f"解析 {len(drugs)}）：段名或版面可能变了"
+        )
+    # 括号别名的实测锚：这两条的别名是「多个别名用顿号分隔」，能同时切出来才说明
+    # 「括号内不切分」与「别名归并到父项」两条都成立。golden 里断不了列表值
+    # （rows_contains 是字符串化比较），所以断言放在这里。
+    by_name = {r["drug_name"]: r for r in drugs}
+    for name, expected in (("穿山甲", ["醋山甲", "炮山甲"]),
+                           ("鹿茸", ["鹿茸粉", "鹿茸片"])):
+        got = (by_name.get(name) or {}).get("aliases")
+        if got != expected:
+            raise RuntimeError(
+                f"nrdl: 饮片黑名单别名解析异常（{name}: 期望 {expected}，实际 {got}）"
+            )
+    return rows

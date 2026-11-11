@@ -38,18 +38,18 @@ components:
     #   writer 修复对它是无感的，故本次不跟着滚——要滚是另一个决定，别默认跟着动。
     # tag 选择已核对方向：线上其余活影像 ea21592/92ae150/d84cc82/01c5ffb 都更旧。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-3a7c63c
+    tag: sha-f5a19aa
   runner-xinru:
     # ccr relay mirror consumed by the xinru (scraw ns) site dispatcher
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-3a7c63c
+    tag: sha-f5a19aa
   observer:
     # federation observer CronJob (scraw ns, xinru-master).
     # 2026-11-06：随三站点发布滚动到 sha-750da3f。
     # 2026-11-11：滚到 sha-3a7c63c；xinru-server1 上原为 sha-ea21592（11-13 更旧的 10-13 版）。
     # 2026-11-11 晚实测：仍为 sha-3a7c63c（不写 crawl_items，不随 writer 修复滚动）。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-3a7c63c
+    tag: sha-f5a19aa
   runner-tencent-cron:
     # tencent(chengsi) ArgoCD ApplicationSet `fd-industry-crawl` renders every
     # per-source CronJob with this image (helm.parameters.image in the AppSet

@@ -100,14 +100,45 @@ def fact_address(fact_class: str, **keys: object) -> str:
     缺键即抛：宁可失败，也不要生成一个看起来合法、实际无法唯一定位的地址。
     """
     if fact_class == "catalog_entry":
-        # 目录条目的键分两种形态（实测两种都必须，缺一个就撞地址）：
+        # 目录条目的键分三种形态（实测都必须，缺一个就撞地址）：
         #   1) 西药/中成药段：同一 item_no 有多个剂型（★ 变体），剂型是判别位；
         #   2) 谈判药品段：没有独立剂型列，但段内「西药/中成药/竞价」三套编号**各自
-        #      从 1 开始**，所以必须带 subsection + pricing_channel，否则三个 #1 撞成一条。
+        #      从 1 开始**，所以必须带 subsection + pricing_channel，否则三个 #1 撞成一条；
+        #   3) 中药饮片段：无甲乙类、无剂型，序号 1..892 全段连续，序号本身即稳定对位
+        #      （名称在同版内唯一，但换版会微调，故不作主键）；
+        #      「(二) 不得纳入基金支付范围」黑名单没有序号，只能用名称定位。
+        payment_scope = keys.get("payment_scope")
+        if payment_scope == "excluded":
+            category = keys.get("category")
+            if keys.get("kind") == "category":
+                missing = ["category"] if category in (None, "") else []
+                if missing:
+                    raise ValueError(f"fact_address({fact_class}) 缺键: {missing}")
+                return "|".join([
+                    "catalog_entry", f"catalog_year={keys.get('catalog_year')}",
+                    f"section={keys.get('section')}", "payment_scope=excluded",
+                    f"kind=category", f"category={category}",
+                ])
+            missing = [k for k in ("catalog_year", "section", "drug_name")
+                       if keys.get(k) in (None, "")]
+            if missing:
+                raise ValueError(f"fact_address({fact_class}) 缺键: {missing}")
+            return "|".join([
+                "catalog_entry", f"catalog_year={keys['catalog_year']}",
+                f"section={keys['section']}", "payment_scope=excluded",
+                f"drug_name={keys['drug_name']}",
+            ])
         base_missing = [k for k in ("catalog_year", "section", "item_no")
                         if keys.get(k) in (None, "")]
         if base_missing:
             raise ValueError(f"fact_address({fact_class}) 缺键: {base_missing}")
+        if keys.get("section") == "中药饮片":
+            # 饮片段：无甲乙类、无剂型、无分部渠道；序号 1..892 全段连续，是唯一稳定对位。
+            # 名称不进地址——换版会微调名称，而序号在同版内稳定（名称唯一性由单元侧断言）。
+            return "|".join([
+                "catalog_entry", f"catalog_year={keys['catalog_year']}",
+                f"section={keys['section']}", f"item_no={keys['item_no']}",
+            ])
         if keys.get("subsection"):
             # 谈判段：段内三套编号各自从 1 起，必须带分部+渠道
             disc = ("subsection", "pricing_channel")

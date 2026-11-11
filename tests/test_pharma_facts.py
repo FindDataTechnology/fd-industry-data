@@ -96,6 +96,34 @@ def test_address_stable_across_contexts_and_fails_loudly():
         pf.timing_for("not_a_fact_class")
 
 
+def test_herbal_catalog_address_uses_item_no_and_separates_exclusions():
+    """饮片段：无甲乙类/剂型/分部，用段内序号定位；黑名单与类目走另一套键，不相撞。
+
+    这是 add-nrdl-herbal-slice 的键设计判据：名称在同版内唯一但换版会微调，不能当主键；
+    黑名单没有序号，只能按名称/类目定位。
+    """
+    base = dict(catalog_year=2025, section="中药饮片")
+    payable = pf.fact_address("catalog_entry", **base, item_no=284, payment_scope="payable")
+    other = pf.fact_address("catalog_entry", **base, item_no=285, payment_scope="payable")
+    assert payable != other
+    assert "item_no=284" in payable
+
+    excluded = pf.fact_address("catalog_entry", **base, payment_scope="excluded", drug_name="阿胶")
+    category = pf.fact_address(
+        "catalog_entry", **base, payment_scope="excluded", kind="category", category="各种动物脏器"
+    )
+    assert excluded != category
+    assert "payment_scope=excluded" in excluded
+    assert {"payable", "excluded", "category"} and all(
+        "payment_scope=excluded" in a for a in (excluded, category)
+    )
+
+    with pytest.raises(ValueError):
+        pf.fact_address("catalog_entry", **base, payment_scope="excluded", drug_name=None)
+    with pytest.raises(ValueError):
+        pf.fact_address("catalog_entry", **base, payment_scope="payable")  # 缺 item_no
+
+
 def test_manifest_declarations_match_allowed_policy_set():
     """声明值必须落在既有允许集合内，否则接入巡检会判非法。"""
     from fd_open_data_mcp.ingest_declarations import REVISION_POLICIES

@@ -14,21 +14,30 @@ finalize_grace_days: 0
 scanner_mode: upstream-curated
 ranking_seed: [0.95, 0.75]
 # 每轮行数上限（AppSet 渲染成 --limit，chart 缺省只有 100 → 只会落 100 行）：
-# 本单元是**年度全量快照**，实测 3911 行，故取 5000 留余量。
+# 本单元是**年度全量快照**，实测 4835 行（3911 目录条目 + 892 饮片 + 32 黑名单行），
+# 故取 5000 留余量。
 # 注意 writer 侧还有一层落库上限（默认 1000，仅回填窗口运行会抬到 100000）——
 # 若生产只落下 1000 行，那是 writer 的 cap 而不是本参数，见 tasks/说明。
 limit: 5000
 functions:
   - command: run_nrdl_national_catalog
     description: >
-      Download the NRDL notice PDF attachment and parse all three sections
-      (西药 1446 / 中成药 1335 / 谈判药品 472). Parsing note:
+      Download the NRDL notice PDF attachment and parse all four sections
+      (西药 1446 / 中成药 1335 / 谈判药品 472 / 中药饮片 892) plus the
+      herbal exclusion list ((二)不得纳入基金支付范围: 31 names + 1 category). Parsing note:
       spiders/nrdl-national-catalog/spider.py — `parse_catalog_text` handles the
       clean-layout sections by TOC page ranges + `第 N 页` footers;
       `parse_negotiated_words` handles the six-column negotiated section by
-      word-level bbox x-coordinates, dropping the 医保支付标准 column whole.
-      `counts` must equal the preface's declared 1446/1335/472 or the unit fails;
-      any amount-shaped token outside the price column fails the run.
+      word-level bbox x-coordinates, dropping the 医保支付标准 column whole;
+      `parse_herbal_slice` handles the herbal section by splitting each page's
+      two side-by-side column groups on x (item numbers must be exactly 1..892,
+      names must be unique), turning the □ marker into payable_standalone and
+      binding wrapped notes to the nearest entry row;
+      `parse_excluded_slice` parses the herbal exclusion list as free text
+      (line-join for hyphen-free breaks, paren-aware splitting for aliases,
+      the trailing 类目 line kept as kind='category').
+      `counts` must equal the preface's declared 1446/1335/472/892 or the unit
+      fails; any amount-shaped token in any field fails the run.
     frequency: annual
     parameters:
       - name: limit
@@ -41,7 +50,7 @@ functions:
         description: 目录年度版（如 2025），本单元的水位字段
       - name: section
         type: str
-        description: 目录部分（西药 / 中成药 / 谈判药品）；中药饮片段不解析
+        description: 目录部分（西药 / 中成药 / 谈判药品 / 中药饮片）
       - name: subsection
         type: str
         description: 谈判段内的分部（西药 / 中成药）；西药与中成药两段为 null
@@ -75,6 +84,24 @@ functions:
       - name: agreement_valid_to
         type: str
         description: 协议期止（谈判药品段专有，YYYY-MM-DD）；其他段为 null。用于"哪些药今年到期"
+      - name: payable_standalone
+        type: bool
+        description: >
+          单独使用时是否由统筹基金支付。仅中药饮片段有值：备注列标注「□」的为 false
+          （凡例：单独使用不予支付，且全部由这些饮片组成的处方也不予支付）；其他段与
+          黑名单行为 null（不适用）
+      - name: payment_scope
+        type: str
+        description: >
+          支付范围归属（payable / excluded）。excluded 指「(二) 不得纳入基金支付范围」
+          黑名单行，它们不是目录条目、没有品种编号，计数与地址都按另一套规则处理
+      - name: kind
+        type: str
+        description: 行种类（drug / category）。category 只出现在黑名单段末尾那行
+          「各种动物脏器…」，它是排除类目而不是药名
+      - name: aliases
+        type: str
+        description: 括号内别名（列表），如 穿山甲 → [醋山甲, 炮山甲]；无别名时为 null。入方常写别名，匹配时需要
       - name: source
         type: str
         description: 数据源标识，恒为 nrdl-national-catalog
