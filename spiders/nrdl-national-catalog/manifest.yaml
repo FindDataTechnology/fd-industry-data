@@ -13,6 +13,11 @@ revision_policy: overwrite_with_history
 finalize_grace_days: 0
 scanner_mode: upstream-curated
 ranking_seed: [0.95, 0.75]
+# 每轮行数上限（AppSet 渲染成 --limit，chart 缺省只有 100 → 只会落 100 行）：
+# 本单元是**年度全量快照**，实测 3911 行，故取 5000 留余量。
+# 注意 writer 侧还有一层落库上限（默认 1000，仅回填窗口运行会抬到 100000）——
+# 若生产只落下 1000 行，那是 writer 的 cap 而不是本参数，见 tasks/说明。
+limit: 5000
 functions:
   - command: run_nrdl_national_catalog
     description: >

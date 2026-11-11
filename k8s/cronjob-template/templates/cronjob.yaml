@@ -129,6 +129,20 @@ spec:
                       key: url
                 - name: FD_SCHEMA_MANAGED
                   value: "1"
+                {{- /* 落库上限（writer cap）与行数上限同步。
+                       背景：writer 默认只落 1000 行（FD_WRITER_MAX_ITEMS 缺省 1000），
+                       而 `--limit` 只控制"单元返回多少行"，不控制"能落多少行"。
+                       实测 2026-11-11：mct-star-hotel 声明 limit: 20000、runner 报
+                       rows_written=8482，但 crawl_items 只有 1000 行；本批的
+                       nrdl-national-catalog（年度快照 3911 行）同样会被截到 1000。
+                       因此当源声明的 limit ≥ 1000（快照类源的特征）时，把落库上限
+                       抬到同一个值；limit 缺省（100）或较小的增量源**行为完全不变**，
+                       避免影响既有的 160+ 源。 */ -}}
+                {{- $lim := .Values.limit | default "" }}
+                {{- if and $lim (ne (toString $lim) "<no value>") (ge (int (toString $lim)) 1000) }}
+                - name: FD_WRITER_MAX_ITEMS
+                  value: {{ $lim | quote }}
+                {{- end }}
               # Wave B keyed 源：密钥经集群 secret 注入（fd-industry ns 手工维护，
               # 轮换=覆盖该 secret 即生效；非 git 内容，不在本清单内声明值）
               envFrom:

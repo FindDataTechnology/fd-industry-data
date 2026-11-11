@@ -12,6 +12,10 @@ revision_policy: overwrite_with_history
 finalize_grace_days: 0
 scanner_mode: upstream-curated
 ranking_seed: [0.7, 0.9]
+# 每轮行数上限（AppSet 渲染成 --limit，chart 缺省只有 100）：本单元 limit 语义是
+# **窗口月数**不是行数。月增量取 1 个月（实测约 400–500 行，落在 writer 默认
+# 落库上限 1000 之内）；历史回填用 --window-start/--window-end 显式指定。
+limit: 1
 functions:
   - command: run_clinicaltrials_cn
     description: >
