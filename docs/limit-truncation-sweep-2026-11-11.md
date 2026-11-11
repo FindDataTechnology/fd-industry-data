@@ -141,7 +141,7 @@ group by source, rows_written;
 | `jodi-gas` | #5036 → 100 | #5393 | **16,556** | **16,556** | ✅ |
 | `boxofficemojo` | #4499 → 20 | #5390 | **600** | **600** | ✅ |
 | `cisa` | #4504 → 20 | #5391 | **200** | **200** | ✅ |
-| `imf-pcps` | #4786 → 417 | 待验 | 1,254（预期） | — | 见 §4.3 |
+| `imf-pcps` | #4786 → 417 | #5399 | **1,254** | **1,254**（418 个 distinct period × 3 key） | ✅ |
 
 `error_head` 全为 `NULL`。这一列是必要的：只看 `rows_written` 会被第二层
 （writer cap）骗过，必须 `run_id` 关联 `crawl_items` 才是"真落库"。
