@@ -106,17 +106,54 @@ github 远端。这次实测：第一次只推 gitee，CI 毫无反应；补推 
    打到线上 spec**（读回核对），不做整体 `replace`。
 4. 收敛实测：126 个 CronJob 里 **123 个到 `sha-3a7c63c`**；`bls`/`cncotton`
    仍是 `01c5ffb` 且 `suspend: true`——它们 manifest 本就 `parked` 且无 `schedule`，
-   渲染为空、Argo 拒绝清空，属既存 OutOfSync（已挂起，无风险），
-   正是下面"待办"里那三个参数要解决的问题。
+   渲染为空、Argo 拒绝清空，属既存 OutOfSync（已挂起，无风险）。
 
-### 待办（未做，需单独窗口）
+### 三参数已整体归位（16:2x，与镜像同一窗口）
 
-仓内声明比线上多 `scheduleTz` / `parked` / `enabled` 三参数：
+上面那条"渲染为空 → Argo 拒绝清空"才是 `bls`/`cncotton` 的根因，
+所以把仓内多出的 `scheduleTz`/`parked`/`enabled` 一起归位了（`reconcile-industry-appset.sh tencent apply`）：
 
-- `scheduleTz` 是**空操作**（全仓 0 个 manifest 声明 `schedule_tz`，chart 缺省 Asia/Shanghai）；
-- `parked` / `enabled` 会让 **31 个 parked 源**从"仍在触发"变为 `suspend: true`。
-  这是独立的调度行为变更（含 `bls`/`cncotton` 的 OutOfSync 也会一并消失），
-  不做整体 apply 就是因为它会改 31 个源的行为，与本批镜像滚动无关。
+| 项 | 归位前 | 归位后 |
+|---|---|---|
+| CronJob 总数 | 126 | **151** |
+| 挂起（suspend） | 2 | **27** |
+| 在跑（未挂起） | 124 | **124**（一个没变） |
+| Argo OutOfSync | 2 | **0** |
+
+- 新增的 25 个全是**此前根本没有 CronJob** 的 parked 源（渲染为空、Argo 不肯清空，
+  所以从没被创建过），现在补成 `suspend: true` + 占位 schedule `0 0 31 2 *`；
+- 既有源里只有 `bls`/`cncotton` 两笔变了：旧 schedule（`23 3 * * *` / `25 6 5 * *`）
+  归零、镜像随全局到 `sha-3a7c63c`，挂起状态不变；
+- **没有停掉任何正在跑的源**（运行中 124 → 124），这是归位前后逐条比对得到的，
+  不是"应该不会"。
+
+> 订正：动手前我判断"31 个 parked 源正在触发、归位会被停掉"，实测是错的——
+> 其中 25 个连 CronJob 都没有，另 2 个早已手工挂起。判据是
+> `fd-industry/source` 标签与集群实况逐条比对，不是数 manifest。
+
+### 评测层：跑通了，但周巡检本来就没在自动化
+
+医药两份基线（`fd-data-quality/baselines/pharma-*.yaml`）对着**已落库的生产数据**验收：
+
+| 面 | 结果 |
+|---|---|
+| golden 回放 | nrdl 2 个样本 ok（3911 行）、ct 1 个样本 ok（432 行），diffs=0 |
+| `coverage_scan` | 两源 `gaps=0 critical=0 status=success` |
+| `pharma_boundary_check` | PASS —— 2 份基线 / 2 个单元 manifest / 5 个族，无价格越界 |
+| `pharma_gap_attribution` | 无可归因缺口行（gaps=0 的自然结果） |
+| `pharma_readiness` | live=2（golden 一致 ✓） degraded=3（各带三视角状态码） |
+
+两条修正：
+
+1. 基线原来写 `db_env: FD_CRAWL_DB_URL`（行业 runner 的变量名），而质量仓的生产
+   `.env` 没有它。**`dsn()` 抛的是 `SystemExit`（BaseException），`scan_source`
+   的 `except Exception` 拦不住**——真跑起来整轮 `--source all` 会在 pharma 处退出，
+   排在后面的源一天都不再被扫。已改用仓库既有词汇 `FD_OPEN_DATA_MCP_DATABASE_URL`
+   （另 9 份基线在用，同一台库，角色 `fd` 对 `crawl_runs`/`crawl_items` 有 SELECT）。
+2. **周巡检在当前可及的机器上并没有装**：`/etc/cron.d/fd-data-quality` 在
+   100.64.0.6 / .7 / .11 都不存在，`.6` 上 `/opt/fd-data-quality/baselines` 只有
+   5 份旧基线、没有 pharma。这是既有状态，与本批无关；如实记录，不当成"已自动化"。
+   入口在 `deploy/install_on_runner.sh`（会重写 cron 与镜像），需要 sudo 与那台机的授权。
 
 另：`fd-industry-dispatcher`（`*/5 * * * *`）仍用 `sha-750da3f`，但它由
 `k8s/dispatcher.yaml` 单独管理（标签 `fd-industry/component: dispatcher`，
