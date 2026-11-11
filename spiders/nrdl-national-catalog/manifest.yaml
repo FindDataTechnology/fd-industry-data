@@ -1,0 +1,61 @@
+version: "2"
+name: nrdl-national-catalog
+label: 国家医保药品目录条目 (NRDL national drug catalog, annual edition)
+source_url: http://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html
+# 官方 PDF 附件驱动：通知页与附件均 200 可下载，文本层用共享 pdftext 抽取（无 OCR）。
+# 年度版 → 每年发一次；本单元在目录发布后按 schedule 重灌以取得新版条目。
+schedule: "19 3 8 1 *"             # 每年 1 月 8 日 03:19（目录通常 12 月发布、次年 1 月 1 日执行）
+data_period: year
+data_period_field: catalog_year    # 水位字段 = 目录年度版
+scanner_mode: upstream-curated
+ranking_seed: [0.95, 0.75]
+functions:
+  - command: run_nrdl_national_catalog
+    description: >
+      Download the NRDL notice PDF attachment and parse catalog entries
+      (西药 + 中成药 only in v1). Parsing note: spiders/nrdl-national-catalog/spider.py
+      `parse_catalog_text` slices sections by the TOC page ranges and walks the
+      `第 N 页` footers; `counts` must equal the preface's declared 1446/1335 or the
+      unit fails. Prices are excluded by construction and asserted absent.
+    frequency: annual
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Return at most N rows (0/absent = all parsed rows)
+    columns:
+      - name: catalog_year
+        type: int
+        description: 目录年度版（如 2025），本单元的水位字段
+      - name: section
+        type: str
+        description: 目录部分（西药 / 中成药）；谈判药品与饮片段首版不解析
+      - name: category
+        type: str
+        description: 所属分类（西药为 ATC 码 + 名称，中成药为功能分类），原样保留
+      - name: class_ab
+        type: str
+        description: 甲乙类（甲 / 乙）
+      - name: item_no
+        type: int
+        description: 该部分内的品种编号；与 section 联合构成事实地址（三部分各自从 1 编号）
+      - name: is_variant
+        type: bool
+        description: 是否为 ★ 剂型变体（同品种的另一种剂型，不新增品种编号）
+      - name: drug_name
+        type: str
+        description: 药品通用名（官方写法，含盐基/酸根时按官方原样）
+      - name: dosage_form
+        type: str
+        description: 剂型（官方写法，如 口服常释剂型 / 注射剂）；未列剂型时为 null
+      - name: payment_scope
+        type: str
+        description: 限定支付范围（官方备注列，如「限伴有出血的胃、十二指肠溃疡。」）；无则 null
+      - name: source
+        type: str
+        description: 数据源标识，恒为 nrdl-national-catalog
+      - name: scraped_at
+        type: str
+        description: 采集时刻 (UTC ISO8601)
+concepts: []
+entities: []

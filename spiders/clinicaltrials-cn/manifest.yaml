@@ -1,0 +1,72 @@
+version: "2"
+name: clinicaltrials-cn            # = spiders/ 目录名，合入后不可改名
+label: 中国境内临床试验 (ClinicalTrials.gov, China-located studies)
+source_url: https://clinicaltrials.gov/api/v2/studies
+# 公开 REST v2，无 key 无登录无验证码；海外源，直连即可（与既有 openfda 同族）
+schedule: "47 2 6 * *"             # 每月 6 日 02:47；与 openfda(26 日 03:28) / nifdc(10 日 01:33) 错开
+data_period: month
+data_period_field: month           # 水位字段：行内 month = 试验起始月 (yyyy-mm)
+scanner_mode: upstream-curated
+ranking_seed: [0.7, 0.9]
+functions:
+  - command: run_clinicaltrials_cn
+    description: >
+      Fetch China-located clinical trial records from ClinicalTrials.gov API v2,
+      one row per study, sliced by StartDate month. Parsing note: spiders/clinicaltrials-cn/spider.py
+      `fetch_month` builds `filter.advanced=AREA[StartDate]RANGE[..] AND AREA[LocationCountry]China`
+      and walks `nextPageToken`; `_row` folds protocolSection into columns.
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Number of trailing months to fetch (default 12, ends at last complete month)
+      - name: start_month
+        type: str
+        required: false
+        description: Window start (yyyy-mm) for golden replay / backfill
+      - name: end_month
+        type: str
+        required: false
+        description: Window end (yyyy-mm) for golden replay / backfill
+    columns:
+      - name: month
+        type: str
+        description: 试验起始月 (StartDate 归一到 yyyy-mm)，本单元的水位字段
+      - name: nct_id
+        type: str
+        description: ClinicalTrials.gov 注册号 (NCT########)，事实的稳定地址
+      - name: brief_title
+        type: str
+        description: 官方简短标题，原样保留
+      - name: overall_status
+        type: str
+        description: 官方整体状态 (RECRUITING/COMPLETED/UNKNOWN/...)，作为状态事实原样落库
+      - name: start_date
+        type: str
+        description: 试验起始日期 (StartDate 原始 ISO 日期)
+      - name: first_post_date
+        type: str
+        description: 首次登记日期 (StudyFirstPostDate)；与 start_date 不同，用于区分登记月与起始月
+      - name: phase
+        type: str
+        description: 试验分期，多值以逗号连接 (PHASE1/PHASE2/PHASE3/PHASE4/NA)
+      - name: lead_sponsor
+        type: str
+        description: 申办者名称 (leadSponsor)，对应 company 实体，原样保留
+      - name: enrollment_count
+        type: int
+        description: 计划入组人数 (enrollmentInfo.count)；缺失为 null
+      - name: url
+        type: str
+        description: 该行来源请求 URL（可回溯到具体 API 调用）
+      - name: source
+        type: str
+        description: 数据源标识，恒为 clinicaltrials-cn
+      - name: scraped_at
+        type: str
+        description: 采集时刻 (UTC ISO8601)
+# 概念与实体绑定留到 establish-pharma-domain-stack 第 3 阶段：
+# `trial` 等实体类型尚未进 canonical 词表，此处声明会被校验拒（词表只做加法但须先加）。
+concepts: []
+entities: []

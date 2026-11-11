@@ -1,0 +1,19 @@
+{
+  "sample_id": "001-nrdl-national-catalog",
+  "created": "2026-11-11",
+  "target": "run_nrdl_national_catalog",
+  "params": {"limit": 0},
+  "expect": {
+    "min_rows": 2700,
+    "rows_contains": [
+      {"field": "catalog_year", "equals": 2025},
+      {"field": "section", "equals": "西药"},
+      {"field": "section", "equals": "中成药"},
+      {"field": "drug_name", "equals": "复方硼砂"},
+      {"field": "class_ab", "equals": "甲"},
+      {"field": "source", "equals": "nrdl-national-catalog"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"],
+  "note": "硬判据不在 expect 里而在单元内：run_ 会拿解析出的唯一品种编号数与 PDF 凡例宣告的 1446（西药）/1335（中成药）逐一比对，不等即抛。2026-11-11 实测两段分别为 1446 与 1335，行数 3439（含 ★ 剂型变体）。min_rows=2700 是下行护栏：条目行若塌陷成只剩品种行（无剂型变体）会低于此值并红。"
+}
