@@ -1,0 +1,19 @@
+{
+  "captured_at": "2026-11-11T03:06Z",
+  "table": "wanxing_plans",
+  "row": {
+    "user_id": 1,
+    "plan_ref": "wp_00088b829cc1",
+    "email": "admin@finddatatech.cloud",
+    "limit_minutes": 120,
+    "note": "add-serving-plans prod smoke",
+    "updated_by": "ops",
+    "created_at": 1791666907555,
+    "updated_at": 1791666931020
+  },
+  "used_derived": {
+    "minutes": 120,
+    "turns": 91,
+    "note": "derived from wanxing_usage where settler='plan' and caller_id=1"
+  }
+}
