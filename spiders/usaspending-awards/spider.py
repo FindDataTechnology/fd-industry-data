@@ -42,6 +42,16 @@ FIELDS = ["Award ID", "Award Amount", "Awarding Agency", "NAICS"]
 PAGE_SIZE = 100  # 端点单页上限（实测）
 MAX_PAGES_PER_BATCH = 3  # 每 award_type × 每月页数上限——信号层取头部，不做全量翻页
 MAX_MONTHS = 12  # 窗口最多展开 12 个整月（与首爬回补的滚动 12 整月对齐）
+# 缺省窗口的**月数**（不含 window 参数时的滚动窗口，终点 = 上一个完整自然月）。
+# 为什么不是 1（只取上个月）：2026-11-11 实测上游回填滞后——同一 API 按月计数
+# （spending_by_award_count，award_type A/B/C/D）：
+#   2025-10=651,682  2026-05=654,069  2026-06=580,577  2026-07=484,021
+#   2026-08=218,111  2026-09=240,896  2026-10=100,757
+# 同为 10 月，2025 年 651k vs 2026 年 100k ⇒ 不是季节性，是**滞后**（越近越不全）。
+# 若每月只抓上一个整月，每个月就只在约 15% 完整度时被抓一次、此后再不重取，
+# 会永久固化一个偏低的数。滚动抓近 6 个月可让每个月被反复重取、逐步收敛
+# （运行结果按 run 追加进 crawl_items，消费侧取最新 run，故重取即纠正）。
+DEFAULT_WINDOW_MONTHS = 6
 REQUEST_TIMEOUT_S = 60.0
 REQUEST_RETRIES = 2  # 瞬时网络错误重试次数（幂等检索 POST）
 
@@ -96,7 +106,9 @@ def _month_buckets(
 ) -> list[tuple[str, str, str]]:
     """把窗口展开成整月桶 ``[(period, first_day, last_day), ...]``，旧→新。
 
-    缺省窗口 = 上一个完整自然月；窗口过滤先于任何截断（回填口径）。
+    缺省窗口 = 以**上一个完整自然月**为终点的滚动 ``DEFAULT_WINDOW_MONTHS`` 个月
+    （不是只取一个月——上游回填滞后，见 ``DEFAULT_WINDOW_MONTHS`` 处的实测数据）；
+    窗口过滤先于任何截断（回填口径）。
     窗口跨度超过 ``MAX_MONTHS`` 直接报错，不截断（见下方说明）。
     """
     today = date.today()
@@ -106,7 +118,7 @@ def _month_buckets(
         raise ValueError("window_start/window_end must be provided together")
     else:
         end = _add_months(_month_first(today), -1)  # 上个完整自然月的 1 号
-        start = end
+        start = _add_months(end, -(DEFAULT_WINDOW_MONTHS - 1))
     if start > end:
         raise ValueError(f"window_start {start} is after window_end {end}")
     buckets: list[tuple[str, str, str]] = []

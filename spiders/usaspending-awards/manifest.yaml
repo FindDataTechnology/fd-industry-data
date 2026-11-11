@@ -19,7 +19,7 @@ functions:
       - name: window_start
         type: string
         required: false
-        description: "Window start (YYYY-MM-DD or YYYY-MM), paired with window_end; default = last complete calendar month"
+        description: "Window start (YYYY-MM-DD or YYYY-MM), paired with window_end; default = first day of the rolling 6-month window ending at the last complete calendar month (upstream reporting lag: the newest month holds ~15% of its eventual volume, so months are re-fetched and converge instead of being captured once)"
       - name: window_end
         type: string
         required: false
