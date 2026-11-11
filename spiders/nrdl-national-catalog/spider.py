@@ -194,7 +194,7 @@ def parse_catalog_text(text: str, year: int = CATALOG_YEAR) -> list[dict]:
                 "is_variant": is_variant,
                 "drug_name": drug_name or None,
                 "dosage_form": dosage,
-                "payment_scope": note,
+                "coverage_restriction": note,
                 "source": SOURCE,
                 "scraped_at": scraped,
             }
@@ -216,15 +216,15 @@ def parse_catalog_text(text: str, year: int = CATALOG_YEAR) -> list[dict]:
             if dosage:
                 pending["dosage_form"] = dosage
             if note:
-                pending["payment_scope"] = note
+                pending["coverage_restriction"] = note
             pending = None
             continue
         prev = rows[-1]
         if prev["section"] != section:
             continue
         # 折行：备注未收尾 → 并回上一条；否则若是剂型短语 → 补剂型
-        if prev["payment_scope"] and not prev["payment_scope"].endswith("。"):
-            prev["payment_scope"] = f"{prev['payment_scope']}{cont}"
+        if prev["coverage_restriction"] and not prev["coverage_restriction"].endswith("。"):
+            prev["coverage_restriction"] = f"{prev['coverage_restriction']}{cont}"
         elif prev["dosage_form"] is None and _DOSAGE_END_RE.search(cont) and len(cont) <= 12:
             prev["dosage_form"] = cont
     return rows
@@ -263,7 +263,7 @@ def run_nrdl_national_catalog(limit: int = 0) -> list[dict]:
             + ", ".join(f"{k}={a}/{b}" for k, (a, b) in drift.items())
         )
     for row in rows:
-        for field in ("drug_name", "dosage_form", "payment_scope", "category"):
+        for field in ("drug_name", "dosage_form", "coverage_restriction", "category"):
             value = row.get(field)
             if isinstance(value, str) and _PRICE_RE.search(value):
                 raise RuntimeError(
