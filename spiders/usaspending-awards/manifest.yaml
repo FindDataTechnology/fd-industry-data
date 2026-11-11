@@ -1,0 +1,71 @@
+version: "2"
+name: usaspending-awards    # = spiders/usaspending-awards/ 目录名，运行时标识符，合入后不可改名
+label: USAspending Federal Contract Awards (monthly NAICS x agency aggregates)
+source_url: "https://api.usaspending.gov/api/v2/search/spending_by_award/ (portal: https://www.usaspending.gov/)"
+data_period: month
+# schedule: 未写——静默合入，跑通后由人工门点亮（本工单不含任何 schedule/cron 变更）
+# site: 未写——公共 API 直连（无墙），无需离开 tencent
+scanner_mode: upstream-curated
+ranking_seed: [0.5, 0.5]
+functions:
+  - command: run_usaspending_awards
+    description: "Aggregate USAspending federal contract awards (award_type_codes A/B/C/D, monthly window, top awards by amount, max 3 pages x 100 per type-month) client-side into monthly NAICS x awarding-department obligated_amount signal rows via the unauthenticated POST /api/v2/search/spending_by_award/ endpoint"
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: "Maximum number of aggregate rows to return; window filter is applied before truncation (default 100)"
+      - name: window_start
+        type: string
+        required: false
+        description: "Window start (YYYY-MM-DD or YYYY-MM), paired with window_end; default = last complete calendar month"
+      - name: window_end
+        type: string
+        required: false
+        description: "Window end (YYYY-MM-DD or YYYY-MM), paired with window_start"
+    columns:
+      - name: award_type
+        type: string
+        description: "Requested contract award_type_codes class of the batch (A/B/C/D raw code, no interpretation)"
+      - name: naics_code
+        type: string
+        description: "NAICS industry code of the awards in the group (empty string if unclassified)"
+      - name: agency_name
+        type: string
+        description: "Top-level awarding department (Awarding Agency)"
+      - name: obligated_amount
+        type: float
+        description: "Sum of Award Amount (USD) over awards in the (award_type, NAICS, agency) group, rounded to 2 decimals; partial sum over top pages only (max 3 pages x 100 per type-month, amount desc)"
+      - name: award_count
+        type: int
+        description: "Number of distinct awards (by Award ID) aggregated into the group"
+      - name: period
+        type: string
+        description: "Aggregation month (YYYY-MM), the requested window month rather than any single award start date"
+      - name: url
+        type: string
+        description: "Source request URL for the row"
+      - name: source
+        type: string
+        description: "Data source identifier"
+      - name: scraped_at
+        type: string
+        description: "ISO timestamp of the fetch"
+concepts:
+  # 新命名空间 government.*：统一指标注册目录治理另走（templates/new-source/CHECKLIST.md 末条），
+  # 不阻塞取数本身
+  - column: obligated_amount
+    concept: government.obligated_amount
+    entity_type: industry
+    measure: value
+    unit: USD
+    frequency: monthly
+entities:
+  - entity_type: industry
+    coverage: universe
+fetch:
+  module: fd_industry_data.provider:IndustryDataProvider
+# 接入声明
+revision_policy: overwrite_with_history
+coverage_capability: gaps_only
