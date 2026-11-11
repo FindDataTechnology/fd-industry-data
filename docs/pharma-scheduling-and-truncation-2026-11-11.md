@@ -76,19 +76,48 @@ github 远端。这次实测：第一次只推 gitee，CI 毫无反应；补推 
 机上对**任何** tag 都返回失败（含已知存在的 `e6f5f01`）——认证问题造成的假阴性。判镜像
 可用的可靠办法是拉起一个 pod：能 `Completed` 并打出预期输出即真可用。
 
-## 5. 尚未做的一件事（需要裁决）
+## 5. 镜像滚动（已做，2026-11-11 16:0x）
 
-两个 CronJob 目前仍用 `sha-e6f5f01`（不含 `pdftext.extract_words`）。新镜像
-`sha-41af218` 已验证可用（pod 内 `extract_words 存在: True`、单元可导入、全量 3911 行
-落库）。把 tag 滚上去有两条路：
+两个 CronJob 原先用 `sha-e6f5f01`（**不含** `pdftext.extract_words`），
+下一次触发会直接 `AttributeError`：
 
-1. 改 `fd-infra-deploy` 的 AppSet 声明 + `reconcile-industry-appset.sh tencent apply`——
-   **风险**：仓内声明与集群实况还有三处漂移（`repoURL` 形态、仓内多出
-   `scheduleTz/parked/enabled` 三参数、`image` 仓内写的是更旧的 `sha-750da3f`），
-   整体 apply 会把全站镜像**回退**到 750da3f，并给 167 个 CronJob 一起加参数。
-2. 只给这两个 CronJob `kubectl patch` 镜像（点对点，无副作用），但下次 AppSet 重渲染
-   会被模板值覆盖回去。
+| CronJob | 下次触发 | 原 tag |
+|---|---|---|
+| `fd-industry-nrdl-national-catalog` | 12-08 03:19 | sha-e6f5f01 |
+| `fd-industry-clinicaltrials-cn` | 12-06 02:47 | sha-e6f5f01 |
 
-**不做整体 apply 的理由**：线上 pod 实际镜像已经是混合的（86 个 e6f5f01、57 个 ea21592、
-36 个 92ae150、28 个 01c5ffb…），说明有并发会话在手工滚动不同源；此时整体 replace 极易
-把别人的新片回退成旧片。这条与 AGENTS.md「出片/GitOps 改动同一时刻只允许一个会话做」一致。
+### 为什么不走 `kubectl patch`
+
+对 CronJob 手工 patch 镜像会被 **AppSet 重渲染覆盖**（实测报成功、读回未变，
+对象上带 `argocd.argoproj.io/tracking-id`）。唯一能留住的是 **ApplicationSet
+`helm.parameters` 里的 `image`**。
+
+### 做法
+
+1. 选 tag：`fd-industry-data` main tip 是 `3a7c63c`，镜像 `sha-3a7c63c` 已出片。
+   核对方向：线上其余活影像 `ea21592/92ae150/01c5ffb`（10-13/10-01/11-08）都比它旧，
+   `e6f5f01`(11-10) 也旧 —— **这是前进不是回退**（AGENTS.md 里"别把别人的新片回退"的正向对照）。
+2. 验证：**不用 `docker manifest inspect`**（对任何 tag 都假阴性，含已知存在的 `e6f5f01`），
+   直接拉 pod 实跑 → `extract_words: True`、签名一致、`writer cap default: 1000`。
+   注意 relay 有 ≤5 分钟时延：`sha-3a7c63c` 刚出片时 ccr 拉不到（ImagePullBackOff），
+   过一个 relay 周期才有。
+3. 改 `fd-infra-deploy/argocd/industry-appset/applicationset.yaml` 的 `image` 值
+   （同时把 `repoURL` 由 `https://` 对齐成集群实况的 `git@`），**只把 `image` 一个值
+   打到线上 spec**（读回核对），不做整体 `replace`。
+4. 收敛实测：126 个 CronJob 里 **123 个到 `sha-3a7c63c`**；`bls`/`cncotton`
+   仍是 `01c5ffb` 且 `suspend: true`——它们 manifest 本就 `parked` 且无 `schedule`，
+   渲染为空、Argo 拒绝清空，属既存 OutOfSync（已挂起，无风险），
+   正是下面"待办"里那三个参数要解决的问题。
+
+### 待办（未做，需单独窗口）
+
+仓内声明比线上多 `scheduleTz` / `parked` / `enabled` 三参数：
+
+- `scheduleTz` 是**空操作**（全仓 0 个 manifest 声明 `schedule_tz`，chart 缺省 Asia/Shanghai）；
+- `parked` / `enabled` 会让 **31 个 parked 源**从"仍在触发"变为 `suspend: true`。
+  这是独立的调度行为变更（含 `bls`/`cncotton` 的 OutOfSync 也会一并消失），
+  不做整体 apply 就是因为它会改 31 个源的行为，与本批镜像滚动无关。
+
+另：`fd-industry-dispatcher`（`*/5 * * * *`）仍用 `sha-750da3f`，但它由
+`k8s/dispatcher.yaml` 单独管理（标签 `fd-industry/component: dispatcher`，
+不在本 AppSet 内），属另一个发布面，本批未动。
