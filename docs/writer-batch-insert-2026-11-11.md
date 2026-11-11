@@ -128,7 +128,32 @@ def _insert_items(cur, run_id: int, payload) -> int:
   `status=success` / `rows_written=114610` / `crawl_items=114610` / 109 个国家。
   结论：`limit` 已抬回全集 130,000。
 
-## 七、教训- **"慢"要先分清是取数慢还是落库慢。** 取数阶段有明确超时与日志；落库阶段没有日志、
+## 七、上线记录（2026-11-11 晚）
+
+1. GHA `image` workflow 为 `f5a19aa` 构建成功，但只推 `hkccr`；线上 CronJob 拉的是 `ccr.ccs`。
+   `sha-c7202a8` 在 ccr 上 `ErrImagePull`（relay 未同步），`fd-image-bump.sh` 判定
+   `sha-f5a19aa` 已可拉取 → 采纳它。
+2. 滚前预检（不为"管线全绿"背书，只用镜像自己证明）：
+   `HAS__insert_items True`、`HAS_cur_executemany False`、`ITEM_BATCH 1000`；
+   并用该镜像真跑 `usgs-nwis` → `success rows=366`、`items=366`。
+3. `fd-image-bump.sh --apply` → AppSet `fd-industry-crawl` 的 image 参数改为 `sha-f5a19aa`，
+   备份 `/tmp/appset-fd-industry-crawl-20261111-194617.yaml`。
+   核对：**150 个 CronJob 切到新 tag**，剩 `fd-industry-dispatcher`（另一套清单、
+   只派单不写 `crawl_items`，刻意不动）。
+4. 滚后冒烟（三种取数形态，全部 `rows_written == crawl_items`）：
+
+   | 源 | 形态 | 行数 | 记录时长 |
+   |---|---|---|---|
+   | `mohurd-yearbook` | xls + zip 多表解析 | 5,514 | 15.1s |
+   | `boxofficemojo` | HTML 表格 × 3 页 | 600 | 1m45s（含上游慢） |
+   | `cisa` | 双通道合并 | 200 | 2.6s |
+
+   `mohurd-yearbook` 5,514 行在旧 writer 上约需 5.2 分钟写库，现在整条运行记录 15 秒。
+5. `fd-image-bump.sh --check` 现在返回 `一致（无需变动）`（退出码 0），可当哨兵挂 cron。
+
+## 八、教训
+
+- **"慢"要先分清是取数慢还是落库慢。** 取数阶段有明确超时与日志；落库阶段没有日志、
   没有进度，只有一个大开着的 `idle in transaction` 事务。查法是看
   `/proc/1/io` 的读写比 + `pg_stat_activity` 的 `state`（尤其
   `idle in transaction`），而不是只看 `state='active'`。
