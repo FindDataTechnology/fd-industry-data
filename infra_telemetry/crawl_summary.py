@@ -23,7 +23,11 @@ from .io_ import run_psql
 CHANNEL = "central_pg"
 SQL = (
     "SELECT source, status, started_at, COALESCE(rows_written,0), "
-    "COALESCE(error_head,'') "
+    # 单行归一（2026-11-12 在产实测）：error_head 里存过 Node 网络错误的多行栈，
+    # 一条正文的换行会把 TSV 记录拆成两行、续行只剩 1 列，_aggregate 的 r[1]
+    # 于是 IndexError —— 一条脏正文让 ④ 这类聚合**每次调用都不可用**。
+    # TSV 契约本来要求字段单行，所以在源头归一，而不是让下游猜行边界。
+    "regexp_replace(COALESCE(error_head,''), E'[\\r\\n]+', ' ', 'g') "
     "FROM crawl_runs WHERE started_at >= now() - (make_interval(hours => %d)) "
     "ORDER BY source, started_at DESC"
 )
@@ -31,9 +35,16 @@ SQL = (
 
 def _aggregate(rows: list[list[str]], *, fail_streak_threshold: int, stale_hours: int, as_of: str) -> tuple[list[dict], dict]:
     by_source: dict[str, list[list[str]]] = {}
+    malformed = 0
     for r in rows:
         # r = [source, status, started_at, rows_written, error_head]
-        by_source.setdefault(r[0], []).append(r)
+        # 列数不足 = 上游正文里带换行把 TSV 行拆开了（见 SQL 处注释）。这类续行
+        # 不是数据，但也不能让它们把整类聚合打成异常（纵深防御：上游形状不受控）。
+        if len(r) < 2:
+            malformed += 1
+            continue
+        # 2~4 列的行仍可用：补齐成 5 列（缺的当空），不让取下标炸掉。
+        by_source.setdefault(r[0], []).append(list(r) + [""] * (5 - len(r)))
 
     import datetime as _dt
 
@@ -45,7 +56,7 @@ def _aggregate(rows: list[list[str]], *, fail_streak_threshold: int, stale_hours
 
     now = parse(as_of)
     items: list[dict] = []
-    counters = {"sources": 0, "no_success": 0, "fail_streak": 0, "zero_output": 0, "stale_success": 0}
+    counters = {"sources": 0, "no_success": 0, "fail_streak": 0, "zero_output": 0, "stale_success": 0, "malformed_rows": malformed}
     for source in sorted(by_source):
         runs = by_source[source]  # 已按 started_at DESC
         last = runs[0]

@@ -54,6 +54,33 @@ CONCEPT_ENTITY = {
     "catalog.drug.class_a_share": ENTITY_TYPE_COUNTRY,
 }
 
+# 概念声明的度量单位（与 `vocabulary/concepts.yaml` 的 variables 逐条对应）。
+# 为什么必须显式带：原先落库写死 NULL，读侧拿到 `unit: null`，消费方无从判断一个数是
+# 计数、人数还是百分比（change fix-concept-freshness-window）。单测钉住"键集合 ==
+# CONCEPT_ENTITY 的键集合"——新增概念忘了配单位会红，而不是继续静默写空。
+CONCEPT_UNIT = {
+    "trial.new": "count",
+    "trial.enrollment.planned": "persons",
+    "catalog.drug.entries": "count",
+    "catalog.drug.class_a_share": "percent",
+}
+
+# 观测写入语句。ON CONFLICT 不能是 DO NOTHING：那样每天重跑都不动 `fetched_at`，
+# 而读路径的 TTL 判据是 `now - fetched_at`。月概念 TTL 25 天，某期行首次写入 25 天后
+# 必然"过期"，过期又无绑定可回源 → 点读返回"no eligible source"，值却一直在库里。
+# DO UPDATE 的语义是"这是截至此刻核实到的值"：逐次快照仍留在 crawl_items（每 run 一份
+# payload），观测表是现值投影；对账（reconcile）每轮复算四个概念，拦口径漂移。
+OBS_UPSERT_SQL = (
+    "INSERT INTO semantic_observations"
+    " (concept_id, entity_type, entity_id, date, granularity, value,"
+    "  unit, source_used, fetched_at, obs_month)"
+    " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)"
+    " ON CONFLICT ON CONSTRAINT uq_sem_obs DO UPDATE"
+    "   SET value = EXCLUDED.value,"
+    "       unit = EXCLUDED.unit,"
+    "       fetched_at = now()"
+)
+
 
 def _month_of(start_date: str | None) -> str | None:
     """StartDate 的几种实测形态 → 'YYYY-MM'；不可解析返回 None。"""
@@ -377,12 +404,9 @@ def main() -> int:
                 for code, et, eid, d, gran, value in rows:
                     src = TRIAL_SOURCE if code.startswith("trial.") else CATALOG_SOURCE
                     c2.execute(
-                        "INSERT INTO semantic_observations"
-                        " (concept_id, entity_type, entity_id, date, granularity, value,"
-                        "  unit, source_used, fetched_at, obs_month)"
-                        " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)"
-                        " ON CONFLICT ON CONSTRAINT uq_sem_obs DO NOTHING",
-                        (ids[code], et, eid, d, gran, value, None, src,
+                        OBS_UPSERT_SQL,
+                        (ids[code], et, eid, d, gran, value,
+                         CONCEPT_UNIT[code], src,
                          d[:7] if gran == "month" else d[:4] + "-" + d[5:7]),
                     )
                 c2.execute("SELECT count(*) FROM semantic_observations WHERE source_used = ANY(%s)",

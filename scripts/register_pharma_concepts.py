@@ -16,7 +16,8 @@ change 的范围内。本脚本只写：
 
 幂等与隔离
 ----------
-* 幂等：同五元组已存在则只比对、仅在真漂移时 UPDATE；连跑两次行数不变。
+* 幂等：同身份四元组已存在则只比对、仅在真漂移时 UPDATE；连跑两次行数不变。
+* 频率拼写规范化（annual → yearly）就地同步，不新建变量（fix-concept-freshness-window）。
 * 隔离：写前/写后各取一次全表指纹，逐行比对；出现任何非本脚本新增/改动的行
   即回滚并非零退出（防止误改别人的概念）。
 
@@ -54,7 +55,11 @@ EXPECTED = {
     "ClinicalTrial": {"trial.new", "trial.enrollment.planned"},
     "InsuranceCatalogEntry": {"catalog.drug.entries", "catalog.drug.class_a_share"},
 }
-TUPLE_FIELDS = ("code", "entity_type", "measure", "unit", "frequency")
+TUPLE_FIELDS = ("code", "entity_type", "measure", "unit")
+# ^ frequency 刻意不在身份键里（change fix-concept-freshness-window D1）：同一 code 只有一条
+#   变量，频率是它的元数据。把它放进身份键，会让「annual → yearly 拼写规范化」被判成换了
+#   一个变量而失败——那正是要修的缺陷。entity_type 仍留在身份键里：粒度不同，观测该挂到
+#   别的实体上，硬改会把历史观测挂错。
 
 
 def load_families(vocab: Path) -> dict[str, tuple[dict, list[dict]]]:
@@ -135,11 +140,14 @@ def upsert_family(cur, entry: dict) -> bool:
 
 def upsert_variable(cur, family: str, label_en: str, label_zh: str, v: dict,
                     migrate_entity_type: bool = False) -> tuple[int, int]:
-    """按五元组 upsert 一条 concept；返回 (created, updated)。
+    """按身份四元组 upsert 一条 concept；返回 (created, updated)。
 
-    五元组含 ``entity_type``，所以**改了声明里的粒度就等于换了一个变量**：按五元组查不到
+    身份四元组 = ``(code, entity_type, measure, unit)``，**频率不在其中**（见
+    ``TUPLE_FIELDS`` 的注释）：频率是元数据，拼写规范化时就地同步，不新建变量。
+
+    四元组含 ``entity_type``，所以**改了声明里的粒度就等于换了一个变量**：按四元组查不到
     时会新插一条同 ``code`` 的行，旧行仍在——两条 code 相同、粒度不同的变量并存，读侧
-    按哪个都对不上。因此插入前必须先查「同 code 不同五元组」：命中即失败，只有显式
+    按哪个都对不上。因此插入前必须先查「同 code 不同四元组」：命中即失败，只有显式
     ``--migrate-entity-type`` 且该概念没有任何观测时才就地改粒度。
     """
     key = tuple(v[f] for f in TUPLE_FIELDS)
@@ -149,9 +157,18 @@ def upsert_variable(cur, family: str, label_en: str, label_zh: str, v: dict,
         (v["code"],),
     )
     rows = cur.fetchall()
-    exact = [r for r in rows if (r[1], r[2], r[3], r[4]) == key[1:]]
+    exact = [r for r in rows if (r[1], r[2], r[3]) == key[1:]]
     if exact:
         cid, _etype, _m, _u, _f, csource, verified, ccode, deprecated = exact[0]
+        changed = 0
+        if _f != v["frequency"]:
+            # 频率是元数据而非身份：词表把拼写规范化（annual → yearly）时 MUST 就地同步。
+            # 不同步的后果很具体：非规范拼写不在新鲜度表的键里，会被静默当成 1 小时窗口
+            # （change fix-concept-freshness-window D2）。
+            cur.execute("UPDATE concepts SET frequency=%s WHERE id=%s",
+                        (v["frequency"], cid))
+            print(f"  {v['code']}: frequency {_f} -> {v['frequency']} (id={cid})")
+            changed = 1
         if (csource, verified, ccode, deprecated) != (SOURCE, True, family, False):
             cur.execute(
                 "UPDATE concepts SET source=%s, verified=true, concept_code=%s,"
@@ -159,13 +176,15 @@ def upsert_variable(cur, family: str, label_en: str, label_zh: str, v: dict,
             )
             print(f"  {v['code']}: updated (id={cid})")
             return 0, 1
+        if changed:
+            return 0, 1
         print(f"  {v['code']}: already correct (id={cid})")
         return 0, 0
     if rows:
-        same_measure = [r for r in rows if (r[2], r[3], r[4]) == key[2:]]
+        same_measure = [r for r in rows if (r[2], r[3]) == key[2:]]
         if not (migrate_entity_type and same_measure):
             raise SystemExit(
-                f"FATAL: {v['code']} 已存在但五元组不同（数据库行 "
+                f"FATAL: {v['code']} 已存在但身份四元组不同（数据库行 "
                 f"{[(r[1], r[2], r[3], r[4]) for r in rows]} ≠ 声明 {key[1:]}）。"
                 f"改粒度会产生同 code 的两条变量，读侧对不上。"
                 f"若确认只是 entity_type 变更且该概念尚无观测，用 --migrate-entity-type 显式迁移。"

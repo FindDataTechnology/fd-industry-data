@@ -318,3 +318,49 @@ wall clock，`max_age_days=1.5`）后两条反向都成立：压窗到 0.0001 �
 **打包坑**：Mac 上 `tar -czf` 会把 AppleDouble 兄弟文件 `._*.yaml` 一起打进构建上下文，
 镜像里 `baselines/._*.yaml` 让 `coverage_scan` 读基线时直接 `UnicodeDecodeError`（
 `0xa3` 在 offset 45）。用 `COPYFILE_DISABLE=1 tar` 或 `git archive` 直接出包。
+
+## 10. 产品读面：点读为什么读不到已入库的医药数据（change `fix-concept-freshness-window`）
+
+观测落库、排期也跑了，但用 MCP 的 `read`（点读）拿 `catalog.drug.entries` 会得到
+`value=None, error="no eligible source", detail="no confirmed binding for this concept"`。
+同一份数据用 `read_series` 却能读到 4803。三个缺陷叠在一起：
+
+**① 频率拼写不在 TTL 表里就静默退化成 1 小时**（真正的病灶）。
+`fetch/cache.py:_TTL` 的键是 `monthly`/`quarterly`/`yearly`…，而概念词表写的是
+`annual`（12 条）/`month`（2 条）。`ttl_for()` 未命中即 `default timedelta(hours=1)`。
+同一个文件里的 `period_prefixes()` 却认 `yearly/annual/year` —— 两个函数对同一份词表各认一半。
+全库实测：**225 个概念因此只有 1 小时新鲜期，130 个已有观测**
+（`quarter` 76、`cumulative-ytd` 18、`hourly` 17、`annual` 14、`month` 3、`on_demand` 2）。
+判据一行可复现：`ttl_for("annual") == timedelta(hours=1)`。
+
+**② 单位写死 NULL**：概念声明 `count/persons/percent`，落库写 `None`，读侧 `unit: null`。
+
+**③ `fetched_at` 冻结在首次写入**：`ON CONFLICT DO NOTHING` 让每天重跑只插 0 行、
+不动核实时刻，而 TTL 判据是 `now - fetched_at`。
+
+### 一个必须先搞清的边界（我第一版写错了）
+
+`is_stale()` **先看周期是否已定型**，已定型的历史期恒"不陈旧"，TTL 根本不参与。
+所以受影响的是：**修订窗未关闭的期间**（年度事实要跨到第三年元旦才定型，目录 2025 版正是
+这种）与**当前未定型期间**。实测对照：把 `trial.new` 的核实时刻推到 40 天前仍可读
+（2026-09 已定型）；把 `catalog.drug.entries` 推到 401 天前（超 300 天窗口、2025 期未定型）
+→ 点读立刻变 `no eligible source`。重跑抽取后恢复 `4803.0/count`。
+
+### 修法（都落在自己能改的仓里）
+
+- 词表频率改规范拼写（`annual→yearly`、`month→monthly`），播种脚本把频率移出身份键
+  （`frequency` 是元数据，规范化不该被判成"换了一个变量"）。
+- 抽取器补 `CONCEPT_UNIT`，冲突处理改 `DO UPDATE SET value, unit, fetched_at=now()`
+  ——语义是"这是截至此刻核实到的值"；逐次快照仍在 `crawl_items`，观测表是现值投影。
+- 巡检加 `data_quality: unit IS NULL`（warn），退化成 NULL 会在下一轮点名。
+
+### 没做的（记给上游那条线）
+
+`fd-open-data-mcp` 当时是另一会话的活线（13 项未提交、27 分钟前刚提交），按多会话协定
+没在那提交。上游要做的两件事：
+
+1. `ttl_for()` 像 `period_prefixes()` 一样接受别名（或让词表只允许规范值并在播种期校验）；
+2. **439/673 个有观测的概念零绑定**（`sec-edgar-8k-operating` 39/39、`cninfo-operating` 36/36、
+   `ember` 34/34…，只有 datacommons 全绑）——这些概念一旦缓存过窗就再也读不到，
+   因为回源分支要求"已确认绑定"。点读要么改为"持有即返回 + 显式陈旧标记"，
+   要么给爬虫来源一条不依赖 fetch 函数的绑定路径。
