@@ -6,6 +6,19 @@ source_url: https://www.jodidata.org/oil/database/data-downloads.aspx
 # schedule: 不写——静默合入，点亮留给人工门
 schedule: "19 3 17 * *" # 点亮（批次二）：每月 17 日 03:19；JODI-Oil 月中发布（两个月滞后）
 data_period: month
+# 每轮行数上限。全量解析该年度 CSV 后 `rows[:limit]`（spider.py:120），年度文件是**定稿**的
+# ——同一年的数据下一轮不会再取，被切掉的行永远不入库（不是滚动尾部）。
+# 实测（2026-11-11，集群内用 cronjob 的 checkout 容器 + 运行时最新代码，limit=200000）：
+# 单年（`year` 缺省 = 上一个完整年度）完整全集 = **114,610 行**。
+# 吃默认 limit=100 时每轮只落 100 行（0.09%），且 `rows[:limit]` 从头切
+# ——按 (month, country, product, flow, unit) 排序后，100 行只覆盖 1 月的头几个国家。
+# 历史证据：4 次成功运行 rows_written = 100 / 100 / 100000 / 20（后者是探针限额）。
+#   #4461 报 100,000 却只落 1,000 行 = writer cap，另一层缺陷（见 f934d6a）。
+# 取 130000（114,610 的 1.13 倍余量）。
+# 落库闸：limit ≥ 1000，chart 会把 FD_WRITER_MAX_ITEMS 同步成同一个值（见 f934d6a），
+# 否则 writer 默认 1000 会二次截成 1000 行。
+# 注：本单元与 jodi-gas 结构同构（都是年度/全量 CSV 全解析后切片），jodi-gas 已按同一判据修。
+limit: 130000
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

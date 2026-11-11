@@ -72,7 +72,7 @@ group by source, rows_written;
 | `amis-market` | 网络不可达（BigQuery 需代理） | 100 | 未测 | 未修 |
 | `entsoe-e` | 缺 token（人工审批源） | 100 | 未测 | 未修 |
 | `usda-quickstats` | 缺 `QUICKSTATS_API_KEY` | 100 | 未测 | 未修 |
-| `jodi-oil` | 上游 `2025.csv` 取数失败 | 2 | — | 另一类缺陷（上游变了），另行处理 |
+| `jodi-oil` | 未测（集群内取 `2025.csv` 超时） | 20–100（4 次运行：100/100/100000/20） | 未知 | 未修；另注 `#4461` 报 100,000 只落 1,000 行＝writer cap，非本层 |
 
 ## 三、为什么 A 类是"永久丢失"而 B 类不是
 

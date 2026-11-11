@@ -6,7 +6,20 @@ source_url: https://www.mohurd.gov.cn/gongkai/fdzdgknr/sjfb/index.html
 schedule: "52 6 12 1 *"      # 点亮：每年 1 月 12 日 06:52；年鉴为**年刊**（实测 2025 版于当年发布），年频数据不每日抓
 data_period: year
 data_period_field: year   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
-min_rows_per_run: 7    # runs=7 p10=14 p50=100; p10=14，取半档 — 见 docs/min-rows-coverage-baseline.md §3
+# 每轮行数上限。**必须覆盖年鉴全表**：本单元把两个附件的历年表（全国 + 村镇）全部解析完
+# 再按 limit 截断（spider.py:295 `while len(rows) < limit`）；每版年鉴的数据是**定稿**的，
+# 不存在"下一轮会补回来的历史行"。
+# 实测（2026-11-11，集群内用 cronjob 的 checkout 容器 + 运行时最新代码，limit=200000）：
+# 完整全集 = **5,514 行**。
+# 吃默认 limit=100 时每轮只落 100 行（1.8%），且截断发生在**多表轮转的中途**：按表轮流
+# 填，100 行连第一轮的表都填不满 → 每版年鉴只入库前 100 个格。
+# 取 6500（5,514 的 1.18 倍余量）。落库闸：limit ≥ 1000，chart 会把
+# FD_WRITER_MAX_ITEMS 同步为同一个值（见 f934d6a）。
+# 注：早前在**镜像烘焙副本**上量 limit=200000 报上游读超时；换成 run 时 checkout 的代码后
+# 正常完成 —— 测量环境必须等于生产环境（docs/limit-truncation-sweep-2026-11-11.md §4.3）。
+limit: 6500
+min_rows_per_run: 7    # 粗下限（取自修复前 p10=14 的一半）。原注释「p50=100」是默认上限
+                       # 造成的假象：limit 覆盖 5,514 行全集后 p50 会升到千级
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
