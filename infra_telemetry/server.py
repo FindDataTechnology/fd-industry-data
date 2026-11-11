@@ -23,7 +23,7 @@ mcp = FastMCP(
         "基础设施只读遥测：五个聚合工具，每回合取最少工具。"
         "gitops_sync=GitOps/ArgoCD 逐 app 漂移；workloads_health=deployment/pod 异常；"
         "services_liveness=PORTS 台账探活；crawl_summary=爬取源健康（口径=crawl-run-telemetry）；"
-        "fleet_cost=逐岗位 token/成本。"
+        "fleet_cost=逐 cell 逐岗位 token/成本（多 cell 各成一行，不合并）。"
         "所有返回带 as_of 与逐通道状态；通道故障是显式 reason，不是全绿。"
     ),
 )

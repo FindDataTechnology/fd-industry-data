@@ -70,7 +70,7 @@ def test_null_post_goes_to_other(monkeypatch):
     configure_env(monkeypatch)
     rows = [["fleetA", "NULL", "7", "0.1"]]
     out = cost.collect(psql=fake_psql_factory(rows))
-    assert out["items"] == [{"fleet": "fleetA", "post": "other", "tokens": 7, "cost_usd": 0.1}]
+    assert out["items"] == [{"fleet": "fleetA", "post": "other", "tokens": 7, "cost_usd": 0.1, "cell": ""}]
     assert out["summary"]["other_bucket_tokens"] == 7
 
 
@@ -135,8 +135,11 @@ def test_dirty_rows_tolerated(monkeypatch):
     out = cost.collect(psql=fake_psql_factory(rows))
     assert out["ok"] is True
     by = {(i["fleet"], i["post"]): i for i in out["items"]}
-    assert by[("fleetC", "post9")] == {"fleet": "fleetC", "post": "post9", "tokens": 0, "cost_usd": 0.0}
+    assert by[("fleetC", "post9")] == {"fleet": "fleetC", "post": "post9", "tokens": 0, "cost_usd": 0.0, "cell": ""}
     assert by[("fleetD", "other")]["tokens"] == 0
+    # 4 列契约（无 cell 信息）时 cell 恒为空串：不编一个来源出来
+    assert all(i["cell"] == "" for i in out["items"])
+    assert out["summary"]["cells"] == 0
 
 
 def test_dsn_env_priority(monkeypatch):
@@ -221,20 +224,80 @@ def test_sqlite_backend_not_configured_without_db_env(monkeypatch):
     assert out["ok"] is False and out["channels"][0]["reason"] == "not_configured"
 
 
-def test_sqlite_backend_glob_picks_newest(tmp_path, monkeypatch):
-    import sqlite3, os, time
-    from infra_telemetry import cost
-    cellA = tmp_path / "cellAAA" / "data" / "data"; cellA.mkdir(parents=True)
-    cellB = tmp_path / "cellBBB" / "data" / "data"; cellB.mkdir(parents=True)
-    for d, rows in ((cellA, [(1, 1)]), (cellB, [(1000, 2000)])):
-        con = sqlite3.connect(d / "fleets.db")
-        con.execute("CREATE TABLE member_turn_events (usage_input INT, usage_output INT)")
-        con.executemany("INSERT INTO member_turn_events VALUES (?,?)", rows)
-        con.commit(); con.close()
-    os.utime(cellB / "fleets.db", (time.time() + 10, time.time() + 10))  # B 更新
+def _make_cell_db(root, cell, rows):
+    """在 <root>/<cell>/data/data/fleets.db 造一个有 usage 行的库。"""
+    import sqlite3
+
+    d = root / cell / "data" / "data"
+    d.mkdir(parents=True)
+    con = sqlite3.connect(d / "fleets.db")
+    con.execute("CREATE TABLE member_turn_events (usage_input INT, usage_output INT)")
+    con.executemany("INSERT INTO member_turn_events VALUES (?,?)", rows)
+    con.commit()
+    con.close()
+    return d / "fleets.db"
+
+
+def _sqlite_env(monkeypatch, root):
     monkeypatch.setenv("FD_TELEMETRY_COST_BACKEND", "sqlite")
-    monkeypatch.setenv("FD_TELEMETRY_COST_DB", str(tmp_path / "cell*" / "data" / "data" / "fleets.db"))
-    monkeypatch.setenv("FD_TELEMETRY_COST_SQL", "SELECT 'f','p',COALESCE(usage_input,0)+COALESCE(usage_output,0),0 FROM member_turn_events")
+    monkeypatch.setenv("FD_TELEMETRY_COST_DB", str(root / "cell*" / "data" / "data" / "fleets.db"))
+    monkeypatch.setenv(
+        "FD_TELEMETRY_COST_SQL",
+        "SELECT 'f','p',COALESCE(usage_input,0)+COALESCE(usage_output,0),0 FROM member_turn_events",
+    )
+
+
+def test_cell_id_from_db_path():
+    assert cost._cell_id("/opt/platform-cells/1da519d4c1c0bf89/data/data/fleets.db") == "1da519d4c1c0bf89"
+    # 认不出的布局 → 空串（未知），不猜
+    assert cost._cell_id("/var/db/fleets.db") == ""
+
+
+def test_sqlite_backend_reads_every_cell_and_tags_it(tmp_path, monkeypatch):
+    """反例被修掉的那一条：两个 cell 各有同名舰队，必须两行、cell 各异、用量不合并。
+
+    改造前这里只读 mtime 最新的那个库，另一 cell 的数据整条消失（且消费方看不出）。
+    """
+    _make_cell_db(tmp_path, "cellAAA", [(1, 1)])
+    _make_cell_db(tmp_path, "cellBBB", [(1000, 2000)])
+    _sqlite_env(monkeypatch, tmp_path)
     out = cost.collect()
     assert out["ok"] is True
-    assert out["items"] == [{"fleet": "f", "post": "p", "tokens": 3000, "cost_usd": 0.0}]
+    assert out["items"] == [
+        {"fleet": "f", "post": "p", "tokens": 2, "cost_usd": 0.0, "cell": "cellAAA"},
+        {"fleet": "f", "post": "p", "tokens": 3000, "cost_usd": 0.0, "cell": "cellBBB"},
+    ], "同名舰队在两个 cell 里是两条事实，合并或只取其一都是失真"
+    s = out["summary"]
+    assert s["cells"] == 2
+    assert s["fleets"] == 2  # (cell, 舰队) 对数，不是舰队名去重数
+    assert s["total_tokens"] == 3002
+    assert "cell_errors" not in s
+
+
+def test_sqlite_backend_broken_cell_does_not_sink_the_channel(tmp_path, monkeypatch):
+    """一个 cell 的库坏掉（归档/迁移常态）不许否掉其他 cell 的数据。"""
+    _make_cell_db(tmp_path, "cellAAA", [(1, 1)])
+    bad = tmp_path / "cellBAD" / "data" / "data"
+    bad.mkdir(parents=True)
+    (bad / "fleets.db").write_bytes(b"not a sqlite file")
+    _sqlite_env(monkeypatch, tmp_path)
+    out = cost.collect()
+    assert out["ok"] is True
+    assert [i["cell"] for i in out["items"]] == ["cellAAA"]
+    errs = out["summary"]["cell_errors"]
+    assert [e["cell"] for e in errs] == ["cellBAD"] and errs[0]["reason"] == "upstream_unreachable"
+
+
+def test_sqlite_backend_all_cells_broken_is_honest_failure(tmp_path, monkeypatch):
+    """全坏才失败，且不冒充空集。"""
+    for cell in ("cellA1", "cellB1"):
+        d = tmp_path / cell / "data" / "data"
+        d.mkdir(parents=True)
+        (d / "fleets.db").write_bytes(b"not a sqlite file")
+    _sqlite_env(monkeypatch, tmp_path)
+    out = cost.collect()
+    assert out["ok"] is False
+    assert out["items"] == []
+    assert out["channels"][0]["reason"] == "upstream_unreachable"
+    assert out["summary"]["note"] == "channel failed — no data claimed"
+
