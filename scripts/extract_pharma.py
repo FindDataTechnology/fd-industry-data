@@ -32,6 +32,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from datetime import datetime, timezone
 from collections import Counter, defaultdict
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -266,6 +267,29 @@ def reconcile(cur, rows: list[tuple], trial_items: list[dict], catalog_items: li
         )
 
 
+def record_execution(conn, *, status: str, started_at, detail: str) -> None:
+    """写一行存活台账（``executions``），**独立事务**。
+
+    为什么必须独立于抽取事务：抽取失败时若台账也不写，"最后成功时刻"会一直停在旧值，
+    在观测上与"根本没跑"无法区分——那样巡检就失去了检测停摆的能力（design D4）。
+
+    ``schedule_id``/``concept_id`` 留空：本行不代表某个 MCP 概念的刷新，
+    它记录的是这一支抽取脚本本身的存活。该表没有别处对它做聚合读，不会污染视图。
+    """
+    try:
+        with conn.cursor() as c:
+            c.execute(
+                "INSERT INTO executions (schedule_id, concept_id, status, started_at,"
+                " finished_at, detail) VALUES (NULL, NULL, %s, %s, now(), %s)",
+                (status, started_at, detail[:900]),
+            )
+        conn.commit()
+    except Exception as e:  # noqa: BLE001
+        # 台账写不进去不应掩盖抽取本身的失败原因
+        print(f"WARN: 存活台账写入失败：{type(e).__name__}: {e}", file=sys.stderr)
+        conn.rollback()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
@@ -281,6 +305,7 @@ def main() -> int:
     conn.autocommit = False
     cur = conn.cursor()
     notes: list[str] = []
+    started_at = datetime.now(timezone.utc).replace(tzinfo=None)
     try:
         catalog_run = _latest_success_run(cur, CATALOG_SOURCE)
         if catalog_run is None:
@@ -364,7 +389,24 @@ def main() -> int:
                            ([TRIAL_SOURCE, CATALOG_SOURCE],))
                 after = c2.fetchone()[0]
         print(f"\nsemantic_observations(pharma): {before} -> {after} (inserted {after - before})")
+
+        per_concept = ", ".join(
+            f"{code}={sum(1 for r in rows if r[0] == code)}" for code in sorted(CONCEPT_ENTITY)
+        )
+        record_execution(
+            conn, status="success", started_at=started_at,
+            detail=(f"extract_pharma: 试算 {len(rows)} 行，落库 {after - before} 行"
+                    f"（{per_concept}）；trial_runs={len(trial_runs)}，"
+                    f"catalog_run={catalog_run}"),
+        )
         return 0
+    except BaseException as exc:  # 失败也要留痕（design D4）
+        if not args.dry_run and args.apply:
+            record_execution(
+                conn, status="failed", started_at=started_at,
+                detail=f"extract_pharma: {type(exc).__name__}: {exc}",
+            )
+        raise
     finally:
         conn.close()
 

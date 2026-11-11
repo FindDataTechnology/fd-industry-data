@@ -288,3 +288,33 @@ select count(*) from semantic_observations
 "实体"检查四概念各至少一条观测。反向验证（把 where 收窄到只含试验源）报 2 条 critical
 并点名两个目录概念。部署时又踩了一次「合并不等于生效」：**baselines 是烤进镜像的**，
 只更新宿主树不重建镜像不生效——重建后八份基线全 success。
+
+## 9. 抽取排期 + 存活判据（change `schedule-pharma-observation-extraction`）
+
+前一段把观测层接通了，但抽取仍是**手工**跑的：爬虫按排期继续涨 `crawl_items`，而
+`semantic_observations` 停在敲下 `--apply` 的那一刻；且写入是 `ON CONFLICT DO NOTHING`，
+重跑插 0 行、`fetched_at` 不变，所以"抽取器挂没挂"在数据里看不出来。
+
+**排期**：`k8s/extract-pharma.yaml` 的 CronJob `fd-pharma-observations`（`mcp` 命名空间，
+每日 05:30 Asia/Shanghai，`Forbid` 并发，`activeDeadlineSeconds=900`）。派生实跑：pod
+`Succeeded`，`1386 -> 1386 (inserted 0)`，台账 `executions` 多一行 `success`（2m22s，含
+四概念对账）。
+
+**脚本为什么走 ConfigMap 而不是 git checkout**：仓库私有（pod 里 clone 报
+`could not read Username`——我本机第一次 `ls-remote` 成功是 macOS 钥匙串在替我认证），
+而 `fd-industry-gitee-token` 在 `fd-industry` 命名空间，**K8s 不允许跨命名空间
+secretKeyRef**。复制 token = 凭据多一个轮换漏点；塞进 runner 镜像 = 改一行脚本滚 126 个
+CronJob 的镜像。改成 `scripts/render_extract_configmap.py` 渲染的 ConfigMap：pod 不碰 git、
+不用凭据、不滚镜像。漂移由 `--check` + `tests/test_extract_configmap_gate.py`（含注入
+漂移的反向用例）兜住。
+
+**存活判据必须用 `freshness`，不能用 `staleness`**——这是本次最有价值的一条。初稿写
+`staleness + allow_lag=36`；实测 `gaps_staleness` 的参照物是**同一结果集内各组的最大值**，
+整表停摆时参照物和水位一起冻结，lag 恒 0。反向对照：同一份 `executions` 数据，`staleness`
+即使把 `allow_lag` 压到 0.0001 也照样绿——死门。改用 `freshness`（`max(started_at)` 对
+wall clock，`max_age_days=1.5`）后两条反向都成立：压窗到 0.0001 天报红、`where` 命中零行
+报红。巡检机实跑 `gaps=0 status=success`，机上反向也复现了红。
+
+**打包坑**：Mac 上 `tar -czf` 会把 AppleDouble 兄弟文件 `._*.yaml` 一起打进构建上下文，
+镜像里 `baselines/._*.yaml` 让 `coverage_scan` 读基线时直接 `UnicodeDecodeError`（
+`0xa3` 在 offset 45）。用 `COPYFILE_DISABLE=1 tar` 或 `git archive` 直接出包。

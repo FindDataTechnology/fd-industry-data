@@ -69,5 +69,7 @@ components:
 # consumption file (repo-root-relative) -> component whose image it renders
 consumption:
   k8s/dispatcher.yaml: runner
+  # 医药观测抽取（schedule-pharma-observation-extraction）：每日把 crawl_items 抽成概念观测
+  k8s/extract-pharma.yaml: runner
   k8s/xinru-dispatcher.yaml: runner-xinru
   k8s/federation-observer.yaml: observer

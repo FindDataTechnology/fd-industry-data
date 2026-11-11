@@ -1,0 +1,80 @@
+# 医药观测抽取（change schedule-pharma-observation-extraction）
+#
+# 把 clinicaltrials-cn / nrdl-national-catalog 的 crawl_items 抽成概念观测
+# （scripts/extract_pharma.py）。**为什么必须有这个 CronJob**：抽取原先只能人工跑，
+# 爬虫继续按排期增长而观测层停在上一次手工执行的那一刻；写入是 ON CONFLICT DO NOTHING，
+# 重复运行插 0 行也不动 fetched_at，所以"抽取器挂没挂"在数据里看不出来——静默冻住。
+#
+# 部署在 `mcp` 命名空间（不是 fd-industry）的理由见 design D1：它写 concepts /
+# entities / semantic_observations，这三张表只有 `fd` 角色可见，而 `fd` 的 DSN 已经在
+# `mcp/fd-mcp-env` 里。建在 fd-industry 就得**复制一份凭据**，轮换时多一处漏改。
+#
+# **脚本从 ConfigMap 来，不从 git clone 来**（design D2）：仓库私有，而
+# `fd-industry-gitee-token` 在 fd-industry 命名空间，K8s 不允许跨命名空间 secretKeyRef；
+# 复制 token 会多一个轮换漏点，塞进 runner 镜像则一次小改要滚 126 个 CronJob 的镜像。
+# 改成 `scripts/render_extract_configmap.py` 渲染的 ConfigMap，pod 不碰 git、不用凭据。
+#
+# 部署（清单只做 apply，不从 CI 推；两个文件必须一起 apply）：
+#   python3 scripts/render_extract_configmap.py     # 脚本改了就重渲染
+#   scp k8s/extract-pharma-configmap.yaml k8s/extract-pharma.yaml fd-deploy:/tmp/ \
+#     && ssh fd-deploy "sudo k3s kubectl apply \
+#          -f /tmp/extract-pharma-configmap.yaml -f /tmp/extract-pharma.yaml"
+# 镜像行是 RENDERED——不要手改，改 k8s/release.yaml 的 runner 组件后
+# `scripts/render_release.py` 重渲染。
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: fd-pharma-observations
+  namespace: mcp
+  labels:
+    fd-industry/component: pharma-observations
+spec:
+  # 每日 05:30（Asia/Shanghai）：试验源每月 6 日 02:47、目录每年 1 月 8 日 03:19 触发，
+  # 抽取落在两者之后，保证"爬完最多几小时内观测可用"。日更很廉价（1386 行、1 秒级），
+  # 做成月更会让两次爬虫之间的新窗口等一个月才可见（design D5）。
+  schedule: "30 5 * * *"
+  timeZone: "Asia/Shanghai"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 900
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            fd-industry/component: pharma-observations
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: extract
+              # 单容器：脚本来自 ConfigMap（`fd-pharma-extract-src`，由
+              # `scripts/render_extract_configmap.py` 从仓库脚本渲染），不再有
+              # git checkout 的 initContainer。
+              image: &image ccr.ccs.tencentyun.com/finddata/fd-industry-runner:sha-f5a19aa
+              command: ["python3", "/src/extract_pharma.py", "--apply"]
+              env:
+                - name: PYTHONUNBUFFERED
+                  value: "1"
+                # 写 concepts/entities/semantic_observations 需要 `fd` 角色（design D1）
+                - name: FD_OPEN_DATA_DSN
+                  valueFrom:
+                    secretKeyRef:
+                      name: fd-mcp-env
+                      key: FD_OPEN_DATA_MCP_DATABASE_URL
+              resources:
+                limits:
+                  memory: 256Mi
+                  cpu: 300m
+                requests:
+                  memory: 128Mi
+                  cpu: 100m
+              volumeMounts:
+                - name: src
+                  mountPath: /src
+                  readOnly: true
+          volumes:
+            - name: src
+              configMap:
+                name: fd-pharma-extract-src

@@ -46,6 +46,8 @@ EXPECTED_CONSUMPTION = {
     "k8s/dispatcher.yaml": "runner",
     "k8s/xinru-dispatcher.yaml": "runner-xinru",
     "k8s/federation-observer.yaml": "observer",
+    # 医药观测抽取（schedule-pharma-observation-extraction）：消费同一个 runner 镜像
+    "k8s/extract-pharma.yaml": "runner",
 }
 # 登记面的真源在另一个仓（AppSet 无消费文件可比对）
 APPSET = REPO.parent / "fd-infra-deploy" / "argocd" / "industry-appset" / "applicationset.yaml"
