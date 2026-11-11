@@ -108,6 +108,13 @@ def _insert_items(cur, run_id: int, payload) -> int:
 - `tests/test_writer_cap.py` 仍绿（落库帽语义未变）。
 - 离线全量：**1591 passed, 2 skipped**（排除 `tests/real` 与依赖跨仓
   `fd_open_data_mcp` 的 `test_pharma_facts.py`）。
+- **限额可行性实测（当前镜像，改前的 executemany 写法）**：
+  `jodi-oil --limit 20000` 一次性 Job → `success rows=20000`，
+  DB 核对 `crawl_runs #5416 rows_written=20000` / `crawl_items count=20000`（3 个 distinct month）。
+  但**真实代价看 pod 墙钟：18m17s**（`Started 11:13:36Z → Completed 11:31:53Z`），
+  而 run 记录里的区间只有 **6m06s** —— 差的 12 分钟就是写库，再次印证 §五.2：
+  记录时长不含写库。按 17.6 rows/s 推算，20,000 行应约 19 分钟，实测吻合。
+  这条同时说明：**在批量写随镜像上线之前，20000 已是这个源的实际天花板**。
 - 端到端（新镜像上线后补）：`jodi-oil` 跑 `--limit 130000`，应在数分钟内完成且
   `crawl_items = 114,610`。
 
