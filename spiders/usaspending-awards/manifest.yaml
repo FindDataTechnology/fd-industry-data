@@ -40,6 +40,12 @@ functions:
       - name: award_count
         type: int
         description: "Number of distinct awards (by Award ID) aggregated into the group"
+      - name: page_cap_reached
+        type: bool
+        description: "True when this (award_type, month) batch was TRUNCATED by the page cap: the last fetched page still reported hasNext, so obligated_amount is a head sample (top awards by amount) rather than the group's full total. Consumers MUST read obligated_amount as a sample sum when this is true — it is a lower bound, never a total. Precedent: spiders/hf-datasets declares sampled_total for the same reason."
+      - name: batch_total_awards
+        type: int
+        description: "Full award count for the (award_type, month) batch, from /search/spending_by_award_count/ — the DENOMINATOR for coverage: sum(award_count) over rows of that batch / batch_total_awards = count coverage. null = unknown (the count call failed); null is NOT zero and must not be rendered as 0. Measured example (2026-10, type A): 297 sampled of 35,031 = 0.85% count coverage — the sample is amount-sorted, so AMOUNT coverage is higher but is deliberately not claimed because it was never measured."
       - name: period
         type: string
         description: "Aggregation month (YYYY-MM), the requested window month rather than any single award start date"

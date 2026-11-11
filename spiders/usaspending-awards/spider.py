@@ -35,6 +35,10 @@ from fd_industry_data.http import allowed_by_robots, throttle
 __all__ = ["run_usaspending_awards"]
 
 SEARCH_URL = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
+# 计数端点：同一个 filters 下给出该批的**全量笔数**，用作分母。
+# 没有它，`obligated_amount`（头部至多 300 笔的和）无法被读者换算成覆盖率，
+# 只能靠文档口头提醒"这是部分和"——而这也是点亮前的解锁条件之一。
+COUNT_URL = "https://api.usaspending.gov/api/v2/search/spending_by_award_count/"
 USER_AGENT = "FindDataIndustryBot/1.0 (+https://www.finddatatech.cloud)"
 
 AWARD_TYPE_CODES = ("A", "B", "C", "D")  # 合同类 award_type_codes（契约检索口径）
@@ -56,14 +60,14 @@ REQUEST_TIMEOUT_S = 60.0
 REQUEST_RETRIES = 2  # 瞬时网络错误重试次数（幂等检索 POST）
 
 
-def _post_page(body: dict) -> dict:
+def _post_page(body: dict, url: str = SEARCH_URL) -> dict:
     """POST 一页检索请求，返回 JSON；瞬时错误重试后仍失败则抛 RuntimeError。"""
     data = json.dumps(body).encode("utf-8")
     last_exc: Exception | None = None
     for attempt in range(REQUEST_RETRIES):
         try:
             req = urllib.request.Request(
-                SEARCH_URL,
+                url,
                 data=data,
                 method="POST",
                 headers={
@@ -78,6 +82,30 @@ def _post_page(body: dict) -> dict:
             last_exc = exc
             time.sleep(1.0)
     raise RuntimeError(f"usaspending search request failed: {last_exc}")
+
+
+def _post_count(award_type: str, start: str, end: str) -> int | None:
+    """该 (award_type, 整月) 的**全量**合同笔数（分母）；取不到返回 ``None``。
+
+    刻意返回 ``None`` 而不是 0：分母未知与"分母为零"是两件事，写成 0 会让
+    「覆盖率 = 样本/全量」算出无穷大或 0/0，反被读成"一条都没有"。取数失败不该
+    拖垮整批（分母是附加信息），但必须留成 unknown，由消费方自己决定怎么显示。
+    """
+    try:
+        payload = _post_page(
+            {
+                "filters": {
+                    "time_period": [{"start_date": start, "end_date": end}],
+                    "award_type_codes": [award_type],
+                },
+                "subawards": False,
+            },
+            url=COUNT_URL,
+        )
+        value = (payload.get("results") or {}).get("contracts")
+        return int(value) if value is not None else None
+    except (RuntimeError, ValueError, TypeError):
+        return None
 
 
 def _parse_day(value: str) -> date:
@@ -144,10 +172,18 @@ def _month_buckets(
 
 def _aggregate_batch(
     award_type: str, start: str, end: str, period: str
-) -> list[dict]:
-    """取一个 (award_type, 整月) 批次并聚合成信号行，按 (naics, agency) 稳定排序。"""
+) -> tuple[list[dict], bool]:
+    """取一个 (award_type, 整月) 批次并聚合成信号行，按 (naics, agency) 稳定排序。
+
+    返回 ``(rows, page_cap_reached)``。``page_cap_reached=True`` 表示**本批被页数
+    上限截断**——最后一页仍报 ``hasNext``，但 ``MAX_PAGES_PER_BATCH`` 已用尽，
+    故该批的 ``obligated_amount`` 只是头部（按金额降序）之和，不是该月该类的全额。
+    这个标记必须随行给出：没有它，消费方无法区分「这组就是全部」与「这组只看到头部」，
+    会把抽样当全量读（同类先例见 `spiders/hf-datasets` 的 sampled_total 对账列）。
+    """
     agg: dict[tuple[str, str], dict] = {}
     seen: set[str] = set()
+    capped = False
     gate = time.monotonic()
     for page in range(1, MAX_PAGES_PER_BATCH + 1):
         gate = throttle(gate)
@@ -187,21 +223,31 @@ def _aggregate_batch(
             bucket["obligated_amount"] += amount
             bucket["award_count"] += 1
         metadata = payload.get("page_metadata") or {}
-        if not metadata.get("hasNext") or not results:
+        has_next = bool(metadata.get("hasNext"))
+        if not has_next or not results:
             break
-    return [
+        if page == MAX_PAGES_PER_BATCH:
+            # 还有下一页、但页数已到上限 → 本批是截断的（头部样本）
+            capped = True
+    # 分母：该 (type, 月) 的全量笔数。行级重复（同批所有行同一个值），便于与
+    # award_count 直接相除得到覆盖率；取不到为 None（unknown，不是 0）。
+    batch_total = _post_count(award_type, start, end)
+    rows = [
         {
             "award_type": award_type,
             "naics_code": naics_code,
             "agency_name": agency,
             "obligated_amount": round(bucket["obligated_amount"], 2),
             "award_count": bucket["award_count"],
+            "page_cap_reached": capped,
+            "batch_total_awards": batch_total,
             "period": period,
             "url": SEARCH_URL,
             "source": "usaspending-awards",
         }
         for (naics_code, agency), bucket in sorted(agg.items())
     ]
+    return rows, capped
 
 
 def run_usaspending_awards(
@@ -222,7 +268,8 @@ def run_usaspending_awards(
     rows: list[dict] = []
     for period, start, end in months:
         for award_type in AWARD_TYPE_CODES:
-            rows.extend(_aggregate_batch(award_type, start, end, period))
+            batch_rows, _capped = _aggregate_batch(award_type, start, end, period)
+            rows.extend(batch_rows)
     if limit is not None:
         rows = rows[: max(int(limit), 0)]
     scraped_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
