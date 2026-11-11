@@ -74,7 +74,7 @@
    > （`country`/`month`/`index_2015_100`，verified）+ **301 期观测**（2000-12→2025-12，
    > entity `EU27_2020`，`source_used='eurostat-api'`，只增不改、缺测不插值）；
    > 与 `hotel.eu.nights.monthly` **重叠 180 个月**，可直接做价量背离。
-   > 决定记录：`openspec/changes/industry-source-solution-fleet/decisions/2026-11-10-hotel-accommodation-price-index.md`。
+   > 决定记录：`openspec/changes/archive/2026-11-11-industry-source-solution-fleet/decisions/2026-11-10-hotel-accommodation-price-index.md`。
 4. **E6 有缺年**：`tour_occ_ninat` 1990–2025 共 36 年却只有 21 个值（早期年份对 EU27 聚合为空）。
    空年**不补、不插值**，图上必须有断点。
 5. **E5/E6 是 21 期 → 12–23 档**：入命名门时按 `short_window` 登记（`registry_entries.provenance.short_window`），
