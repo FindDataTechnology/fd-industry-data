@@ -1,0 +1,19 @@
+{
+  "sample_id": "002-nrdl-negotiated-entries",
+  "created": "2026-11-11",
+  "target": "run_nrdl_national_catalog",
+  "params": {"limit": 0},
+  "expect": {
+    "min_rows": 3900,
+    "rows_contains": [
+      {"field": "section", "equals": "谈判药品"},
+      {"field": "subsection", "equals": "西药"},
+      {"field": "subsection", "equals": "中成药"},
+      {"field": "pricing_channel", "equals": "竞价"},
+      {"field": "drug_name", "equals": "注射用艾普拉唑钠"},
+      {"field": "agreement_valid_to", "equals": "2027-12-31"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"],
+  "note": "专测谈判药品段（与 001 分开：该段解析坏掉时 001 仍绿，故障定位不会指向错的地方）。硬判据在单元内：谈判段唯一（分部+渠道+编号）数必须 = 472，且任何金额形态的词落在非支付标准列即失败。实测 472 = 西药 399 + 中成药 61 + 竞价 12；总行数 3911（西药 1446 + 中成药 1335 + 谈判 472 的唯一编号，行数因 ★ 剂型变体更多）。min_rows=3900 为下行护栏。"
+}

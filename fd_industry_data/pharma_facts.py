@@ -99,9 +99,39 @@ def fact_address(fact_class: str, **keys: object) -> str:
     抓取时刻一律不进地址），因此同一事实在任何进程算出的地址相同。
     缺键即抛：宁可失败，也不要生成一个看起来合法、实际无法唯一定位的地址。
     """
+    if fact_class == "catalog_entry":
+        # 目录条目的键分两种形态（实测两种都必须，缺一个就撞地址）：
+        #   1) 西药/中成药段：同一 item_no 有多个剂型（★ 变体），剂型是判别位；
+        #   2) 谈判药品段：没有独立剂型列，但段内「西药/中成药/竞价」三套编号**各自
+        #      从 1 开始**，所以必须带 subsection + pricing_channel，否则三个 #1 撞成一条。
+        base_missing = [k for k in ("catalog_year", "section", "item_no")
+                        if keys.get(k) in (None, "")]
+        if base_missing:
+            raise ValueError(f"fact_address({fact_class}) 缺键: {base_missing}")
+        if keys.get("subsection"):
+            # 谈判段：段内三套编号各自从 1 起，必须带分部+渠道
+            disc = ("subsection", "pricing_channel")
+            missing = [k for k in disc if keys.get(k) in (None, "")]
+        else:
+            # 西药/中成药段：同一编号下既有剂型变体（★），也有**同编号同剂型但不同
+            # 盐基**的真不同品种（实测：山莨菪碱 / 消旋山莨菪碱 共用 39 号同一剂型），
+            # 所以药名与剂型都是判别位。
+            # 但剂型**允许为空**：凡例写明「名称中已含剂型的，剂型不单列」，实测 1695 行
+            # 就是这么来的（如「注射用艾普拉唑钠」本身含剂型）。把剂型设成必填会把这些
+            # 正常条目判成不可寻址。空值参与拼接，唯一性由数据侧实测保证。
+            disc = ("drug_name", "dosage_form")
+            # 两者至少有一个非空即可：只知道品种编号与"某剂型"时，编号+剂型仍能定位。
+            missing = [] if (keys.get("drug_name") or keys.get("dosage_form")) else ["drug_name|dosage_form"]
+        if missing:
+            raise ValueError(f"fact_address({fact_class}) 缺键: {missing}")
+        parts = ["catalog_entry", f"catalog_year={keys['catalog_year']}",
+                 f"section={keys['section']}", f"item_no={keys['item_no']}"]
+        for k in disc:
+            parts.append(f"{k}={keys.get(k) or ''}")
+        return "|".join(str(p) for p in parts)
+
     required = {
         "drug_approval": ("approval_no",),
-        "catalog_entry": ("catalog_year", "section", "item_no", "dosage_form"),
         "clinical_trial": ("registry", "registry_id"),
     }[fact_class]
     missing = [k for k in required if keys.get(k) in (None, "")]
