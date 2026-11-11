@@ -1,0 +1,16 @@
+{
+  "sample_id": "001-clinicaltrials-cn",
+  "created": "2026-11-11",
+  "target": "run_clinicaltrials_cn",
+  "params": {"limit": 12, "start_month": "2020-01", "end_month": "2020-01"},
+  "expect": {
+    "min_rows": 400,
+    "rows_contains": [
+      {"field": "month", "equals": "2020-01"},
+      {"field": "nct_id", "equals": "NCT03062332"},
+      {"field": "source", "equals": "clinicaltrials-cn"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at"],
+  "note": "2020-01 实测 totalCount=432、月内最小 NCT=NCT03062332。计数不进断言：CT.gov 允许补登记过去起始的试验，历史月计数会缓慢增长；抽样编号按「月内 NCT 数值最小」取，后续新增只会拿到更大的号，因此稳定。min_rows=400 为下行护栏（上游塌陷即红）。"
+}
