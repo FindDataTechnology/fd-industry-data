@@ -31,17 +31,20 @@ components:
     # tencent site dispatcher (k8s CronJob fd-industry-dispatcher).
     # 2026-11-06：三站点发布滚动统一到 sha-750da3f（GHA 构建，tencent 节点
     # 探针 Succeeded/Completed + imageID sha256 实拉验证通过）。
+    # 2026-11-11：滚到 sha-3a7c63c（含 pdftext.extract_words 与 limit/writer 修复）。
+    # tag 选择已核对方向：线上其余活影像 ea21592/92ae150/d84cc82/01c5ffb 都更旧。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-750da3f
+    tag: sha-3a7c63c
   runner-xinru:
     # ccr relay mirror consumed by the xinru (scraw ns) site dispatcher
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-750da3f
+    tag: sha-3a7c63c
   observer:
     # federation observer CronJob (scraw ns, xinru-master).
     # 2026-11-06：随三站点发布滚动到 sha-750da3f。
+    # 2026-11-11：滚到 sha-3a7c63c；xinru-server1 上原为 sha-ea21592（11-13 更旧的 10-13 版）。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-750da3f
+    tag: sha-3a7c63c
   runner-tencent-cron:
     # tencent(chengsi) ArgoCD ApplicationSet `fd-industry-crawl` renders every
     # per-source CronJob with this image (helm.parameters.image in the AppSet
@@ -51,8 +54,9 @@ components:
     # and for fd-image-pin-audit visibility. Bumping it means editing the
     # AppSet declaration in fd-infra-deploy + reconcile-industry-appset.sh
     # apply (or kubectl replace) on chengsi.
+    # 2026-11-11：AppSet 的 image 已滚到 sha-3a7c63c，此处随之更新为同一个值。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-750da3f
+    tag: sha-3a7c63c
 
 # consumption file (repo-root-relative) -> component whose image it renders
 consumption:
