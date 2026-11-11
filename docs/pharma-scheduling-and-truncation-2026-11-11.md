@@ -169,6 +169,40 @@ worker 机 `FD_NBS_CRON=0`，本来就不写巡检 cron。已在 master 上完�
    再谈"没在跑"。我第一次只摸了 `.6`/`.7`/`.11` 就下结论"周巡检未安装"，实际
    master 在 `.3`、cron 与日志都好好的（11-09 周一扫了 6 份基线）。
 
-另：`fd-industry-dispatcher`（`*/5 * * * *`）仍用 `sha-750da3f`，但它由
-`k8s/dispatcher.yaml` 单独管理（标签 `fd-industry/component: dispatcher`，
-不在本 AppSet 内），属另一个发布面，本批未动。
+另：`fd-industry-dispatcher`（`*/5 * * * *`）原先仍用 `sha-750da3f`——本批已一并滚到
+`sha-3a7c63c`，见下节。
+
+## 6. dispatcher / observer 一起滚（同日 18:2x）
+
+`750da3f` 不只留在 per-source CronJob 的旧值里，还钉在三个手工面。盘点后发现四处、
+跨三个集群，且其中两处的 tag 连 `750da3f` 都不是：
+
+| 面（release.yaml component） | 位置 | 原 tag | 备注 |
+|---|---|---|---|
+| runner | tencent `fd-industry/fd-industry-dispatcher` | `750da3f` | 每 5 分钟一跳 |
+| observer | xinru `scraw/federation-observer` | `750da3f` | xinru-master |
+| runner-xinru | xinru-server1 `scraw/fd-industry-dispatcher` | **`d84cc82`** | 10-14，比 750da3f 还旧 |
+| observer | xinru-server1 `scraw/federation-observer` | **`ea21592`** | 10-13，更旧 |
+
+**方向核对**（AGENTS.md 那条"别把别人的新片回退"的正向用法）：`d84cc82`/`ea21592`
+都查了 GHA 构建时间，是 10-13/10-14，比 `750da3f`(11-06) 与 `sha-3a7c63c`(11-11) 都旧，
+所以滚上去是前进。
+
+做法与判据：
+
+1. 只改 `k8s/release.yaml` 的四个 `tag:`，然后 `scripts/render_release.py` 渲染三个
+   消费面。**直接渲染会被拒**：渲染器看到文件里是旧的**具体 tag** 就判 `DRIFT`
+   （设计的双态语义，防止拿陈旧 manifest 覆盖），要先把具体 tag 还原成
+   `__RELEASE_IMAGE:<component>__` 占位符再渲染。
+2. apply 前逐台 `kubectl diff`：tencent 只有 image 变化；xinru 集群**本来没有
+   dispatcher**（diff 全是 `+`），所以那里只 apply observer，不新建对象；
+   xinru-server1 两个都在，只有 image 变化。
+3. 读回四处 + initContainer 均 `sha-3a7c63c`；tencent dispatcher 从 CronJob 派生
+   实跑 `Succeeded`（`inventory synced, 165 source(s)` / `0 run(s) handled`）。
+4. `release.yaml` 里过期的"11-06 统一到 750da3f"注释一并更新，避免下一任读错。
+
+**踩到的一个跨仓闸**：`fd-industry-data/tests/test_render_release.py` 有一条不变量
+——`release.yaml` 的 `runner-tencent-cron.tag` 必须等于 AppSet 的 image 值，判据是
+正则 `name:\s*image\s*\n\s*value:`。我把说明注释插在 `- name: image` 与 `value:`
+之间，正则就匹配不到，测试红在"AppSet 里找不到 image 参数"。注释必须放在参数
+**上方**。这条闸是"登记面 == 实际部署值"的唯一自动化判据，值得留着。
