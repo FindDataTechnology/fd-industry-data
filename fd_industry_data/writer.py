@@ -87,6 +87,52 @@ def _connect():
     return psycopg2.connect(url, connect_timeout=8)
 
 
+# 每批写入 crawl_items 的行数。分块是为了给单条语句一个上界（内存/网络包），
+# 不是性能调优点——批内已经是多值 INSERT，再大收益很小。
+_ITEM_BATCH = 1000
+
+
+def _insert_items(cur, run_id: int, payload) -> int:
+    """把 payload 批量写进 ``crawl_items``，返回写入行数。
+
+    **为什么不用 ``executemany``**：psycopg2 对 ``INSERT ... VALUES (%s)`` 的
+    ``executemany`` 是**逐行往返**（每行一次 network round trip）。2026-11-11 在
+    ``fd-industry-db`` 上实测（5000 行，事务内跑完即回滚，零污染）：
+
+    | 写法 | 吞吐 | 114,610 行预计 |
+    |---|---|---|
+    | ``executemany``（改动前） | **17.6 rows/s** | ~1.8 小时 |
+    | ``execute_values``（1000/批） | **520 rows/s** | ~3.7 分钟 |
+    | ``COPY`` | 1,062 rows/s | ~1.8 分钟 |
+
+    实测症状：``jodi-oil`` 把上限抬到 130000 后，真跑在
+    ``pg_stat_activity`` 里表现为 ``idle in transaction`` / ``ClientRead``
+    空转 1455s，语句就是这条 INSERT——写库阶段比取数阶段长两个数量级。
+
+    语义不变：同一事务、同一 ``(run_id, idx)`` 顺序、同一 payload JSON。
+    分块只在尾部把 ``idx`` 续上，不重排。
+    """
+    if not payload:
+        return 0
+    from psycopg2.extras import execute_values
+
+    written = 0
+    for start in range(0, len(payload), _ITEM_BATCH):
+        chunk = payload[start:start + _ITEM_BATCH]
+        rows = [
+            (run_id, start + offset, json.dumps(it, ensure_ascii=False, default=str))
+            for offset, it in enumerate(chunk)
+        ]
+        execute_values(
+            cur,
+            "INSERT INTO crawl_items (run_id, idx, payload) VALUES %s",
+            rows,
+            page_size=len(rows),
+        )
+        written += len(rows)
+    return written
+
+
 _schema_done = False
 
 
@@ -205,11 +251,7 @@ def finish_run(run_id: int, *, status, finished_at, rows_written,
                      run_id),
                 )
                 if payload:
-                    cur.executemany(
-                        "INSERT INTO crawl_items (run_id, idx, payload) VALUES (%s,%s,%s)",
-                        [(run_id, i, json.dumps(it, ensure_ascii=False, default=str))
-                         for i, it in enumerate(payload)],
-                    )
+                    _insert_items(cur, run_id, payload)
             return True
         except Exception as e:  # noqa: BLE001
             print(f"writer: finish_run attempt failed: {e}", file=sys.stderr)
@@ -383,11 +425,7 @@ def report_run(*, source, kind, status, started_at, finished_at, rows_written,
                 )
                 run_id = cur.fetchone()[0]
                 if payload:
-                    cur.executemany(
-                        "INSERT INTO crawl_items (run_id, idx, payload) VALUES (%s,%s,%s)",
-                        [(run_id, i, json.dumps(it, ensure_ascii=False, default=str))
-                         for i, it in enumerate(payload)],
-                    )
+                    _insert_items(cur, run_id, payload)
             return True
         except Exception as e:  # noqa: BLE001 - reporting must never break the crawl
             print(f"writer: report attempt failed: {e}", file=sys.stderr)

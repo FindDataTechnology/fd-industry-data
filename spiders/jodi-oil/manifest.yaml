@@ -14,11 +14,16 @@ data_period: month
 # ——按 (month, country, product, flow, unit) 排序后，100 行只覆盖 1 月的头几个国家。
 # 历史证据：4 次成功运行 rows_written = 100 / 100 / 100000 / 20（后者是探针限额）。
 #   #4461 报 100,000 却只落 1,000 行 = writer cap，另一层缺陷（见 f934d6a）。
-# 取 130000（114,610 的 1.13 倍余量）。
-# 落库闸：limit ≥ 1000，chart 会把 FD_WRITER_MAX_ITEMS 同步成同一个值（见 f934d6a），
-# 否则 writer 默认 1000 会二次截成 1000 行。
-# 注：本单元与 jodi-gas 结构同构（都是年度/全量 CSV 全解析后切片），jodi-gas 已按同一判据修。
-limit: 130000
+# 取 20000：**这是当前镜像（writer 逐行 executemany）能承受的上限，不是全集**。
+# 写入路径实测（2026-11-11，fd-industry-db，5000 行事务内回滚）：
+#   executemany 17.6 rows/s ｜ execute_values(1000/批) 520 rows/s ｜ COPY 1062 rows/s。
+# 按现状写法，20000 行 ≈ 19 分钟写库（CronJob activeDeadlineSeconds=7200，尚有余量）；
+# 130000 行 ≈ 1.8 小时，会贴着 deadline 跑，一旦被杀就留下 running 行、
+# 进而通过 single-flight 锁死该源 8.5 小时（FD_STALE_RUN_SECONDS 默认 30600）。
+# **解锁条件**：writer 已改为 execute_values 批量写（fd_industry_data/writer.py:_insert_items），
+# 但要等新镜像通过 AppSet 滚上生产后才会生效；届时应把这里抬到 130000（全集 114,610 的 1.13 倍）。
+# 落库闸：limit ≥ 1000，chart 会把 FD_WRITER_MAX_ITEMS 同步成同一个值（见 f934d6a）。
+limit: 20000
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
