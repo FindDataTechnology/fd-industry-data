@@ -6,9 +6,13 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "29 1 5,15,25 * *"
 data_period: month
-# min_rows_per_run 暂撤（2026-11-10）：最近一次成功 rows=20 来自 11-06 的批量探针
-#   （48 源各一次、恰好 20 行、image_tag=unknown，非 k8s 调度），不是源低产。
-#   下一次真实运行 2026-11-15（每月 5/15/25 日 01:29）后恢复——届时最新可比成功才有意义。
+# 每轮行数上限。双通道合并后 `results[:limit]` 切片（spider.py:703），且通道内部以
+# `collected >= limit` 提前停。实测（2026-11-11，集群内 limit=200000）：完整全集 = **200 行**
+# （chinaisa 门户 + legacy 两通道合计，换任何更高的上限都不再增加）。
+# 吃默认 limit=100 时每轮只落一半（丢 50%），且 legacy 通道会先吃满额度、
+# 门户通道几乎拿不到行（`results.extend(_run_cisa_legacy(...))` 先跑）。
+# 取 300（200 的 1.5 倍余量）。落库闸：writer 默认 1000，不受影响。
+limit: 300
 functions:
   - command: run_cisa
     description: "fd-runner 唯一入口（并入两通道）：chinaisa.org.cn 门户为主（旬报/周价格/统计发布），legacy cisa.org.cn 通道异常自动吞掉记 warning"

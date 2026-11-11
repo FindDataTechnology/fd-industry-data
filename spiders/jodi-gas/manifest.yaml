@@ -5,7 +5,22 @@ source_url: https://www.jodidata.org/gas/database/data-downloads.aspx
 # site: tencent 缺省——api.publisher.jodidata.org 与 www.jodidata.org 直连实测可达（2026-10-08），无需代理出口
 schedule: "13 7 9 * *"       # 点亮（批次三，monthly）
 data_period: month
-min_rows_per_run: 25    # runs=5 p10=52 p50=100; p10=52，取 25 — 见 docs/min-rows-coverage-baseline.md §3
+# 每轮行数上限。全量解析后按 (year, month, country, product, flow, unit) 排序再
+# `rows[-limit:]`（freshness-first），所以 limit 决定的是"留最近多少行"，**不减少上游请求**
+# ——zip 只有一个、13MB CSV 全解析，成本与 limit 无关。
+# 实测（2026-11-11，集群内 limit=200000）：完整全集 = **16,556 行**（94 经济体 × 14 能流 ×
+# 3 单位 × 2009-01 起全部月份）。
+# 吃默认 limit=100 时只落 **0.6%**，且 `rows[-limit:]` 从尾部切——留下的是最新月份里
+# 只够排 100 行的那几个国家/能流组合，其余国家当月的数、以及全部历史月份都不在库里。
+# 历史月份是**上游已定稿的数据**（JODI 逐月补报但不改已发布值），所以被切掉的期次
+# 不会因下一轮运行回到窗口——这是"固定存档被切"而不是"滚动增量"。
+# 取 20000（16,556 的 1.21 倍余量，容纳经济体/年份继续增长）。
+# 落库闸：limit ≥ 1000，chart 会把 FD_WRITER_MAX_ITEMS 同步成同一个值（见 commit f934d6a），
+# 故不会被 writer 默认 1000 二次截断。
+limit: 20000
+min_rows_per_run: 25    # 粗下限（取自修复前的 p10=52 的一半）。原注释「p50=100」是默认上限
+                        # 造成的假象：limit 显式声明为 20000 后 p50 会升到 1.6 万量级
+                        # （见 docs/limit-truncation-sweep-2026-11-11.md）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
