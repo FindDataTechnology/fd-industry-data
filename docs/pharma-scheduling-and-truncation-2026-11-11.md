@@ -131,7 +131,7 @@ github 远端。这次实测：第一次只推 gitee，CI 毫无反应；补推 
 > 其中 25 个连 CronJob 都没有，另 2 个早已手工挂起。判据是
 > `fd-industry/source` 标签与集群实况逐条比对，不是数 manifest。
 
-### 评测层：跑通了，但周巡检本来就没在自动化
+### 评测层：跑通了，且已装进真正的周巡检机
 
 医药两份基线（`fd-data-quality/baselines/pharma-*.yaml`）对着**已落库的生产数据**验收：
 
@@ -143,17 +143,31 @@ github 远端。这次实测：第一次只推 gitee，CI 毫无反应；补推 
 | `pharma_gap_attribution` | 无可归因缺口行（gaps=0 的自然结果） |
 | `pharma_readiness` | live=2（golden 一致 ✓） degraded=3（各带三视角状态码） |
 
+周巡检的真实位置是 **100.64.0.3（guangzhou-xinru，master）**，不是我能先摸到的
+100.64.0.6——`.6` 是 NBS worker 机（跑 `fd-nbs-worker-4`），按安装脚本 design
+worker 机 `FD_NBS_CRON=0`，本来就不写巡检 cron。已在 master 上完成：
+
+1. `/opt/fd-data-quality` 不是 git 检出、基线停在 5 份（Sep 21）。用
+   `git archive master` 打包**已提交的树**覆盖（别人的未跟踪 `securities-*.yaml`
+   不碰），覆盖前留了备份 `/opt/fd-data-quality.backup-20261111-165536.tgz`；
+   `.env` 与 `.state` 原样保留（600）。
+2. 该机 `.env` 缺 `FD_OPEN_DATA_MCP_DATABASE_URL`（医药基线要用它）。从
+   `-n mcp secret fd-mcp-env` 取真值经文件追加（值不回显，append 前后校验长度 78）。
+3. 重建 `fd-data-quality:local`（147MB），容器内实测：两条医药源 `gaps=0`，
+   再跑 `--source all` **7 份基线全 success**，原有 5 个域数值与本地一致。
+4. cron 未改（仍 5 条，`coverage_scan` 那条周一 06:40），下一次起自动包含医药域。
+
 两条修正：
 
 1. 基线原来写 `db_env: FD_CRAWL_DB_URL`（行业 runner 的变量名），而质量仓的生产
    `.env` 没有它。**`dsn()` 抛的是 `SystemExit`（BaseException），`scan_source`
    的 `except Exception` 拦不住**——真跑起来整轮 `--source all` 会在 pharma 处退出，
    排在后面的源一天都不再被扫。已改用仓库既有词汇 `FD_OPEN_DATA_MCP_DATABASE_URL`
-   （另 9 份基线在用，同一台库，角色 `fd` 对 `crawl_runs`/`crawl_items` 有 SELECT）。
-2. **周巡检在当前可及的机器上并没有装**：`/etc/cron.d/fd-data-quality` 在
-   100.64.0.6 / .7 / .11 都不存在，`.6` 上 `/opt/fd-data-quality/baselines` 只有
-   5 份旧基线、没有 pharma。这是既有状态，与本批无关；如实记录，不当成"已自动化"。
-   入口在 `deploy/install_on_runner.sh`（会重写 cron 与镜像），需要 sudo 与那台机的授权。
+   （与 `-n mcp secret fd-mcp-env` 同一个键，同一台库；角色 `fd` 对
+   `crawl_runs`/`crawl_items` 有 SELECT，实测 4320 行可读）。
+2. 排障顺序的教训：先 `for h in <tailnet 各机>` 找 `/etc/cron.d/fd-data-quality`，
+   再谈"没在跑"。我第一次只摸了 `.6`/`.7`/`.11` 就下结论"周巡检未安装"，实际
+   master 在 `.3`、cron 与日志都好好的（11-09 周一扫了 6 份基线）。
 
 另：`fd-industry-dispatcher`（`*/5 * * * *`）仍用 `sha-750da3f`，但它由
 `k8s/dispatcher.yaml` 单独管理（标签 `fd-industry/component: dispatcher`，
