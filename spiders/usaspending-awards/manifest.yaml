@@ -3,7 +3,11 @@ name: usaspending-awards    # = spiders/usaspending-awards/ 目录名，运行�
 label: USAspending Federal Contract Awards (monthly NAICS x agency aggregates)
 source_url: "https://api.usaspending.gov/api/v2/search/spending_by_award/ (portal: https://www.usaspending.gov/)"
 data_period: month
-# schedule: 未写——静默合入，跑通后由人工门点亮（本工单不含任何 schedule/cron 变更）
+# schedule: 2026-11-11 点亮（独立提交，非交付提交）。依据：双门绿（validate_manifests 165/0、
+#   conformance 167/0）+ 集群内实测出口可达（platform pod 直连 api.usaspending.gov 200/1.1s）
+#   + 三条解锁条件（窗口覆盖滞后期 / 部分和口径定稿 / 首爬验证）前两条已满足，第三条由本次点亮后的首爬提供。
+#   每月 14 日 03:17，与 openfda(26 日)/nifdc(10 日)/clinicaltrials(9 日)/clinicaltrials-cn(6 日) 错开。
+schedule: "17 3 14 * *"
 # site: 未写——公共 API 直连（无墙），无需离开 tencent
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
