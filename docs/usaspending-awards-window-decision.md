@@ -81,13 +81,45 @@
 | # | 条件 | 状态 |
 |---|---|---|
 | 1 | 窗口覆盖滞后期 | ✅ 已满足（滚动 6 个月） |
-| 2 | 首爬验证过一次真实调度 | ⬜ 未做（需 deploy 后手动触发，看 `crawl_runs`） |
+| 2 | 首爬验证过一次真实调度 | ✅ **已实测通过（2026-11-11）** |
 | 3 | 「部分和」对外口径定稿 | ✅ 已满足（两列 + README 口径节） |
 
-**结论**：只剩第 2 条。做它不需要我改代码——deploy 一个 tick 后触发一次即可；
-但触发会给生产库落真实行，属于"出数据"的动作，留给下一次明确指示。
+### 第 2 条的实际验证记录（含真跑抓出的两个缺陷）
 
-## 六、本决定可推翻
+点亮后 CronJob 在约 2.5 分钟内渲染（`tencent` 集群 `fd-industry/fd-industry-usaspending-awards`，
+`17 3 14 * *` / `Asia/Shanghai`），但它的下次到点是 14 日，故按 CHECKLIST 用
+`kubectl create job --from=cronjob/...` 做一次性试跑（参数与 CronJob 完全一致）。
+
+**第一次试跑失败，抓到两个只看代码/双门都发现不了的问题**：
+
+| 缺陷 | 实测证据 | 修法 |
+|---|---|---|
+| `--limit 100`（模板默认） | 本单元真实行数：滚动 6 个月 **2,936**、首爬 12 个月 **5,567** → limit=100 丢 96.6%/98.2% | manifest 顶层 `limit: 8000`（含余量说明），commit `25024c7` |
+| `MAX_MONTHS=12` 把平台自己的首爬契约判成违规 | `ValueError: window spans 13 months > MAX_MONTHS=12`；首爬窗口 `2025-11-01..2026-11-11` = **13 桶**（回溯 12 个月取月首 + 终点=点亮日，点亮日落在月中就多出一桶） | 上限改 **13** 并说明护栏本意是拦荒唐大窗口，commit `b3ae741`；同时复核 25 个月仍报错、缺省仍 6 桶 |
+
+**第二次试跑（修复后）结果**：
+
+```
+fd-runner: usaspending-awards -> success rows=6183 in 508.1s (window 2025-11-01..2026-11-11)
+```
+
+DB 独立核对（不复用 runner 自己的日志，另起只读查询 Job）：
+
+| 判据 | 实测 |
+|---|---|
+| `crawl_runs` | id **5378**，`status=success`，`rows_written=6183`，`error_head=''`（另两条 id 5376/5377 是我修 MAX_MONTHS 之前的失败，错误原文一致） |
+| `crawl_items` | `count(*) = 6183`（与 rows_written 一致，需 `run_id` 关联才准——该表主键是 `(run_id, idx)`，跨 run 会重复计数） |
+| 期间覆盖 | `DISTINCT_PERIODS = 13`（2025-11 … 2026-11），与首爬窗口一致 |
+| 行字段 | 抽查 2026-08 行：`period/award_type/naics_code/obligated_amount/award_count/page_cap_reached/batch_total_awards` 齐全，`page_cap_reached=True`、`batch_total_awards=71403` 非空 |
+| 落库上限 | CronJob 未设 `FD_WRITER_MAX_ITEMS`，但带窗口的运行由 runner 抬到 100000，6183 远低于此 → 未被二次截断 |
+
+> 6183 行比预测量（5,567，12 桶）多，因为首爬是 **13 桶**（多一个 2026-11 的整月 1-11 日段），
+> 与 `DISTINCT_PERIODS=13` 自洽。这不是超发，是窗口多一个月。
+
+验证用的三个一次性 Job 已删除（`firstcrawl-usaspending-awards-v2`、两个 `dbq-*`），
+未改动任何 CronJob。
+
+## 七、本决定可推翻
 
 若认为「先点亮、接受偏低序列、later 再重抓」更合适：删掉本条即回到原状，
 窗口缺省值改回 `start = end` 即恢复旧行为（一行）。但我建议不要——因为第 3 条
