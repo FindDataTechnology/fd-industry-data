@@ -14,16 +14,19 @@ data_period: month
 # ——按 (month, country, product, flow, unit) 排序后，100 行只覆盖 1 月的头几个国家。
 # 历史证据：4 次成功运行 rows_written = 100 / 100 / 100000 / 20（后者是探针限额）。
 #   #4461 报 100,000 却只落 1,000 行 = writer cap，另一层缺陷（见 f934d6a）。
-# 取 20000：**这是当前镜像（writer 逐行 executemany）能承受的上限，不是全集**。
-# 写入路径实测（2026-11-11，fd-industry-db，5000 行事务内回滚）：
-#   executemany 17.6 rows/s ｜ execute_values(1000/批) 520 rows/s ｜ COPY 1062 rows/s。
-# 按现状写法，20000 行 ≈ 19 分钟写库（CronJob activeDeadlineSeconds=7200，尚有余量）；
-# 130000 行 ≈ 1.8 小时，会贴着 deadline 跑，一旦被杀就留下 running 行、
-# 进而通过 single-flight 锁死该源 8.5 小时（FD_STALE_RUN_SECONDS 默认 30600）。
-# **解锁条件**：writer 已改为 execute_values 批量写（fd_industry_data/writer.py:_insert_items），
-# 但要等新镜像通过 AppSet 滚上生产后才会生效；届时应把这里抬到 130000（全集 114,610 的 1.13 倍）。
+# 取 130000（全集 114,610 的 1.13 倍余量）。
+# 为什么曾经先写成 20000：当时镜像里 writer 用逐行 `executemany`（17.6 rows/s），
+# 130000 行要 ~1.8 小时，会贴着 CronJob activeDeadlineSeconds=7200 跑；一旦被杀就留下
+# running 行、经 single-flight 再锁死该源 8.5 小时（FD_STALE_RUN_SECONDS 默认 30600）。
+# 写入路径已改为 execute_values 批量写（fd_industry_data/writer.py:_insert_items，
+# 520 rows/s，29.6 倍），并已通过 AppSet 滚到 sha-f5a19aa，故解锁。
+# **解锁后的实测（2026-11-11，新镜像）**：
+#   `--limit 130000` → success rows=114,610，pod 墙钟 **8m29s**（11:59:55Z→12:08:24Z），
+#   DB 核对 run #5420 / crawl_items=114,610 / **12 个 distinct month** / 109 个国家。
+#   对照旧镜像同一源 `--limit 20000`：pod 墙钟 18m17s 且只有 **3 个 distinct month**
+#   —— 旧上限每天只落最近一个季度，9 个月历史被静默切掉。
 # 落库闸：limit ≥ 1000，chart 会把 FD_WRITER_MAX_ITEMS 同步成同一个值（见 f934d6a）。
-limit: 20000
+limit: 130000
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

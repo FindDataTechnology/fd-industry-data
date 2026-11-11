@@ -32,6 +32,10 @@ components:
     # 2026-11-06：三站点发布滚动统一到 sha-750da3f（GHA 构建，tencent 节点
     # 探针 Succeeded/Completed + imageID sha256 实拉验证通过）。
     # 2026-11-11：滚到 sha-3a7c63c（含 pdftext.extract_words 与 limit/writer 修复）。
+    # 2026-11-11 晚：AppSet 的 per-source CronJob 已滚到 sha-f5a19aa（writer 批量写），
+    #   但 **dispatcher 本身仍是 sha-3a7c63c**（实测 tencent 与 xinru-server1 两处
+    #   fd-industry-dispatcher 都是旧 tag）。dispatcher 只派单、不写 crawl_items，
+    #   writer 修复对它是无感的，故本次不跟着滚——要滚是另一个决定，别默认跟着动。
     # tag 选择已核对方向：线上其余活影像 ea21592/92ae150/d84cc82/01c5ffb 都更旧。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
     tag: sha-3a7c63c
@@ -43,6 +47,7 @@ components:
     # federation observer CronJob (scraw ns, xinru-master).
     # 2026-11-06：随三站点发布滚动到 sha-750da3f。
     # 2026-11-11：滚到 sha-3a7c63c；xinru-server1 上原为 sha-ea21592（11-13 更旧的 10-13 版）。
+    # 2026-11-11 晚实测：仍为 sha-3a7c63c（不写 crawl_items，不随 writer 修复滚动）。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
     tag: sha-3a7c63c
   runner-tencent-cron:
@@ -54,9 +59,9 @@ components:
     # and for fd-image-pin-audit visibility. Bumping it means editing the
     # AppSet declaration in fd-infra-deploy + reconcile-industry-appset.sh
     # apply (or kubectl replace) on chengsi.
-    # 2026-11-11：AppSet 的 image 已滚到 sha-3a7c63c，此处随之更新为同一个值。
+    # 2026-11-11 晚：AppSet 的 image 已滚到 sha-f5a19aa（fd-image-bump.sh --apply），此处随之更新为同一个值。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-3a7c63c
+    tag: sha-f5a19aa
 
 # consumption file (repo-root-relative) -> component whose image it renders
 consumption:
