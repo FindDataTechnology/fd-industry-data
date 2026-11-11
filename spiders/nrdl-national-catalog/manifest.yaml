@@ -6,7 +6,11 @@ source_url: http://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html
 # 年度版 → 每年发一次；本单元在目录发布后按 schedule 重灌以取得新版条目。
 schedule: "19 3 8 1 *"             # 每年 1 月 8 日 03:19（目录通常 12 月发布、次年 1 月 1 日执行）
 data_period: year
-data_period_field: catalog_year    # 水位字段 = 目录年度版
+data_period_field: catalog_year   # 水位字段 = 目录年度版
+# 事实定型与修订窗：目录条目绑定目录年度版（不是某月观测）。annual 粒度的
+# 定型基数为次年 12-31，覆盖「次年目录发布前官方仍会调整归类」的真实节奏。
+revision_policy: overwrite_with_history
+finalize_grace_days: 0
 scanner_mode: upstream-curated
 ranking_seed: [0.95, 0.75]
 functions:

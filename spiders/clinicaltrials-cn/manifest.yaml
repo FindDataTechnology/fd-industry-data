@@ -5,7 +5,11 @@ source_url: https://clinicaltrials.gov/api/v2/studies
 # 公开 REST v2，无 key 无登录无验证码；海外源，直连即可（与既有 openfda 同族）
 schedule: "47 2 6 * *"             # 每月 6 日 02:47；与 openfda(26 日 03:28) / nifdc(10 日 01:33) 错开
 data_period: month
-data_period_field: month           # 水位字段：行内 month = 试验起始月 (yyyy-mm)
+data_period_field: month         # 水位字段：行内 month = 试验起始月 (yyyy-mm)
+# 事实定型与修订窗（change establish-pharma-domain-stack 第 4 阶段）：
+# 试验按起始月定型（次月首日）；官方会改历史（补登记、状态推进），必须留痕。
+revision_policy: overwrite_with_history
+finalize_grace_days: 0
 scanner_mode: upstream-curated
 ranking_seed: [0.7, 0.9]
 functions:
