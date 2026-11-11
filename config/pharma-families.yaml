@@ -1,0 +1,57 @@
+# 医药域五个指标族的落位声明（就绪面的数据源）
+#
+# 为什么需要这个文件：change 里写了三族"降级中"，但一句文档不会让任何人看见。
+# 就绪面（scripts/pharma_readiness.py）读本文件 + 实探单元目录，把"哪族有源、
+# 哪族降级、降级的判据是什么"变成可打印、可查询的结论。
+#
+# 刻意**不建空壳单元**：降级的族没有 spiders/<slug>/ 目录——只有 manifest 没有入口
+# 会让 conformance_gate 的单元计数虚增，也会让就绪面看起来"已接入"（design D8.3）。
+#
+# status 取值：
+#   live     源已落地（有单元目录 + manifest + golden，且 golden 跑绿过）
+#   degraded 无脚本可达路径，降级为人工导出；必须给 evidence（状态码）与 unblock
+families:
+  - family: 临床试验注册
+    concept_family: ClinicalTrial
+    status: live
+    source: clinicaltrials-cn
+    unit: spiders/clinicaltrials-cn
+    note: ClinicalTrials.gov API v2，AREA[LocationCountry]China；2020-01 实测 432 条
+
+  - family: 医保目录归属
+    concept_family: InsuranceCatalogEntry
+    status: live
+    source: nrdl-national-catalog
+    unit: spiders/nrdl-national-catalog
+    note: NHSA 官方 PDF 附件；西药 1446 + 中成药 1335 与凡例逐数相符。谈判药品段（472）与饮片段（892）暂不解析
+
+  - family: 药品注册（批文）
+    concept_family: DrugApproval
+    status: degraded
+    source: nmpa-drug-approvals
+    unit: null
+    evidence:
+      - "www.nmpa.gov.cn/datasearch/home-index.html -> 412（本机 curl / 境内 curl / 真实 Chromium 三视角一致）"
+      - "datasearch.nmpa.gov.cn/ -> 412"
+      - "/zwgk/ggtg/index.html、/yaopin/index.html -> 412（全站拦截，非仅数据面）"
+    unblock: 官方解除 WAF 或提供公开数据下载口；或经批准的人工导出 + reload_check 文件驱动重灌
+
+  - family: 审评进度
+    concept_family: ReviewProgress
+    status: degraded
+    source: cde-review-progress
+    unit: null
+    evidence:
+      - "wbca.cde.org.cn/wbca/declaredVarieties -> 202（25KB 空正文，meta-id JS 挑战）"
+      - "www.chinadrugtrials.org.cn/clinicaltrials.searchlist.dhtml -> 202"
+      - "www.cde.org.cn/ 首页 200 但数据面 202"
+    unblock: 同上；待核 #6/#7/#8（受理号前缀语义、审评状态取值集合、优先审评是否单列）因不可达保持未闭合
+
+  - family: 医疗机构名录
+    concept_family: MedicalInstitution
+    status: degraded
+    source: nhc-hospitals
+    unit: null
+    evidence:
+      - "www.nhc.gov.cn/ -> 412（本机 curl / 境内 curl / 真实 Chromium 三视角一致）"
+    unblock: 同上；待核 #13（名录是否含科室层级）未闭合，科室面本批不做
