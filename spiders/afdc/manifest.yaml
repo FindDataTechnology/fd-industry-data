@@ -5,6 +5,12 @@ source_url: https://afdc.energy.gov/data/10332
 # site: tencent 缺省——直连 afdc.energy.gov 实测可达（本机 + tencent 站点均 200，2026-10-08），无需代理出口
 schedule: "43 6 14 * *"       # 点亮（批次三，monthly）
 data_period: month
+# 每轮取数上限。**必须大于数据集规模**：本单元取 AFDC 图 10332 的年度分燃料类型充电站计数，
+# 是把整张表解析完再 `rows[-limit:]` 切片。实测（2026-11-11，集群内 limit=5000 无截断）：
+# 完整全集 = **225 行**。吃默认 limit=100 时每轮丢掉 125 行（55.6%），而且丢的是**最旧年份**
+# ——该表年度序列，丢头等于把历史年份排除在库外，且下一轮仍然只取尾部，**永远不会补回**。
+# 取 500（225 的 2.2 倍余量，容纳后续年份增长）。
+limit: 500
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

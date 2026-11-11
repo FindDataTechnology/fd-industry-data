@@ -6,7 +6,17 @@ source_url: https://waterservices.usgs.gov/nwis/dv/
 schedule: "40 8 * * *"  # 点亮（批次二）：08:40 取水文站点日值
 data_period: day
 data_period_field: date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
-min_rows_per_run: 20    # runs=34 p10=100 p50=100; p50=limit 截断型，取上限 20% — 见 docs/min-rows-coverage-baseline.md §3
+# 每轮取数上限。**必须大于数据集规模**：本单元取的是站点 01646500 的 2020 年**整年**日值
+# （固定历史数据集，不存在"更新的行"），spider 是全量解析后 `rows[:limit]` 切片。
+# 实测（2026-11-11，集群内 limit=5000 无截断）：完整全集 = **366 行**。
+# 吃默认 limit=100 时每轮都把已付代价取回的 266 行（72.7%）原地丢掉，且**永远补不回来**
+# ——这不是"滚动尾部"（时间序列取最新 N 条、历史靠逐轮累积）：固定数据集里被切掉的行
+# 不会因为下一轮运行而回到窗口。历史证据：34 次成功运行 p10=p50=100，即每轮恰好钉在上限。
+# 取 500（366 的 1.37 倍余量）。落库闸：writer 默认 1000，366 远低于此。
+limit: 500
+min_rows_per_run: 20    # 粗下限，只拦"几乎没出数"。它*不是*全集比例：原注释按「p50=limit
+                        # 截断型，取上限 20%」写，limit 显式声明为 500 且覆盖全 366 行后该说法
+                        # 不再成立（见 docs/limit-truncation-sweep-2026-11-11.md）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:

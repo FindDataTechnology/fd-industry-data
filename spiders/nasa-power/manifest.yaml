@@ -5,7 +5,17 @@ source_url: https://power.larc.nasa.gov/api/temporal/daily/point
 # site: tencent              # 缺省 tencent；本单元只访问 power.larc.nasa.gov 公开 REST，无需换执行位
 schedule: "36 6 * * *"  # 点亮（批次二）：06:36 取逐点气象日值；与同源 firms 错 29 分钟避免并发
 data_period: day
-min_rows_per_run: 20    # runs=34 p10=100 p50=100; p50=limit 截断型，取上限 20% — 见 docs/min-rows-coverage-baseline.md §3
+# 每轮取数上限。**必须大于数据集规模**：本单元取固定点（乌鲁木齐）1984 年**整年**
+# T2M/PRECTOTCORR 日值（固定历史数据集，不存在"更新的行"），spider 全量解析后 `rows[:limit]`
+# 切片。实测（2026-11-11，集群内 limit=5000 无截断）：完整全集 = **732 行**（366 天 × 2 参数）。
+# 吃默认 limit=100 时每轮把已取回的 632 行（86.3%）原地丢掉，且**永远补不回来**——固定数据集
+# 被切掉的行不会因下一轮运行回到窗口，这与"滚动尾部"（时间序列取最新 N 条）是两回事。
+# 历史证据：34 次成功运行 p10=p50=100，每轮恰好钉在上限。
+# 取 800（732 的 1.09 倍余量）。落库闸：writer 默认 1000 > 732，不会被二次截断。
+limit: 800
+min_rows_per_run: 20    # 粗下限，只拦"几乎没出数"。它*不是*全集比例：原注释按「p50=limit
+                        # 截断型，取上限 20%」写，limit 显式声明为 800 且覆盖全 732 行后该说法
+                        # 不再成立（见 docs/limit-truncation-sweep-2026-11-11.md）
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
