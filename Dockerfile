@@ -55,12 +55,16 @@ COPY universes/ ./universes/
 # NFRA 批量公示表 / 上清所月报表四表五 / CBA 理财指数 2026 PDF / 银登不良转让公告).
 # Consumed through fd_industry_data.pdftext (single subprocess wrapper), never
 # hand-rolled per unit. Runtime release decision per gitops-crawl-runtime D3.
+# libatomic1 — playwright 自带的 node 链接了 libatomic，缺它则
+# `playwright install` 直接 exit 127（`node: error while loading shared libraries:
+# libatomic.so.1`）。实测 2026-11-11：main 上连续三次 image 构建都因这一条失败，
+# 即所有出片被卡住；`--with-deps` 救不了它——那是先要 node 能跑起来才轮得到装依赖。
 RUN if [ -n "$APT_MIRROR" ]; then \
         sed -i "s|deb.debian.org|$APT_MIRROR|g" /etc/apt/sources.list.d/debian.sources 2>/dev/null; \
         sed -i "s|deb.debian.org|$APT_MIRROR|g" /etc/apt/sources.list 2>/dev/null; \
     fi; \
     apt-get update \
-    && apt-get install -y --no-install-recommends poppler-utils \
+    && apt-get install -y --no-install-recommends poppler-utils libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 RUN PIP_FLAGS=""; [ -n "$PIP_INDEX_URL" ] && PIP_FLAGS="-i $PIP_INDEX_URL"; \
     pip install --no-cache-dir $PIP_FLAGS \
