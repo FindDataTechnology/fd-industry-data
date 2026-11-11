@@ -97,6 +97,7 @@ def _month_buckets(
     """把窗口展开成整月桶 ``[(period, first_day, last_day), ...]``，旧→新。
 
     缺省窗口 = 上一个完整自然月；窗口过滤先于任何截断（回填口径）。
+    窗口跨度超过 ``MAX_MONTHS`` 直接报错，不截断（见下方说明）。
     """
     today = date.today()
     if window_start and window_end:
@@ -111,12 +112,21 @@ def _month_buckets(
     buckets: list[tuple[str, str, str]] = []
     cursor = _month_first(start)
     last_month = _month_first(end)
-    while cursor <= last_month and len(buckets) < MAX_MONTHS:
+    while cursor <= last_month:
         bucket_end = min(end, _add_months(cursor, 1) - timedelta(days=1))
         buckets.append(
             (cursor.strftime("%Y-%m"), cursor.isoformat(), bucket_end.isoformat())
         )
         cursor = _add_months(cursor, 1)
+    # 超窗报错，**不静默截断**：截断切掉的是最新月份（信号层最值钱的部分），
+    # 而调用方拿到的行看起来仍像"全窗口结果"。静默丢数据比明确失败更坏。
+    # 正常路径不会触发：首爬窗口恰为滚动 12 个整月 = MAX_MONTHS。
+    if len(buckets) > MAX_MONTHS:
+        raise ValueError(
+            f"usaspending-awards: window spans {len(buckets)} months > "
+            f"MAX_MONTHS={MAX_MONTHS}; narrow window_start/window_end "
+            f"(refusing to silently drop the most recent months)"
+        )
     return buckets
 
 
