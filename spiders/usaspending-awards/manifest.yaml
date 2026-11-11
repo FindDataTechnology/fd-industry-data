@@ -8,6 +8,16 @@ data_period: month
 #   + 三条解锁条件（窗口覆盖滞后期 / 部分和口径定稿 / 首爬验证）前两条已满足，第三条由本次点亮后的首爬提供。
 #   每月 14 日 03:17，与 openfda(26 日)/nifdc(10 日)/clinicaltrials(9 日)/clinicaltrials-cn(6 日) 错开。
 schedule: "17 3 14 * *"
+# 每轮取数上限。**模板默认 100 会把滚动窗截成前 100 行**（本仓已修过的同类缺陷：
+# docs/flower-debt-ledger.md F20 —— 首次运行 rows_written=100 恰好等于 limit，只覆盖 5 天）。
+# 实测本单元真实行数（2026-11-11，limit 不截断）：
+#   · 滚动 6 个月（常态窗口）      = 2,936 行  → limit=100 会丢掉 96.6%
+#   · 首爬 12 整月（回补窗口）      = 5,567 行 / 668s
+#   按月分布 434~535（近期月份行数更多：奖项少但 (naics,部门) 组合更散）
+# 故取 8000（首爬 5,567 的 1.44 倍余量，容忍后续组合数增长）。
+# 落库第二道闸：writer 默认 FD_WRITER_MAX_ITEMS=1000，但**带窗口的运行会被 runner
+# 抬到 100000**（fix-writer-item-cap），故窗口运行不会被这里之外的上限二次截断。
+limit: 8000
 # site: 未写——公共 API 直连（无墙），无需离开 tencent
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
