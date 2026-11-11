@@ -53,4 +53,79 @@ def test_units_match_the_vocabulary():
         "trial.enrollment.planned": "persons",
         "catalog.drug.entries": "count",
         "catalog.drug.class_a_share": "percent",
+        "trial.new.by_phase": "count",
+        "catalog.drug.entries.by_section": "count",
     }
+
+
+# ── 构成维度（change expand-pharma-structure-concepts）─────────────────────────
+
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("PHASE1", "PHASE1"),
+    ("phase2", "PHASE2"),                      # 大小写不敏感
+    ("", "UNSPECIFIED"),                        # 上游没填
+    (None, "UNSPECIFIED"),
+    ("NA", "NOT_APPLICABLE"),                   # 明确不适用（≠ 没有值）
+    ("PHASE1,PHASE2", "PHASE1_PHASE2"),         # 复合值独立成桶，不拆、不归约
+    ("PHASE2, PHASE3", "PHASE2_PHASE3"),
+])
+def test_phase_code_is_faithful(raw, expected):
+    assert ep.phase_code(raw) == expected
+
+
+def test_phase_and_unspecified_are_distinct():
+    """空值与 NA 必须落进不同取值：'缺数'与'不适用'是两回事。"""
+    assert ep.phase_code("") != ep.phase_code("NA")
+
+
+def test_unknown_phase_tokens_are_reported_not_dropped():
+    assert ep.unknown_phase_tokens("PHASE3,PHASE9") == ["PHASE9"]
+    assert ep.unknown_phase_tokens("PHASE1") == []
+    assert ep.phase_code("PHASE3,PHASE9") == "PHASE3_PHASE9"  # 仍单列，不丢弃
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("西药", "western"), ("中成药", "patent_cn"),
+    ("谈判药品", "negotiated"), ("中药饮片", "herbal_slice"),
+])
+def test_section_code_mapping(raw, expected):
+    assert ep.section_code(raw) == expected
+
+
+def test_unknown_section_is_fatal():
+    with pytest.raises(SystemExit):
+        ep.section_code("生物制品")
+
+
+def _row(code, date, value):
+    return (code, "x", 1, date, "month", str(value))
+
+
+def test_sum_invariant_passes_when_parts_add_up():
+    ep.check_dimension_sums([
+        _row("trial.new", "2026-09-01", 10),
+        _row("trial.new.by_phase", "2026-09-01", 7),
+        _row("trial.new.by_phase", "2026-09-01", 3),
+        ("catalog.drug.entries", "x", 1, "2025-01-01", "year", "100"),
+        ("catalog.drug.entries.by_section", "x", 1, "2025-01-01", "year", "60"),
+        ("catalog.drug.entries.by_section", "x", 1, "2025-01-01", "year", "40"),
+    ])
+
+
+@pytest.mark.parametrize("parts,total,why", [
+    ([7], 10, "漏分类 -> 和偏小"),
+    ([7, 3, 1], 10, "重复计数 -> 和偏大"),
+])
+def test_sum_invariant_goes_red(parts, total, why):
+    rows = [_row("trial.new", "2026-09-01", total)]
+    rows += [_row("trial.new.by_phase", "2026-09-01", p) for p in parts]
+    with pytest.raises(SystemExit):
+        ep.check_dimension_sums(rows)
+
+
+def test_new_concepts_are_wired_into_unit_and_entity_maps():
+    for code in ("trial.new.by_phase", "catalog.drug.entries.by_section"):
+        assert code in ep.CONCEPT_UNIT and code in ep.CONCEPT_ENTITY

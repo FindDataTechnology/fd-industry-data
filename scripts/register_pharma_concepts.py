@@ -52,8 +52,11 @@ VOCAB = (
 )
 # 期望变量集（写死以便"词汇表被人手改坏了"能被发现，而不是跟着一起坏）
 EXPECTED = {
-    "ClinicalTrial": {"trial.new", "trial.enrollment.planned"},
-    "InsuranceCatalogEntry": {"catalog.drug.entries", "catalog.drug.class_a_share"},
+    "ClinicalTrial": {"trial.new", "trial.enrollment.planned", "trial.new.by_phase"},
+    "InsuranceCatalogEntry": {
+        "catalog.drug.entries", "catalog.drug.class_a_share",
+        "catalog.drug.entries.by_section",
+    },
 }
 TUPLE_FIELDS = ("code", "entity_type", "measure", "unit")
 # ^ frequency 刻意不在身份键里（change fix-concept-freshness-window D1）：同一 code 只有一条

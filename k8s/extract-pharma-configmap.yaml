@@ -60,9 +60,77 @@ data:
     ENTITY_COUNTRY_CN = 1
     ENTITY_TYPE_COUNTRY = "country"
     ENTITY_TYPE_TRIAL = "trial"
+    # 分类维度实体（expand-pharma-structure-concepts）：不借用 segment —— 后者是某只证券
+    # 的业务分部（code 形如 `000019.ind.38b0001f`），语义与"试验阶段"无关。
+    ENTITY_TYPE_PHASE = "trial_phase"
+    ENTITY_TYPE_SECTION = "catalog_section"
 
     TRIAL_SOURCE = "clinicaltrials-cn"
     CATALOG_SOURCE = "nrdl-national-catalog"
+
+    # 阶段取值：上游会给逗号复合（`PHASE1,PHASE2`）→ 独立成桶 `PHASE1_PHASE2`，
+    # 不拆两行（会重复计数、破坏求和不变式），也不归约到较低期（那是推导，改变口径）。
+    # 空值与 NA 分列："上游没填" ≠ "明确不适用"（器械/行为学试验常为 NA）。
+    PHASE_TOKENS = frozenset({"EARLY_PHASE1", "PHASE1", "PHASE2", "PHASE3", "PHASE4"})
+    PHASE_LABELS = {
+        "EARLY_PHASE1": "早期一期",
+        "PHASE1": "一期",
+        "PHASE1_PHASE2": "一期二期",
+        "PHASE2": "二期",
+        "PHASE2_PHASE3": "二期三期",
+        "PHASE3": "三期",
+        "PHASE4": "四期",
+        "NOT_APPLICABLE": "不适用",
+        "UNSPECIFIED": "未标注",
+    }
+
+    # 目录分部：官方固定四项，code 用稳定 ASCII，中文只作 name_zh（上游换措辞时身份不变）。
+    SECTION_CODES = {
+        "西药": ("western", "西药"),
+        "中成药": ("patent_cn", "中成药"),
+        "谈判药品": ("negotiated", "谈判药品"),
+        "中药饮片": ("herbal_slice", "中药饮片"),
+    }
+
+
+    def phase_code(raw: object) -> str:
+        """上游 `phase` → 实体 code（纯函数，单测覆盖四种形态）。"""
+        txt = str(raw or "").strip()
+        if not txt:
+            return "UNSPECIFIED"
+        if txt.upper() == "NA":
+            return "NOT_APPLICABLE"
+        parts = [p.strip().upper() for p in txt.split(",") if p.strip()]
+        if not parts:
+            return "UNSPECIFIED"
+        return "_".join(parts)
+
+
+    def unknown_phase_tokens(raw: object) -> list[str]:
+        """复合值里不在已知集合内的 token（用于在 notes 里点名，不阻塞日更）。"""
+        txt = str(raw or "").strip().upper()
+        if not txt or txt == "NA":
+            return []
+        return [p.strip() for p in txt.split(",") if p.strip() and p.strip() not in PHASE_TOKENS]
+
+
+    def section_code(raw: object) -> str:
+        """上游 `section` → 实体 code。第五种分部直接 FATAL：官方结构固定，多出来说明解析变。"""
+        txt = str(raw or "").strip()
+        try:
+            return SECTION_CODES[txt][0]
+        except KeyError:
+            raise SystemExit(
+                f"FATAL: 未知目录分部 {txt!r}；已知 {sorted(SECTION_CODES)}。"
+                f"分部是官方固定结构，出现第五种须人看（解析或上游结构变了）"
+            ) from None
+
+
+    def section_label(code: str) -> str:
+        for c, label in SECTION_CODES.values():
+            if c == code:
+                return label
+        return code
 
     # 每个概念固定一种实体粒度；写前断言，混用即失败（D1）。
     CONCEPT_ENTITY = {
@@ -70,6 +138,8 @@ data:
         "trial.enrollment.planned": ENTITY_TYPE_TRIAL,
         "catalog.drug.entries": ENTITY_TYPE_COUNTRY,
         "catalog.drug.class_a_share": ENTITY_TYPE_COUNTRY,
+        "trial.new.by_phase": ENTITY_TYPE_PHASE,
+        "catalog.drug.entries.by_section": ENTITY_TYPE_SECTION,
     }
 
     # 概念声明的度量单位（与 `vocabulary/concepts.yaml` 的 variables 逐条对应）。
@@ -81,6 +151,8 @@ data:
         "trial.enrollment.planned": "persons",
         "catalog.drug.entries": "count",
         "catalog.drug.class_a_share": "percent",
+        "trial.new.by_phase": "count",
+        "catalog.drug.entries.by_section": "count",
     }
 
     # 观测写入语句。ON CONFLICT 不能是 DO NOTHING：那样每天重跑都不动 `fetched_at`，
@@ -168,7 +240,30 @@ data:
         return dict(cur.fetchall())
 
 
-    def extract_trials(items: list[dict], notes: list[str]) -> list[tuple]:
+    def ensure_entities(cur, entity_type: str, labels: dict[str, str]) -> dict[str, int]:
+        """按 code → name_zh 登记分类实体，返回 code -> id（幂等）。
+
+        只登记**真的观测到**的取值，不预登记全集：预登记会在数据没到时造出"实体存在、
+        零观测"的幻影。``ON CONFLICT ON CONSTRAINT uq_entity_type_code DO NOTHING``
+        让重跑不新增行、历史残留也不撞唯一键。
+        """
+        if not labels:
+            return {}
+        cur.executemany(
+            "INSERT INTO entities (entity_type, code, name_en, name_zh, metadata_json)"
+            " VALUES (%s, %s, NULL, %s, NULL)"
+            " ON CONFLICT ON CONSTRAINT uq_entity_type_code DO NOTHING",
+            [(entity_type, code, name_zh) for code, name_zh in labels.items()],
+        )
+        cur.execute(
+            "SELECT code, id FROM entities WHERE entity_type=%s AND code = ANY(%s)",
+            (entity_type, list(labels)),
+        )
+        return dict(cur.fetchall())
+
+
+    def extract_trials(items: list[dict], notes: list[str],
+                       phase_ids: dict[str, int] | None = None) -> list[tuple]:
         """返回 (code, entity_type, entity_id, date, granularity, value) 行。"""
         # 同一试验可能被多轮抓取到；按 registry id 取 scraped_at 最新的一条。
         newest: dict[str, dict] = {}
@@ -181,14 +276,19 @@ data:
                 newest[rid] = p
 
         per_month = Counter()
+        per_month_phase: Counter = Counter()
         rows: list[tuple] = []
         skipped_no_month = 0
+        unknown_tokens: set[str] = set()
         for rid, p in sorted(newest.items()):
             month = _month_of(p.get("start_date"))
             if not month:
                 skipped_no_month += 1
             else:
                 per_month[month] += 1
+                ph = phase_code(p.get("phase"))
+                per_month_phase[(month, ph)] += 1
+                unknown_tokens.update(unknown_phase_tokens(p.get("phase")))
             enroll = p.get("enrollment_count")
             if enroll in (None, "") or not month:
                 continue
@@ -203,6 +303,16 @@ data:
             rows.append(("trial.new", ENTITY_TYPE_COUNTRY, ENTITY_COUNTRY_CN,
                          f"{month}-01", "month", str(per_month[month])))
 
+        if phase_ids is not None:
+            for (month, ph), n in sorted(per_month_phase.items()):
+                rows.append(("trial.new.by_phase", ENTITY_TYPE_PHASE, phase_ids[ph],
+                             f"{month}-01", "month", str(n)))
+            if unknown_tokens:
+                notes.append(
+                    f"{TRIAL_SOURCE}: 未识别阶段取值 {sorted(unknown_tokens)}"
+                    f"（已按大写单列成实体，未合并、未丢弃）"
+                )
+
         notes.append(
             f"{TRIAL_SOURCE}: 试验 {len(newest)} 条唯一注册号；有 StartDate 月份的 "
             f"{sum(per_month.values())} 条覆盖 {len(per_month)} 个月；"
@@ -211,7 +321,8 @@ data:
         return rows
 
 
-    def extract_catalog(items: list[dict], notes: list[str]) -> list[tuple]:
+    def extract_catalog(items: list[dict], notes: list[str],
+                        section_ids: dict[str, int] | None = None) -> list[tuple]:
         """目录条目数与甲类占比：只用可支付行（排除黑名单），年份取目录年度版。"""
         newest: dict[int, dict] = {}
         for p in items:
@@ -244,12 +355,49 @@ data:
             f"占比 {share}%）；黑名单 {len(excluded)} 行不计入条目数"
         )
         period = f"{year}-01-01"
-        return [
+        rows = [
             ("catalog.drug.entries", ENTITY_TYPE_COUNTRY, ENTITY_COUNTRY_CN,
              period, "year", str(total)),
             ("catalog.drug.class_a_share", ENTITY_TYPE_COUNTRY, ENTITY_COUNTRY_CN,
              period, "year", str(share)),
         ]
+        if section_ids is not None:
+            per_section: Counter = Counter()
+            for p in payable:
+                per_section[section_code(p.get("section"))] += 1
+            for code, n in sorted(per_section.items()):
+                rows.append(("catalog.drug.entries.by_section", ENTITY_TYPE_SECTION,
+                             section_ids[code], period, "year", str(n)))
+            notes.append(
+                "分部：" + "、".join(f"{section_label(c)}={n}" for c, n in sorted(per_section.items()))
+            )
+        return rows
+
+
+    def check_dimension_sums(rows: list[tuple]) -> None:
+        """维度分项之和必须等于同期间的总量（expand-pharma-structure-concepts D4）。
+
+        纯算术、不依赖上游，所以能在单测里用合成数据先证明"能红"。三条失败形态：
+        分类时漏了行（和偏小）、同一行落进两个桶（和偏大）、把排除项算进分项（和偏大）。
+        """
+        totals: dict[tuple[str, str], int] = {}
+        parts: dict[tuple[str, str], int] = defaultdict(int)
+        for code, _et, _eid, d, _gran, value in rows:
+            if code == "trial.new":
+                totals[("month", d[:7])] = int(value)
+            elif code == "trial.new.by_phase":
+                parts[("month", d[:7])] += int(value)
+            elif code == "catalog.drug.entries":
+                totals[("year", d[:4])] = int(value)
+            elif code == "catalog.drug.entries.by_section":
+                parts[("year", d[:4])] += int(value)
+        for key, total in sorted(totals.items()):
+            got = parts.get(key, 0)
+            if got != total:
+                raise SystemExit(
+                    f"FATAL 求和不变式失败 {key[0]}={key[1]}: 分项和 {got} ≠ 总量 {total}"
+                    f"（漏分类=偏小；重复计数或把排除项算入=偏大）"
+                )
 
 
     def reconcile(cur, rows: list[tuple], trial_items: list[dict], catalog_items: list[dict]) -> None:
@@ -311,6 +459,9 @@ data:
                 f"复算 {len(expect_enroll)} 条"
             )
 
+        # 维度分项之和 == 该期总量（本 change 的核心算术判据）
+        check_dimension_sums(rows)
+
 
     def record_execution(conn, *, status: str, started_at, detail: str) -> None:
         """写一行存活台账（``executions``），**独立事务**。
@@ -363,7 +514,21 @@ data:
                   f"(增量月窗，跨 run 累积)")
             print(f"{CATALOG_SOURCE}: run#{catalog_run} 全量快照 {len(catalog_items)} 行")
 
-            rows = extract_trials(trial_items, notes) + extract_catalog(catalog_items, notes)
+            # 分类维度实体先登记（幂等），再用 id 聚合；只登记真观测到的取值。
+            seen_phases = {phase_code(p.get("phase"))
+                           for p in trial_items if _month_of(p.get("start_date"))}
+            phase_ids = ensure_entities(
+                cur, ENTITY_TYPE_PHASE,
+                {c: PHASE_LABELS.get(c, c) for c in sorted(seen_phases)},
+            )
+            seen_sections = {section_code(p.get("section"))
+                             for p in catalog_items if p.get("payment_scope") == "payable"}
+            section_ids = ensure_entities(
+                cur, ENTITY_TYPE_SECTION, {c: section_label(c) for c in sorted(seen_sections)},
+            )
+
+            rows = (extract_trials(trial_items, notes, phase_ids)
+                    + extract_catalog(catalog_items, notes, section_ids))
 
             # 逐试验观测的 entity_id 必须是 entities.id；先把注册号登记成实体（幂等），再替换。
             trial_ids = ensure_trial_entities(
