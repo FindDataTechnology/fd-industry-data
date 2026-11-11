@@ -102,7 +102,18 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-11-11T00:37:21.841633+00:00'
+  event: status
+  http_status: 200
+  state: done
+  note: ''
+  pr_url: ''
+- at: '2026-11-11T00:37:21.841705+00:00'
+  event: terminal
+  terminal: fixed-pending-human
+  previous: null
+  note: ''
+terminal: fixed-pending-human
 brief:
   source_urls:
   - https://fred.stlouisfed.org/graph/fredgraph.csv

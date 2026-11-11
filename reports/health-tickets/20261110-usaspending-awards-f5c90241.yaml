@@ -51,6 +51,19 @@ lifecycle:
   state: working
   note: ''
   pr_url: ''
+- at: '2026-11-11T00:08:51.135584+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: duplicate
+  response: '**已见过 FindDataTechnology/fd-industry-data#reports/health-tickets/20261110-usaspending-awards-f5c90241，状态：队列中（单写者阻塞）——未重复入队、未动手。**
+
+
+    依据：
+
+    - 状态文件（`/tmp/.spider-heal/inbox.json`，DSH_HOME 不可写按协议降级）中该单已存在：`state=queued`，note=单写者阻塞；本次仅复核并刷新时间戳。
+
+    - 2026-11-11 实时核对 GitHub API：r1 单（20261109-usaspending-awards-2'
 terminal: null
 brief:
   source_urls:
