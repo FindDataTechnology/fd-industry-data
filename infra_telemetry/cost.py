@@ -169,6 +169,7 @@ def _rows_sqlite(sql: str, *, channel: str, db_env: str = DB_ENV):
 
     rows: list[list[str]] = []
     cell_errors: list[dict] = []
+    newest_ms = 0
     for db_path in matches:
         cell = _cell_id(db_path)
         try:
@@ -179,12 +180,32 @@ def _rows_sqlite(sql: str, *, channel: str, db_env: str = DB_ENV):
             continue
         for row in one:
             rows.append(list(row) + [cell])
+        # 数据新鲜度（2026-11-12 假数据事故后加）：envelope 的 as_of 是「问的时刻」，
+        # 常量堆里读到的旧副本会让它看起来完全正常。这里取库内最新回合时间，
+        # 与 as_of 一比就知道自己读的是不是活数据。
+        try:
+            import sqlite3
+
+            con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=3)
+            try:
+                v = con.execute("SELECT MAX(CAST(started_at AS INTEGER)) FROM member_turn_events").fetchone()[0]
+            finally:
+                con.close()
+            if v and int(v) > newest_ms:
+                newest_ms = int(v)
+        except Exception:
+            pass  # 没有该表/打不开：只影响新鲜度标注，不影响数据
 
     if cell_errors and not rows and len(cell_errors) == len(matches):
         # 全部失败才诚实失败，不冒充空集。
         detail = "; ".join(f"{c['cell']}: {c['detail']}" for c in cell_errors)[:200]
         raise ChannelError(channel, cell_errors[0]["reason"], detail)
-    return rows, cell_errors
+    data_asof = None
+    if newest_ms:
+        import datetime as _dt
+
+        data_asof = _dt.datetime.fromtimestamp(newest_ms / 1000, _dt.timezone.utc).isoformat()
+    return rows, cell_errors, data_asof
 
 
 
@@ -200,6 +221,9 @@ def collect(
     rows: list[list[str]] = []
     # 逐 cell 的读取失败：不算通道失败，但要回给消费方点名（design D3）。
     cell_errors: list[dict] = []
+    # 库内最新回合时刻（sqlite 后端才有）。envelope 的 as_of 是「问的时刻」，
+    # 两者差得远＝读到了旧副本（2026-11-12：pod 钉在旧节点，fleet_cost 报 11-04 的数）。
+    data_asof: str | None = None
     sql = os.environ.get(SQL_ENV, "")
     backend = os.environ.get(BACKEND_ENV, "psql").strip().lower() or "psql"
     if not sql.strip():
@@ -209,9 +233,11 @@ def collect(
     elif backend == "sqlite":
         try:
             out = (sqlite_reader or _rows_sqlite)(sql, channel=CHANNEL)
-            # 读取层可以返回 rows（旧契约）或 (rows, cell_errors)（带身份）。
-            if isinstance(out, tuple) and len(out) == 2:
+            # 读取层可以返回 rows（旧契约）或 (rows, cell_errors[, data_asof])（带身份/新鲜度）。
+            if isinstance(out, tuple) and len(out) >= 2:
                 rows, cell_errors = list(out[0]), list(out[1] or [])
+                if len(out) >= 3 and out[2]:
+                    data_asof = str(out[2])
             else:
                 rows = list(out or [])
         except ChannelError as e:
@@ -228,6 +254,8 @@ def collect(
         items, counters = _aggregate(rows)
         if cell_errors:
             counters = {**counters, "cell_errors": cell_errors}
+        if data_asof:
+            counters = {**counters, "data_asof": data_asof}
     return envelope(
         "fleet_cost",
         items,

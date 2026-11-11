@@ -301,3 +301,32 @@ def test_sqlite_backend_all_cells_broken_is_honest_failure(tmp_path, monkeypatch
     assert out["channels"][0]["reason"] == "upstream_unreachable"
     assert out["summary"]["note"] == "channel failed — no data claimed"
 
+
+
+# ── 数据新鲜度：as_of 是「问的时刻」，data_asof 是「数据的时刻」 ──────────────
+#
+# 2026-11-12 事故：infra-telemetry 被钉在旧节点，hostPath 指向另一台机器的
+# 旧副本。envelope 正常、items 正常、as_of 是当下——只是数据停在 6 天前。
+# 所以必须把「数据的时刻」也报出来，让「读到旧副本」可判。
+
+def test_data_asof_reported_and_distinct_from_as_of(tmp_path, monkeypatch):
+    import sqlite3
+
+    d = tmp_path / "cellX" / "data" / "data"
+    d.mkdir(parents=True)
+    con = sqlite3.connect(d / "fleets.db")
+    con.execute("CREATE TABLE member_turn_events (usage_input INT, usage_output INT, started_at INT)")
+    con.execute("INSERT INTO member_turn_events VALUES (1,1,?)", (1793830625041,))
+    con.commit()
+    con.close()
+    _sqlite_env(monkeypatch, tmp_path)
+    out = cost.collect()
+    assert out["ok"] is True
+    assert out["summary"]["data_asof"] == "2026-11-04T22:17:05.041000+00:00", "数据的时刻要能被读出来"
+    assert out["as_of"] != out["summary"]["data_asof"], "as_of 是问的时刻，别拿它冒充数据新鲜度"
+
+
+def test_data_asof_absent_for_psql_backend(monkeypatch):
+    configure_env(monkeypatch)
+    out = cost.collect(psql=fake_psql_factory(AGG_ROWS))
+    assert "data_asof" not in out["summary"], "psql 通道不产生该字段，不许编"
