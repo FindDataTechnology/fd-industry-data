@@ -133,17 +133,25 @@ def upsert_family(cur, entry: dict) -> bool:
     return True
 
 
-def upsert_variable(cur, family: str, label_en: str, label_zh: str, v: dict) -> tuple[int, int]:
-    """按五元组 upsert 一条 concept；返回 (created, updated)。"""
+def upsert_variable(cur, family: str, label_en: str, label_zh: str, v: dict,
+                    migrate_entity_type: bool = False) -> tuple[int, int]:
+    """按五元组 upsert 一条 concept；返回 (created, updated)。
+
+    五元组含 ``entity_type``，所以**改了声明里的粒度就等于换了一个变量**：按五元组查不到
+    时会新插一条同 ``code`` 的行，旧行仍在——两条 code 相同、粒度不同的变量并存，读侧
+    按哪个都对不上。因此插入前必须先查「同 code 不同五元组」：命中即失败，只有显式
+    ``--migrate-entity-type`` 且该概念没有任何观测时才就地改粒度。
+    """
     key = tuple(v[f] for f in TUPLE_FIELDS)
     cur.execute(
-        "SELECT id, source, verified, concept_code, deprecated FROM concepts"
-        " WHERE code=%s AND entity_type=%s AND measure=%s AND unit=%s AND frequency=%s",
-        key,
+        "SELECT id, entity_type, measure, unit, frequency, source, verified,"
+        " concept_code, deprecated FROM concepts WHERE code=%s ORDER BY id",
+        (v["code"],),
     )
-    hit = cur.fetchone()
-    if hit:
-        cid, csource, verified, ccode, deprecated = hit
+    rows = cur.fetchall()
+    exact = [r for r in rows if (r[1], r[2], r[3], r[4]) == key[1:]]
+    if exact:
+        cid, _etype, _m, _u, _f, csource, verified, ccode, deprecated = exact[0]
         if (csource, verified, ccode, deprecated) != (SOURCE, True, family, False):
             cur.execute(
                 "UPDATE concepts SET source=%s, verified=true, concept_code=%s,"
@@ -153,6 +161,30 @@ def upsert_variable(cur, family: str, label_en: str, label_zh: str, v: dict) -> 
             return 0, 1
         print(f"  {v['code']}: already correct (id={cid})")
         return 0, 0
+    if rows:
+        same_measure = [r for r in rows if (r[2], r[3], r[4]) == key[2:]]
+        if not (migrate_entity_type and same_measure):
+            raise SystemExit(
+                f"FATAL: {v['code']} 已存在但五元组不同（数据库行 "
+                f"{[(r[1], r[2], r[3], r[4]) for r in rows]} ≠ 声明 {key[1:]}）。"
+                f"改粒度会产生同 code 的两条变量，读侧对不上。"
+                f"若确认只是 entity_type 变更且该概念尚无观测，用 --migrate-entity-type 显式迁移。"
+            )
+        cid = same_measure[0][0]
+        cur.execute("SELECT count(*) FROM semantic_observations WHERE concept_id=%s", (cid,))
+        used = cur.fetchone()[0]
+        if used:
+            raise SystemExit(
+                f"FATAL: {v['code']} 已有 {used} 条观测，不能改 entity_type"
+                f"（会把这些观测挂到错误的实体粒度上）。先处理观测再迁移。"
+            )
+        cur.execute(
+            "UPDATE concepts SET entity_type=%s, source=%s, verified=true,"
+            " concept_code=%s, deprecated=false WHERE id=%s",
+            (v["entity_type"], SOURCE, family, cid),
+        )
+        print(f"  {v['code']}: entity_type migrated -> {v['entity_type']} (id={cid})")
+        return 0, 1
     suffix = v["code"].rsplit(".", 1)[-1]
     cur.execute(
         "INSERT INTO concepts (code, name_en, name_zh, unit, measure, frequency,"
@@ -170,6 +202,8 @@ def main() -> int:
     ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
     ap.add_argument("--vocab", default=str(VOCAB))
     ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--migrate-entity-type", action="store_true",
+                    help="显式允许把已存在变量的 entity_type 就地改掉（仅当该概念零观测时）")
     args = ap.parse_args()
     if not args.dsn:
         raise SystemExit("FATAL: $FD_OPEN_DATA_DSN 未设置（source ~/.config/finddata/dashboards.env）")
@@ -190,7 +224,8 @@ def main() -> int:
             created_families += 1
         for v in variables:
             c, u = upsert_variable(cur, family, entry.get("label_en") or family,
-                                   entry.get("label_zh") or family, v)
+                                   entry.get("label_zh") or family, v,
+                                   migrate_entity_type=args.migrate_entity_type)
             created += c
             updated += u
 
