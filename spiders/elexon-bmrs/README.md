@@ -64,7 +64,7 @@ TEMP 的价值：英国电网负荷-温度强相关，TEMP 是 Elexon 官方需�
 ## 6. 复现验证
 
 ```bash
-export HTTPS_PROXY='http://fx01:lwxsibec@100.64.0.7:30081'
+export HTTPS_PROXY='http://fx01:<口令见代理池配置>@100.64.0.7:30081'
 curl -s "https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json" | head -c 400
 ```
 
