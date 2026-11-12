@@ -192,3 +192,4 @@ CronJob 的 args 是 `nasa-firms --limit 100 --window-auto`，而 `run_nasa_firm
 |---|---|---|---|---|---|
 | 2026-11-10 | 118 | 3 | `boxofficemojo`, `cisa`, `gb-standards` | — | month(840h) |
 | 2026-11-11 | 118 | 0 | — | — | month(840h) |
+| 2026-11-12 | 123 | 0 | — | — | month(840h) |

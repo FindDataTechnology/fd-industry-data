@@ -131,4 +131,9 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-11-12T01:34:21.315162+00:00'
+  event: terminal
+  terminal: recovered
+  previous: null
+  note: 连续 3 次成功（阈值 3，自 2026-11-06T04:46:53.548348+00:00 起算）
+terminal: recovered

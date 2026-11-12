@@ -119,4 +119,9 @@ lifecycle:
   state: pr-open
   note: ''
   pr_url: https://github.com/FindDataTechnology/fd-industry-data/pull/63（state=open，不动
-terminal: null
+- at: '2026-11-12T01:34:32.814702+00:00'
+  event: terminal
+  terminal: recovered
+  previous: null
+  note: 连续 3 次成功（阈值 3，自 2026-11-06T04:46:53.548348+00:00 起算）
+terminal: recovered
