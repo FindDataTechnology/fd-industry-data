@@ -64,7 +64,18 @@ lifecycle:
     - 状态文件（`/tmp/.spider-heal/inbox.json`，DSH_HOME 不可写按协议降级）中该单已存在：`state=queued`，note=单写者阻塞；本次仅复核并刷新时间戳。
 
     - 2026-11-11 实时核对 GitHub API：r1 单（20261109-usaspending-awards-2'
-terminal: null
+- at: '2026-11-12T02:04:08.665161+00:00'
+  event: status
+  http_status: 200
+  state: done
+  note: ''
+  pr_url: ''
+- at: '2026-11-12T02:04:08.665752+00:00'
+  event: terminal
+  terminal: fixed-pending-human
+  previous: null
+  note: ''
+terminal: fixed-pending-human
 brief:
   source_urls:
   - https://api.usaspending.gov/api/v2/search/spending_by_award/

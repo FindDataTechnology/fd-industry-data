@@ -132,5 +132,17 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-12T01:49:39.355230+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32003, "message": "Connection error."}'
+- at: '2026-11-12T01:55:58.939351+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: a4aaaf3e3191

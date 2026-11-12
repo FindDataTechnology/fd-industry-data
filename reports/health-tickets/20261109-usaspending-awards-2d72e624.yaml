@@ -99,7 +99,18 @@ lifecycle:
   state: working
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-11-12T01:54:03.170258+00:00'
+  event: status
+  http_status: 200
+  state: done
+  note: ''
+  pr_url: ''
+- at: '2026-11-12T01:54:03.170358+00:00'
+  event: terminal
+  terminal: fixed-pending-human
+  previous: null
+  note: ''
+terminal: fixed-pending-human
 brief:
   source_urls:
   - https://api.usaspending.gov/api/v2/search/spending_by_award/
