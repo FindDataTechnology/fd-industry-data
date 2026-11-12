@@ -52,7 +52,7 @@
 - 本地复测命令（Mac）：
 
   ```bash
-  export HTTPS_PROXY='http://fx01:lwxsibec@100.64.0.7:30081' HTTP_PROXY="$HTTPS_PROXY"
+  export HTTPS_PROXY='http://fx01:<口令见代理池配置>@100.64.0.7:30081' HTTP_PROXY="$HTTPS_PROXY"
   python3 -c "import importlib.util; ... run_socrata_ny(limit=5)"
   ```
 
@@ -77,7 +77,7 @@
 ## 6. 复现验证
 
 ```bash
-export HTTPS_PROXY='http://fx01:lwxsibec@100.64.0.7:30081'
+export HTTPS_PROXY='http://fx01:<口令见代理池配置>@100.64.0.7:30081'
 curl -s "https://data.ny.gov/resource/k7gz-mn77.json?%24limit=2&%24order=date+DESC" | head -c 400
 ```
 
