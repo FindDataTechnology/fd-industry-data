@@ -1,0 +1,392 @@
+{
+  "at": "2026-11-12T18:22:19.101713+00:00",
+  "base_date": "2026-11-12",
+  "config": "/data/runner/_work/fd-industry-data/fd-industry-data/src/config/agriculture-alerts.json",
+  "state_path": "/data/runner/_work/fd-industry-data/fd-industry-data/src/state/agriculture-alert-state.json",
+  "alert_events_ledger": "/data/runner/_work/fd-industry-data/fd-industry-data/src/state/agriculture-alert-events.jsonl",
+  "summary": {
+    "judged": 2,
+    "crossed": 0,
+    "quiet": 2,
+    "insufficient_data": 0,
+    "suppressed": 0,
+    "disabled": 2
+  },
+  "judged": [
+    {
+      "name": "breeding_sow_vs_normal_inventory_band",
+      "rule": {
+        "name": "breeding_sow_vs_normal_inventory_band",
+        "enabled": true,
+        "kind": "band",
+        "level": "threshold",
+        "description": "能繁母猪存栏相对正常保有量的比例（调控目标达成率），越出 92%–105% 合理波动区间",
+        "concept": "agriculture.cn.hog.breeding_sow_vs_target.quarterly",
+        "source_used": "moa-hog-price",
+        "authority": "official",
+        "periodicity": "quarter",
+        "unit": "percent",
+        "thresholds": {
+          "low": 92.0,
+          "high": 105.0,
+          "inclusive": true
+        },
+        "citation": "农业农村部《生猪产能调控实施方案（2024 年修订）》：「正常保有量稳定在 3900 万头左右，合理波动区间为正常保有量的 92%–105%」。",
+        "citation_version": "2024 年修订版",
+        "citation_note": "2021 版与 2024 版的保有量数值不同；阈值与版本只改这里，不改代码。92% 与 105% 是区间端点，含端点算区间内，越界仅指 <92% 或 >105%。",
+        "min_history_periods": 4,
+        "cooldown_periods": 1,
+        "gap_policy": "quarter",
+        "source_guard": {
+          "max_period_age_days": 120,
+          "max_source_age_days": 120,
+          "check_telemetry": true
+        },
+        "_threshold_note": "2026-11-08 实测：15 个有值季（2021Q4–2026Q3），缺口 2023Q1–2024Q1（5 季，源侧未发布，不插值、不补 0）；历史越界季 = 2021Q4(105.6) / 2022Q3(106.4) / 2022Q4(107.0)，最新 2026Q3=96.0 在区间内 → 当前判「未越阈」。季度源只在季度点判定，不按周/月判越阈；冷却窗按季（cooldown_periods=1）。",
+        "authority_note": "农业农村部畜牧兽医局本级发布（manifest authority=official）。"
+      },
+      "verdict": "quiet",
+      "value": 96.0,
+      "unit": "percent",
+      "period": "2026Q3",
+      "period_date": "2026-09-30",
+      "threshold": {
+        "low": 92.0,
+        "high": 105.0,
+        "inclusive": true
+      },
+      "side": null,
+      "history_out_of_band": [
+        {
+          "period": "2021Q4",
+          "date": "2021-12-31",
+          "value": 105.6
+        },
+        {
+          "period": "2022Q3",
+          "date": "2022-09-30",
+          "value": 106.4
+        },
+        {
+          "period": "2022Q4",
+          "date": "2022-12-31",
+          "value": 107.0
+        }
+      ],
+      "basis": {
+        "latest_period": "2026Q3",
+        "latest_date": "2026-09-30",
+        "low": 92.0,
+        "high": 105.0,
+        "inclusive": true,
+        "relation": "inside"
+      },
+      "gaps": {
+        "missing": [
+          "2023Q1",
+          "2023Q2",
+          "2023Q3",
+          "2023Q4",
+          "2024Q1"
+        ],
+        "count": 5,
+        "note": "缺期即缺，不插值、不补 0、不沿用旧值"
+      },
+      "notes": [],
+      "source_guard": {
+        "suppressed": false,
+        "reasons": [],
+        "basis": {
+          "series_latest": "2026-09-30",
+          "series_age_days": 43,
+          "max_period_age_days": 120,
+          "source_latest": "2026-10-26",
+          "source_age_days": 17,
+          "max_source_age_days": 120,
+          "telemetry_health": "healthy"
+        },
+        "observation_rows": 133,
+        "unparsed_periods": 0
+      },
+      "action": "idle"
+    },
+    {
+      "name": "soybean_meal_settle_percentile_spike",
+      "rule": {
+        "name": "soybean_meal_settle_percentile_spike",
+        "enabled": true,
+        "kind": "rolling_percentile",
+        "level": "threshold",
+        "description": "豆粕结算价相对滚动窗的历史分位尖峰（成本链变量；阈值是分位，不是元/吨数字）",
+        "concept": "futures.dce.meal.settle.daily",
+        "source_used": "dce",
+        "authority": "official",
+        "periodicity": "day",
+        "unit": "cny_per_ton",
+        "window_days": 90,
+        "percentile": 90.0,
+        "min_history_periods": 40,
+        "cooldown_periods": 5,
+        "gap_tolerance_days": 7,
+        "citation": "无官方阈值；本规则是统计基线：当前结算价在滚动 90 自然日（不含当日）样本中的分位 ≥ 配置的 90 分位即判尖峰。窗口与分位均为配置参数，代码不写死元/吨数值。",
+        "citation_version": "engine-config-v1（2026-11-08）",
+        "source_guard": {
+          "max_period_age_days": 14,
+          "max_source_age_days": 14,
+          "check_telemetry": true
+        },
+        "_threshold_note": "2026-11-08 实测：3726 期（2010-06-08–2026-11-06），最新 3101 元/吨；滚动 90 自然日窗口 58 点、当前分位 0.00 < 90、窗口 p90=3414 元/吨 → 当前判「未越阈」（价格处于近 90 日低位）。样本不足 min_history_periods=40 判 insufficient_data，不当作「没越阈」。",
+        "authority_note": "DCE 官方结算价；抓取通道为新浪日线（DCE 官网被瑞数拦截，见 spiders/dce/README.md）。本规则是统计分位基线，不是官方政策阈值。"
+      },
+      "verdict": "quiet",
+      "value": 3101.0,
+      "unit": "cny_per_ton",
+      "period": "2026-11-06",
+      "period_date": "2026-11-06",
+      "threshold": {
+        "percentile": 90.0,
+        "value_at_percentile": 3414.0
+      },
+      "percentile_rank": 0.0,
+      "basis": {
+        "latest_period": "2026-11-06",
+        "latest_date": "2026-11-06",
+        "window_days": 90,
+        "window_from": "2026-08-10",
+        "window_to": "2026-11-05",
+        "window_samples": 58,
+        "percentile": 90.0,
+        "value_at_percentile": 3414.0,
+        "percentile_rank": 0.0
+      },
+      "gaps": {
+        "missing": [],
+        "long_gaps": [
+          {
+            "after": "2010-07-16",
+            "before": "2010-10-07",
+            "days": 83
+          },
+          {
+            "after": "2010-10-07",
+            "before": "2010-10-18",
+            "days": 11
+          },
+          {
+            "after": "2011-02-01",
+            "before": "2011-02-09",
+            "days": 8
+          },
+          {
+            "after": "2011-09-30",
+            "before": "2011-10-10",
+            "days": 10
+          },
+          {
+            "after": "2012-01-20",
+            "before": "2012-01-30",
+            "days": 10
+          },
+          {
+            "after": "2012-09-28",
+            "before": "2012-10-08",
+            "days": 10
+          },
+          {
+            "after": "2013-02-08",
+            "before": "2013-02-18",
+            "days": 10
+          },
+          {
+            "after": "2014-01-30",
+            "before": "2014-02-07",
+            "days": 8
+          },
+          {
+            "after": "2014-09-30",
+            "before": "2014-10-08",
+            "days": 8
+          },
+          {
+            "after": "2015-02-17",
+            "before": "2015-02-25",
+            "days": 8
+          },
+          {
+            "after": "2016-02-05",
+            "before": "2016-02-15",
+            "days": 10
+          },
+          {
+            "after": "2016-09-30",
+            "before": "2016-10-10",
+            "days": 10
+          },
+          {
+            "after": "2017-01-26",
+            "before": "2017-02-03",
+            "days": 8
+          },
+          {
+            "after": "2017-09-29",
+            "before": "2017-10-09",
+            "days": 10
+          },
+          {
+            "after": "2017-10-31",
+            "before": "2018-03-12",
+            "days": 132
+          },
+          {
+            "after": "2018-09-28",
+            "before": "2018-10-08",
+            "days": 10
+          },
+          {
+            "after": "2019-02-01",
+            "before": "2019-02-11",
+            "days": 10
+          },
+          {
+            "after": "2019-09-30",
+            "before": "2019-10-08",
+            "days": 8
+          },
+          {
+            "after": "2020-01-23",
+            "before": "2020-02-03",
+            "days": 11
+          },
+          {
+            "after": "2020-02-24",
+            "before": "2020-03-10",
+            "days": 15
+          },
+          {
+            "after": "2020-03-10",
+            "before": "2020-03-18",
+            "days": 8
+          },
+          {
+            "after": "2020-03-18",
+            "before": "2020-07-20",
+            "days": 124
+          },
+          {
+            "after": "2020-09-30",
+            "before": "2020-10-09",
+            "days": 9
+          },
+          {
+            "after": "2021-02-10",
+            "before": "2021-02-18",
+            "days": 8
+          },
+          {
+            "after": "2021-09-30",
+            "before": "2021-10-08",
+            "days": 8
+          },
+          {
+            "after": "2022-01-28",
+            "before": "2022-02-07",
+            "days": 10
+          },
+          {
+            "after": "2022-09-30",
+            "before": "2022-10-10",
+            "days": 10
+          },
+          {
+            "after": "2023-01-20",
+            "before": "2023-01-30",
+            "days": 10
+          },
+          {
+            "after": "2023-09-28",
+            "before": "2023-10-09",
+            "days": 11
+          },
+          {
+            "after": "2024-02-08",
+            "before": "2024-02-19",
+            "days": 11
+          },
+          {
+            "after": "2024-09-30",
+            "before": "2024-10-08",
+            "days": 8
+          },
+          {
+            "after": "2025-01-27",
+            "before": "2025-02-05",
+            "days": 9
+          },
+          {
+            "after": "2025-09-30",
+            "before": "2025-10-09",
+            "days": 9
+          },
+          {
+            "after": "2026-02-13",
+            "before": "2026-02-24",
+            "days": 11
+          },
+          {
+            "after": "2026-09-30",
+            "before": "2026-10-08",
+            "days": 8
+          }
+        ],
+        "count": 35,
+        "max_gap": {
+          "after": "2017-10-31",
+          "before": "2018-03-12",
+          "days": 132
+        },
+        "tolerance_days": 7,
+        "note": "交易日序列：周末/节假日为源侧不发布；只列超过容忍天的间断（非缺口）"
+      },
+      "notes": [],
+      "source_guard": {
+        "suppressed": false,
+        "reasons": [],
+        "basis": {
+          "series_latest": "2026-11-06",
+          "series_age_days": 6,
+          "max_period_age_days": 14,
+          "source_latest": "2026-11-06",
+          "source_age_days": 6,
+          "max_source_age_days": 14,
+          "telemetry_health": "healthy"
+        },
+        "observation_rows": 7454,
+        "unparsed_periods": 0
+      },
+      "action": "idle"
+    }
+  ],
+  "insufficient_data": [],
+  "suppressed": [],
+  "disabled": [
+    {
+      "name": "cpi_food_vs_wholesale_scissors",
+      "verdict": "disabled",
+      "blocked_reason": "库内只有总体 CPI，没有 CPI 食品分项；农产品批发价格 200 指数未在册。不拿总体 CPI 顶替食品 CPI，也不自造批发指数，故本规则不判。",
+      "unlock": "接入 NBS 居民消费价格分类指数（食品分项）与农业农村部农产品批发价格 200 指数，按同月对齐后置 enabled=true；剪刀差单位=百分点（CPI 食品同比 − 批发价同比）。两项缺一不可，不得用总体 CPI 顶替。",
+      "citation": "判据应为 NBS CPI 食品分项与农业农村部农产品批发价格 200 指数（均为官方口径；当前库内均不可得）。",
+      "citation_version": "not-applicable-blocked"
+    },
+    {
+      "name": "hog_grain_ratio_official",
+      "verdict": "disabled",
+      "blocked_reason": "NDRC 官方猪粮比价不可得（留痕 ①）：/fgsj/ 无生猪/猪粮/比价栏目，jgjc.ndrc.gov.cn 已改为登录制，周报正文无表、数据在 PNG。本引擎不把自算近似当官方阈值判据。",
+      "unlock": "取得 NDRC 官方猪粮比价的结构化发布面后，以官方原文阈值参数化接入；在此之前「生猪均价 ÷ 玉米均价」只能作参考序列并显式标注「非官方发布值」，不得进入阈值判据。",
+      "citation": "NDRC 官方猪粮比价（留痕 ①：当前不可得）",
+      "citation_version": "not-applicable-blocked"
+    }
+  ],
+  "notifications": [],
+  "notify_errors": [],
+  "transitions": []
+}
