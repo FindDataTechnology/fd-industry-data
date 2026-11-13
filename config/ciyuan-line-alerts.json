@@ -1,0 +1,16 @@
+{
+  "_note": "词元按线花费告警的投递声明（alert-delivery 要求：每条告警线须声明出口与接收人）。规则在 scripts/ciyuan_line_alerts.py 里，本文件只承载投递与阈值。通道未配置时评估器记 not_configured（exit 3），绝不假装发过。",
+  "delivery": {
+    "channel": "smtp",
+    "to": ["1253774197@qq.com", "aloadtree@gmail.com"],
+    "min_severity": "warning",
+    "_note": "与其它五条告警线同一收件人；env FD_ALERT_SMTP_TO 非空时以 env 为准。"
+  },
+  "thresholds": {
+    "default_daily_usd": 50,
+    "_why_default": "爆炸检测而不是预算：2026-11-13 实测单线最高约 $11/日（openrouter），全站约 $26/日。50 美元/日意味着单线翻到 5 倍才会响——日常波动不该叫醒人。",
+    "lines": {
+      "_why_lines": "按线覆盖。加了阈值必须写理由，否则下一个人不知道这条线为什么该更松/更紧。"
+    }
+  }
+}
