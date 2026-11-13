@@ -2,10 +2,17 @@ version: "2"
 name: sse-szse-market-stats    # = spiders/sse-szse-market-stats/ 目录名，运行时标识符，合入后不可改名
 label: 沪深交易所每日成交概况（成交量/成交额/平均市盈率）
 source_url: https://www.szse.cn/market/stock/situation/daily/index.html
-# site: tencent 缺省——直连 www.szse.cn / query.sse.com.cn 实测可达（免 key 免鉴权，2026-11-07，见 README）
+# site: tencent 缺省——直连 query.sse.com.cn 实测可达（免 key 免鉴权，2026-11-07，见 README）
+# **2026-11-14 订正**：www.szse.cn 直连已不可达——集群里 TCP 通、TLS 1.3 握手成功，
+# 但对端一个字节都不回就断（ALPN 都没协商，任何 header 组合/TLS1.2/ALPN 全试过），
+# 而同一 URL 从本机 200/2219B、经 fd-industry-egress-fx01 代理由集群也 200/2219B。
+# ⇒ 是「腾讯云出口 IP 被深交所 WAF 拦」，不是站点故障、也不是我们的代码问题。
+# 因此挂出口代理兜底（census-eits/fred-cpi/amis-market 同法）；spider 直连优先，
+# 网络级失败才落到注入的 HTTPS_PROXY。真 spider 经代理实测 2 行真数据（SSE+SZSE）。
 # schedule: 点亮（add-securities-industry-line 3.6）。cron 按集群本地时区解释 → 实际 20:50 CST（12:50Z）。
 #   **2026-11-09 订正**：原注释写「20:50 UTC」，与执行不符。实测该时点数据正常
 #   （11-09 12:50Z 运行取到 trade_date=2026-11-09 当日），故只改注释、不动槽位。
+egress_secret: fd-industry-egress-fx01   # 2026-11-14：szse 侧被云出口 IP 拦，走代理兜底（详见上）
 schedule: "50 20 * * 1-5"   # 市场每日概况（成交/估值汇总）日频
 data_period: day
 data_period_field: trade_date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
