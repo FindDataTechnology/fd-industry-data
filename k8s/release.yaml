@@ -63,8 +63,16 @@ components:
     # AppSet declaration in fd-infra-deploy + reconcile-industry-appset.sh
     # apply (or kubectl replace) on chengsi.
     # 2026-11-11 晚：AppSet 的 image 已滚到 sha-f5a19aa（fd-image-bump.sh --apply），此处随之更新为同一个值。
+    # 2026-11-14 02:5x：滚到 sha-d99474d（十轮实测 150/151 已切；剩 1 个是挂起源的旧 spec）。
+    # 这一片是**在 f5a19aa 之上只加一处** —— fd_industry_data/http.py 的 fetch_bytes
+    # （解析不可信时的候选 IP + TLS 判据）。特意不取 main tip：那两片还带
+    # pharma_facts 的地址格式变更，而 extract-pharma 按 fact_address 落库，
+    # 换格式会让老行对不上、凭空多出重复行。
+    # 起因是代码错位而不是升级：checkout 从 gitee 取 spiders/、框架来自镜像，
+    # twse 的新 spider 先上线，于是报 AttributeError（fetch_bytes 不存在）。
+    # 另三面（runner / runner-xinru / observer）**仍是 f5a19aa**，未滚。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-f5a19aa
+    tag: sha-d99474d
 
 # consumption file (repo-root-relative) -> component whose image it renders
 consumption:
