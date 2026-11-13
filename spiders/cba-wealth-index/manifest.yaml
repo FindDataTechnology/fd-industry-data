@@ -3,6 +3,17 @@ name: cba-wealth-index        # = spiders/cba-wealth-index/ 目录名，运行�
 label: China Banking Association wealth-management market index (monthly return indices, 2022-present)
 source_url: https://www.china-cba.net/Index/lists/catid/279.html
 # site: 缺省 —— 本机直连 www.china-cba.net 实测 200（2026-11-08，见 README 证据表）
+#
+# **parked 2026-11-14：上游把 2026 年全部报告附件删了，不是我们的解析问题。**
+# 实测（tencent 集群，逐条 HEAD）：
+#   * 栏目页 200（22841B）→ 年度详情页 id=46763 200，正文仍列出 9 个附件链接；
+#   * 这 9 个 2026 附件（2026年1–9月，批次目录 20261012/ 与 20261019/）**全部 404**；
+#   * 对照组 id=44625（2025 年）的 9 个 docx **全部 200**、241–411KB 可下载。
+# ⇒ 只有 2026 批次被撤，页面索引未同步。作业因此每轮报「全部期均未解析出指数值」。
+# 挂起的判据：截图式证据在下方 commit message；恢复条件＝上游把附件放回来（无需改代码）。
+# 复检方法：重新 HEAD 那 9 个 URL，任一返回 200 即可 unpark 并跑一次 --period 校验。
+parked: true
+enabled: false
 schedule: "15 14 12 * *"       # 月更：协会在次月中下旬把上月报告挂到年度聚合页（实测 2026-09 于 2026-10-19 上传）
 data_period: month
 scanner_mode: upstream-curated
