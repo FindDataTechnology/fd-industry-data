@@ -1,0 +1,39 @@
+ticket_id: 20261113-cba-wealth-index-a1f91ce0
+source: cba-wealth-index
+unit: spiders/cba-wealth-index/
+kind: repair
+created_at: '2026-11-13T00:19:47.419531+00:00'
+category: null
+needs_human: true
+suspected_anti_bot: false
+suggested_action: 补充遥测样本后复检（证据不足）
+evidence:
+  window:
+    from: '2026-11-12 06:15:10.110731+00'
+    to: '2026-11-12 06:15:42.881157+00'
+  failing_runs:
+  - started_at: '2026-11-12 06:15:10.110731+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: cba-wealth-index: 全部期均未解析出指数值'
+    http_status: null
+  - started_at: '2026-11-12 06:15:42.881157+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: cba-wealth-index: 全部期均未解析出指数值'
+    http_status: null
+  last_success: null
+  watermark:
+    latest: null
+    basis: unknown（遥测未提供数据期；无成功运行记录）
+  notes: rule2:insufficient-evidence tail_failed=2<min_runs_for_verdict=3 last_success_age=noneh
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261113-cba-wealth-index-a1f91ce0.yaml
+golden:
+- spiders/cba-wealth-index/golden/001-cba-wealth-index.json
+lifecycle:
+- at: '2026-11-13T00:19:47.419531+00:00'
+  event: created
+terminal: null
+evidence_signature: d5ab5a94aea5
