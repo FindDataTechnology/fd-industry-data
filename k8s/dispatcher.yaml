@@ -45,8 +45,21 @@ spec:
                 - -c
                 - |
                   set -e
-                  git clone --depth 1 --filter=blob:none --sparse \
-                    "https://FindDataTechnology:${GITEE_TOKEN}@gitee.com/FindDataTechnology/fd-industry-data.git" /content
+                  # 同 cronjob 模板：不用 --filter=blob:none（promisor 懒拉取在 gitee 上会 504 /
+                  # TLS 中断；本仓 3.4MiB，filter 没有收益），并重试三次兜瞬时抖动。
+                  _n=0
+                  until git clone --depth 1 --sparse \
+                      "https://FindDataTechnology:${GITEE_TOKEN}@gitee.com/FindDataTechnology/fd-industry-data.git" /content
+                  do
+                    _n=$((_n + 1))
+                    if [ "$_n" -ge 3 ]; then
+                      echo "clone failed after ${_n} attempts" >&2
+                      exit 1
+                    fi
+                    echo "clone attempt ${_n} failed, retrying in 5s" >&2
+                    rm -rf /content
+                    sleep 5
+                  done
                   cd /content
                   git sparse-checkout set spiders/
                   git rev-parse HEAD > /content/.commit

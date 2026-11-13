@@ -176,9 +176,13 @@ def evaluate(repo: Path, today: date) -> dict:
 #
 # 工单链（health_inspect --submit-new → 萬星 spider-heal）在 2026-11-07 起整批 401。
 # 实测根因不是凭据：a2a 路由已从平台摘挂搬到 wanxing 门面，而 spider-heal
-# **不在门面的 18 个 public agent 里**（`GET /api/wangxing/v1/agents` 无任何
+# **不在门面的 18 个 public agent 里**（`GET /api/wanxing/v1/agents` 无任何
 # `spider`/`heal` 条目），原 slug 打门面直接 404 AGENT_NOT_FOUND。
 # 告警用途已由邮件通道完全覆盖，故把它记成「已知、不修复」，避免自检每天喊同一条。
+#
+# 2026-11-13 补：柏讯侧已删掉那个指向 spider-heal 的**缺省** slug（slug 现在没有
+# 缺省值，未配即按"未配置"回绝），所以这条走廊现在连"拿假目标去投"都不会发生——
+# 记录保留，因为它描述的是**服务面缺 agent** 这个事实，配置面修好不等于部署面修好。
 KNOWN_TICKET_ISSUES = {
     "route_moved": (
         "工单链 a2a 路由已搬迁至 wanxing 门面且 spider-heal 未上服务面；"
