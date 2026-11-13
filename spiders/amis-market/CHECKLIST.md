@@ -4,7 +4,7 @@
 - [x] `spider.py` 提供 `run_amis_market(limit=N) -> list[dict]`，只依赖标准库 `urllib`/`json`（无新依赖）
 - [x] **需代理出口**：端点 `amis-9189b.appspot.com` 被墙；单元用 urllib 缺省代理行为（尊重 `HTTPS_PROXY`/`HTTP_PROXY` 环境变量），**不硬编码代理地址**；README 首屏标注
 - [x] **manifest 无 `schedule` 无 `site`**——代理注入就绪前不点亮，静默合入，点亮留给人工门
-- [x] 端点免 key 无鉴权；无重试放大；50000 行帽命中按失败处理（拒绝不可靠截片）
+- [x] 端点免 key 无鉴权；**瞬时网络错误有界重试**（≤3 次、指数退避、只重试 URLError/超时/5xx，4xx 直抛；无频次放大）；50000 行帽命中按失败处理（拒绝不可靠截片）
 - [x] `max_lastupdate=1` 只取最新修订（同键多修订行实测去重，自然键唯一）
 - [x] 三段名整体 backtick（`fao-maps.fao_amis.*`，项目段含连字符）
 - [x] manifest 字段齐全：name/label/source_url/functions/columns/concepts/entities/fetch；`columns` 与 spider 行字段逐一对齐
