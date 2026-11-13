@@ -1,0 +1,9 @@
+{
+  "_note": "集群节点告警的投递声明（两条规则：Ready 失联 + DiskPressure 盘压前兆）。规则本身在 scripts/node_health_alerts.py 里，JSON 只承载投递；盘压规则是 2026-11-13 补的，起因是 Ready=True 掩盖了 DiskPressure=True、facet 被驱逐而全程零告警。收件人属配置（可版本化、非机密）；SMTP 凭据走 Secrets/env。通道未配置时记 not_configured(exit 3)，绝不假装发过。",
+  "delivery": {
+    "channel": "smtp",
+    "to": ["1253774197@qq.com", "aloadtree@gmail.com"],
+    "min_severity": "warning",
+    "_note": "与 agriculture/flower 两条线同一收件人；env FD_ALERT_SMTP_TO 非空时以 env 为准（运维临时改投）。"
+  }
+}
