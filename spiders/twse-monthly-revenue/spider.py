@@ -23,8 +23,9 @@
 from __future__ import annotations
 
 import json
-import urllib.request
 from datetime import datetime, timezone
+
+from fd_industry_data import http
 
 SOURCE = "twse-monthly-revenue"
 REVENUE_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap05_L"
@@ -40,9 +41,13 @@ MISSING = {"-", "", "—", "–"}
 
 
 def _get_json(url: str):
-    req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
-        raw = resp.read()
+    # 走共享取数口：本域名在 tencent 集群里解析不到真地址——2026-11-14 实测系统解析
+    # 每次给出不同的无关 IP（微软/Vultr/Dropbox 网段），而 DoH 的答案同样不可信
+    # （doh.pub 先给真地址 203.74.220.1，十分钟后给 162.125.32.5）。
+    # 但四个真地址从集群里全部可达（TLS 200、65KB 真 JSON）。
+    # 所以这里靠 FD_PIN_HOSTS 提供候选 IP，由 TLS 证书校验判定真伪：
+    # 连错 IP 只会握手失败，不会有数据风险。健康环境不配该变量即退化为普通请求。
+    raw = http.fetch_bytes(url, headers=HEADERS, timeout=TIMEOUT)
     return json.loads(raw.decode("utf-8", "replace"))
 
 
