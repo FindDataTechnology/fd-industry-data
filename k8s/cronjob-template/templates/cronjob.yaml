@@ -85,8 +85,26 @@ spec:
                   # runner 端 float("") 抛错后静默跳过 —— 实测 2026-11-09 首版就是这样
                   # 一条都没有落库。
                   _T0=$(date +%s)
-                  git clone --depth 1 --filter=blob:none --sparse \
-                    "https://FindDataTechnology:${GITEE_TOKEN}@gitee.com/FindDataTechnology/fd-industry-data.git" /content
+                  # 不用 --filter=blob:none（2026-11-13 实测）：部分克隆把 `sparse-checkout set`
+                  # 变成了对 gitee 的 promisor 懒拉取，而那一跳经常抖——三个源分别死在
+                  # `curl 56 GnuTLS recv error (-110)` ×2 与 `HTTP 504`，全都卡在同一个
+                  # blob（`fd_industry_data/__init__.py`，小文件，不是体积问题）。
+                  # 本仓 size-pack 只有 3.4MiB，filter 省不下什么，却把一次 fetch 拆成了
+                  # 「先拿树、再逐个懒取 blob」，失败面反而变大。故整包一次取完。
+                  # 重试三次兜 TLS 抖动：并发会话/网关抖动是瞬时故障，不该让一次抓取失败。
+                  _n=0
+                  until git clone --depth 1 --sparse \
+                      "https://FindDataTechnology:${GITEE_TOKEN}@gitee.com/FindDataTechnology/fd-industry-data.git" /content
+                  do
+                    _n=$((_n + 1))
+                    if [ "$_n" -ge 3 ]; then
+                      echo "clone failed after ${_n} attempts" >&2
+                      exit 1
+                    fi
+                    echo "clone attempt ${_n} failed, retrying in 5s" >&2
+                    rm -rf /content
+                    sleep 5
+                  done
                   cd /content
                   # spiders/ 是爬虫本体；fd_industry_data/ 与 universes/ 是**运行时依赖**：
                   # 部分单元在模块作用域 import `fd_industry_data.universes`（车道默认宇宙，
