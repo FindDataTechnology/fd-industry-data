@@ -136,6 +136,18 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-13T00:32:39.994311+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-13T01:00:32.470402+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:

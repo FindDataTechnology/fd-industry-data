@@ -26,5 +26,17 @@ golden: []
 lifecycle:
 - at: '2026-11-13T00:19:47.419531+00:00'
   event: created
+- at: '2026-11-13T00:42:53.019857+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-13T00:53:35.683907+00:00'
+  event: status
+  http_status: 200
+  state: queued
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 98c4b7d37a4c
