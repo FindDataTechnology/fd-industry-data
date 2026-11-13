@@ -48,3 +48,9 @@
 {"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278858", "at": "2026-11-12T21:26:31.820915+00:00", "value": null, "threshold": null, "detail": "新增事件"}
 {"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278569", "at": "2026-11-12T21:26:31.820915+00:00", "value": null, "threshold": null, "detail": "新增事件"}
 {"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278840", "at": "2026-11-12T21:26:31.820915+00:00", "value": null, "threshold": null, "detail": "新增事件"}
+{"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278950", "at": "2026-11-13T20:52:34.774831+00:00", "value": null, "threshold": null, "detail": "新增事件"}
+{"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278929", "at": "2026-11-13T20:52:34.774831+00:00", "value": null, "threshold": null, "detail": "新增事件"}
+{"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278949", "at": "2026-11-13T20:52:34.774831+00:00", "value": null, "threshold": null, "detail": "新增事件"}
+{"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278860", "at": "2026-11-13T20:52:34.774831+00:00", "value": null, "threshold": null, "detail": "新增事件"}
+{"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278887", "at": "2026-11-13T20:52:34.774831+00:00", "value": null, "threshold": null, "detail": "新增事件"}
+{"kind": "firing", "rule_id": "bank-penalty-new", "key": "1278903", "at": "2026-11-13T20:52:34.774831+00:00", "value": null, "threshold": null, "detail": "新增事件"}
