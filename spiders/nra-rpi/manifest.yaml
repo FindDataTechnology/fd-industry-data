@@ -1,0 +1,53 @@
+version: "2"
+name: nra-rpi                # = spiders/nra-rpi/ 目录名，运行时标识符，合入后不可改名
+label: National Restaurant Association Restaurant Performance Index (monthly composite index, PDF text layer)
+source_url: https://restaurant.org/research-and-media/research/restaurant-economic-insights/restaurant-performance-index/
+# site: 缺省 —— 生成单不写排期；是否排期由平台在 merge 后决定
+# authority: trade_association —— 发布方是美国餐饮业行业协会（NRA），非政府统计部门；
+#   RPI 为行业协会景气调查合成的扩散指数（基线 100），作行业趋势参考序列。
+authority: industry
+data_period: month
+scanner_mode: upstream-curated
+functions:
+  - command: run_nra_rpi
+    description: >-
+      Fetch the latest monthly Restaurant Performance Index PDF from the NRA
+      research landing page (link pattern RPI-<Month>-<YYYY>.pdf), extract its
+      TEXT LAYER and parse the "Restaurant Performance Index and Its
+      Components" table (page 3): the composite RPI plus its two
+      equal-weighted components — Current Situation Index and Expectations
+      Index — each with the last five months of values. Long table, one row
+      per (period, index). Every month is cross-validated against
+      RPI = (Current Situation + Expectations) / 2 (±0.15 rounding tolerance);
+      months failing the check are dropped and logged, never zero-filled.
+      Extraction uses the platform shared layer fd_industry_data.pdftext when
+      available, with an embedded stdlib-only fallback extractor (same
+      contract). No OCR anywhere: an image-only PDF raises instead of guessing.
+      NOTE: only the latest issue is reachable (no per-period archive URL
+      evidenced; folder year on the CDN does not match the report period), so
+      each run emits at most the trailing five months of one issue.
+    frequency: monthly
+    parameters:
+      - name: limit
+        type: int
+        required: false
+        description: Maximum rows to return, newest period first (one issue yields up to 15 rows; default all parsed rows)
+    columns:
+      - name: period
+        type: str
+        description: Index month as YYYY-MM (derived from the component-table month header; latest column = report month)
+      - name: index
+        type: str
+        description: Series key — RPI (composite) / current_situation / expectations
+      - name: value
+        type: float
+        description: Index level (diffusion index around a baseline of 100; e.g. 100.7)
+      - name: unit
+        type: str
+        description: Constant "index_level"
+      - name: source_url
+        type: str
+        description: Absolute URL of the PDF the row was parsed from
+      - name: scraped_at
+        type: str
+        description: UTC ISO-8601 timestamp of the run
