@@ -1,0 +1,92 @@
+ticket_id: 20261114-eia-v2-feaf0e5f
+source: eia-v2
+unit: spiders/eia-v2/
+kind: repair
+created_at: '2026-11-14T00:20:27.084157+00:00'
+category: structure
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 核对条目键名或更新 data_period_field（当前声明 'period'）
+evidence:
+  window:
+    from: '2026-10-15 01:00:04.949248+00'
+    to: '2026-11-14 00:01:31.314054+00'
+  failing_runs:
+  - started_at: '2026-11-13 19:00:12.472276+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-11-10T18&end=2026-11-13T19&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-11-13 19:01:34.559271+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-11-10T18&end=2026-11-13T19&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-11-13 20:00:07.821444+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-11-10T19&end=2026-11-13T20&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-11-13 21:00:08.806056+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-11-10T20&end=2026-11-13T21&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-11-13 21:01:31.948974+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-11-10T20&end=2026-11-13T21&sort[0][column]=period&sort[0][direction]=asc&offset=167&length=100
+      —— TimeoutError: The read operat'
+    http_status: null
+  - started_at: '2026-11-13 22:00:08.009232+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-11-10T21&end=2026-11-13T22&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-11-13 23:00:07.387866+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-11-10T22&end=2026-11-13T23&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-11-13 23:01:29.661268+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-11-10T22&end=2026-11-13T23&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-11-14 00:00:07.527904+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-11-10T23&end=2026-11-14T00&sort[0][column]=period&sort[0][direction]=asc&offset=0&length=100
+      —— TimeoutError: The read operatio'
+    http_status: null
+  - started_at: '2026-11-14 00:01:31.314054+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: eia-v2: 请求失败（2 次尝试）—— https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=***&frequency=hourly&data[0]=value&facets[respondent][]=CISO&start=2026-11-10T23&end=2026-11-14T00&sort[0][column]=period&sort[0][direction]=asc&offset=161&length=100
+      —— HTTPError: HTTP Error 504: Ga'
+    http_status: null
+  last_success:
+    started_at: '2026-11-13 22:01:37.729134+00'
+    rows: 100
+  watermark:
+    latest: null
+    basis: unknown（遥测未提供数据期；最近成功时间见 evidence.last_success）
+  notes: declare:field-mismatch field='period' states=['unavailable', 'unavailable',
+    'unavailable'] runs=3
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261114-eia-v2-feaf0e5f.yaml
+golden:
+- spiders/eia-v2/golden/001-eia-v2.json
+lifecycle:
+- at: '2026-11-14T00:20:27.084157+00:00'
+  event: created
+terminal: null
+evidence_signature: 974dccaeb656

@@ -1,0 +1,50 @@
+ticket_id: 20261114-cba-wealth-index-ae7e3d04
+source: cba-wealth-index
+unit: spiders/cba-wealth-index/
+kind: repair
+created_at: '2026-11-14T00:20:27.084157+00:00'
+category: fallback
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 整段重生成（兜底）
+evidence:
+  window:
+    from: '2026-11-12 06:15:10.110731+00'
+    to: '2026-11-13 15:09:09.456552+00'
+  failing_runs:
+  - started_at: '2026-11-12 06:15:10.110731+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: cba-wealth-index: 全部期均未解析出指数值'
+    http_status: null
+  - started_at: '2026-11-12 06:15:42.881157+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: cba-wealth-index: 全部期均未解析出指数值'
+    http_status: null
+  - started_at: '2026-11-13 15:07:58.024663+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: cba-wealth-index: 全部期均未解析出指数值'
+    http_status: null
+  - started_at: '2026-11-13 15:09:09.456552+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: cba-wealth-index: 全部期均未解析出指数值'
+    http_status: null
+  last_success: null
+  watermark:
+    latest: null
+    basis: unknown（遥测未提供数据期；无成功运行记录）
+  notes: 'rule9:fallback identical-unknown-fingerprint x4 (>=consecutive_failures=3)
+    fingerprint=''runtimeerror: cba-wealth-index: 全部期均未解析出指数值'''
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261114-cba-wealth-index-ae7e3d04.yaml
+golden:
+- spiders/cba-wealth-index/golden/001-cba-wealth-index.json
+lifecycle:
+- at: '2026-11-14T00:20:27.084157+00:00'
+  event: created
+terminal: null
+evidence_signature: d5ab5a94aea5
