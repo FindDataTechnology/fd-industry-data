@@ -165,4 +165,10 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-14T11:59:42.304023+00:00'
+  event: status
+  http_status: 402
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
