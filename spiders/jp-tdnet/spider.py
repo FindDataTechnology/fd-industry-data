@@ -41,11 +41,13 @@ BASE_URL = "https://www.release.tdnet.info/inbs"
 DEFAULT_CODES = ("7550", "7581", "2702", "3197")  # 日股餐饮宇宙（restaurant-universe.yaml）
 TIMEOUT = 60  # 秒；单页 18–22KB，实测 <2s，60s 已是宽松上限
 
-_ROW_RE = re.compile(r'<td class="oddnew-L kjTime"[^>]*>(.*?)</td>.*?'
-                     r'<td class="oddnew-M kjCode"[^>]*>(.*?)</td>.*?'
-                     r'<td class="oddnew-M kjName"[^>]*>(.*?)</td>.*?'
-                     r'<td class="oddnew-M kjTitle"[^>]*>(.*?)</td>.*?'
-                     r'<td class="oddnew-M kjPlace"[^>]*>(.*?)</td>', re.S)
+# 行类在 oddnew-* / evennew-* 间交替（2026-11 站点改版：偶数行 evennew-*）；
+# 只锚 kj* 单元格类别，行类用 (?:odd|even) 覆盖两种。
+_ROW_RE = re.compile(r'<td class="(?:odd|even)new-L kjTime"[^>]*>(.*?)</td>.*?'
+                     r'<td class="(?:odd|even)new-M kjCode"[^>]*>(.*?)</td>.*?'
+                     r'<td class="(?:odd|even)new-M kjName"[^>]*>(.*?)</td>.*?'
+                     r'<td class="(?:odd|even)new-M kjTitle"[^>]*>(.*?)</td>.*?'
+                     r'<td class="(?:odd|even)new-M kjPlace"[^>]*>(.*?)</td>', re.S)
 _HREF_RE = re.compile(r'href="([^"]+)"')
 
 
