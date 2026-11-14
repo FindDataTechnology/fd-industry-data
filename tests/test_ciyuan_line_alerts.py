@@ -19,6 +19,7 @@ import pytest
 
 from scripts.ciyuan_line_alerts import (  # noqa: PLC2701 — 脚本与测同仓
     RULE_ID, compose_messages, evaluate, line_daily_totals, thresholds_of,
+    unattributed_share,
 )
 
 NOW = datetime(2026, 11, 13, 12, 0, tzinfo=timezone.utc)
@@ -245,3 +246,106 @@ def test_firing_hands_one_message_to_delivery_and_records_receipt(tmp_path, monk
     assert "无上限" in body["no_limit_note"]
     assert (tmp_path / "state.json").exists(), "--run 必须落状态，否则下一轮会重复发"
     assert (tmp_path / "events.jsonl").exists(), "留痕文件必须写"
+
+
+# ── 6. 「按线」的分母必须写出来（2026-11-14 新增）────────────────────────────
+#
+# 2026-11-14 实测：近 7 天 $250.08 里只有 10.7% 能归到某条线，89.3% 全在 unknown
+# （两把自有账号的键）。而这条告警此前对这件事一个字都不说——`unknown` 只是明细
+# 里的一行，读者看不出"其余九成根本没进任何一条线"。
+# 这与「无上限」是同一族缺陷：一个只在有值时才有意义的判据，缺值时必须自己也说出来。
+
+
+def _unknown_rows():
+    """复刻 2026-11-14 的真实形状：自有账号两个中文/英文首段吃掉绝大部分。"""
+    return [
+        ("unknown", "2026-11-13", 42135, 130.72),
+        ("unknown", "2026-11-13", 25342, 91.20),
+        ("萬星 wanxing", "2026-11-13", 9063, 26.60),
+        ("law-bench", "2026-11-13", 80, 0.15),
+    ]
+
+
+def test_unattributed_share_is_measured_over_the_window():
+    doc = _doc(lines=_unknown_rows(), groups=[_group("core")])
+    facts = unattributed_share(doc)
+    assert facts["total_usd"] == pytest.approx(248.67, abs=0.01)
+    assert facts["unattributed_usd"] == pytest.approx(221.92, abs=0.01)
+    assert facts["share"] == pytest.approx(0.892, abs=0.005), \
+        "这个数就是「按线读数覆盖了多少」的另一半，不许算成 0 或 1"
+    assert "没有落在任何一条线上" in facts["note"]
+    assert "89" in facts["note"], "正文里要直接出现百分比，不能只给字段"
+
+
+def test_no_usage_is_its_own_state_not_zero_percent():
+    """窗口内没数据 ⇒ share 必须是 None，note 明说「无从计算」。
+
+    写成 0.0 会造出「未归因 0%」这个假事实——正是
+    「『一条记录都没有』须自成一态」那个坑。
+    """
+    facts = unattributed_share(_doc(lines=[]))
+    assert facts["share"] is None, "无数据不许冒充 0%"
+    assert facts["total_usd"] == 0.0
+    assert "无从计算" in facts["note"]
+    assert "不等于 0%" in facts["note"]
+
+
+def test_fully_attributed_says_so_instead_of_dividing():
+    doc = _doc(lines=[("萬星 wanxing", "2026-11-13", 10, 5.0)])
+    facts = unattributed_share(doc)
+    assert facts["share"] == 0.0
+    assert facts["unattributed_usd"] == 0.0
+    assert "全部" in facts["note"] and "未归因 $0.00" in facts["note"]
+
+
+def test_unknown_prefixes_are_named_in_the_note():
+    """只说「有 89% 未归因」不够——必须点名首段，否则没人知道该给谁一条线。"""
+    doc = _doc(lines=[("unknown", "2026-11-13", 1, 9.0),
+                      ("萬星 wanxing", "2026-11-13", 1, 1.0)])
+    doc["per_line_day"][0]["raw_prefix_if_unknown"] = "特价"
+    facts = unattributed_share(doc)
+    assert "特价" in facts["note"]
+    assert facts["top_prefixes"] == [{"seg": "特价", "usd": 9.0}]
+
+
+def test_top_prefixes_rank_by_spend_not_alphabetically():
+    """**首版就错在这里，必须钉住。**
+
+    首版直接取 ``line_daily_totals`` 的 `raw_prefixes`（那是 ``sorted(set())[:5]``，
+    即字母序），于是实测数据里真正花掉 88% 的 `特价`/`openrouter` 被
+    `413621549`/`acp`/`embedding`/`enforce`/`fd` 这几个金额近零、字母序在前的首段
+    全部挤掉 —— 「主要首段」指错了对象。这里用 7 个首段（超过 top=3 的截断），
+    且让金额最大的两个排在**字母序最后**，只有按金额排序才能通过。
+    """
+    doc = _doc(lines=[
+        ("unknown", "2026-11-13", 1, 0.01),    # 413621549
+        ("unknown", "2026-11-13", 1, 0.02),    # acp
+        ("unknown", "2026-11-13", 1, 0.03),    # embedding
+        ("unknown", "2026-11-13", 1, 0.04),    # enforce
+        ("unknown", "2026-11-13", 1, 0.05),    # fd
+        ("unknown", "2026-11-13", 1, 91.20),   # openrouter ← 字母序靠后
+        ("unknown", "2026-11-13", 1, 130.72),  # 特价 ← 字母序最后
+        ("萬星 wanxing", "2026-11-13", 1, 26.60),
+    ])
+    for row, seg in zip(doc["per_line_day"],
+                        ["413621549", "acp", "embedding", "enforce", "fd",
+                         "openrouter", "特价", ""]):
+        row["raw_prefix_if_unknown"] = seg
+    facts = unattributed_share(doc)
+    segs = [p["seg"] for p in facts["top_prefixes"]]
+    assert segs == ["特价", "openrouter", "fd"], f"必须按花费降序取前三，实得 {segs}"
+    assert "特价" in facts["note"] and "130.72" in facts["note"]
+    assert "acp" not in facts["note"], "金额近零的首段不该占掉名额"
+
+
+def test_unattributed_note_rides_along_with_every_alert():
+    """超阈告警的正文里必须带上「按线读数只覆盖多少」，否则照样读不出盲区。"""
+    doc = _doc(lines=_unknown_rows(), groups=[_group("core"), _group("dev-sandbox")])
+    _, events, detail = evaluate(doc, {}, NOW, default_usd=50, per_line={})
+    msgs = compose_messages(events, detail, doc)
+    assert msgs, "两条线超阈（unknown 221.92 / 萬星 26.60 vs 阈值 50）"
+    for m in msgs:
+        body = json.loads(m["body"])
+        assert body["unattributed_share"] == pytest.approx(0.892, abs=0.005)
+        assert body["window_total_usd"] == pytest.approx(248.67, abs=0.01)
+        assert "没有落在任何一条线上" in body["unattributed_note"]

@@ -161,6 +161,66 @@ def line_daily_totals(doc: dict) -> dict[str, dict]:
     return out
 
 
+def _unknown_prefix_spend(doc: dict) -> list[tuple[str, float]]:
+    """未归因的首段按**花费**排序（不是字母序）。
+
+    2026-11-14 首次实现按 `line_daily_totals` 的 `raw_prefixes` 取前 5——那是
+    ``sorted(set(...))[:5]``，即**字母序**。实测立刻暴露：真正花掉 88% 的两个首段
+    （`特价` $130.72、`openrouter` $91.20）被 `413621549`/`acp`/`embedding`/`enforce`/`fd`
+    这几个字母序在前、金额近零的首段挤掉了，于是「主要首段」这句话指错了对象。
+    这类「名字对了、对象错了」的读数比不报更坏，所以这里自己按金额重算。
+    """
+    by_prefix: dict[str, float] = {}
+    for row in doc.get("per_line_day") or []:
+        if (row.get("line") or "unknown") != "unknown":
+            continue
+        seg = row.get("raw_prefix_if_unknown") or "(deleted key)"
+        by_prefix[seg] = by_prefix.get(seg, 0.0) + float(row.get("usd") or 0)
+    return sorted(by_prefix.items(), key=lambda kv: (-kv[1], kv[0]))
+
+
+def unattributed_share(doc: dict, *, top: int = 3) -> dict:
+    """窗口内「未归因」占全部花费的比例——**只报事实，不做判断**。
+
+    为什么必须有这一段：按线报表天然只展示「被归到线的那部分」，分母从不出现。
+    于是「按线」看起来覆盖了全部花费，实际可能只覆盖一小撮。2026-11-14 实测近 7 天
+    $250.08 里只有 **10.7%** 能归到某条线，另外 89.3% 全在 ``unknown``（两把自有账号的键），
+    而这条告警当时对这件事**一个字都不说**——`unknown` 只是明细里的一行，
+    读者看不出「其余九成根本没进任何一条线」。这与 3.2 的「无上限」是同一类缺陷：
+    **一个只在有值时才有意义的判据，缺值时必须自己也说出来。**
+
+    三态，不许混同（见「『一条记录都没有』须自成一态」）：
+    - 窗口内无任何用量 ⇒ ``share=None`` 且 note 明说「无从计算（不是 0%）」；
+    - 有用量且全部归因 ⇒ ``share=0.0``，note 说「全部归到了线」；
+    - 有用量且有 ``unknown`` ⇒ 给比例与主要首段，供人判断该不该给它一条线。
+    """
+    totals = line_daily_totals(doc)
+    total = round(sum(v["window_usd"] for v in totals.values()), 4)
+    unknown = round(totals.get("unknown", {}).get("window_usd", 0.0), 4)
+    ranked = _unknown_prefix_spend(doc)[:top]
+    prefixes = [{"seg": seg, "usd": round(usd, 4)} for seg, usd in ranked]
+    if total <= 0:
+        return {
+            "total_usd": 0.0, "unattributed_usd": 0.0, "share": None,
+            "top_prefixes": [],
+            "note": "窗口内没有任何用量数据 ⇒ 未归因占比无从计算（这不等于 0% 未归因）",
+        }
+    share = round(unknown / total, 4)
+    if unknown <= 0:
+        note = f"全部 ${total:.2f} 都归到了线，未归因 $0.00"
+    else:
+        note = (f"**{share:.1%} 的花费没有落在任何一条线上**"
+                f"（${unknown:.2f} / ${total:.2f}）：这些调用的 key 名首段对不上别名表，"
+                f"所以任何『按线』读数都只覆盖剩下的 {1 - share:.1%}")
+        if prefixes:
+            note += "；按花费前三：" + "、".join(
+                f"`{p['seg']}` ${p['usd']:.2f}" for p in prefixes)
+    return {
+        "total_usd": total, "unattributed_usd": unknown, "share": share,
+        "top_prefixes": prefixes, "note": note,
+    }
+
+
 def thresholds_of(cfg: dict) -> tuple[float, dict[str, float]]:
     """读阈值。``_`` 开头的键是注记（本仓配置惯例：``_note`` / ``_why_*``），不当值。
 
@@ -229,6 +289,10 @@ def compose_messages(events: list[dict], detail: list[dict], doc: dict) -> list[
         f"只能靠本告警在超阈时通知。"
     ) if unlimited else "所有分组都有配置额度。"
 
+    # 未归因占比随每封正文带出：读者拿到「某线超阈」时，同时知道这个按线读数
+    # 覆盖了多少花费。没有这一句，`unknown` 只是明细里的普通一行。
+    unattributed = unattributed_share(doc)
+
     msgs: list[dict] = []
     for e in events:
         line = e["key"].split(":", 1)[-1]
@@ -248,6 +312,10 @@ def compose_messages(events: list[dict], detail: list[dict], doc: dict) -> list[
             "unlimited_groups": len(unlimited),
             "groups_total": len(doc.get("groups") or []),
             "no_limit_note": no_limit_note,
+            "unattributed_share": unattributed["share"],
+            "unattributed_usd": unattributed["unattributed_usd"],
+            "window_total_usd": unattributed["total_usd"],
+            "unattributed_note": unattributed["note"],
             "hint": ("先看该线今天的 key 与模型分布（sub2api 仓 tools/line-metrics.sql）；"
                      "若属预期增长，把 config 的 thresholds.lines.<线> 调高并留下理由——"
                      "不要默默把阈值抬到不响。"),
@@ -318,6 +386,7 @@ def main(argv: list[str] | None = None) -> int:
 
     unlimited = [g["group"] for g in (doc.get("groups") or []) if g.get("limits_unset") is True]
     groups_total = len(doc.get("groups") or [])
+    unattributed = unattributed_share(doc)
 
     receipt = DeliveryReceipt()
     verdict_code = None
@@ -366,6 +435,8 @@ def main(argv: list[str] | None = None) -> int:
         "groups_without_limits": unlimited,
         "no_limit_note": (f"{len(unlimited)}/{groups_total} 个分组三档额度全为空 ⇒ 无上限；"
                           f"没有告警不等于额度在管着") if unlimited else "所有分组都有额度",
+        # 同一族缺陷的另一半：按线读数覆盖了多少花费。永远打印，永不静默。
+        "unattributed": unattributed,
         # 配了阈值但数据里没有这条线 ⇒ 多半是线名拼错（阈值静默失效）
         "unused_thresholds": sorted(set(per_line) - {d["line"] for d in detail if d.get("line")}),
         "threshold_default_usd": default_usd,
