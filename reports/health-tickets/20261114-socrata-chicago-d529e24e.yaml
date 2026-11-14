@@ -125,5 +125,11 @@ lifecycle:
   state: queued
   note: ''
   pr_url: ''
+- at: '2026-11-14T19:17:57.219717+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 61b09bd56a7d
