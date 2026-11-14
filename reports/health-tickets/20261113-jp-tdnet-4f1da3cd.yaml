@@ -60,5 +60,13 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-14T05:34:39.815486+00:00'
+  event: submitted
+  http_status: 502
+  ok: false
+  verdict: error
+  response: "<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body>\r\n<center><h1>502\
+    \ Bad Gateway</h1></center>\r\n<hr><center>nginx/1.27.5</center>\r\n</body>\r\n\
+    </html>"
 terminal: null
 evidence_signature: 98c4b7d37a4c
