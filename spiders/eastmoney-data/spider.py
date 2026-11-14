@@ -31,8 +31,23 @@ CPI_COLUMNS = ",".join([
 ])
 
 
-def build_api_url(report_name: str, columns: str, page_size: int = 20, page_number: int = 1) -> str:
-    """Build a datacenter-web JSON API URL (columns list is URL-encoded)."""
+# 每个报表取多少期。**必须 ≥24**：下游 extract_*.py 的趋势闸是「≥24 连续期」，
+# 少于它就会被当作横截面跳过（`eastmoney-data` 就是这样一直进不了语义层）。
+# 同时注意记录的倍增关系：每期会展开成「当月 + 同比」两条，所以两个报表共
+# 2 × HISTORY_PERIODS × 2 条 = 120 条（HISTORY_PERIODS=30），清单里的 `limit`
+# 必须 ≥120，否则后一个报表会被 `--limit` 截断到不足 24 期。
+HISTORY_PERIODS = 30
+
+
+def build_api_url(report_name: str, columns: str, page_size: int = HISTORY_PERIODS,
+                  page_number: int = 1) -> str:
+    """Build a datacenter-web JSON API URL (columns list is URL-encoded).
+
+    `page_size` 不是随手取的 20：它决定**每个指标能拿到多少期历史**，而下游
+    `fd-industry-data/scripts/extract_*.py` 有一条 **≥24 连续期**的趋势闸
+    （不足者按「横截面冒充序列」跳过，见该脚本 SKIP_NOTES）。20 期差一本，正是
+    `eastmoney-data` 长期进不了 `semantic_observations` 的原因之一。
+    """
     params = {
         "columns": columns,
         "sortColumns": "REPORT_DATE",
@@ -76,6 +91,7 @@ CUSTOM_UAS: List[str] = [
 MAX_RETRIES = 3
 REQUEST_DELAY = 2.0
 MAX_RECORDS = 60
+
 
 BASE_DIR = Path(__file__).parent.resolve()
 DATA_DIR = BASE_DIR / "data"

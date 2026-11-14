@@ -1,9 +1,15 @@
 schedule: "35 4 * * *"
+# 每个报表 30 期 × 「当月/同比」两条 × 两个报表 = 120 条。缺省 limit=100 会把
+# PPI 截到不足 24 期，而下游 extract_*.py 的趋势闸是「≥24 连续期」⇒ 两个报表
+# 都进不了 semantic_observations。故显式抬到 200（留出余量）。
+limit: 200
 data_period: day
 # site 已退役（2026-11-14）：原为 `site: xinru-server2`，而该站点的 k3s 里**连 scraw
 # 命名空间都不存在**（无 dispatcher、无 SA、无 Secret），源自 2026-11-09 04:50 起零产出。
-# tencent 出口用真 spider 实跑验过：`success rows=2 in 7.7s`，与该源历史 59 次成功的
-# rows_written 中位数/最大值（都是 2）一致 ⇒ 换站点不损失数据形状。
+# tencent 出口用真 spider 实跑验过（2026-11-14）。注意「历史中位数 2 行」不可作为
+# 基线：那 59 次 success 全是**字段全空的占位行**（`response.text` 为空串所致，
+# 已修，见 `6d76a02`），真值一轮 80 条；本清单同时把 limit 抬到 200 以容纳
+# 30 期 × 2 报表（见上）。
 # 日后若要挪回某个站点，先确认那里的 `scraw/fd-industry-dispatcher` 在场。
 # fd-open-data-protocol compliant manifest
 

@@ -86,3 +86,17 @@ def test_all_urls_unparsable_raises_instead_of_empty_success():
     mod.REQUEST_DELAY = 0
     with pytest.raises(RuntimeError):
         mod._crawl_records(["https://x/api"], save_results=False)
+
+
+def test_history_window_clears_the_trend_gate():
+    """每报表期数必须 ≥24：下游 extract_*.py 的趋势闸是「≥24 连续期」。
+
+    这条测试把「pageSize 不能随手取」的原因钉住——2026-11-14 之前是 20，
+    差一本，于是 `eastmoney-data` 永远进不了 `semantic_observations`。
+    """
+    mod = _load()
+    assert mod.HISTORY_PERIODS >= 24
+    assert "pageSize=30" in mod.START_URLS[0], mod.START_URLS[0]
+    # 两个报表 × 每期两条（当月/同比）必须装得下清单里的 limit=200
+    import math
+    assert 2 * mod.HISTORY_PERIODS * 2 <= 200
