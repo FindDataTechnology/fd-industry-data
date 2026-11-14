@@ -191,8 +191,9 @@ def ex_abs_sdmx(cur, notes):
             continue
         out.append(("cons.permits.monthly", "country", COUNTRY_AU, period,
                     "month", fmt(v)))
-    notes.append(f"abs-sdmx: 切片 1GSYD 住宅许可（payload 库存 2001-07..2009-10 共 100 期连续；"
-                 f"单元历史 2001-07 起约 290 期，本次入库以实存 payload 为准）")
+    notes.append(f"abs-sdmx: 切片 1GSYD 住宅许可（payload 库存 {len(seen)} 期连续，"
+                 f"2001-07 起；2026-11-14 上游窗口由 100 期放到 303 期后，"
+                 f"cons.permits.monthly 从 100 行补到 303 行、走到 2026-09）")
     return out
 
 
@@ -379,9 +380,16 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--only", action="append", default=[], metavar="UNIT",
+                    help="只跑这些单元（可重复；缺省整批）。2026-11-14 加："
+                         "单元之间是独立的，某一源的上游窗口刚被修好时需要单独回填它，"
+                         "而不是把整批七个单元一起重放")
     args = ap.parse_args()
     if not args.dsn:
         raise SystemExit("DSN missing — source ~/.config/finddata/dashboards.env first")
+    unknown = sorted(set(args.only) - set(EXTRACTORS))
+    if unknown:
+        raise SystemExit(f"--only 里有未知单元：{unknown}（可选：{sorted(EXTRACTORS)}）")
 
     conn = psycopg2.connect(args.dsn)
     try:
@@ -389,7 +397,9 @@ def main() -> int:
             notes: list[str] = []
             rows: list[tuple] = []
             per_unit: list[tuple[str, int]] = []
-            for src, fn in EXTRACTORS.items():
+            todo = {k: v for k, v in EXTRACTORS.items()
+                    if not args.only or k in args.only}
+            for src, fn in todo.items():
                 before = len(rows)
                 rows.extend(fn(cur, notes))
                 per_unit.append((src, len(rows) - before))
