@@ -423,3 +423,65 @@ def test_dry_run_still_prioritises_oldest_unread(tmp_path):
     res = ins.sync_status(d, "http://x", "k", max_reads=2, dry_run=True)
     names = [r["ticket"] for r in res]
     assert "20261110-t-c.yaml" not in names, f"最久未读优先应排除刚读过的 t-c，实际 {names}"
+
+
+def test_jsonrpc_error_receipts_cap_retirement(tmp_path, cfg, monkeypatch):
+    """agent 真跑过回合并以 JSON-RPC 错误收场的投递计满上限 → 停手转人工。
+
+    实测（2026-11-15）：20261107-fred-cpi-ba279d6a 被 -32032/-32002 反复收走，
+    每轮占住唯一槽位跑满整个回合预算（末次 600s 超时），同轮 8 张全 409 deferred、
+    accepted=0 —— 一张永远处理不完的单饿死整条线。错误类此前无上限（try20）。
+    """
+    monkeypatch.setattr(ins, "_SUBMIT_TURN_FAIL_MAX", 2)
+    d = _mk(tmp_path, slugs=("t-cap", "t-other"))
+    name = "20261110-t-cap.yaml"
+    doc = tm.load_ticket(d / name)
+    for code in (-32032, -32002):
+        tm.append_event(doc, "submitted", http_status=200, ok=False, verdict="error",
+                        response=f'{{"code": {code}, "message": "x"}}')
+    (d / name).write_text(tm.dump_ticket(doc), encoding="utf-8")
+
+    calls: list[str] = []
+
+    def poster(url, key, idem, body):
+        calls.append(idem)
+        return 200, "已入队"
+
+    res = ins.submit_new_tickets(d, "org/repo", "http://x", "k", cfg, poster=poster)
+    capped = [r for r in res if r.get("ticket") == name]
+    assert capped and capped[0]["verdict"] == "exhausted", capped
+    assert "上限 2" in capped[0]["verdict_reason"], capped[0]["verdict_reason"]
+    assert calls == ["20261110-t-other-try1"], (
+        f"耗尽的工单不得再打门面，其余工单照常投；实际 calls={calls}"
+    )
+    doc2 = tm.load_ticket(d / name)
+    kinds = [e.get("event") for e in doc2["lifecycle"]]
+    assert "submit-exhausted" in kinds, kinds
+    assert kinds.count("submitted") == 2, "停手不得再追加 submitted 事件"
+
+
+def test_deferred_and_transport_failures_do_not_count_toward_cap(tmp_path, cfg):
+    """409 deferred / HTTP 402 / 空响应 这些「回合没开始」的形态不计入上限。
+
+    方向二：把通道故障误记成工单罪过，会提前退役其实有救的单——上限只数
+    JSON-RPC 错误回执（-32xxx），其余 submitted(ok=false) 不计数。
+    """
+    d = _mk(tmp_path, slugs=("t-only",))
+    name = "20261110-t-only.yaml"
+    doc = tm.load_ticket(d / name)
+    shapes = [
+        {"http_status": 200, "ok": False, "verdict": "error", "response": "PLAN_EXHAUSTED text"},
+        {"http_status": 502, "ok": False, "verdict": "error", "response": "<html>502</html>"},
+        {"http_status": 409, "ok": False, "verdict": "deferred", "response": "turn in flight"},
+        {"http_status": 200, "ok": False, "verdict": "unknown", "response": '{"code": "X"}'},
+    ]
+    for e in shapes:
+        tm.append_event(doc, "submitted", **e)
+    (d / name).write_text(tm.dump_ticket(doc), encoding="utf-8")
+
+    def poster(url, key, idem, body):
+        return 200, "已入队"
+
+    res = ins.submit_new_tickets(d, "org/repo", "http://x", "k", cfg, poster=poster)
+    assert res[0]["verdict"] in ("accepted", "duplicate"), res[0]
+    assert res[0]["attempt"] == 5, "非 JSON-RPC 错误回执不计入上限，照常递增重投"

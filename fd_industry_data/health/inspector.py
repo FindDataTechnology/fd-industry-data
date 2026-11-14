@@ -47,6 +47,15 @@ _SUBMIT_UNKNOWN_MAX = 3
 # 等不到就**本批停手**（继续捶剩余单只会各自 409），下一个巡检周期接手。
 _SUBMIT_TURN_POLL_S = 15.0     # 轮询间隔
 _SUBMIT_TURN_BUDGET_S = 90.0   # 单张单的等待预算（实测 agent 回合 20–150s）
+# 错误回执上限（fix-turn-fail-starvation，2026-11-15）：agent **真跑过回合**并以
+# JSON-RPC 错误收场的投递计满 N 次就停手转人工。不加它时一张处理不完的单会每轮
+# 占住唯一槽位跑满整个回合预算（实测 20261107-fred-cpi-ba279d6a-try20：600s 超时），
+# 同轮其余单全部 409 deferred、accepted=0——一张单饿死整条线。
+# **只数 JSON-RPC 错误回执**（`"code":-32xxx` 的 response）＝回合真的跑过：
+#   409 deferred / 402 / 502 / 308 这类"回合没开始"的形态不计，免得把通道故障
+#   误记成工单罪过、提前退役其实有救的单。也不设 terminal——工单照常巡检出单，
+#   只是 SUBMIT 停手，处置权交回人（判词必须写明停了几次，别让"没投"冒充"没单"）。
+_SUBMIT_TURN_FAIL_MAX = 6
 # 整批上限：不加这两条实测会撞 workflow 45 分钟超时（2026-11-10 首版修复
 # 18 张 × 120s ≈ 36min + 常规 9min = 49m30s，被超时掐成 cancelled，一张都没交成）。
 # 有界地做：每轮最多 N 张、批量等待总预算 ≤ B，剩下的下一轮接手。
@@ -1293,6 +1302,27 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                 1 for e in doc.get("lifecycle") or []
                 if e.get("event") in ("submitted", "submit-failed")
             )
+            turn_fails = sum(
+                1 for e in doc.get("lifecycle") or []
+                if e.get("event") == "submitted" and not e.get("ok")
+                and re.search(r'"code"\s*:\s*-32\d{3}', str(e.get("response") or ""))
+            )
+            if turn_fails >= _SUBMIT_TURN_FAIL_MAX:
+                last = next((str(e.get("response") or "") for e in reversed(doc.get("lifecycle") or [])
+                             if e.get("event") == "submitted" and not e.get("ok")
+                             and re.search(r'"code"\s*:\s*-32\d{3}', str(e.get("response") or ""))), "")
+                entry.update({
+                    "submitted": False,
+                    "verdict": "exhausted",
+                    "verdict_reason": (f"agent 已真跑过回合并以错误收场 {turn_fails} 次（上限 "
+                                       f"{_SUBMIT_TURN_FAIL_MAX}），停止重投转人工；末次：{last[:120]}"),
+                })
+                ticket_mod.append_event(doc, "submit-exhausted", turn_fails=turn_fails,
+                                        limit=_SUBMIT_TURN_FAIL_MAX, last_response=last[:300])
+                p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
+                results.append(entry)
+                handled += 1
+                continue
             idem = f"{p.name[:-5]}-try{prior + 1}"
             entry["attempt"] = prior + 1
             try:
