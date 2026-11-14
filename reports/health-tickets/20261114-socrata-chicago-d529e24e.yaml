@@ -131,5 +131,11 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-14T23:24:07.965376+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 61b09bd56a7d
