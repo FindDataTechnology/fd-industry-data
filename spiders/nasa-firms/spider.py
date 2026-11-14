@@ -164,8 +164,14 @@ def _text(value):
     return text or None
 
 
-def run_nasa_firms(limit: int = 100) -> list[dict]:
-    """取全球 24h 火点快照前 ``limit`` 行；快照不可用 → 抛 ``RuntimeError``（失败即红）。"""
+def run_nasa_firms(limit: int = 100, now: datetime | None = None) -> list[dict]:
+    """取全球 24h 火点快照前 ``limit`` 行；快照不可用 → 抛 ``RuntimeError``（失败即红）。
+
+    ``now`` 是判据的时钟注入点（默认取真实当下）。``_pick_snapshot`` 本来就有这个
+    参数，但入口没透传，于是用例只能吃真实时钟——写死的 acq_date 一旦超过
+    ``MAX_SNAPSHOT_AGE_DAYS`` 就红在「快照陈旧」上，与它要验的东西无关
+    （2026-11-14 实测：11-10 的样本 4 天后被判陈旧）。runner 侧不传，行为不变。
+    """
     try:
         limit = int(limit)
     except (TypeError, ValueError):
@@ -173,7 +179,7 @@ def run_nasa_firms(limit: int = 100) -> list[dict]:
     if limit <= 0:
         return []
 
-    url, text = _pick_snapshot()
+    url, text = _pick_snapshot(now=now)
     reader = csv.DictReader(io.StringIO(text))
     header = reader.fieldnames or []
     missing = [c for c in FLOAT_COLS + STR_COLS if c not in header]

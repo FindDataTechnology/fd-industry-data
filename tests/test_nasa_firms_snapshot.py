@@ -121,7 +121,7 @@ def test_rows_carry_the_platform_that_served_them(monkeypatch):
     """url 列必须写实际服务的平台，否则事后无法解释 satellite 为什么不是 N。"""
     first, second = nf.PLATFORMS[0], nf.PLATFORMS[1]
     _fake({first[1]: HEADER, second[1]: _csv("2026-11-10", satellite="N21")}, monkeypatch)
-    rows = nf.run_nasa_firms(limit=1)
+    rows = nf.run_nasa_firms(limit=1, now=NOW)
     assert rows[0]["url"] == second[1]
     assert rows[0]["satellite"] == "N21"
 
