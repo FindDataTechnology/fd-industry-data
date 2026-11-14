@@ -1329,6 +1329,50 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
     return results
 
 
+def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = None) -> dict:
+    """投递通道体检：**每一次**尝试都栽在服务侧错误 ⇒ 通道断了，不是工单的问题。
+
+    为什么必须单列这一块：2026-11-13~11-14 自愈投递连续三天每次都被平台拒掉
+    （`-32032 fetch failed`、`-32003 Connection error`，11-14 我用全量运行实测是
+    **HTTP 502**、7 张单 2 分 05 秒全灭），而巡检自己只逐张写「这张单 error」——
+    七张单七条 error 读起来像七张单各自的问题，通道死了三天没有任何东西会红
+    （最后一次被受理是 2026-11-11T00:08）。同族于「告警系统自己停了没人会知道」：
+    沉默与「没有事件」长得一样。
+
+    判据刻意保守，宁可漏判也不误判：只有「每一次尝试都是服务侧错误」才算 outage。
+    只要有一张被受理、被拒（`refused`：工单内容问题）或回执看不懂，就只报
+    degraded——否则一张内容有问题的单会把整条通道判死。
+    """
+    attempts = [
+        r for r in (submit or [])
+        if r.get("ticket") != "__batch_limit__" and r.get("http_status") is not None
+    ]
+    errors = [r for r in attempts if r.get("verdict") == "error"]
+    # 同一原因只留一条，避免七行同样的 502 把摘要冲爆
+    reasons: list[str] = []
+    for r in errors:
+        why = str(r.get("verdict_reason") or "error")
+        code = r.get("http_status")
+        label = f"{why} (HTTP {code})" if code is not None else why
+        if label not in reasons:
+            reasons.append(label)
+    if not attempts:
+        verdict = "idle"            # 没东西可投 ≠ 通道坏了
+    elif len(errors) == len(attempts):
+        verdict = "outage"
+    elif errors:
+        verdict = "degraded"
+    else:
+        verdict = "ok"
+    return {
+        "status": verdict,
+        "attempted": len(attempts),
+        "service_errors": len(errors),
+        "accepted": sum(1 for r in attempts if r.get("submitted")),
+        "reasons": reasons[:3],
+    }
+
+
 def parse_status(text: str) -> dict:
     """容错解析 STATUS 回执：优先 JSON，其次关键词扫描。"""
     state, note, pr_url = None, "", ""

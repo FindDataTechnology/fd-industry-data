@@ -157,10 +157,23 @@ def main() -> int:
         key = os.environ.get("WANXING_SPIDER_HEAL_KEY", "")
         summary["status"] = inspector.sync_status(outdir, url, key)
 
+    # 投递通道体检（2026-11-14）：逐张工单的 error 判定**不足以**让人发现通道整个断了。
+    # 11-13~11-14 三天每次投递都被平台拒（-32032 fetch failed / 502），摘要里只是七张
+    # 单各一条 error，看起来像七张单各自的问题，而通道死了三天无人知道。所以这里把它
+    # 汇成一条判据，并且**在 outage 时让这一轮变红**——沉默与「没有事件」长得一样。
+    lane = inspector.delivery_lane_health(summary.get("submit"), summary.get("status"))
+    summary["delivery_lane"] = lane
+
     text = json.dumps(summary, ensure_ascii=False, indent=2)
     print(text)
     if args.summary_file:
         Path(args.summary_file).write_text(text + "\n", encoding="utf-8")
+    if lane["status"] == "outage" and not args.dry_run:
+        print(f"::error::投递通道中断：本轮 {lane['attempted']} 次 SUBMIT 全部栽在服务侧错误"
+              f"（{'; '.join(lane['reasons'])}），0 张被受理。这不是工单的问题——"
+              "先查萬星 a2a 端点与 platform pod 出网（raw.githubusercontent.com）。",
+              file=sys.stderr)
+        return 3
     return 0
 
 

@@ -134,6 +134,21 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
   **`if: always()`**（取消时保住已得进度）；③`STATUS_MAX_PER_RUN=8` 单轮回读上限 +
   **最久未读优先**（`_last_read_at` 排序，不会饿死）——积压超过 8 张时分多轮推进。
   回归：`test_status_budget_cap_prefers_stalest`。
+- **2026-11-14：抬墙没解决问题，因为 SUBMIT 的批量预算从未生效。** 11-12/13/14 连续三夜
+  deliver 跑 2070/2248/2233s、撞穿 45 分钟墙被掐（`cancelled`），把墙抬到 60 分钟也没用：
+  `_SUBMIT_BATCH_BUDGET_S=1800` 只累计**等 turn 的 sleep**，没算每次 `poster()` 本身
+  约 300s 的往返。间隔证据取自工单生命周期的 `submitted` 时间戳：11-13 是
+  309/305/303s、11-14 是 308/303/303/215/303/157s。24 张单最坏 24×300s＝2 小时。
+  三处一起改（缺一条都还漏）：① 首投与重试的往返都按 `time.monotonic()` 计入
+  `batch_waited`，重试耗时同时计入单张等待预算（否则"每张最多等 90s"在 300s/次的
+  真实回合下等于无限次重试）；② 开新单前留一次调用余量 `_SUBMIT_CALL_RESERVE_S=330s`
+  （否则在 1799s 处还会再起一次 300s 调用）；③ 每次调用的 timeout 按
+  「剩余预算 / `_POSTER_ATTEMPTS`」收缩——`_default_poster` 默认 900s × 3 次连接重试，
+  固定超时下**一次调用**最坏 45 分钟，能独占整个作业墙。改后上界
+  1800(SUBMIT) + 900(STATUS) + 其余 ≈53 分钟 < 60。
+  回归：`test_batch_budget_counts_poster_wall_time`、`test_turn_retry_counts_round_trip_time`、
+  `test_submit_timeout_shrinks_to_remaining_budget`（三条都做过反证：去掉计时后 900s 预算
+  下 5 张全投、一次 409 连打 10 回；关掉收缩后 timeout 全为 `None`）。
 
 ## 生成流（kind=generate，source-generation-flow）
 
@@ -473,6 +488,42 @@ dispatcher 侧避免因一次数据不足就判任务失败、连带罚掉共享
 
 它仍然不看 `deferred`，所以上面两次扩字段没有改变它的判断。
 
+### 投递通道体检：逐张的 error 不等于通道在（2026-11-14）
+
+`alert_selfcheck.py` 判的是"最近一批**整批** 401/403"。可 11-13~11-14 的形态是
+**每次投递都败在 200/502 上的服务侧错误**，于是它——以及摘要里的逐张 `error`——都没有红：
+
+| 事实 | 取证 |
+|---|---|
+| 最后一次**被受理**的投递 | `2026-11-11T00:08`（`20261110-usaspending-awards-f5c90241` duplicate） |
+| 此后每次投递 | `-32032 fetch failed` / `-32003 Connection error`；11-14 全量运行实测 **HTTP 502**，7 张单 2 分 05 秒全灭 |
+| 摘要里显示成 | 七张单各一条 `error` —— 读起来像七张单各自的问题 |
+
+所以巡检自己要在**轮级**回答这件事：`inspector.delivery_lane_health(submit)` 把本轮所有
+尝试汇成一条 `delivery_lane`（`status` = `idle`/`ok`/`degraded`/`outage`，带 `attempted`、
+`service_errors`、`accepted`、去重后的 `reasons`），并**在 `outage` 时让这一轮退 3**（红）。
+`outage` 判据刻意保守——只有"每一次尝试都是服务侧错误"才算；有一张被受理、被 `refused`
+（工单内容/路径问题）或回执看不懂，就只报 `degraded`。干跑永远退 0。
+
+同日追根因到两处**平台侧**（都不在本仓，记录在此以免下次重推）：
+
+1. **11-14 的 502 是节点掉线**：`cheap-5`（100.64.0.9）在 `12:00:17 CST` 停止上报
+   （`Kubelet stopped posting node status`），`wanxing-facade` 的 PVC 钉在那台机的
+   local-path 上 ⇒ pod 永久 Pending（`0/7 nodes … didn't match PersistentVolume's
+   node affinity`）⇒ wanxing-web 的 nginx `proxy_pass http://wanxing-facade:3080`
+   拿到空后端 ⇒ 公网 a2a 502。线内对照是决定性判据：`platform` NodePort 31870 对同一
+   路径回 **401**（端点在、要鉴权），`wanxing-web` 31880 回 **502**——所以不是端点未实现，
+   也不是缺放行。同一台机还压着 7 个 PV ⇒ `fd-cn-report`、`fd-daas-mcp`、
+   `fd-daas-mcp-cust1`、`fleet-observer` 与 `law-rag/qdrant` 同时 0 ready。
+   **别迁卷、别删 PVC**（local-path 迁卷只会得到空卷，且多为 `reclaimPolicy: Delete`）。
+2. **`-32032 fetch failed` 指向平台出网**：platform pod（cheap-7，manifest 里**没有**任何
+   代理注入）实测 `api.github.com` 200 / 0.47s，而 `raw.githubusercontent.com` **000 / 8s
+   超时**（v4/v6 都不通）；同一 pod 的日志在刷 `[catalog] AGENTS_CONFIG_URL fetch failed
+   (keeping last-good)`，而那个 URL 就是 `raw.githubusercontent.com/…/agents.json`。
+   对照：`agent-runner-serving`（cheap-4，同无直连 GitHub 路由）**有** `fd-health-proxy`
+   注入（`HTTP(S)_PROXY` + Node 版后缀 `NO_PROXY`），同一 URL 200。
+   即投递要读的工单文件在 raw 上，而 platform 取不到它。
+
 ### 巡检面 ≠ 交付面（2026-11-09 实测，务必记住）
 
 巡检每晚 `git clone --depth=1` **GitHub** 的 `main`（`36d5836`，127 个 `spiders/` 目录）；
@@ -495,6 +546,10 @@ dispatcher 侧避免因一次数据不足就判任务失败、连带罚掉共享
 - 平台滚动窗口内 bot relay 503 时会丢一条通知（单次纪律不重试）——重要工单避开部署窗口。
 - 门面在上游忙时返回 JSON-RPC `-32032 fetch failed`（投递侧忙语义）：我方留痕并下轮重试即可；
   已闭环工单的重投会拿到「已见过」回执后停止。
+  **2026-11-14 订正**：`-32032` **不能一律当"忙"读**。11-13~11-14 每次投递都拿到它，
+  而同期 platform pod 取不到 `raw.githubusercontent.com`（见上节），即它也是"上游取不到仓里的
+  工单文件"的码。判据改成看**轮级**：`delivery_lane.status == "outage"` ⇒ 通道断了，
+  此时"下轮重试即可"是错的，会一天天空转。
 - 终态枚举已含 `closed`（已关闭：人工合并或人工裁决后闭环，**仅人工路径可置入**）；巡检器自动把
   agent 汇报的 `merged` 映射为 `closed`（`TERMINAL_MAP`）；`done` 仍映射 `fixed-pending-human`
   （修复完成待人工）。首个 closed 实例 = 演练单 `20261004-drill-structure-00000001`。
