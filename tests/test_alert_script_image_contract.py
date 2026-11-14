@@ -76,6 +76,7 @@ DEPLOYED_VIA_CONFIGMAP = (
     "ciyuan_line_alerts.py",
     "plaza_freshness_alerts.py",
     "shard_health_alerts.py",
+    "platform_capability_alerts.py",
 )
 
 
@@ -154,7 +155,8 @@ def helper_of():
 
 
 @pytest.mark.parametrize("script", ["node_health_alerts", "ciyuan_line_alerts",
-                                    "plaza_freshness_alerts", "shard_health_alerts"])
+                                    "plaza_freshness_alerts", "shard_health_alerts",
+                                    "platform_capability_alerts"])
 def test_local_helper_agrees_with_library(script, helper_of, tmp_path):
     """脚本里的 `_state_info` 与 `alerts_core.ledger.state_health` 必须逐档同答。
 
@@ -196,7 +198,8 @@ def test_local_helper_agrees_with_library(script, helper_of, tmp_path):
 
 
 @pytest.mark.parametrize("script", ["node_health_alerts", "ciyuan_line_alerts",
-                                    "plaza_freshness_alerts", "shard_health_alerts"])
+                                    "plaza_freshness_alerts", "shard_health_alerts",
+                                    "platform_capability_alerts"])
 def test_helper_is_identical_across_the_four_scripts(script):
     """四份 helper 必须逐字相同——同一段逻辑抄四遍，只允许一种版本。"""
     def grab(name: str) -> str:
