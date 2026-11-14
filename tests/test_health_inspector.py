@@ -960,6 +960,13 @@ class TestBlockedConfigSources:
     也不能算健康——它确实没产出。所以单列：可见、不判定。
     """
 
+    # 本类三个用例的遥测时间戳是写死的 2026-11-08/11-10，参考时刻必须一起钉住。
+    # 用模块级 NOW（= datetime.now()）会让它们**随日历腐烂**：2026-11-14 实测
+    # data_period=day 的新鲜度窗 = max(3×24h, 48h) = 86.4h，而 last_success 距今
+    # 已 96.6h ⇒ "恢复后不再单列"那条其实撞上了 rule1b 源静默，healthy 变 0，
+    # 断言红在一条与它要验的东西无关的规则上。
+    NOW = datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc)
+
     def _repo_with(self, tmp_path, name, body="data_period: day\n"):
         unit = tmp_path / "spiders" / name
         unit.mkdir(parents=True)
@@ -972,7 +979,7 @@ class TestBlockedConfigSources:
         repo = self._repo_with(tmp_path, "needs-env")
         runs = {"needs-env": [triage.Run(
             started_at="2026-11-10T00:00:00+00:00", status="blocked-config", rows=0)]}
-        plan = inspector.plan_tickets(runs, repo, HealthConfig(), NOW)
+        plan = inspector.plan_tickets(runs, repo, HealthConfig(), self.NOW)
         assert plan.blocked_config == ["needs-env"]
         assert plan.emit == [], "缺配置不该出单（那是修复 agent 会被误导的归因）"
         assert plan.healthy == 0, "也不该计健康——确实没产出"
@@ -986,7 +993,7 @@ class TestBlockedConfigSources:
             triage.Run(started_at="2026-11-08T00:00:00+00:00", status="success", rows=100),
             triage.Run(started_at="2026-11-10T00:00:00+00:00", status="blocked-config", rows=0),
         ]}
-        plan = inspector.plan_tickets(runs, repo, HealthConfig(), NOW)
+        plan = inspector.plan_tickets(runs, repo, HealthConfig(), self.NOW)
         assert plan.blocked_config == ["needs-env"]
         assert plan.emit == []
 
@@ -999,6 +1006,6 @@ class TestBlockedConfigSources:
             triage.Run(started_at="2026-11-10T00:00:00+00:00", status="blocked-config", rows=0),
             triage.Run(started_at="2026-11-10T02:00:00+00:00", status="success", rows=100),
         ]}
-        plan = inspector.plan_tickets(runs, repo, HealthConfig(), NOW)
+        plan = inspector.plan_tickets(runs, repo, HealthConfig(), self.NOW)
         assert plan.blocked_config == []
         assert plan.healthy == 1
