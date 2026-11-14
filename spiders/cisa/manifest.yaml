@@ -6,6 +6,7 @@ scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "29 1 5,15,25 * *"
 data_period: month
+min_rows_per_run: 25    # runs=6 p10=60 p50=100; p10=60，取 25 — 见 docs/min-rows-coverage-baseline.md §3
 # 每轮行数上限。双通道合并后 `results[:limit]` 切片（spider.py:703），且通道内部以
 # `collected >= limit` 提前停。实测（2026-11-11，集群内 limit=200000）：完整全集 = **200 行**
 # （chinaisa 门户 + legacy 两通道合计，换任何更高的上限都不再增加）。

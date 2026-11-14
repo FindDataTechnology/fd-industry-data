@@ -5,6 +5,7 @@ source_url: https://www.boxofficemojo.com/year/2024/
 # site: tencent              # 缺省 tencent；本单元只访问 www.boxofficemojo.com 公开 HTML，无需换执行位
 schedule: "14 3 * * 2"  # 点亮（批次二）：周二 03:14；美票房周榜周一（美东）收周后更新
 data_period: month
+min_rows_per_run: 25    # runs=6 p10=60 p50=100; p10=60，取 25 — 见 docs/min-rows-coverage-baseline.md §3
 # 每轮行数上限。**必须覆盖三个年度页的全表**：本单元固定取「当年 + 两个已完成年」
 # 三个年度页，spider 把三页全部解析完再 `rows[:limit]` 切片——页数固定，抬高上限
 # **不增加任何请求**。
