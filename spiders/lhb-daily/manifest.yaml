@@ -5,6 +5,8 @@ source_url: https://data.eastmoney.com/stock/lhb.html
 # site: tencent 缺省——直连 datacenter-web.eastmoney.com 实测可达（免 key 免鉴权，2026-11-07，见 README）
 # schedule: 点亮（add-securities-industry-line 3.6）：23:50 UTC 错峰（与既有 87 条调度零重叠）
 schedule: "50 23 * * 1-5"   # 龙虎榜日频（收盘后披露）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: day
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]

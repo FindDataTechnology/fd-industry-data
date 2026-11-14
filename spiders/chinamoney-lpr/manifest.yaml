@@ -4,6 +4,8 @@ label: ChinaMoney LPR (loan prime rate, 1Y and 5Y fixings)
 source_url: https://www.chinamoney.com.cn/chinese/bklpr/
 # site: 缺省 —— 本机直连 chinamoney.com.cn AGS 实测 200（2026-11-07，见 README 证据表）
 schedule: "20 11 * * 1-5"         # LPR 每月 20 日报价；日频巡检（周末无报价），错峰既有排期
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: day
 scanner_mode: upstream-curated
 functions:

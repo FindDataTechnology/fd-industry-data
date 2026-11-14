@@ -9,6 +9,8 @@ source_url: http://www.sse.com.cn/services/hkexsc/hgtscsj/hgtcjgk/
 #   另：原「与既有 82 条调度零重叠」指同分钟起始（duplicates=0）；与整点高频源
 #   （nmc-weather / eia-v2 每小时）的窗口相交不可避免，不构成冲突。
 schedule: "50 19 * * 1-5"   # 北向成交概况日频（净买入已停披露，总额口径）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: day
 data_period_field: trade_date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

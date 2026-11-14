@@ -3,6 +3,8 @@ name: education_cc_courses
 label: CC course layer (MIT OCW sitemap catalog + Open edX public instance catalogs)
 source_url: https://ocw.mit.edu/ + https://openlearninglibrary.mit.edu/
 schedule: "53 5 25 * *"  # 每月 25 日 05:53；sitemap/目录月度重跑
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]

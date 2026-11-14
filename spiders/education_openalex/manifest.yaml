@@ -4,6 +4,8 @@ label: OpenAlex Education Subset (works, authors, topics in Education subfield)
 source_url: https://openalex.org/
 # site: tencent
 schedule: "30 3 24 * *"  # 每月 24 日 03:30；OpenAlex 快照更新后跑增量
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]

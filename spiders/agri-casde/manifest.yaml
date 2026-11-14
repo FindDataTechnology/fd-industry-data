@@ -8,6 +8,8 @@ authority: official
 # 月更，每月 9–12 日发布；排期 3 号留出发布滞后余量（2026-11-08 点亮）
 # 2026-11-08 点亮：月更，3 号抓（源每月 9–12 日发布，留滞后余量）
 schedule: 10 6 3 * *
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

@@ -5,6 +5,8 @@ source_url: http://www.chinawuliu.com.cn/xsyj/tjsj/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "23 5 * * 5"
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 min_rows_per_run: 10    # runs=7 p10=27 p50=35; p10=27，取 10 — 见 docs/min-rows-coverage-baseline.md §3

@@ -4,6 +4,8 @@ label: PBoC Sources & Uses of Credit Funds (nine monthly balance tables)
 source_url: https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html
 # site: 缺省 —— 本机直连 www.pbc.gov.cn 实测 200（2026-11-07，见 README 证据表）
 schedule: "15 11 16 * *"       # 逐字按批次六排期；央行月表月中发布（实测 2026-10-14 发 9 月表），16 日巡检
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 scanner_mode: upstream-curated
 functions:

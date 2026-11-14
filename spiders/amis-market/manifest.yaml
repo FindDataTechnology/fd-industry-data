@@ -3,6 +3,8 @@ name: amis-market            # = spiders/amis-market/ 目录名，运行时标�
 label: AMIS Market Database (G20 crop supply/demand balances)
 source_url: "https://amis-9189b.appspot.com/fetch (portal: https://app.amis-outlook.org/)"
 schedule: "56 6 * * 3"       # 点亮（批次二 Wave C，经 fx01 出口）：weekly
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 min_rows_per_run: 20    # runs=5 p10=100 p50=100; p50=limit 截断型，取上限 20% — 见 docs/min-rows-coverage-baseline.md §3
 egress_secret: fd-industry-egress-fx01

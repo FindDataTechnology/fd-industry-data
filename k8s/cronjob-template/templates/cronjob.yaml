@@ -53,7 +53,16 @@ spec:
   jobTemplate:
     spec:
       activeDeadlineSeconds: {{ .Values.deadlineSeconds | default 7200 }}
-      backoffLimit: 1
+      {{- /*
+      backoffLimit 缺省 1：日报/小时报源一次抖动，下一个窗口自然重来。
+      但**季/年/月**频的源不能沿用这个默认——`backoffLimit: 1` 意味着一次抖动
+      就是整窗空档（2026-11-13 实测：`33 1 10 * *` 的 nifdc-batchcert 失败一次，
+      按线上模板原样复跑却是 Completed / rows=100，属瞬时故障；月度 schedule 下
+      那就是缺一个月且无人知晓）。低频源在自己的 manifest 里写
+      `backoff_limit: 3`，模板据此抬重试；不写就是 1，行为不变。
+      */}}
+      {{- /* 兼容两种入参名：manifest 侧 snake_case、AppSet 侧 camelCase */}}
+      backoffLimit: {{ .Values.backoffLimit | default .Values.backoff_limit | default 1 }}
       template:
         metadata:
           labels:

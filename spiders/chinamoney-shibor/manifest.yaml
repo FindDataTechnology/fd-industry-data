@@ -5,6 +5,8 @@ source_url: https://www.chinamoney.com.cn/chinese/bkcurv/   # 落地页（SPA �
 # site: 缺省 —— 本机直连 chinamoney.com.cn AGS 接口实测 200（2026-11-07，见 README 证据表），无需代理出口
 # schedule: 批次六（add-banking-industry-sources 3.1）：UTC 11:16（北京 19:16），在 11:00 北京定盘之后取当日值；错峰既有排期由 batch6_schedule_fit 选槽
 schedule: "16 11 * * 1-5"   # Shibor/FR/FDR 日频（错峰由 batch6_schedule_fit 选槽）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: day
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]

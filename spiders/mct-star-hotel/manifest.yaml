@@ -12,6 +12,8 @@ source_url: https://zwgk.mct.gov.cn/zfxxgkml/447/465/index_3081.html
 #   槽位经 scripts/schedule_overlap_check.py 60 天仿真校验。
 schedule: "42 11 20 * *"
 #
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 # 【本源的重大事实】该系列已停更：最新一期是 2024Q3（2024-12-26 发布）。2024Q4、
 # 2025Q1–Q3、2026Q1–Q3 精确标题检索 totalHits=0；统计信息栏目 2024-12-26 之后 12 条
 # 记录无星级饭店条目。2025 年只有统计公报里的全国年度单点（7586 家 / 营收 1448.0 亿元 /

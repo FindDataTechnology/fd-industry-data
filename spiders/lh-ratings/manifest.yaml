@@ -4,6 +4,8 @@ label: Lianhe Ratings bank tracking-rating reports (定期跟踪评级栏目 + t
 source_url: https://www.lhratings.com/lists/111.html
 # site: 缺省 —— 本机直连 www.lhratings.com 实测 200（2026-11-08，见 README 证据表）
 schedule: "57 9 * * 3"      # 逐字按批次六排期（每周三 UTC 09:57 巡检（错峰由 batch6_schedule_fit 选槽）；上游跟踪评级不定期发布）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: irregular       # 跟踪评级按发行人年度/事件驱动发布，无固定自然周期；调度只是滚动巡检前 N 页
 scanner_mode: upstream-curated
 functions:

@@ -4,6 +4,8 @@ label: 中国理财网 银行业理财市场报告（列表 + 详情页 PDF 直�
 source_url: https://www.chinawealth.com.cn/lc_lcsj/lcbg/
 # site: 缺省 —— 本机直连 www.chinawealth.com.cn 实测 200（2026-11-08，见 README 证据表）
 schedule: "15 14 * * 2"      # 逐字按批次六排期（周频巡检，报告按季度/半年/年度发布）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 scanner_mode: upstream-curated
 functions:

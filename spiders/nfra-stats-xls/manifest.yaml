@@ -4,6 +4,8 @@ label: NFRA Banking Regulatory Statistics (Excel attachment channel)
 source_url: https://www.nfra.gov.cn/cbircweb/DocInfo/SelectDocByItemIdAndChild?itemId=954
 # site: 缺省 —— 本机直连 www.nfra.gov.cn 实测 200（2026-11-07，见 README 证据表）
 schedule: "21 2 5,15,25 * *"  # 发布窗巡检：季度表 2/8 月发、月度表月中下旬发，每月 5/15/25 日 UTC 02:21（北京 10:21）兜一圈；错峰既有排期由 batch6_schedule_fit 选槽
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month            # 含月度总资产负债（同 docId 原位更新），故按月登记；季度表按发布日程自然落入
 scanner_mode: upstream-curated
 functions:

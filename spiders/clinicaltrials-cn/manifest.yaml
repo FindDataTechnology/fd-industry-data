@@ -4,6 +4,8 @@ label: 中国境内临床试验 (ClinicalTrials.gov, China-located studies)
 source_url: https://clinicaltrials.gov/api/v2/studies
 # 公开 REST v2，无 key 无登录无验证码；海外源，直连即可（与既有 openfda 同族）
 schedule: "47 2 6 * *"             # 每月 6 日 02:47；与 openfda(26 日 03:28) / nifdc(10 日 01:33) 错开
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 data_period_field: month         # 水位字段：行内 month = 试验起始月 (yyyy-mm)
 # 事实定型与修订窗（change establish-pharma-domain-stack 第 4 阶段）：

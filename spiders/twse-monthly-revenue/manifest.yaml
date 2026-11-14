@@ -4,6 +4,8 @@ label: TWSE Monthly Revenue Snapshot
 source_url: https://openapi.twse.com.tw/
 # site: tencent              # 缺省 tencent；本单元只访问 openapi.twse.com.tw 公开 OpenAPI，无需换执行位
 schedule: "45 4 13 * *" # 点亮（批次二）：每月 13 日 04:45；台股月营收 10 日前全量披露完成后抓取
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]

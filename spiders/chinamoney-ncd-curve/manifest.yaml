@@ -4,6 +4,8 @@ label: ChinaMoney NCD (AAA) closing yield curve — daily points
 source_url: https://www.chinamoney.com.cn/chinese/bkcurvclosedy/
 # site: 缺省 —— 本机直连 chinamoney.com.cn AGS 实测 200（2026-11-07，见 README 证据表）
 schedule: "15 12 * * 1-6"         # 日频曲线（交易日收盘后发布），错峰既有排期
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: day
 data_period_field: date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

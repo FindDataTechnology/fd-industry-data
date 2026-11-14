@@ -5,6 +5,8 @@ source_url: https://comtradeapi.un.org/
 # site: tencent              # 缺省 tencent；本单元只访问 comtradeapi.un.org 海外公开 REST，无需换执行位
 # schedule 不写——静默合入，点亮留给人工门（Wave B 纪律）
 schedule: "52 4 30 * *"       # 点亮（批次二 Wave B）：monthly
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: irregular
 requires_env: ["COMTRADE_API_KEY", "COMTRADE_SUBSCRIPTION_KEY"]   # 缺失时 runner 预检记 blocked-config，不取数、不进失败率（harden-crawl-delivery 2.5）
 min_rows_per_run: 2    # runs=15 p10=4 p50=5; p10=4，取半档 — 见 docs/min-rows-coverage-baseline.md §3

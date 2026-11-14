@@ -5,6 +5,8 @@ source_url: https://www.cisa.org.cn/
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 schedule: "29 1 5,15,25 * *"
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 min_rows_per_run: 25    # runs=6 p10=60 p50=100; p10=60，取 25 — 见 docs/min-rows-coverage-baseline.md §3
 # 每轮行数上限。双通道合并后 `results[:limit]` 切片（spider.py:703），且通道内部以

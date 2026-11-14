@@ -4,6 +4,8 @@ label: ChinaBond monthly market statistics bulletin (8 tables, 1997-present)
 source_url: https://www.chinabond.com.cn/zzsj/zzsj_tjsj/tjsj_tjyb/
 # site: 缺省 —— 本机直连 www.chinabond.com.cn 实测 200（2026-11-08，见 README 证据表）
 schedule: "19 13 5,15,25 * *"   # 月报发布窗巡检：次月中下旬发布（实测 202609 期在 11-07 前可得）；每月 5/15/25 日 UTC 13:19 兜一圈（错峰由 batch6_schedule_fit 选槽）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 scanner_mode: upstream-curated
 functions:

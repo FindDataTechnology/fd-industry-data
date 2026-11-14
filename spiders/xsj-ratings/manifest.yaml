@@ -4,6 +4,8 @@ label: Shanghai Xinshijie (新世纪评级) credit-rating announcements — bank
 source_url: http://www.shxsj.com/
 # site: 缺省 —— 官网仅 HTTP（https:443 拒连、http 200，2026-11-08 实测，见 README 证据表）
 schedule: "57 9 * * 5"    # 周五 UTC 09:57 巡检（错峰由 batch6_schedule_fit 选槽）；评级报告随发行人披露节奏发布，周频足够
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: irregular     # 评级公告没有固定统计期：按发行人跟踪评级披露日零散发布；周巡检+按 add_time 落库
 scanner_mode: upstream-curated
 functions:

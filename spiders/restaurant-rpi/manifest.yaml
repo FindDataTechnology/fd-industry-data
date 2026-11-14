@@ -4,6 +4,8 @@ label: 美国餐馆业绩指数 Restaurant Performance Index (NRA RPI)
 source_url: https://restaurant.org/research-and-media/research/restaurant-economic-insights/restaurant-performance-index/
 # site: tencent              # 缺省 tencent；本单元只访问 restaurant.org 公开页面/PDF，无需换执行位
 schedule: "41 5 2 * *"       # 点亮（波1，2026-11-07 试跑 success rows=5）：每月 2 日 05:41；RPI 每月最后一个工作日发布，次月 2 日取上月末版（单版仅含最近 5 个月滚动窗）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 data_period_field: month   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

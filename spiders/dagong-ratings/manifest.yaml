@@ -4,6 +4,8 @@ label: Dagong Global — bank regular-tracking rating notices
 source_url: https://www.dagongcredit.com/dggj/ratingNotice/regularTracking/A009003002index_1.htm
 # site: 缺省 —— 本机直连 www.dagongcredit.com 实测 200（2026-11-08，见 README 证据表）
 schedule: "57 9 * * 2"     # 每周二 10:21 巡检评级公告列表；银行跟踪评级按年批量发布（实测集中在 6-8 月），周巡检足够
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: irregular      # 银行跟踪评级按年批量发布（实测 94 条集中于 2014-2026 的 6-8 月），无固定日历周期
 scanner_mode: upstream-curated
 functions:

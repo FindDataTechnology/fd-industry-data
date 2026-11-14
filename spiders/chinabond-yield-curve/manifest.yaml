@@ -4,6 +4,8 @@ label: ChinaBond bank capital-instrument yield curves (Tier-2 / TLAC non-capital
 source_url: https://yield.chinabond.com.cn/
 # site: 缺省 —— 本机直连 yield.chinabond.com.cn 实测 200（2026-11-07，见 README 证据表）
 schedule: "20 13 * * 1-6"        # 日频曲线（交易日收盘后更新），错峰既有排期
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: day
 data_period_field: date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

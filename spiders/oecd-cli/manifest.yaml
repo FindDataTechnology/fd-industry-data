@@ -4,6 +4,8 @@ label: OECD Composite Leading Indicator (CLI)
 source_url: https://data-explorer.oecd.org/ (dataflow OECD.SDD.STES:DSD_STES@DF_CLI)
 # site: tencent              # 缺省 tencent；本单元只访问 sdmx.oecd.org 公开 SDMX REST，无需换执行位
 schedule: "24 3 16 * *" # 点亮（批次二）：每月 16 日 03:24；OECD CLI 月中发布
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

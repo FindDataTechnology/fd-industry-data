@@ -4,6 +4,8 @@ label: PBOC Loan-Usage Statistics (Quarterly Loan Flow by Sector)
 source_url: https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/index.html
 # site: 缺省 —— 本机直连 www.pbc.gov.cn 公开静态页实测 200（2026-11-07，见 README 证据表）
 schedule: "0 11 15 1,4,7,10 *"   # 季度：报告季后次月发布（Q3=10-28），季度首月 15 日巡查补录
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: irregular            # 季度源：month 容忍窗仅 35d 会在两个季度窗之间假超期，year(370d) 过宽；按 irregular 登记，断档由 gap_in_series 兜底（见 README）
 scanner_mode: upstream-curated
 functions:

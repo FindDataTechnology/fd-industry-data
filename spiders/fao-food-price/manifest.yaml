@@ -5,6 +5,8 @@ source_url: https://www.fao.org/worldfoodsituation/foodpricesindex/en/
 # site: tencent              # 缺省 tencent；本单元只访问 www.fao.org 公开页面/CSV，无需换执行位
 # schedule: 不写——静默合入，点亮留给人工门
 schedule: "15 1 7 * *"  # 点亮（批次二）：每月 7 日 01:15；FAO 食价指数首周发布后稳取
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 min_rows_per_run: 15    # runs=10 p10=38 p50=116; p10=38，取 15 留出波动余量 — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated

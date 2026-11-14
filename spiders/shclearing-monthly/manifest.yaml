@@ -4,6 +4,8 @@ label: Shanghai Clearing House monthly bond statistics (Table 4 custody, Table 5
 source_url: https://www.shclearing.com.cn/cpyyw/ywsj/tjyb/
 # site: 缺省 —— 本机直连 www.shclearing.com.cn 实测 200（2026-11-08，见 README 证据表）
 schedule: "18 13 5,20 * *"   # 月报发布窗巡检：次月中下旬发布（实测 202609 期于 10-20 发布）；每月 5/20 日 15:12 兜一圈
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 scanner_mode: upstream-curated
 functions:

@@ -6,6 +6,8 @@ source_url: https://emweb.securities.eastmoney.com/PC_HSF10/BusinessAnalysis/Pag
 # 2026-11-07），无需代理出口；旧 PC_F10 前缀 302 软拦截，现役为 PC_HSF10（见 README）
 # schedule: 点亮（add-securities-industry-line 3.6）：22:50 UTC 每月 1 日季检（披露季滞后 ~15-30 天，1/4/8/10 月披露期后首轮+日常巡检），错峰零重叠
 schedule: "50 22 1 * *"     # 主营构成季频巡检（东财 F10 聚合端点，白名单批量走采集调度层）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: irregular
 functions:
   - command: run_stock_zygc

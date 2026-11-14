@@ -8,6 +8,8 @@ authority: official
 # 月更，每月 9–12 日发布；排期 9 号（2026-11-08 点亮）
 # 2026-11-08 点亮：月更，9 号抓
 schedule: 55 6 9 * *
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]

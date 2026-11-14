@@ -5,6 +5,8 @@ source_url: https://www.moa.gov.cn/ztzl/szcpxx/scxxfb/
 # authority: official —— 农业农村部畜牧兽医局本级发布
 authority: official
 schedule: "58 8 * * 2"       # 点亮（批次四）：每周二 08:58；农业农村部周报周一发布（覆盖至前一周日）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 min_rows_per_run: 12    # runs=6 p10=28 p50=36; p10=28，取 12 — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated

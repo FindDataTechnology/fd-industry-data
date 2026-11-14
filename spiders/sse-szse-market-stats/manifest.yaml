@@ -14,6 +14,8 @@ source_url: https://www.szse.cn/market/stock/situation/daily/index.html
 #   （11-09 12:50Z 运行取到 trade_date=2026-11-09 当日），故只改注释、不动槽位。
 egress_secret: fd-industry-egress-fx01   # 2026-11-14：szse 侧被云出口 IP 拦，走代理兜底（详见上）
 schedule: "50 20 * * 1-5"   # 市场每日概况（成交/估值汇总）日频
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: day
 data_period_field: trade_date   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

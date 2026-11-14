@@ -4,6 +4,8 @@ label: MEM Monthly Natural Disaster Bulletins
 source_url: https://www.mem.gov.cn/gk/tjsj/
 # site: tencent              # 缺省 tencent；本单元只访问 www.mem.gov.cn 公开栏目页，无需换执行位
 schedule: "21 4 21 * *" # 点亮（批次二）：每月 21 日 04:21；应急管理部月度灾情通报
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 data_period_field: month   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

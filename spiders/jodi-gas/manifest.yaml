@@ -4,6 +4,8 @@ label: JODI-Gas Monthly Natural Gas Supply-Demand
 source_url: https://www.jodidata.org/gas/database/data-downloads.aspx
 # site: tencent 缺省——api.publisher.jodidata.org 与 www.jodidata.org 直连实测可达（2026-10-08），无需代理出口
 schedule: "13 7 9 * *"       # 点亮（批次三，monthly）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 # 每轮行数上限。全量解析后按 (year, month, country, product, flow, unit) 排序再
 # `rows[-limit:]`（freshness-first），所以 limit 决定的是"留最近多少行"，**不减少上游请求**

@@ -4,6 +4,8 @@ label: US DOE AFDC Alternative Fueling Station Counts
 source_url: https://afdc.energy.gov/data/10332
 # site: tencent 缺省——直连 afdc.energy.gov 实测可达（本机 + tencent 站点均 200，2026-10-08），无需代理出口
 schedule: "43 6 14 * *"       # 点亮（批次三，monthly）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 # 每轮取数上限。**必须大于数据集规模**：本单元取 AFDC 图 10332 的年度分燃料类型充电站计数，
 # 是把整张表解析完再 `rows[-limit:]` 切片。实测（2026-11-11，集群内 limit=5000 无截断）：

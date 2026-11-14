@@ -4,6 +4,8 @@ label: China Chengxin International (CCXI) — bank rating results (regular trac
 source_url: https://www.ccxi.com.cn/creditrating/result
 # site: 缺省 —— 本机直连 website-api.ccxi.com.cn 实测 200（2026-11-08，见 README 证据表）
 schedule: "57 9 * * 1"    # 每周一 UTC 09:57 巡检（错峰由 batch6_schedule_fit 选槽）；银行跟踪评级按年批量披露、不定期公告零散发布，周频足够
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: irregular    # 评级结果无固定统计期：按发行人披露日零散发布（不定期跟踪公告更是不规律）
 scanner_mode: upstream-curated
 functions:

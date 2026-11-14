@@ -5,6 +5,8 @@ source_url: https://davidmegginson.github.io/ourairports-data/airports.csv
 # 直连可达（2026-10-08 实测 HTTP 200，12.7 MB，无需代理出口）：无 egress_secret、缺省 site（tencent）
 # schedule 留空：静默合入（批次三直建），点亮排期由人工门统一补
 schedule: "41 5 12 * *"       # 点亮（批次三，monthly）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

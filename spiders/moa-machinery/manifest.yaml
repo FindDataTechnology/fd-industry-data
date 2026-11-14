@@ -8,6 +8,8 @@ authority: official
 # 年度源；2026-11-08 点亮，每年 4 月 15 日抓（年报季）
 # 2026-11-08 点亮：年度源，4 月 15 日抓年报季
 schedule: 25 7 15 4 *
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: year            # 年度：每年一期统计公报（可见 2022–2025 四期）
 data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

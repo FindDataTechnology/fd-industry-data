@@ -3,6 +3,8 @@ name: hf-datasets                 # = spiders/hf-datasets/ 目录名，运行时
 label: HuggingFace Hub Monthly New-Dataset Volume
 source_url: https://huggingface.co/datasets
 schedule: "56 5 29 * *"       # 点亮（批次二 Wave C，经 fx01 出口）：monthly
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: irregular
 egress_secret: fd-industry-egress-fx01
 # site: tencent                   # 需代理出口访问 huggingface.co（hf-mirror.com 直连兜底）；代理注入就绪前不点亮

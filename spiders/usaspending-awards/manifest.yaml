@@ -9,6 +9,8 @@ data_period: month
 #   每月 14 日 03:17，与 openfda(26 日)/nifdc(10 日)/clinicaltrials(9 日)/clinicaltrials-cn(6 日) 错开。
 schedule: "17 3 14 * *"
 # 每轮取数上限。**模板默认 100 会把滚动窗截成前 100 行**（本仓已修过的同类缺陷：
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 # docs/flower-debt-ledger.md F20 —— 首次运行 rows_written=100 恰好等于 limit，只覆盖 5 天）。
 # 实测本单元真实行数（2026-11-11，limit 不截断）：
 #   · 滚动 6 个月（常态窗口）      = 2,936 行  → limit=100 会丢掉 96.6%

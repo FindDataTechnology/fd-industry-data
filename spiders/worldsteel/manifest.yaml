@@ -1,4 +1,6 @@
 schedule: "3 4 6 * *"
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 site: xinru-server2
 # fd-open-data-protocol compliant manifest

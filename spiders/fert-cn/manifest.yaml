@@ -8,6 +8,8 @@ authority: industry
 # 月更；2026-11-08 点亮，遵循 unified-source-onboarding 契约
 # 2026-11-08 点亮：月更
 schedule: 10 7 11 * *
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: month
 data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

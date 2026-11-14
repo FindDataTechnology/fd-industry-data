@@ -5,6 +5,8 @@ source_url: http://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html
 # 官方 PDF 附件驱动：通知页与附件均 200 可下载，文本层用共享 pdftext 抽取（无 OCR）。
 # 年度版 → 每年发一次；本单元在目录发布后按 schedule 重灌以取得新版条目。
 schedule: "19 3 8 1 *"             # 每年 1 月 8 日 03:19（目录通常 12 月发布、次年 1 月 1 日执行）
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 data_period: year
 data_period_field: catalog_year   # 水位字段 = 目录年度版
 # 事实定型与修订窗：目录条目绑定目录年度版（不是某月观测）。annual 粒度的

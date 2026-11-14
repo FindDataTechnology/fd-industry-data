@@ -4,6 +4,8 @@ label: SHCH capital instruments — tier-2 / perpetual capital bond issuance and
 source_url: https://www.shclearing.com.cn/xxpl/jyltysgg/
 # site: 缺省 —— 本机直连 www.shclearing.com.cn 实测 200（2026-11-08，见 README 证据表）
 schedule: "21 13 * * 1-5"   # 发行/流通要素公告随登记披露实时更新；工作日 13:21 CST（05:21Z）日频巡检
+# 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
+backoff_limit: 3
 #   **2026-11-09 订正**：原注释写「UTC 13:21」，与执行不符——CronJob 未声明 timeZone 时按控制器
 #   本地（CST）解释，实测 lastScheduleTime 为 05:21Z。槽位由 batch6_schedule_fit 按 UTC 小时选，
 #   实际落地在 CST 的同一「几点几分」；因全舰队同步平移，相对间隔不变，故不动槽位。
