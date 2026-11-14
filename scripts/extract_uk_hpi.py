@@ -231,15 +231,22 @@ def main() -> int:
                 with conn.cursor() as c2:
                     c2.execute("SELECT count(*) FROM semantic_observations")
                     before = c2.fetchone()[0]
-                    for (concept, area, month, value) in rows:
-                        c2.execute(
+                    # **批量写**：这条源一轮近 1.9 万行，逐条 execute 是逐次往返，
+                    # 实测 6 分钟还没提交完（生产作业的 activeDeadlineSeconds 会被它顶爆）。
+                    # execute_values 每批 1000 行，约 20 次往返。
+                    from psycopg2.extras import execute_values
+                    payload = [(cids[c], eids[a], m, v, SERIES[c][1], SOURCE, obs_month_of(m))
+                               for (c, a, m, v) in rows]
+                    template = "(%s,'region',%s,%s,'month',%s,%s,%s,now(),%s)"
+                    for i in range(0, len(payload), 1000):
+                        execute_values(
+                            c2,
                             "INSERT INTO semantic_observations"
                             " (concept_id, entity_type, entity_id, date, granularity,"
                             "  value, unit, source_used, fetched_at, obs_month)"
-                            " VALUES (%s,'region',%s,%s,'month',%s,%s,%s,now(),%s)"
+                            " VALUES %s"
                             " ON CONFLICT ON CONSTRAINT uq_sem_obs DO NOTHING",
-                            (cids[concept], eids[area], month, value,
-                             SERIES[concept][1], SOURCE, obs_month_of(month)))
+                            payload[i:i + 1000], template=template)
                     c2.execute("SELECT count(*) FROM semantic_observations")
                     after = c2.fetchone()[0]
             print(f"\nsemantic_observations: {before} -> {after}"
