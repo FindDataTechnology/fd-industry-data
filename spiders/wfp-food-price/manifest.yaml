@@ -8,6 +8,13 @@ source_url: https://data.humdata.org/dataset/global-wfp-food-prices
 # 按 agriculture-source-alerting 的判据纪律不得单独驱动阈值告警。
 authority: intergovernmental
 # 不写 schedule：先静默合入（点亮时才补 cron）
+# 单轮取多少行。**必须显式声明**：chart 的缺省是 100，会盖掉 spider 自己的
+# `limit: int = 2000`。WFP 市场级月度粮价（多国家 × 多市场 × 多月）：100 行只够当年一小片
+# 实测每轮上界恰好 100 行（2026-11-14 由 check_crawl_row_cap.py 的 R1b 点名——
+# 该判据只看「spider 缺省 vs chart 缺省」，不看 payload 形状）。
+# ⚠ 本源目前**没有 schedule**（清单首部写明「先静默合入，点亮时才补 cron」），
+# 所以这一行现在只对手动/派发跑生效；点亮排期时不必再改。
+limit: 2000
 data_period: month
 data_period_field: month   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated
