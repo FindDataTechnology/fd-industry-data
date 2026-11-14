@@ -2,7 +2,10 @@ schedule: "3 4 6 * *"
 # 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
 backoff_limit: 3
 data_period: month
-site: xinru-server2
+# site 已退役（2026-11-14）：原为 `site: xinru-server2`，该站点已无执行器（k3s 里没有
+# scraw 命名空间），源自 2026-11-06 起零产出。tencent 出口用真 spider 实跑验过：
+# `success rows=24 in 11.7s`，是该源历史最好的一次（历史成功 5 次，max 24 / avg 18）
+# ⇒ 海外站点 worldsteel.org 从云出口可达，不需要那台机上的 gost-egress/mihomo。
 # fd-open-data-protocol compliant manifest
 
 name: worldsteel

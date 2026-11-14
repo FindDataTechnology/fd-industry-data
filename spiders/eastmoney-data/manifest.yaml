@@ -1,6 +1,10 @@
 schedule: "35 4 * * *"
 data_period: day
-site: xinru-server2
+# site 已退役（2026-11-14）：原为 `site: xinru-server2`，而该站点的 k3s 里**连 scraw
+# 命名空间都不存在**（无 dispatcher、无 SA、无 Secret），源自 2026-11-09 04:50 起零产出。
+# tencent 出口用真 spider 实跑验过：`success rows=2 in 7.7s`，与该源历史 59 次成功的
+# rows_written 中位数/最大值（都是 2）一致 ⇒ 换站点不损失数据形状。
+# 日后若要挪回某个站点，先确认那里的 `scraw/fd-industry-dispatcher` 在场。
 # fd-open-data-protocol compliant manifest
 
 name: eastmoney-data
