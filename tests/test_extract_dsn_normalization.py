@@ -33,17 +33,16 @@ JOB_SCRIPTS = (
     "extract_eastmoney.py", "extract_uk_hpi.py", "extract_rates.py",
     "extract_ncd.py", "extract_lpr.py", "extract_usgs_nwis.py",
     "extract_nasa_power.py", "extract_weather_daily.py",
+    # 2026-11-15 第二批：领域 wave 抽取器（覆盖 R2 里 5 个「已映射但读面
+    # 落后」的源）。它们此前**一次都没在集群里跑过**，原因就是这个 DSN。
+    "extract_agriculture_wave1.py", "extract_flower_wave1.py",
+    "extract_hotel_wave0.py", "extract_pharma.py",
+    "extract_restaurant_wave0.py",
 )
 
 # 已知仍用裸 DSN 的 `extract_*.py`（2026-11-15 实测）。**修好一个就从这里划掉一个**：
 # 名单与实测集合必须相等，两个方向都会红。
-PENDING_DSN_FIX = {
-    "extract_agriculture_wave1.py",
-    "extract_flower_wave1.py",
-    "extract_hotel_wave0.py",
-    "extract_pharma.py",
-    "extract_restaurant_wave0.py",
-}
+PENDING_DSN_FIX: set[str] = set()
 
 NORMALIZED = re.compile(r"parse_dsn|_dsn\(|postgres\(\?:ql\)")
 
@@ -75,7 +74,14 @@ def test_pending_dsn_fix_ledger_is_exact():
     assert not stale, f"这些已不再裸连，请从 PENDING_DSN_FIX 划掉：{stale}"
 
 
-@pytest.mark.parametrize("name", sorted(PENDING_DSN_FIX))
-def test_pending_scripts_still_exist(name):
-    """名单里的文件必须真的还在（改名/删除后名单要跟着动）。"""
-    assert (SCRIPTS / name).exists(), f"{name} 不存在，更新 PENDING_DSN_FIX"
+def test_every_extract_script_normalizes_the_dsn():
+    """2026-11-15 收口：全仓 `extract_*.py` 都归一化了 DSN，名单已清空。
+
+    名单清空之后仍要留一条正向断言，否则「一个都没漏」与「测试被删掉了」
+    长得一模一样：这里要求每个 `extract_*.py`（只要它连库）都留归一化痕迹。
+    """
+    conntects = [p.name for p in sorted(SCRIPTS.glob("extract_*.py"))
+                 if re.search(r"psycopg2\.connect\(", p.read_text())]
+    assert conntects, "一个连库脚本都没扫到 —— 扫错目录了，别当成通过"
+    bad = [n for n in conntects if _connects_raw(SCRIPTS / n)]
+    assert not bad, f"这些 extract 脚本仍是裸 DSN：{bad}"

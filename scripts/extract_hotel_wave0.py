@@ -63,6 +63,22 @@ def load_extractors(wanted: set[str] | None = None) -> dict:
     return found
 
 
+def _dsn(raw: str) -> str:
+    """生产 Secret 里的 DSN 带 SQLAlchemy 方言前缀（`postgresql+psycopg2://…`），
+    `psycopg2.connect()` 不认，会报 `invalid dsn: missing "=" after …`。
+    2026-11-15 审计发现 28 个脚本里有 5 个 wave 抽取器从来没修过这一处，
+    于是它们**根本无法用生产 DSN 连库**（这就是 R2「已映射但读面落后」的
+    一半根因：它们从来没在集群里跑过）。与 extract_batch1/2 同一份实现。
+    """
+    raw = (raw or "").strip()
+    try:
+        from _semextract import parse_dsn
+        return parse_dsn(raw)
+    except Exception:                                  # noqa: BLE001
+        import re as _re
+        return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
@@ -87,7 +103,7 @@ def main() -> int:
         print(f"未实现（本波后续补）: {', '.join(not_yet)}")
     units = tuple(sorted(extractors))
 
-    conn = psycopg2.connect(args.dsn)
+    conn = psycopg2.connect(_dsn(args.dsn))
     try:
         conn.autocommit = False
         with conn.cursor() as cur:
