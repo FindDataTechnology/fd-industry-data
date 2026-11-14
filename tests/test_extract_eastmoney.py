@@ -104,3 +104,10 @@ def test_out_of_band_values_are_refused(mod):
     with pytest.raises(SystemExit) as e:
         mod.build_rows(mod.collect(_items(30, cpi_base=0.7, ppi_base=-1.2)), [])
     assert "值域" in str(e.value)
+
+
+def test_sqlalchemy_dsn_suffix_is_stripped(mod):
+    """集群里给的是 FD_OPEN_DATA_MCP_DATABASE_URL，带 `+psycopg2`；libpq 不认。"""
+    assert mod._normalize_dsn("postgresql+psycopg2://u:p@h:30432/d") == \
+        "postgresql://u:p@h:30432/d"
+    assert mod._normalize_dsn("postgresql://u:p@h:30432/d") == "postgresql://u:p@h:30432/d"

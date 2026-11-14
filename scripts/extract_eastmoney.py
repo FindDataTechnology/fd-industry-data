@@ -233,6 +233,15 @@ def ensure_concepts(cur) -> dict[str, int]:
     return ids
 
 
+def _normalize_dsn(dsn: str) -> str:
+    """把 SQLAlchemy 形态的 DSN（`postgresql+psycopg2://…`）还原成 libpq 可吃的形态。
+
+    集群里能拿到的环境变量是 `FD_OPEN_DATA_MCP_DATABASE_URL`，它带 `+psycopg2`
+    驱动后缀；psycopg2 的 `connect()` 不认这个后缀（`invalid dsn: missing "="`）。
+    """
+    return re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", dsn.strip())
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
@@ -241,7 +250,7 @@ def main() -> int:
     if not args.dsn:
         raise SystemExit("DSN missing — 传 --dsn 或 export FD_OPEN_DATA_DSN")
 
-    conn = psycopg2.connect(args.dsn)
+    conn = psycopg2.connect(_normalize_dsn(args.dsn))
     try:
         with conn.cursor() as cur:
             notes: list[str] = []
