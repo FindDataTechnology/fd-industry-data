@@ -113,5 +113,17 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-14T13:52:07.466018+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-14T14:15:39.193538+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: d5ab5a94aea5

@@ -113,5 +113,17 @@ lifecycle:
   verdict: error
   response: '{"code": "PLAN_EXHAUSTED", "message": "the caller''s serving plan has
     no minutes left — ask the operator to adjust the plan"}'
+- at: '2026-11-14T14:02:15.611678+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-14T14:07:12.213725+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: d5ab5a94aea5
