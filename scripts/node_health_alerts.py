@@ -58,6 +58,7 @@ sys.path.insert(0, str(ROOT))
 
 from fd_industry_data.alerts_core import (  # noqa: E402
     RuleState, append_events, dispatch, evaluate_threshold, load_state, save_state,
+    state_health,
 )
 from fd_industry_data.alerts_core.delivery import (  # noqa: E402
     DeliveryNotConfigured, DeliveryReceipt, judge, resolve_target, smtp_from_env,
@@ -335,6 +336,9 @@ def main(argv: list[str] | None = None) -> int:
     else:
         nodes = fetch_nodes()
 
+    # 必须在 save_state 之前取：否则本轮刚写的那份会冒充「历史状态」，
+    # 读数永远为 true——那就把这个坑从「看得见」变成「看不见」。
+    state_info = state_health(STATE)
     states = load_state(STATE)
     new_states, events, detail = evaluate(nodes, states, now)
 
@@ -380,6 +384,9 @@ def main(argv: list[str] | None = None) -> int:
         "delivery": receipt.as_dict(),
         "verdict": verdict_code.as_dict() if verdict_code else None,
         "detail": detail,
+        # 状态是否跨轮：去重与「回落」通知的前提。emptyDir 下恒为 false——
+        # 永远打印、永不静默（详见 ledger.state_health）。
+        "state": state_info,
     }
     print(json.dumps(summary, ensure_ascii=False))
 

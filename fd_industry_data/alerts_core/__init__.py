@@ -19,6 +19,7 @@ from .ledger import (
     load_state,
     read_events,
     save_state,
+    state_health,
 )
 from .notify import SmtpConfig, dispatch, send_email, smtp_config_from_env
 from .state import (
@@ -42,5 +43,6 @@ __all__ = [
     "RuleState", "compare", "evaluate_event", "evaluate_threshold", "make_event",
     "attach_rule",
     "append_events", "read_events", "event_key", "load_state", "save_state",
+    "state_health",
     "SmtpConfig", "dispatch", "send_email", "smtp_config_from_env",
 ]
