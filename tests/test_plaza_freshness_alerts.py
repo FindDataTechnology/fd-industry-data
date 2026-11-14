@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -43,10 +43,53 @@ def test_parse_generated_at_returns_none_instead_of_guessing(text):
     assert parse_generated_at(text) is None
 
 
-def test_age_hours_counts_from_utc_midnight_of_the_snapshot_day():
-    # generatedAt 是**导出那天的 UTC 日**，年龄从该日 00:00Z 起算，不是从"那一刻"。
-    assert age_hours(date(2026, 11, 14), NOW) == pytest.approx(8.0)
-    assert age_hours(date(2026, 11, 13), NOW) == pytest.approx(32.0)
+def test_age_hours_falls_back_to_the_snapshot_day_midday():
+    # 没有 Last-Modified 时的兜底：从该日 12:00Z 起算（日期粒度中点）。
+    # 2026-11-14 订正：旧口径从 00:00Z 起算，让一份健康快照在下一轮刷新还没到
+    # 之前就超阈值 ⇒ 每天 12:23Z/18:23Z 两轮假火。中点把误差两边摊平。
+    assert age_hours(date(2026, 11, 13), NOW) == pytest.approx(20.0)
+    assert age_hours(date(2026, 11, 12), NOW) == pytest.approx(44.0)
+    # 负龄按 0：该日还没到中点时不许出现"-N 小时"这种读数。
+    assert age_hours(date(2026, 11, 14), NOW) == 0.0
+    assert age_hours(date(2026, 11, 15), NOW) == 0.0
+
+
+def test_last_modified_wins_over_the_date_field():
+    # 线上实况（2026-11-14 11:16Z 实测）：文件 13 日 23:24Z 写出、generatedAt=11-13
+    # ⇒ 按日期算是 35.4h（马上要假火），按 mtime 只有 11.9h（真话）。
+    lm = datetime(2026, 11, 13, 23, 24, tzinfo=timezone.utc)
+    v = assess(catalog_status=200, catalog_text=PRETTY.replace("2026-11-14", "2026-11-13"),
+               roots=ROOTS_OK, now=NOW, stale_hours=36, last_modified=lm)
+    assert v["blind"] is False
+    assert v["age_basis"] == "http-last-modified"
+    assert v["age_hours"] == pytest.approx(8.6, abs=0.1)
+    assert v["stale"] is False, "健康快照不该在下一轮刷新之前被报警"
+
+
+def test_last_modified_gives_the_real_threshold_boundary():
+    # 阈值边界只在真信号上才有意义：35h 不响、37h 响。
+    fresh = NOW - timedelta(hours=35)
+    stale = NOW - timedelta(hours=37)
+    assert assess(catalog_status=200, catalog_text=PRETTY, roots=ROOTS_OK, now=NOW,
+                  stale_hours=36, last_modified=fresh)["stale"] is False
+    assert assess(catalog_status=200, catalog_text=PRETTY, roots=ROOTS_OK, now=NOW,
+                  stale_hours=36, last_modified=stale)["stale"] is True
+
+
+def test_future_last_modified_is_blind_not_fresh():
+    # 主机时钟不一致 ⇒ 判不出。把未来时间戳读成"刚更新过"是最坏的一种假绿。
+    v = assess(catalog_status=200, catalog_text=PRETTY, roots=ROOTS_OK, now=NOW,
+               stale_hours=36, last_modified=NOW + timedelta(hours=9))
+    assert v["blind"] is True
+    assert v["stale"] is None
+    assert "未来" in v["reason"]
+
+
+def test_small_clock_skew_is_tolerated():
+    v = assess(catalog_status=200, catalog_text=PRETTY, roots=ROOTS_OK, now=NOW,
+               stale_hours=36, last_modified=NOW + timedelta(minutes=30))
+    assert v["blind"] is False
+    assert v["age_hours"] == 0.0
 
 
 def test_fresh_snapshot_is_not_stale():
@@ -55,17 +98,19 @@ def test_fresh_snapshot_is_not_stale():
     assert v["blind"] is False
     assert v["stale"] is False
     assert v["root_down"] == []
-    assert v["age_hours"] == pytest.approx(8.0)
+    assert v["age_hours"] == pytest.approx(0.0), "当日快照在中点之前按 0 处理"
+    assert v["age_basis"] == "generatedAt-date-midday"
 
 
 def test_old_snapshot_is_stale_at_the_threshold_boundary():
-    # 36h 阈值：31h 不响、37h 响。边界写清楚，免得后人以为差一小时无所谓。
-    old_31 = PRETTY.replace("2026-11-14", "2026-11-13")   # 32h
-    old_37 = PRETTY.replace("2026-11-14", "2026-11-12")   # 56h
-    assert assess(catalog_status=200, catalog_text=old_31, roots=ROOTS_OK,
-                  now=NOW, stale_hours=36)["stale"] is False
-    assert assess(catalog_status=200, catalog_text=old_37, roots=ROOTS_OK,
-                  now=NOW, stale_hours=36)["stale"] is True
+    # 日期粒度下阈值是阶梯的（NOW=14 日 08:00Z、锚点=该日 12:00Z）：
+    # 当日 0h、前一日 20h、前两日 44h、前三日 68h ⇒ 前两日起才 stale。
+    assert assess(catalog_status=200, catalog_text=PRETTY.replace("2026-11-14", "2026-11-13"),
+                  roots=ROOTS_OK, now=NOW, stale_hours=36)["stale"] is False
+    assert assess(catalog_status=200, catalog_text=PRETTY.replace("2026-11-14", "2026-11-12"),
+                  roots=ROOTS_OK, now=NOW, stale_hours=36)["stale"] is True
+    assert assess(catalog_status=200, catalog_text=PRETTY.replace("2026-11-14", "2026-11-11"),
+                  roots=ROOTS_OK, now=NOW, stale_hours=36)["stale"] is True
 
 
 def test_unreachable_catalog_is_blind_not_fresh():

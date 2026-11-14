@@ -11,8 +11,19 @@ AI 客户端读到两周前的目录，**没有任何地方会报错**。那次�
 这一条是给「cron 本身失效」补的同一判据。
 
 判据（三条，只做断言）：
-  · `catalog.json` 的 `generatedAt` 距现在超过 `stale_hours`（默认 36h）→ firing。
+  · `catalog.json` 距今超过 `stale_hours`（默认 36h）→ firing。
     36h ＝ 日跑 24h ＋ 半个周期：一次晚点不叫事，连续漏一轮才叫事。
+
+**年龄从哪儿起算（2026-11-14 订正，当天实测）**：`generatedAt` 只有**日期**
+（`"generatedAt": "2026-11-13"`），而旧版从该日 **00:00Z** 起算 ⇒ 一份实际
+23:24Z 才导出的健康快照，到次日 12:00Z 就被算成 36h。按这条线的排期
+（刷新约 20:17Z、告警 `23 */6`）算下来，**每天 12:23Z 与 18:23Z 两轮会对着
+一份健康快照发信**，真实阈值只剩约 12–16h 而不是文档写的 36h。假火会训练人
+忽略这条线，比不装更坏。现在改成两级：
+  ① **首选 HTTP `Last-Modified`**（Caddy 发静态文件的真实 mtime ＝ 上一次实际
+     导出时刻），阈值才是它字面上的 36h；未来时间戳（>6h 偏斜）判不出，不当新鲜。
+  ② 没有该头时退回「该日 **12:00Z**」（日期粒度的中点），负龄按 0 处理——
+     宁可晚判，也不要在下一轮还没到之前先叫。
   · 四个根路径任一非 200 → firing（站点面本身没了，这与"陈旧"是两个故障）。
   · 抓不到 / 解析不出 `generatedAt` → **insufficient_data**，既不判 firing 也不判恢复。
     缺数不是恢复——一次网络抖动不该发出一条"已恢复"。
@@ -38,7 +49,8 @@ import re
 import sys
 import urllib.error
 import urllib.request
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -126,41 +138,98 @@ def parse_generated_at(text: str) -> date | None:
 
 
 def age_hours(generated: date, now: datetime) -> float:
-    """快照日期（UTC 日）到现在的年龄。`generatedAt` 是导出那天的 UTC 日期。"""
-    started = datetime(generated.year, generated.month, generated.day, tzinfo=timezone.utc)
-    return (now - started).total_seconds() / 3600.0
+    """**没有 `Last-Modified` 时的兜底**：从该日 12:00Z 起算，负龄按 0。
+
+    为什么不是 00:00Z（旧口径）：`generatedAt` 只有日期，而导出实际发生在当天
+    较晚时刻（线上实测 23:24Z）。按 00:00Z 起算，一份健康快照在**下一轮刷新还
+    没到**之前就已经被算超 36h ⇒ 每天固定两轮假火。取日期中点把误差两边摊平，
+    且日期粒度本身就有 24h 量化误差，多摊这半天不改变「漏一轮才叫」的意图。
+    """
+    started = datetime(generated.year, generated.month, generated.day, 12, tzinfo=timezone.utc)
+    return max(0.0, (now - started).total_seconds() / 3600.0)
+
+
+# 判龄依据，随判定一起返回——邮件里要能看出这个数是"实测 mtime"还是"按日期推的"。
+AGE_BASIS_HTTP = "http-last-modified"
+AGE_BASIS_DATE = "generatedAt-date-midday"
+# 主机时钟偏斜容忍：超过它就不猜，判不出（与卷体检那条「未来时间戳判不出」同口径）。
+FUTURE_SKEW = timedelta(hours=6)
+
+
+def parse_http_last_modified(raw: str) -> datetime | None:
+    """解析 `Last-Modified`（RFC 1123）。解析不出返回 None——不猜。"""
+    if not raw:
+        return None
+    try:
+        dt = parsedate_to_datetime(raw)
+    except (TypeError, ValueError):
+        return None
+    if dt is None:
+        return None
+    return dt.astimezone(timezone.utc) if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+
+def snapshot_moment(generated: date, last_modified: datetime | None,
+                    now: datetime) -> tuple[datetime | None, str]:
+    """(起算时刻, 依据)；判不出时返回 (None, 原因)。"""
+    if last_modified is not None:
+        moment = last_modified.astimezone(timezone.utc) if last_modified.tzinfo \
+            else last_modified.replace(tzinfo=timezone.utc)
+        if moment > now + FUTURE_SKEW:
+            return None, f"Last-Modified 在未来（{moment.isoformat()}），判不出"
+        return moment, AGE_BASIS_HTTP
+    return datetime(generated.year, generated.month, generated.day, 12, tzinfo=timezone.utc), AGE_BASIS_DATE
 
 
 def fetch(url: str, timeout: float = 20.0) -> tuple[int, str]:
     """(状态码, 文本)。网络错误返回 (0, 错误串)，由调用方判"失明"。"""
+    status, text, _ = fetch_with_headers(url, timeout=timeout)
+    return status, text
+
+
+def fetch_with_headers(url: str, timeout: float = 20.0) -> tuple[int, str, datetime | None]:
+    """(状态码, 文本, Last-Modified)。陈旧判据要的是"上一次实际导出时刻"，
+    所以这个头必须取回来；取不到就返回 None，由判定侧退回日期口径。"""
     try:
         req = urllib.request.Request(url, headers={"user-agent": "fd-plaza-freshness/1"})
         with urllib.request.urlopen(req, timeout=timeout) as r:  # noqa: S310 - 固定 https 面
-            return int(getattr(r, "status", 200)), r.read().decode("utf-8", "replace")
+            raw = r.headers.get("Last-Modified") if r.headers else None
+            return (int(getattr(r, "status", 200)), r.read().decode("utf-8", "replace"),
+                    parse_http_last_modified(raw or ""))
     except urllib.error.HTTPError as exc:
-        return int(exc.code), ""
+        return int(exc.code), "", None
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
-        return 0, f"{type(exc).__name__}: {exc}"
+        return 0, f"{type(exc).__name__}: {exc}", None
 
 
 def assess(*, catalog_status: int, catalog_text: str, roots: dict[str, int],
-           now: datetime, stale_hours: float) -> dict:
+           now: datetime, stale_hours: float,
+           last_modified: datetime | None = None) -> dict:
     """纯判定：不联网、不发信。返回 {stale, root_down, generated, age_hours, blind}。
 
     `blind=True` 意味着判不出——既不是"新鲜"也不是"陈旧"，调用方必须让这一态可见。
+    `last_modified` 是可选的 HTTP 头（真实导出时刻）；给了就以它为准。
     """
     if catalog_status != 200 or not catalog_text:
         return {"blind": True, "reason": f"catalog.json 取不到（status={catalog_status}）",
-                "stale": None, "root_down": [], "generated": None, "age_hours": None}
+                "stale": None, "root_down": [], "generated": None, "age_hours": None,
+                "age_basis": None}
     generated = parse_generated_at(catalog_text)
     if generated is None:
         return {"blind": True, "reason": "catalog.json 里读不出 generatedAt",
-                "stale": None, "root_down": [], "generated": None, "age_hours": None}
-    hours = age_hours(generated, now)
+                "stale": None, "root_down": [], "generated": None, "age_hours": None,
+                "age_basis": None}
+    moment, basis = snapshot_moment(generated, last_modified, now)
+    if moment is None:
+        # 未来时间戳：判不出，不伪造"新鲜"（同族于卷体检那条口径）。
+        return {"blind": True, "reason": basis,
+                "stale": None, "root_down": [], "generated": generated.isoformat(),
+                "age_hours": None, "age_basis": None}
+    hours = max(0.0, (now - moment).total_seconds() / 3600.0)
     down = sorted(p for p, code in roots.items() if code != 200)
     return {"blind": False, "reason": "", "stale": hours >= stale_hours,
             "root_down": down, "generated": generated.isoformat(),
-            "age_hours": round(hours, 1)}
+            "age_hours": round(hours, 1), "age_basis": basis}
 
 
 def compose_messages(events: list[dict], verdict: dict, stale_hours: float) -> list[dict]:
@@ -169,9 +238,11 @@ def compose_messages(events: list[dict], verdict: dict, stale_hours: float) -> l
     for e in events:
         if e["rule_id"] == RULE_STALE:
             age = verdict.get("age_hours")
+            basis = verdict.get("age_basis") or AGE_BASIS_DATE
             subject = f"[广场] 机器面已 {age}h 未更新（阈值 {stale_hours:.0f}h）"
             body = "\n".join([
                 f"catalog.json 的 generatedAt = {verdict.get('generated')}，距今 {age} 小时。",
+                f"判定依据：{basis}。",
                 "",
                 "每日刷新由 cheap1 主机 cron 驱动（/opt/fd/plaza-refresh.sh，17 4 * * *），",
                 "它失败时不会有人被通知（日志在主机 /tmp，机器重启即丢）。",
@@ -227,15 +298,17 @@ def main(argv: list[str] | None = None) -> int:
         cat_status = int(snap.get("catalog_status", 200))
         cat_text = str(snap.get("catalog_text") or "")
         roots = {k: int(v) for k, v in (snap.get("roots") or {}).items()}
+        # 离线快照可以带 last_modified（ISO8601）；不带就走日期口径。
+        last_modified = parse_http_last_modified(str(snap.get("last_modified") or ""))
     else:
-        cat_status, cat_text = fetch(f"{base}/catalog.json")
+        cat_status, cat_text, last_modified = fetch_with_headers(f"{base}/catalog.json")
         roots = {}
         for p in faces:
             code, _ = fetch(f"{base}{p}", timeout=15.0)
             roots[p] = code
 
     verdict = assess(catalog_status=cat_status, catalog_text=cat_text, roots=roots,
-                     now=now, stale_hours=stale_hours)
+                     now=now, stale_hours=stale_hours, last_modified=last_modified)
 
     # 必须在 save_state 之前取：否则本轮刚写的那份会冒充「历史状态」，
     # 读数永远为 true——那就把这个坑从「看得见」变成「看不见」。
@@ -253,7 +326,8 @@ def main(argv: list[str] | None = None) -> int:
         new_st, ev, word = evaluate_threshold(
             st, triggered=bool(verdict["stale"]), key=str(verdict["generated"]), at=now,
             value=verdict["age_hours"], threshold=stale_hours,
-            detail=f"generatedAt={verdict['generated']} 距今 {verdict['age_hours']}h")
+            detail=f"generatedAt={verdict['generated']} 距今 {verdict['age_hours']}h"
+                   f"（依据 {verdict.get('age_basis')}）")
     states[RULE_STALE] = new_st
     events += attach_rule(ev, RULE_STALE)
     detail.append({"rule_id": RULE_STALE, "verdict": word,
