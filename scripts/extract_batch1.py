@@ -376,6 +376,29 @@ def ensure_concepts(cur) -> dict[str, int]:
     return ids
 
 
+def _dsn(raw: str) -> str:
+    """把 SQLAlchemy 风格的 DSN 归一成 psycopg2 认的形态（2026-11-15 补）。
+
+    生产 Secret 里 `FD_OPEN_DATA_MCP_DATABASE_URL` 的值是
+    `postgresql+psycopg2://user:pass@host:port/db`，而 `psycopg2.connect()` **不认**
+    这个 `+psycopg2` 方言前缀 —— 直接传会抛
+    `ProgrammingError: invalid dsn: missing "=" after "postgresql+psycopg2://..."`。
+    本脚本因此**从来没有在生产 DSN 下跑通过**（它不在 `semantic-extract-daily` 的
+    命令列表里，一直被手工用另一份 DSN 调用），2026-11-15 把它接进作业时才暴露。
+
+    归一规则与 `_semextract.parse_dsn()` 完全一致，**刻意只留一份实现**：那边是
+    公共件、与其它脚本同批重取（同一 ConfigMap），这里只是把它接过来；取不到时
+    退化成本地的同一行正则（离线单跑也要能用）。
+    """
+    raw = (raw or "").strip()
+    try:
+        from _semextract import parse_dsn
+        return parse_dsn(raw)
+    except Exception:                                  # noqa: BLE001
+        import re as _re
+        return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
@@ -391,7 +414,7 @@ def main() -> int:
     if unknown:
         raise SystemExit(f"--only 里有未知单元：{unknown}（可选：{sorted(EXTRACTORS)}）")
 
-    conn = psycopg2.connect(args.dsn)
+    conn = psycopg2.connect(_dsn(args.dsn))
     try:
         with conn.cursor() as cur:
             notes: list[str] = []
