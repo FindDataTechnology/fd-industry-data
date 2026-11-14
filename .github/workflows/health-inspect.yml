@@ -309,3 +309,83 @@ jobs:
             sleep 8
           done
           echo "push failed after retries"; exit 1
+
+      # 这一条补的是**这条线自己死掉时没有任何通道会响**（2026-11-12/13/14 三晚
+      # cancelled、三天零工单投出、一封邮件都没发，靠人翻 run 列表才发现）。
+      # 三个判据上的选择，改的时候别放开：
+      #   · 位置必须在**文件最后**：本文件里 `push failed after retries` 出现两次
+      #     （Commit & push tickets 与 Commit delivery receipts 各一次），按第一次
+      #     插入会落在 Deliver 之前 ⇒ Deliver 退 3 时它根本不跑（我第一版就这么
+      #     落错了，靠列出 step 名才发现）；
+      #   · `if: failure() || cancelled()` —— 当初那三晚正是 **cancelled**（撞
+      #     timeout-minutes），只写 failure() 会在那种形态下继续沉默；
+      #   · 465 是隐式 TLS，必须 SMTP_SSL=1 + TLS=0（agriculture 那条用的是另一套
+      #     字符串语义 `TLS=ssl`，别照抄成布尔）。
+      # 没有 SMTP 配置 / 发信失败**以非零退出**：「没有通道」本身就是要被看见的状态。
+      - name: Notify failure — 变红或被取消时发一封
+        if: failure() || cancelled()
+        working-directory: src
+        env:
+          FD_ALERT_SMTP_HOST: ${{ secrets.FD_ALERT_SMTP_HOST }}
+          FD_ALERT_SMTP_PORT: ${{ secrets.FD_ALERT_SMTP_PORT }}
+          FD_ALERT_SMTP_USER: ${{ secrets.FD_ALERT_SMTP_USER }}
+          FD_ALERT_SMTP_PASS: ${{ secrets.FD_ALERT_SMTP_PASS }}
+          FD_ALERT_SMTP_FROM: ${{ secrets.FD_ALERT_SMTP_FROM }}
+          FD_ALERT_SMTP_TO: ${{ secrets.FD_ALERT_SMTP_TO }}
+          FD_ALERT_SMTP_SSL: "1"
+          FD_ALERT_SMTP_TLS: "0"
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_STATE: ${{ job.status }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, sys
+          from pathlib import Path
+          from fd_industry_data.alerts_core import notify
+
+          run_url = os.environ.get("RUN_URL", "")
+          state = os.environ.get("RUN_STATE", "")
+          lane, rows = {}, []
+          p = Path("reports/health-tickets/last-run.json")
+          if p.exists():
+              try:
+                  doc = json.loads(p.read_text(encoding="utf-8"))
+                  lane = doc.get("delivery_lane") or {}
+                  rows = doc.get("submit") or []
+              except ValueError:
+                  pass
+
+          lines = [f"每日健康巡检本轮结束状态：{state}", f"运行：{run_url}"]
+          if lane:
+              lines.append("投递通道：{s}（尝试 {a}，服务侧错误 {e}，受理 {c}）".format(
+                  s=lane.get("status"), a=lane.get("attempted"),
+                  e=lane.get("service_errors"), c=lane.get("accepted")))
+              for r in (lane.get("reasons") or [])[:3]:
+                  lines.append(f"  · {r}")
+          else:
+              lines.append("没有读到 last-run.json（本轮可能死在投递之前）。")
+          bad = [r for r in rows if r.get("verdict") == "error"]
+          if bad:
+              lines.append(f"逐单错误 {len(bad)} 张：" + ", ".join(
+                  str(r.get("ticket")) for r in bad[:5]))
+          if state == "cancelled":
+              lines += ["", "**被取消**：最常见成因是撞上本工作流的 timeout-minutes（预算耗尽），",
+                        "而不是某张单出了问题。"]
+          elif lane.get("status") == "outage":
+              lines += ["", "**通道中断**（不是工单的问题）。先分诊：线内 NodePort 打同一 a2a 路径——",
+                        "401/403=端点在（查 endpoints，别加放行）、404=端点没实现、000=上游不可达。"]
+          lines += ["", "判据：python3 scripts/check_workflow_health.py"]
+
+          cfg = notify.smtp_config_from_env()
+          if cfg is None:
+              print("::error::没有 SMTP 配置（FD_ALERT_SMTP_*），这轮失败无法外发——"
+                    "通道缺失本身要处置", file=sys.stderr)
+              sys.exit(1)
+          subject = "[fd-health] 每日巡检" + ("被取消" if state == "cancelled" else "失败") + (
+              f" · 通道 {lane.get('status')}" if lane.get("status") else "")
+          try:
+              notify.send_email(cfg, subject, "\n".join(lines))
+          except Exception as exc:  # noqa: BLE001
+              print(f"::error::告警邮件未送出：{exc}", file=sys.stderr)
+              sys.exit(1)
+          print(f"已发出：{subject}")
+          PYEOF
