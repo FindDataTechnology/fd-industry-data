@@ -22,6 +22,7 @@ SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "extract_ncd.py"
 def mod():
     import sys
     sys.modules.setdefault("psycopg2", types.ModuleType("psycopg2"))
+    sys.path.insert(0, str(SCRIPT.parent))   # _semextract 是同目录模块
     spec = importlib.util.spec_from_file_location("extract_ncd", SCRIPT)
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
