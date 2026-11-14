@@ -380,3 +380,46 @@ def test_submit_timeout_shrinks_to_remaining_budget(tmp_path, cfg, monkeypatch):
     assert timeouts == [300.0, 200.0, pytest.approx(133.33, abs=0.01)], \
         f"超时应随剩余预算收缩，实得 {timeouts}"
     assert sum(timeouts) <= 900.0, f"收缩后整批不得超预算，实耗 {sum(timeouts)}s"
+
+
+def test_dry_run_covers_status_readback(tmp_path):
+    """`--dry-run` 必须连 STATUS 一起停手——回读也是一次真 turn。
+
+    2026-11-14 发现：`--dry-run` 只传给了 `submit_new_tickets`，`sync_status` 照旧
+    发真请求。工作流的 `dry_run` 输入写着「仅出单不 SUBMIT（校准期用）」，于是校准
+    轮既花模型钱、又和 SUBMIT 抢同一个 (caller, agent) 槽位——当天线上 STATUS 回执
+    里就有一批 409 `TURN_IN_FLIGHT`，正是这种自撞。
+
+    判据：**fetcher 一次都不许被调用**，且工单文件字节不变（dry run 不改状态）。
+    """
+    d = _mk(tmp_path, slugs=("t-a", "t-b"))
+    before = {p.name: p.read_bytes() for p in sorted(d.glob("*.yaml"))}
+
+    def boom(*a, **k):  # 被调用即失败：dry run 不该发任何请求
+        raise AssertionError("dry run 仍然发起了 STATUS 请求")
+
+    res = ins.sync_status(d, "http://x", "k", fetcher=boom, max_reads=3, dry_run=True)
+
+    assert len(res) == 2, f"应报出「本来会读这 2 张」，实际 {res}"
+    assert all(r.get("dry_run") is True for r in res), "条目须自带 dry_run 标记，别让人误读成真读了"
+    assert all(r.get("http_status") is None for r in res), "dry run 没有回执状态码"
+    after = {p.name: p.read_bytes() for p in sorted(d.glob("*.yaml"))}
+    assert before == after, "dry run 不得改动工单文件"
+
+
+def test_dry_run_still_prioritises_oldest_unread(tmp_path):
+    """dry run 报的应该是**真跑时会读的那几张**，而不是随便几张。
+
+    否则这个校准输出会替一个错误的读取顺序背书（最久未读优先的排序在 pending 阶段，
+    dry run 只是不发请求）。
+    """
+    d = _mk(tmp_path, slugs=("t-a", "t-b", "t-c"))
+    # t-c 已经有更晚的回读记录 ⇒ 它的 _last_read_at 最大，应排最后。
+    p = d / "20261110-t-c.yaml"
+    doc = tm.load_ticket(p)
+    tm.append_event(doc, "status", http_status=200, state="queued", note="", pr_url=None)
+    p.write_text(tm.dump_ticket(doc), encoding="utf-8")
+
+    res = ins.sync_status(d, "http://x", "k", max_reads=2, dry_run=True)
+    names = [r["ticket"] for r in res]
+    assert "20261110-t-c.yaml" not in names, f"最久未读优先应排除刚读过的 t-c，实际 {names}"

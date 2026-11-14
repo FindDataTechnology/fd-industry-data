@@ -1441,7 +1441,8 @@ def _last_read_at(doc: dict) -> str:
 
 def sync_status(outdir: Path, url: str, key: str, fetcher=None,
                 max_reads: int = STATUS_MAX_PER_RUN,
-                budget_s: float = STATUS_BUDGET_S) -> list[dict]:
+                budget_s: float = STATUS_BUDGET_S,
+                dry_run: bool = False) -> list[dict]:
     """回读未终态工单的 STATUS，映射进生命周期与终态枚举。
 
     单轮最多读 max_reads 张，优先最久未读的（含从未读过的）；且**总耗时**不超过
@@ -1449,6 +1450,12 @@ def sync_status(outdir: Path, url: str, key: str, fetcher=None,
     用尽即停手（剩下的下一轮接手）。这层总预算不是优化，是防"被外面一刀砍死"：
     被 job 墙砍断时，前面的状态已经写进工单文件，`if: always()` 的回执步会把半截
     结果照样提交，形成"投递做了一半"的混合态。
+
+    ``dry_run``：只报「本来会读哪几张」，**一次请求都不发、一个文件都不写**。
+    2026-11-14 之前 `--dry-run` 只覆盖 SUBMIT，而 STATUS 回读同样是一次真 turn：
+    校准轮既花模型钱，又和 SUBMIT 抢同一个 (caller, agent) 槽位（当天线上回执里
+    有一批 409 `TURN_IN_FLIGHT`，正是这种自撞）。校准模式的含义是「不产生外部
+    副作用」，只覆盖一半就等于没有校准语义。
     """
     results: list[dict] = []
     if not outdir.is_dir():
@@ -1460,6 +1467,11 @@ def sync_status(outdir: Path, url: str, key: str, fetcher=None,
             continue
         pending.append((_last_read_at(doc), p, doc))
     pending.sort(key=lambda t: (t[0], str(t[1])))  # 最久未读优先（空串=从未读）
+    if dry_run:
+        # 排序与筛选照走（这样报出来的就是真跑时会读的那几张），只是不发请求。
+        return [{"ticket": p.name, "state": None, "http_status": None,
+                 "dry_run": True, "would_read": True}
+                for _at, p, _doc in pending[:max_reads]]
     deadline = time.monotonic() + budget_s
     for _at, p, doc in pending[:max_reads]:
         remaining = deadline - time.monotonic()

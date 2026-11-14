@@ -155,7 +155,7 @@ def main() -> int:
     if do_deliver and args.sync_status:
         url = os.environ.get("WANXING_SPIDER_HEAL_URL", DEFAULT_URL)
         key = os.environ.get("WANXING_SPIDER_HEAL_KEY", "")
-        summary["status"] = inspector.sync_status(outdir, url, key)
+        summary["status"] = inspector.sync_status(outdir, url, key, dry_run=args.dry_run)
 
     # 投递通道体检（2026-11-14）：逐张工单的 error 判定**不足以**让人发现通道整个断了。
     # 11-13~11-14 三天每次投递都被平台拒（-32032 fetch failed / 502），摘要里只是七张
