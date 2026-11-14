@@ -94,5 +94,10 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32032, "message": "fetch failed"}'
-terminal: null
+- at: '2026-11-14T04:41:41.779226+00:00'
+  event: terminal
+  terminal: recovered
+  previous: null
+  note: 连续 5 次成功（阈值 3，自 2026-11-14T00:20:27.084157+00:00 起算）
+terminal: recovered
 evidence_signature: 974dccaeb656

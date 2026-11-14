@@ -53,5 +53,19 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-14T04:46:45.989914+00:00'
+  event: submitted
+  http_status: 502
+  ok: false
+  verdict: error
+  response: "<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body>\r\n<center><h1>502\
+    \ Bad Gateway</h1></center>\r\n<hr><center>nginx/1.27.5</center>\r\n</body>\r\n\
+    </html>"
+- at: '2026-11-14T04:47:14.155701+00:00'
+  event: status
+  http_status: 502
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: d5ab5a94aea5
