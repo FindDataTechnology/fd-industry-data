@@ -5,9 +5,7 @@ source_url: https://std.samr.gov.cn/
 # site: tencent              # 缺省 tencent；本单元只访问 std.samr.gov.cn 公开 JSON，无需换执行位
 schedule: "25 2 * * 4"  # 点亮（批次二）：周四 02:25；国标库周度快照
 data_period: month
-# min_rows_per_run 暂撤（2026-11-10）：最近一次成功 rows=20 来自 11-06 的批量探针
-#   （48 源各一次、恰好 20 行、image_tag=unknown，非 k8s 调度），不是源低产。
-#   下一次真实运行 2026-11-12（周四 02:25）后恢复——届时最新可比成功才有意义。
+min_rows_per_run: 30    # runs=7 p10=68 p50=100; p10=68，取 30 留出浮动余量 — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
 functions:
