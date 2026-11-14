@@ -14,7 +14,10 @@ source_url: https://www.china-cba.net/Index/lists/catid/279.html
 # 复检方法：重新 HEAD 那 9 个 URL，任一返回 200 即可 unpark 并跑一次 --period 校验。
 parked: true
 enabled: false
-schedule: "15 14 12 * *"       # 月更：协会在次月中下旬把上月报告挂到年度聚合页（实测 2026-09 于 2026-10-19 上传）
+# parked 期间 schedule 必须为空（conformance_gate: parked-schedule-conflict）——留着
+# 排期会让调度器照旧拉起一个注定失败的作业。unpark 时把下面那行恢复即可：
+#   schedule: "15 14 12 * *"   # 月更：协会在次月中下旬把上月报告挂到年度聚合页（实测 2026-09 于 2026-10-19 上传）
+schedule: null
 data_period: month
 scanner_mode: upstream-curated
 functions:
