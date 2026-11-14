@@ -123,3 +123,17 @@ def test_period_helpers(mod):
     assert mod.obs_month_of("2026-11") is None      # 日频源不接受月值
     assert mod.gap_note(["2026-11-13", "2026-11-16"]) is None      # 3 天，周末
     assert mod.gap_note(["2026-11-13", "2026-12-01"]) is not None  # 18 天
+
+
+def test_sql_has_no_bare_percent_literal(mod):
+    """SQL 字面量里不许出现裸 `'%'`。
+
+    psycopg2 把 `%` 当占位符解析 ⇒ 参数元组少一位、抛
+    `IndexError: tuple index out of range`。而单测用的是 stand-in 的 psycopg2 模块，
+    **这条永远测不出来**（2026-11-14 就是这么上了一次产才发现的）。所以改成查字面量：
+    单位一律走绑定参数，不写进 SQL 文本。
+    """
+    import inspect
+    src = "\n".join(l for l in inspect.getsource(mod).splitlines()
+                    if not l.lstrip().startswith("#"))
+    assert "'%'" not in src, "SQL 里有裸 '%'：psycopg2 会把它当占位符，改走绑定参数"

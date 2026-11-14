@@ -174,13 +174,16 @@ def build_rows(data: dict, notes: list[str], skips: dict):
 
 
 def ensure_concepts(cur) -> dict[str, int]:
+    # **`'%'` 不能直接写进 SQL 字面量**：psycopg2 会把裸 `%` 当占位符解析，于是参数元组
+    # 少一位、报 `IndexError: tuple index out of range`（2026-11-14 实跑踩到，而单测全绿
+    # —— 因为单测不碰真实 psycopg2）。单位一律走绑定参数。
     for _curve, (code, zh, en) in SERIES.items():
         cur.execute(
             "INSERT INTO concepts (code, name_en, name_zh, category, unit, measure, frequency,"
             " entity_type, source, verified, deprecated, concept_code)"
-            " VALUES (%s,%s,%s,'利率','%','value','daily','country',%s,false,false,NULL)"
+            " VALUES (%s,%s,%s,'利率',%s,'value','daily','country',%s,false,false,NULL)"
             " ON CONFLICT ON CONSTRAINT uq_concept_identity DO NOTHING",
-            (code, en, zh, SOURCE))
+            (code, en, zh, "%", SOURCE))
     ids: dict[str, int] = {}
     cur.execute("SELECT id, code FROM concepts WHERE deprecated = false AND code = ANY(%s)",
                 ([c for c, _, _ in SERIES.values()],))
@@ -240,7 +243,7 @@ def main() -> int:
                     c2.execute("SELECT count(*) FROM semantic_observations")
                     before = c2.fetchone()[0]
                     from psycopg2.extras import execute_values
-                    payload = [(ids[c], ENTITY_CN, d, v, SOURCE, obs_month_of(d))
+                    payload = [(ids[c], ENTITY_CN, d, v, "%", SOURCE, obs_month_of(d))
                                for (c, d, v) in rows]
                     execute_values(
                         c2,
@@ -249,7 +252,7 @@ def main() -> int:
                         "  value, unit, source_used, fetched_at, obs_month) VALUES %s"
                         " ON CONFLICT ON CONSTRAINT uq_sem_obs DO NOTHING",
                         payload,
-                        template="(%s,'country',%s,%s,'day',%s,'%',%s,now(),%s)")
+                        template="(%s,'country',%s,%s,'day',%s,%s,%s,now(),%s)")
                     c2.execute("SELECT count(*) FROM semantic_observations")
                     after = c2.fetchone()[0]
             print(f"\nsemantic_observations: {before} -> {after} (inserted {after - before})")
