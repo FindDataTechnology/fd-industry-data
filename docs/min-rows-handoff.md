@@ -53,9 +53,34 @@ change `declare-health-min-rows` 已归档为 `openspec/changes/archive/2026-11-
 **但缺一半**：「只有 blocked-config 的源」仍被判 `rule2 需人工`，与 runner 侧「不催修复工单」矛盾。
 该做的：最近一次是 blocked-config 的源归入 `Plan.blocked_config`，可见但不判定。
 
-### 4. 生成态不进 git（任务 7.5）—— 治理裁决
+### 4. 生成态不进 git（任务 7.5）—— **已取证，结论：维持现状（2026-11-14）**
+
 每次 sync 合并都在 `reports/*/events*.json`、`rules-*.json`、`*.jsonl` 上重新冲突
 （上次预演 24 个冲突里 13 个是这类）。要么生成态出 git，要么单写目标 + 镜像。
+
+**判定标准**：能不能把 `reports/health-tickets/*.yaml` 移出 git，取决于
+「有没有消费方仍按**仓内路径**读它」。2026-11-14 逐个查过，答案是有，且有三处：
+
+| 消费方 | 证据 | 移出后 |
+|---|---|---|
+| spider-heal agent 取件 | `paas/scripts/spider-heal-pack.mjs` 第 1 节：`git clone` 后 `sparse-checkout` 只取 `spiders/<slug>/` 与 **`reports/health-tickets/<ticket>.yaml`** | 读不到工单 |
+| spider-heal 回写 | 同文件第 5 节：`git add spiders/<slug> reports/health-tickets 2>/dev/null` | 路径不存在 → **静默跳过**（`2>/dev/null`），heal PR 里少了工单状态回写 |
+| 工单自带的验证命令 | `inspector.py:899` / `health_new_generation_ticket.py:68` 把 `verify.commands` 渲染成 `python3 scripts/health_verify.py --ticket reports/health-tickets/<f>.yaml`，agent 会照跑 | 命令指向不存在的路径，验证链断 |
+
+而 `_submit_body(inline=True)` 只解决了"**读**"这一半（`SUBMIT-INLINE` 附全文，
+`_SUBMIT_INLINE = True`），没解决"写回"与"验证命令"两半。
+
+**结论：不移。** 要移必须先做三件事（缺一不可）：
+① `spider-heal-pack.mjs` 取件段去掉 `reports/health-tickets/`；
+② 第 5 节的 `git add … reports/health-tickets` 去掉（状态回写改走 STATUS 回执，不再改仓）；
+③ `health_verify.py` 增加从 stdin/内联读工单的入口，并把 `verify.commands` 改成不依赖仓内路径。
+
+收益侧也要说清：移出只少一类 git 冲突，而 `reports/**` **只进 github 线**、不进 Argo 部署线，
+冲突面已在 2026-11-14 的合流里实测为零（`fd-industry-data` 当天从 parity 的「真分叉」名单里消失）。
+用改坏 heal 链的风险换这个收益不划算。
+
+**复检条件**：上述①②③全部落地（且 `spider-heal-pack.mjs` 的提示词里不再出现
+`reports/health-tickets`）时，重开此裁决。在此之前，工单 YAML 必须留在 git。
 
 ## 五个会咬人的坑（都是实测过的）
 
