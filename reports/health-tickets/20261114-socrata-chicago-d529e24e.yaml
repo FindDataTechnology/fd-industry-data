@@ -46,5 +46,11 @@ golden:
 lifecycle:
 - at: '2026-11-14T00:20:27.084157+00:00'
   event: created
+- at: '2026-11-14T01:00:13.041607+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32003, "message": "Request timed out."}'
 terminal: null
 evidence_signature: 61b09bd56a7d

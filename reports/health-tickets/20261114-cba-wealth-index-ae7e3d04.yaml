@@ -46,5 +46,17 @@ golden:
 lifecycle:
 - at: '2026-11-14T00:20:27.084157+00:00'
   event: created
+- at: '2026-11-14T00:52:33.596863+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32003, "message": "Connection error."}'
+- at: '2026-11-14T01:03:18.069488+00:00'
+  event: status
+  http_status: 200
+  state: working
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: d5ab5a94aea5

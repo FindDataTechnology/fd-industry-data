@@ -38,5 +38,11 @@ lifecycle:
   state: queued
   note: ''
   pr_url: ''
+- at: '2026-11-14T00:43:55.860148+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "fetch failed"}'
 terminal: null
 evidence_signature: 98c4b7d37a4c
