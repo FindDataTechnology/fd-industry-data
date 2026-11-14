@@ -46,7 +46,6 @@ sys.path.insert(0, str(ROOT))
 
 from fd_industry_data.alerts_core import (  # noqa: E402
     RuleState, append_events, dispatch, evaluate_threshold, load_state, save_state,
-    state_health,
 )
 from fd_industry_data.alerts_core.delivery import (  # noqa: E402
     DeliveryNotConfigured, DeliveryReceipt, judge, resolve_target, smtp_from_env,
@@ -55,6 +54,35 @@ from fd_industry_data.alerts_core.delivery import (  # noqa: E402
 from fd_industry_data.alerts_core.state import (  # noqa: E402
     FIRING, INSUFFICIENT, attach_rule,
 )
+
+def _state_info(path) -> dict:
+    """本轮能否用到持久状态——去重与「回落」通知的前提，永远打印、永不静默。
+
+    **刻意不 import `alerts_core.state_health`**：脚本由 ConfigMap 挂进 `/src`，而
+    `fd_industry_data` 来自镜像，两条供给线各走各的。2026-11-14 实测镜像
+    `fd-industry-runner:sha-f5a19aa` 里没有那个新符号（`hasattr` → False），
+    加了就会 ImportError、一条告警都发不出来。这里只用镜像确有的 `load_state`。
+    与 `alerts_core.ledger.state_health` 语义相同，由
+    `tests/test_alert_script_image_contract.py` 逐档对齐。
+    """
+    st = load_state(path)
+    parent = Path(path).parent
+    try:
+        parent.mkdir(parents=True, exist_ok=True)
+        writable = os.access(parent, os.W_OK)
+    except OSError:
+        writable = False
+    if st:
+        note = f"读到 {len(st)} 条规则的历史状态：去重与回落通知本轮生效"
+    elif not writable:
+        note = ("本轮无历史状态，且状态目录不可写（save_state 也会失败）："
+                "去重与回落通知永远不会生效")
+    else:
+        note = ("本轮无历史状态（首轮，或状态目录不跨轮如 emptyDir）："
+                "去重与回落通知本轮不生效——同一读数连续出现即为状态不跨轮")
+    return {"path": str(path), "persisted": bool(st), "rules": len(st),
+            "dir_writable": writable, "note": note}
+
 
 CONFIG = ROOT / "config" / "plaza-freshness-alerts.json"
 REPORT_DIR = Path(os.environ.get("FD_PLAZA_ALERT_REPORTS")
@@ -211,7 +239,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # 必须在 save_state 之前取：否则本轮刚写的那份会冒充「历史状态」，
     # 读数永远为 true——那就把这个坑从「看得见」变成「看不见」。
-    state_info = state_health(STATE)
+    state_info = _state_info(STATE)
     states = load_state(STATE)
     events: list[dict] = []
     detail: list[dict] = []
@@ -297,7 +325,7 @@ def main(argv: list[str] | None = None) -> int:
         "verdict": verdict_code.as_dict() if verdict_code else None,
         "detail": detail,
         # 状态是否跨轮：去重与「回落」通知的前提。emptyDir 下恒为 false——
-        # 永远打印、永不静默（详见 ledger.state_health）。
+        # 永远打印、永不静默（与另外三条线同一读数）。
         "state": state_info,
     }
     print(json.dumps(summary, ensure_ascii=False))

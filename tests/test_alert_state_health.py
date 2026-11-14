@@ -86,9 +86,9 @@ def test_corrupt_state_counts_as_no_history(tmp_path):
 def test_scripts_take_the_reading_before_saving(script):
     """三处调用点都必须「先取读数、后 save_state」，顺序写反读数就永远是 true。"""
     src = (REPO / "scripts" / f"{script}.py").read_text(encoding="utf-8")
-    assert "state_info = state_health(STATE)" in src, f"{script} 没接这条读数"
+    assert "state_info = _state_info(STATE)" in src, f"{script} 没接这条读数"
     assert '"state": state_info' in src, f"{script} 没把读数打进摘要"
-    take = src.index("state_info = state_health(STATE)")
+    take = src.index("state_info = _state_info(STATE)")
     # 该脚本里最后一次 save_state 必须在取读数之后
     assert src.rindex("save_state(STATE") > take, (
         f"{script}: 取读数早于 save_state 才行；现在顺序反了，读数会永远为 true"
