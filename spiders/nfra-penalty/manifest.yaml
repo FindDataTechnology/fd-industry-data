@@ -4,6 +4,11 @@ label: NFRA Administrative Penalties (bureau/branch public disclosure tables)
 source_url: https://www.nfra.gov.cn/cbircweb/DocInfo/SelectDocByItemIdAndChild?itemId=4113
 # site: 缺省 —— 本机直连 www.nfra.gov.cn 实测 200（2026-11-07，见 README 证据表）
 schedule: "15 13 * * *"       # 逐字按批次六排期（日频巡检；三个叶子栏目当天发布、次日可取）
+# 单轮取多少行。**必须显式声明**：chart 的缺省是 100，会盖掉 spider 自己的
+# `limit: int = 300`。监管处罚逐条明细（多机关 × 多日期），100 行只够最近几个批次
+# 实测每轮恰好 100 行（45 天内每轮上界都是 100），2026-11-14 由
+# check_crawl_row_cap.py 的 R1 清单点名。
+limit: 300
 data_period: day
 scanner_mode: upstream-curated
 functions:
