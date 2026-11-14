@@ -52,9 +52,17 @@ _SUBMIT_TURN_BUDGET_S = 90.0   # 单张单的等待预算（实测 agent 回合 
 # 占住唯一槽位跑满整个回合预算（实测 20261107-fred-cpi-ba279d6a-try20：600s 超时），
 # 同轮其余单全部 409 deferred、accepted=0——一张单饿死整条线。
 # **只数 JSON-RPC 错误回执**（`"code":-32xxx` 的 response）＝回合真的跑过：
-#   409 deferred / 402 / 502 / 308 这类"回合没开始"的形态不计，免得把通道故障
-#   误记成工单罪过、提前退役其实有救的单。也不设 terminal——工单照常巡检出单，
-#   只是 SUBMIT 停手，处置权交回人（判词必须写明停了几次，别让"没投"冒充"没单"）。
+#   面层形态不计——`TURN_IN_FLIGHT` 409、`PLAN_EXHAUSTED` 402、裸 HTTP 502/308（这些
+#   response 里根本没有 `"code":-32xxx`），免得把通道故障误记成工单罪过。
+#   **但 `-32003` 会计**：它是「上游错误原文中继」，实测形态
+#   `{"code":-32003,"message":"502: …Upstream service temporarily unavailable"}` 与
+#   429 `rate_limit_error` —— 那一次回合确实被受理过、由上游收场，所以计入。
+#   这一侧是刻意选的：少计＝一张真卡的单饿死整条线；多计＝被限流挡住的单在 6 轮后
+#   判 exhausted 转人工，而判词里写着次数与末次原文，人一眼能看出是限流。
+#   **要改这一侧，改注释的同时要改 `test_relayed_upstream_errors_count_toward_cap`**
+#   ——别只把 `-32\d{3}` 放宽成白名单，那会把 `-32032 fetch failed`（传输层）也放走。
+#   也不设 terminal——工单照常巡检出单，只是 SUBMIT 停手，处置权交回人
+#   （判词必须写明停了几次，别让"没投"冒充"没单"）。
 _SUBMIT_TURN_FAIL_MAX = 6
 # 整批上限：不加这两条实测会撞 workflow 45 分钟超时（2026-11-10 首版修复
 # 18 张 × 120s ≈ 36min + 常规 9min = 49m30s，被超时掐成 cancelled，一张都没交成）。

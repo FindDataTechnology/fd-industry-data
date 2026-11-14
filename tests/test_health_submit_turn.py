@@ -485,3 +485,35 @@ def test_deferred_and_transport_failures_do_not_count_toward_cap(tmp_path, cfg):
     res = ins.submit_new_tickets(d, "org/repo", "http://x", "k", cfg, poster=poster)
     assert res[0]["verdict"] in ("accepted", "duplicate"), res[0]
     assert res[0]["attempt"] == 5, "非 JSON-RPC 错误回执不计入上限，照常递增重投"
+
+
+def test_relayed_upstream_errors_count_toward_cap(tmp_path, cfg, monkeypatch):
+    """-32003 是「上游错误原文中继」（实测含 502 与 429 rate_limit_error）⇒ **计入**上限。
+
+    这条边界刻意放在另一侧，也很容易读错：面层的 409/402/裸 502 不计（见上一条用例），
+    但**包成 JSON-RPC 错误的同一件事会计**——那一次回合确实被受理过、由上游收场。
+    选这一侧的理由：少计＝一张真卡的单把整条线饿死；多计＝被限流挡住的单在 6 轮后
+    判 exhausted 转人工，而判词里写着次数与末次原文，人一眼能看出是限流。
+    **要翻转这条，必须同时改 `inspector.py` 里那段注释**——别只把 `-32\\d{3}` 放宽成
+    白名单，那会把 `-32032 fetch failed`（传输层）一起放走。
+    """
+    monkeypatch.setattr(ins, "_SUBMIT_TURN_FAIL_MAX", 2)
+    d = _mk(tmp_path, slugs=("t-relay",))
+    name = "20261110-t-relay.yaml"
+    doc = tm.load_ticket(d / name)
+    for msg in ('502: {"message":"Upstream service temporarily unavailable"}',
+                "429 Upstream account queue full (rate_limit_error)"):
+        tm.append_event(doc, "submitted", http_status=200, ok=False, verdict="error",
+                        response='{"code": -32003, "message": "%s"}' % msg.replace('"', "'"))
+    (d / name).write_text(tm.dump_ticket(doc), encoding="utf-8")
+
+    calls: list[str] = []
+
+    def poster(url, key, idem, body):
+        calls.append(idem)
+        return 200, "已入队"
+
+    res = ins.submit_new_tickets(d, "org/repo", "http://x", "k", cfg, poster=poster)
+    capped = [r for r in res if r.get("ticket") == name]
+    assert capped and capped[0]["verdict"] == "exhausted", capped
+    assert calls == [], f"被判耗尽后不得再打门面；实际 calls={calls}"
