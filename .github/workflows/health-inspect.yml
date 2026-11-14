@@ -41,8 +41,14 @@ jobs:
     #
     # 2026-11-12/13 连续两晚撞穿这堵墙、deliver 被砍在中途（`if: always()` 的回执步
     # 把半截状态提交进仓＝半投递），故抬到 60 分钟，并给 STATUS 回读加了总预算
-    # （inspector.STATUS_BUDGET_S=900s）。现在的上界：1800(SUBMIT) + 900(STATUS)
-    # + 其余步骤实测约 8 分钟 ≈ 53 分钟，落在 60 之内还有余量。
+    # （inspector.STATUS_BUDGET_S=900s）。
+    #
+    # 2026-11-14 复查发现抬墙其实没解决：`_SUBMIT_BATCH_BUDGET_S=1800` **从未生效**——
+    # 它只累计"等 turn"的 sleep，没算每次 poster() 真正跑掉的约 300s（实测提交间隔
+    # 303/305/308/309s）。24 张单最坏是 24×300s=2 小时，所以 11-12/13/14 三夜都是
+    # 跑满墙被掐。现在每次调用按墙钟计时、并在开单前预留一次调用余量（
+    # `_SUBMIT_CALL_RESERVE_S=330s`），SUBMIT 侧才真正封顶 1800s。
+    # 现在的上界：1800(SUBMIT) + 900(STATUS) + 其余步骤实测约 8 分钟 ≈ 53 分钟。
     timeout-minutes: 60
     steps:
       - name: Checkout (shell clone, retry)

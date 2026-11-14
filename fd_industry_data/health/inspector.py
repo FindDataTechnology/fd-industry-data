@@ -7,11 +7,12 @@
 """
 from __future__ import annotations
 
+import inspect
 import json
 import re
-import time
 import subprocess
 import sys
+import time
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -57,7 +58,18 @@ _SUBMIT_INLINE = True          # SUBMIT 是否附工单全文（现役 agent 无
 _POSTER_RETRY_BACKOFF_S = 3.0  # 连接层失败重试退避（3s/6s 两跳）
 
 _SUBMIT_MAX_TICKETS_PER_RUN = 24
+# 预算算的是**墙钟耗时**，不是"等 turn 的 sleep"。实测单次门面调用本身就要约 300s
+# （agent 回合串行），旧版只累计 sleep ⇒ 这个预算从未生效：24 张单最坏 24×300s=2 小时。
+# 2026-11-12/13/14 三夜跑满 45 分钟墙正是此因，现在每次 poster() 的实际耗时都计入。
 _SUBMIT_BATCH_BUDGET_S = 1800.0
+# 预判余量：单次调用最坏耗时（实测 ~300s）。开新单前先问"这一张会不会把预算顶穿"，
+# 否则在 1799s 处还会再起一次 300s 调用，整批实际耗时就变成 预算 + 一次调用。
+_SUBMIT_CALL_RESERVE_S = 330.0
+# 单次调用的超时上限（= _default_poster 的默认）。预算见底时要**按剩余预算收缩**
+# 每次调用的 timeout：固定 15 分钟 × 3 次连接重试的最坏值是 45 分钟，一次调用就能
+# 独占整个作业墙。收缩后「attempts × timeout ≤ 剩余预算」，整批才真的封顶。
+_SUBMIT_CALL_TIMEOUT_S = 900.0
+_POSTER_ATTEMPTS = 3           # 连接层失败重试次数（实测一轮 10 次里 7 次抖动）
 REFUSAL_WORDS = (
     "拒绝入队", "未入队", "不可读", "不认领", "拒绝并转人工",
     "拒绝", "未通过", "无法读取", "不存在",
@@ -947,7 +959,7 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
     # 网络层失败重试：实测（2026-11-10）一轮 10 次 SUBMIT 里有 7 次直接
     # RemoteDisconnected / URLError，成功率被打到 30%——而每次失败都白占一个 turn 窗口。
     # 只对**连接层**异常重试（HTTPError 是有答复的，不重试）；idem 不变，安全。
-    attempts = 3
+    attempts = _POSTER_ATTEMPTS
     for i in range(1, attempts + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -1181,6 +1193,11 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                        poster=None, dry_run: bool = False) -> list[dict]:
     """对尚无 submitted 事件的工单执行 SUBMIT；总闸关闭时不提交（纯巡检）。"""
     poster = poster or _default_poster
+    # 注入的 poster 未必收 timeout（测试替身常是 4 参）——只有收得下才收缩超时。
+    try:
+        _POSTER_TAKES_TIMEOUT = "timeout" in inspect.signature(poster).parameters
+    except (TypeError, ValueError):     # 内置/不可反射的调用体：按不收处理
+        _POSTER_TAKES_TIMEOUT = False
     results: list[dict] = []
     if not outdir.is_dir():
         return results
@@ -1202,12 +1219,15 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
         return (1, (), path.name)
 
     for p in sorted(outdir.glob("*.yaml"), key=_submit_order):
-        if handled >= _SUBMIT_MAX_TICKETS_PER_RUN or batch_waited >= _SUBMIT_BATCH_BUDGET_S:
+        # 两条独立上限：张数（turn 串行，多开单只是排队）与墙钟耗时（作业有 60 分钟墙）。
+        # 耗时那条留一次调用的余量——否则在预算边缘起的那张单会把整批顶出预算。
+        if (handled >= _SUBMIT_MAX_TICKETS_PER_RUN
+                or batch_waited + _SUBMIT_CALL_RESERVE_S > _SUBMIT_BATCH_BUDGET_S):
             results.append({
                 "ticket": "__batch_limit__",
                 "submitted": False,
                 "verdict": "deferred",
-                "verdict_reason": (f"本批已达上限（{handled} 张 / 等待 {int(batch_waited)}s），"
+                "verdict_reason": (f"本批已达上限（{handled} 张 / 已耗时 {int(batch_waited)}s），"
                                    "其余下一轮接手"),
             })
             break
@@ -1235,7 +1255,29 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
             entry["attempt"] = prior + 1
             try:
                 body = _submit_body(repo_slug, rel, p, inline=_SUBMIT_INLINE)
-                status, text = poster(url, key, idem, body)
+
+                def _post(idem_key: str) -> tuple[int | None, str, float]:
+                    """投一次门面，返回 (status, text, 实际耗时秒)。
+
+                    两件事必须一起做，否则预算只是装饰：
+                    1) **计时**——实测单次 ~300s（agent 回合串行），只累计 sleep 会让
+                       预算永不触发（旧版缺陷，2026-11-12/13/14 三夜跑满墙）；
+                    2) **收缩 timeout**——`_default_poster` 默认 900s 且连接层重试
+                       3 次，固定超时下一次调用最坏 45 分钟，能独占整个作业墙。
+                       按「剩余预算 / 重试次数」给，整批才真的封顶。
+                    """
+                    remaining = max(0.0, _SUBMIT_BATCH_BUDGET_S - batch_waited)
+                    t0 = time.monotonic()
+                    if _POSTER_TAKES_TIMEOUT:
+                        st, tx = poster(url, key, idem_key, body,
+                                        timeout=min(_SUBMIT_CALL_TIMEOUT_S,
+                                                    remaining / _POSTER_ATTEMPTS))
+                    else:
+                        st, tx = poster(url, key, idem_key, body)
+                    return st, tx, time.monotonic() - t0
+
+                status, text, spent = _post(idem)
+                batch_waited += spent
                 # turn 被占：有界等待后重试同一张单；预算耗尽则本批停手
                 waited = 0.0
                 turn_budget = min(_SUBMIT_TURN_BUDGET_S,
@@ -1244,7 +1286,12 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                     time.sleep(_SUBMIT_TURN_POLL_S)
                     waited += _SUBMIT_TURN_POLL_S
                     batch_waited += _SUBMIT_TURN_POLL_S
-                    status, text = poster(url, key, f"{idem}-w{int(waited)}", body)
+                    status, text, spent = _post(f"{idem}-w{int(waited)}")
+                    # 重试本身也是一次完整回合，计入单张等待与整批耗时
+                    waited += spent
+                    batch_waited += spent
+                    turn_budget = min(_SUBMIT_TURN_BUDGET_S,
+                                      _SUBMIT_BATCH_BUDGET_S - batch_waited)
                 if _is_turn_in_flight(status, text):
                     entry.update({
                         "submitted": False,

@@ -85,6 +85,8 @@ def test_batch_limits_bound_the_run(tmp_path, cfg, monkeypatch):
     """每轮限量 + 批量等待预算：不加界会撞 workflow 45 分钟超时（实测 49m30s 被掐）。"""
     monkeypatch.setattr(ins, "_SUBMIT_MAX_TICKETS_PER_RUN", 2)
     monkeypatch.setattr(ins, "_SUBMIT_BATCH_BUDGET_S", 0.01)
+    # 本条只验「张数」这条界；把时间余量清零，免得 330s 的预留在第一张之前就关掉整批
+    monkeypatch.setattr(ins, "_SUBMIT_CALL_RESERVE_S", 0.0)
     d = _mk(tmp_path, slugs=("t-a", "t-b", "t-c", "t-d"))
     calls: list[str] = []
 
@@ -246,6 +248,10 @@ class _Clock:
     def monotonic(self) -> float:
         return self.now
 
+    def sleep(self, s: float) -> None:
+        # 假睡：只推进时钟，不真的等（否则 turn 重试用例要跑几十秒）
+        self.now += s
+
 
 def test_status_read_stops_at_total_budget(tmp_path, monkeypatch):
     """STATUS 回读必须有**总**预算：只有"每张 300s × 最多 8 张"时最坏 2400s。
@@ -291,3 +297,86 @@ def test_status_read_timeout_shrinks_to_remaining_budget(tmp_path, monkeypatch):
     # 第 1 张：剩余 350 ⇒ 取 min(300, 350) = 300；推进到 200
     # 第 2 张：剩余 150 ⇒ 取 min(300, 150) = 150；推进到 400 ⇒ 第 3 张超预算停手
     assert timeouts == [300.0, 150.0], f"超时应随剩余预算收缩，实得 {timeouts}"
+
+
+def test_batch_budget_counts_poster_wall_time(tmp_path, cfg, monkeypatch):
+    """批量预算必须算**墙钟耗时**，不能只算"等 turn"的 sleep。
+
+    实测（2026-11-13/14 工单生命周期时间戳）每次 SUBMIT 调用本身要 303–309s，
+    而旧版 `batch_waited` 只在 409 重试循环里累加 sleep ⇒ `_SUBMIT_BATCH_BUDGET_S=1800`
+    从未触发过：24 张单最坏 24×300s=2 小时，11-12/13/14 三夜都跑满 60 分钟墙被掐。
+    """
+    clock = _Clock()
+    monkeypatch.setattr(ins, "time", clock)
+    monkeypatch.setattr(ins, "_SUBMIT_MAX_TICKETS_PER_RUN", 24)
+    monkeypatch.setattr(ins, "_SUBMIT_BATCH_BUDGET_S", 900.0)
+    monkeypatch.setattr(ins, "_SUBMIT_CALL_RESERVE_S", 330.0)
+    d = _mk(tmp_path, slugs=("t-a", "t-b", "t-c", "t-d", "t-e"))
+
+    def poster(url, key, idem, text):
+        clock.now += 300.0          # 一次真实回合
+        return 200, '{"status": "queued"}'
+
+    res = ins.submit_new_tickets(d, "org/repo", "http://x", "k", cfg, poster=poster)
+    real = [r for r in res if r["ticket"] != "__batch_limit__"]
+
+    # 900s 预算、每次 300s、开单前留 330s 余量 ⇒ 300→600 之后 600+330>900 停手
+    assert len(real) == 2, f"900s 预算 / 每次 300s 只该投 2 张，实投 {len(real)} 张"
+    assert any(r["ticket"] == "__batch_limit__" for r in res), "超预算必须留说明条目"
+    assert "已耗时" in res[-1]["verdict_reason"]
+
+
+def test_turn_retry_counts_round_trip_time(tmp_path, cfg, monkeypatch):
+    """409 重试的**往返耗时**也要计入单张等待预算。
+
+    旧版只累计 sleep，于是"每张最多等 90s"在真实 300s/次的回合下意味着无限次重试。
+    """
+    clock = _Clock()
+    monkeypatch.setattr(ins, "time", clock)
+    monkeypatch.setattr(ins, "_SUBMIT_TURN_POLL_S", 10.0)
+    monkeypatch.setattr(ins, "_SUBMIT_TURN_BUDGET_S", 90.0)
+    monkeypatch.setattr(ins, "_SUBMIT_BATCH_BUDGET_S", 1800.0)
+    monkeypatch.setattr(ins, "_SUBMIT_CALL_RESERVE_S", 330.0)
+    d = _mk(tmp_path, slugs=("t-a",))
+    calls: list[str] = []
+
+    def poster(url, key, idem, text):
+        calls.append(idem)
+        clock.now += 300.0
+        return 409, '{"code": "TURN_IN_FLIGHT"}'
+
+    res = ins.submit_new_tickets(d, "org/repo", "http://x", "k", cfg, poster=poster)
+
+    # 首投 300s ⇒ 单张预算 90s 已被一次往返吃满 ⇒ 只该重试 1 次
+    assert len(calls) == 2, f"单张预算 90s、一次往返 300s ⇒ 只能重试 1 次，实试 {len(calls)} 次"
+    assert res[0]["verdict"] == "deferred"
+    assert res[0]["waited_s"] >= 300, "回执里要记真实等待（含往返），不能只记 sleep"
+
+
+def test_submit_timeout_shrinks_to_remaining_budget(tmp_path, cfg, monkeypatch):
+    """每次 SUBMIT 的 timeout 必须按「剩余预算 / 重试次数」收缩。
+
+    `_default_poster` 默认 timeout=900s 且连接层重试 3 次 ⇒ 固定超时下**一次调用**
+    最坏 45 分钟，能独占整个 60 分钟作业墙——预算算得再准也拦不住它。
+    """
+    clock = _Clock()
+    monkeypatch.setattr(ins, "time", clock)
+    monkeypatch.setattr(ins, "_SUBMIT_MAX_TICKETS_PER_RUN", 24)
+    monkeypatch.setattr(ins, "_SUBMIT_BATCH_BUDGET_S", 900.0)
+    monkeypatch.setattr(ins, "_SUBMIT_CALL_RESERVE_S", 330.0)
+    monkeypatch.setattr(ins, "_SUBMIT_CALL_TIMEOUT_S", 900.0)
+    monkeypatch.setattr(ins, "_POSTER_ATTEMPTS", 3)
+    d = _mk(tmp_path, slugs=("t-a", "t-b", "t-c", "t-d"))
+    timeouts: list[float | None] = []
+
+    def poster(url, key, idem, text, timeout=None):
+        timeouts.append(timeout)
+        clock.now += timeout or 0.0     # 最坏情况：每次调用都跑到超时
+        return 200, '{"status": "queued"}'
+
+    ins.submit_new_tickets(d, "org/repo", "http://x", "k", cfg, poster=poster)
+
+    # 900 预算 / 3 次重试：300 → 剩 600 → 200 → 剩 400 → 133.3；之后 633+330 > 900 停手
+    assert timeouts == [300.0, 200.0, pytest.approx(133.33, abs=0.01)], \
+        f"超时应随剩余预算收缩，实得 {timeouts}"
+    assert sum(timeouts) <= 900.0, f"收缩后整批不得超预算，实耗 {sum(timeouts)}s"
