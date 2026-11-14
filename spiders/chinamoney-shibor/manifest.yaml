@@ -7,6 +7,15 @@ source_url: https://www.chinamoney.com.cn/chinese/bkcurv/   # 落地页（SPA �
 schedule: "16 11 * * 1-5"   # Shibor/FR/FDR 日频（错峰由 batch6_schedule_fit 选槽）
 # 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
 backoff_limit: 3
+# limit: **必须自己声明**（2026-11-14 补）。不写时 chart 缺省传 `--limit 100`，而本源一轮
+# 的每行是「曲线 × 日期」：100 行 = 最近 7 个交易日，且 spider 是「取最近 limit 行 + 首日
+# 锚行」⇒ 实测每轮恒定 114 行（100 + 14 锚），**最新一期只剩 8 条、其余各期 14 条** ——
+# 被切掉的正是第二个端点（FrrHis）那六个 FR/FDR 回购定盘利率，它们在行序尾部。
+# 400 行 = 28 个交易日，正好覆盖 spider 缺省的 days=45 窗口（约 30 个交易日）里的绝大部分，
+# 也越过下游 semantic 趋势闸的 ≥24 连续期门槛。spider 自己的缺省是 200（=14 个交易日，
+# 不够过闸），故这里取 400 而不是照抄 200。判据见 fd-infra-deploy/tools/check_crawl_row_cap.py
+# 的 R1b 第二遍（它比的是「行数恒定 + 最新期偏少」）。
+limit: 400
 data_period: day
 scanner_mode: upstream-curated
 ranking_seed: [0.5, 0.5]
