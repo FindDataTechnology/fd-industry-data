@@ -179,6 +179,30 @@ def parse_payload(text: str, url: str = "") -> List[Dict[str, Any]]:
     return results
 
 
+def response_text(response: Any) -> str:
+    """取响应正文。**优先用 `.body` 的字节解码，不直接用 `.text`。**
+
+    2026-11-14 实测（这是本文件最重要的一个坑）：scrapling 的 `Fetcher.get` 对
+    `content-type: text/plain` 的 JSON 接口返回的 `response.text` 是一个
+    **`TextHandler` 且长度为 0**，而 `response.body` 里是完整的 1716 字节 JSON。
+    `json.loads("")` 报 `Expecting value: line 1 column 1 (char 0)`，随后走「占位行」
+    降级 ⇒ 每次运行都报 success、rows=2、**内容全空**：该源 59 次成功、118 行
+    `indicator_value` 全为空串，而 CLI 侧一切正常。
+    所以这里必须回到字节：`body` 解不出来才退回 `text`。
+    """
+    body = getattr(response, "body", None)
+    if isinstance(body, (bytes, bytearray)):
+        return bytes(body).decode("utf-8", "replace")
+    text = getattr(response, "text", "")
+    if isinstance(text, str):
+        return text
+    # TextHandler 之类：优先它包着的原始内容，其次 str()
+    raw = getattr(text, "body", None)
+    if isinstance(raw, (bytes, bytearray)):
+        return bytes(raw).decode("utf-8", "replace")
+    return str(text or "")
+
+
 def _crawl_records(
     urls: List[str],
     save_results: bool = True,
@@ -201,20 +225,17 @@ def _crawl_records(
                 }
                 response = Fetcher.get(url, headers=headers, retries=0, timeout=30)
                 if response.status == 200:
-                    records = parse_payload(response.text, url=getattr(response, "url", None) or url)
+                    text = response_text(response)
+                    records = parse_payload(text, url=getattr(response, "url", None) or url)
                     if not records:
-                        # Last-resort metadata row so the run is auditable; must
-                        # not fire on well-formed API payloads.
-                        records = [{
-                            "source_url": url,
-                            "page_title": "东方财富数据中心",
-                            "indicator_name": "",
-                            "indicator_value": "",
-                            "period": "",
-                            "change_value": "",
-                            "category": "",
-                            "scraped_at": datetime.now().isoformat(),
-                        }]
+                        # 不再写占位行。2026-11-14：原实现「解析不出就写一条字段全空的
+                        # 元数据行」，结果是**成功、rows>0、内容全空**——账本看上去正常，
+                        # 真数据一条没有（该源就此空转 3 个月）。解析不出就是失败，
+                        # 交给调用方抛错、让 crawl_runs 记 failed + error_head。
+                        logger.error(
+                            "No records parsed from {} (body {} bytes) — treating as failure"
+                            .format(url, len(text)))
+                        break
                     remaining = max_records - len(all_records)
                     records = records[:remaining]
                     all_records.extend(records)
@@ -232,6 +253,12 @@ def _crawl_records(
             logger.error("Failed to fetch {} after {} retries".format(url, MAX_RETRIES))
         time.sleep(REQUEST_DELAY)
     logger.info("Spider completed. Total records: {}".format(len(all_records)))
+    if not all_records:
+        # 一条也没解析出来 ⇒ 这是失败，不是「空跑」。返回 [] 会被上游当成 success
+        # （rows_written=0 也是 success），账本上就看不出这源已经废了——必须抛。
+        raise RuntimeError(
+            "eastmoney-data: 全部 {} 个 URL 均未解析出任何记录（上游返回非 JSON 或接口变更）"
+            .format(len(urls)))
     return all_records
 
 
