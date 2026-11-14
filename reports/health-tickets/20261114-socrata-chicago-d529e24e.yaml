@@ -52,5 +52,19 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32003, "message": "Request timed out."}'
+- at: '2026-11-14T04:46:53.632777+00:00'
+  event: submitted
+  http_status: 502
+  ok: false
+  verdict: error
+  response: "<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body>\r\n<center><h1>502\
+    \ Bad Gateway</h1></center>\r\n<hr><center>nginx/1.27.5</center>\r\n</body>\r\n\
+    </html>"
+- at: '2026-11-14T04:47:01.395579+00:00'
+  event: status
+  http_status: 502
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 61b09bd56a7d
