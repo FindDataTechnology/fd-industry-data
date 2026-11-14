@@ -106,5 +106,12 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-14T13:13:36.438243+00:00'
+  event: submitted
+  http_status: 402
+  ok: false
+  verdict: error
+  response: '{"code": "PLAN_EXHAUSTED", "message": "the caller''s serving plan has
+    no minutes left — ask the operator to adjust the plan"}'
 terminal: null
 evidence_signature: d5ab5a94aea5
