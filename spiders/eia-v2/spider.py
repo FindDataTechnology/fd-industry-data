@@ -30,7 +30,11 @@
   ``len(data) < int(response.total)``；本单元只用后者。
 - **错误码（403）**：``API_KEY_MISSING`` / ``API_KEY_INVALID`` → 立即抛 ``RuntimeError``
   并指名解决办法；其余 4xx 不重试（避免放大）。
-- **首连偶发失败**：仅重试 1 次（共 2 次尝试，``RETRY_BACKOFF_S`` 退避），不做频次对抗。
+- **重试**：超时/5xx 属上游瞬时，共 3 次尝试、递增退避（2s、4s）；4xx（除 408/429）不重试。
+  这条是 2026-11-14 按实测改的：同一个端点同一个 key，W73h=1.1s、W24h=56.8s、W06h>90s ——
+  **上游正常耗时就能到 50-60 秒**，旧配置（30s 超时 × 2 次尝试）会把本来会成功的请求判成失败，
+  于是每小时的任务反复 ``BackoffLimitExceeded``、rows=0。耗时与窗口大小不成正比（更窄的反而更慢），
+  所以解法是抬高超时（``FD_EIA_TIMEOUT_S``，默认 90）与多给一次重试，不是缩窗口。
 - **四序列播报滞后不同**（2026-10-07T11 UTC 实测 CISO 最末行）：``D`` 近实时（当前小时）、
   ``DF`` ≈ -4h、``NG`` ≈ -5h、``TI`` ≈ -28h。故窗口**尾部小时只含部分序列**，属上游行为，
   原样透出，不在客户端补齐或丢弃。
@@ -55,9 +59,15 @@ API_KEY_ENV = "EIA_API_KEY"
 DATA_URL = "https://api.eia.gov/v2/electricity/rto/region-data/data/"
 
 HEADERS = {"Accept": "application/json"}
-TIMEOUT = 30                  # 秒
-RETRY_ATTEMPTS = 2            # 首连偶发失败：仅重试 1 次（共 2 次尝试）
-RETRY_BACKOFF_S = 2.0
+# 90 秒，不是 30 秒。2026-11-14 在 tencent 集群实测同一个端点、同一个 key：
+#   W73h → 200 / 1.1s ；W24h → 200 / 56.8s ；W06h → 90s 仍未返回（TimeoutError）
+# 即**上游正常耗时本身就能到 50-60 秒**，原来的 30s 会把"本来会成功的那一半"判成失败
+# （当晚 fd-industry-eia-v2 每小时的任务因此反复 BackoffLimitExceeded、rows=0）。
+# 更要紧的是耗时与窗口大小**不成正比**（更窄的 W06 反而最慢），所以"缩小窗口"不是解法，
+# 抬高超时 + 多给几次重试才是。可用 FD_EIA_TIMEOUT_S 覆盖，不重建镜像即可调。
+TIMEOUT = float(os.environ.get("FD_EIA_TIMEOUT_S") or 90)
+RETRY_ATTEMPTS = 3            # 超时/504 属上游瞬时：重试到 3 次（限流余量见头注，单轮仍 <10 次请求）
+RETRY_BACKOFF_S = 2.0         # 第 n 次失败后等 n × 2s（2s、4s）
 MAX_ROWS_PER_REQUEST = 5000    # EIA 单请求硬上限（>5000 会被上游忽略 length 并告警）
 MAX_PAGES = 20                 # 分页上限（≤100k 行），防配置错误导致失控
 PAGE_PAUSE_S = 0.3             # 分页间隔：<5 次/秒
@@ -141,10 +151,11 @@ def _request(params: list[tuple[str, str]], api_key: str) -> dict:
             if 400 <= exc.code < 500 and exc.code not in (408, 429):
                 raise RuntimeError(f"eia-v2: HTTP {exc.code} —— {display} —— {body}") from exc
             last = exc
-        except Exception as exc:  # noqa: BLE001 - 瞬时网络错误：仅重试 1 次
+        except Exception as exc:  # noqa: BLE001 - 瞬时网络错误（超时/连接重置）
             last = exc
         if attempt + 1 < RETRY_ATTEMPTS:
-            time.sleep(RETRY_BACKOFF_S)
+            # 递增退避：上游慢是"渐好"而不是"立刻好"，固定 2s 会把三次尝试挤在同一段拥堵里。
+            time.sleep(RETRY_BACKOFF_S * (attempt + 1))
     raise RuntimeError(
         f"eia-v2: 请求失败（{RETRY_ATTEMPTS} 次尝试）—— {display} —— "
         f"{type(last).__name__}: {last}"

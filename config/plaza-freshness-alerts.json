@@ -1,0 +1,19 @@
+{
+  "_note": "广场机器面新鲜度告警的投递声明（alert-delivery 要求：每条告警线须声明出口与接收人）。规则在 scripts/plaza_freshness_alerts.py 里，本文件只承载投递、目标面与阈值。通道未配置时评估器记 not_configured（exit 3），绝不假装发过。",
+  "delivery": {
+    "channel": "smtp",
+    "to": ["1253774197@qq.com", "aloadtree@gmail.com"],
+    "min_severity": "warning",
+    "_note": "与其它告警线同一收件人；env FD_ALERT_SMTP_TO 非空时以 env 为准。"
+  },
+  "targets": {
+    "base": "https://agent.finddatatech.cloud",
+    "root_faces": ["/llms.txt", "/llms-full.txt", "/catalog.json", "/robots.txt"],
+    "_why": "公开面打的就是这四个根路径——它们是 AI 客户端与站点共有面读的东西，缺一个就不是「目录正常」。"
+  },
+  "thresholds": {
+    "stale_hours": 36,
+    "_why_stale": "36h ＝ 日跑 24h ＋ 半个周期。一次晚点不叫事（cron 排队、导出重试），连续漏掉一轮才叫事；再往下压会把正常抖动变成告警，这条线一旦吵就没人看了。",
+    "_why_not_zero": "不能判「generatedAt 必须等于今天」：catalog.json 的日期是 UTC 日（导出器用 toISOString），本地早上跑的是前一天的 UTC 日；而且 --allow-stale 是设计内的降级路径，会把旧日期原样发布。"
+  }
+}
