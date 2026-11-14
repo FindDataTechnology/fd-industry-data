@@ -6,6 +6,14 @@ source_url: https://publicdata.landregistry.gov.uk/market-trend-data/house-price
 schedule: "44 1 26 * *" # 点亮（批次二）：每月 26 日 01:44；UK HPI 下旬发布（与 openfda 同日不同刻，唯一同日对）
 # 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
 backoff_limit: 3
+# 单轮取多少行。**必须显式声明**：chart 的缺省是 100，而本单元取的是 Land Registry
+# 全量 CSV（区域 × 月长表，1995 起，全文件十余万行）。100 行 = 文件头部第 1 个区域
+# 的 100 个月 —— 实测库内只有 **1 个区域 × 100 个月（2004-01..2012-04）**，且窗口
+# 永不前进（2026-11-14 由 check_crawl_row_cap.py 点名）。
+# 20000 行 ≈ 按文件顺序（区域字母序、区内日期升序）覆盖约 52 个区域的**完整历史**。
+# 注意：这是「头部连续切片」的固有形状——想按区域挑（例如只取 United Kingdom /
+# England 这类国家级行），得改 spider 加 region 过滤，不是调 limit 能解决的。
+limit: 20000
 data_period: month
 data_period_field: month   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

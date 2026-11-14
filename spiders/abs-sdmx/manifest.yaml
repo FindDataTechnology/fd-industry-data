@@ -6,6 +6,10 @@ source_url: https://data.api.abs.gov.au/rest/data/BA_GCCSA/all
 schedule: "5 1 3 * *"   # 点亮（批次二）：每月 3 日 01:05；ABS 月度早月发布
 # 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
 backoff_limit: 3
+# 单轮取多少行。**必须显式声明**：chart 的缺省是 100，而本单元取的是「整条 SDMX 数据集」，
+# 该切片自 2001-07 起约 290 期——不声明就只落前 100 期（2001-07..2009-10）且永不前进
+# （2026-11-14 由 fd-infra-deploy/tools/check_crawl_row_cap.py 实测点名）。
+limit: 500
 data_period: month
 data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

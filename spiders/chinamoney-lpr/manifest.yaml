@@ -6,6 +6,10 @@ source_url: https://www.chinamoney.com.cn/chinese/bklpr/
 schedule: "20 11 * * 1-5"         # LPR 每月 20 日报价；日频巡检（周末无报价），错峰既有排期
 # 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
 backoff_limit: 3
+# 单轮取多少行。**必须显式声明**：chart 的缺省是 100，会盖掉 spider 自己的 800。
+# 本单元取的是「2013-10 起全部 1Y/5Y 报价」（年分片），100 行只够 50 个月 × 2 个期限
+# ⇒ 窗口永远停在 2022-09..2026-10（2026-11-14 由 check_crawl_row_cap.py 实测点名）。
+limit: 800
 data_period: day
 scanner_mode: upstream-curated
 functions:
