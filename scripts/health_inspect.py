@@ -169,9 +169,14 @@ def main() -> int:
     if args.summary_file:
         Path(args.summary_file).write_text(text + "\n", encoding="utf-8")
     if lane["status"] == "outage" and not args.dry_run:
+        # 文案刻意给"先分诊"而不是猜一个方向：2026-11-14 的 502 实际出在边缘到上游
+        # （cheap-5 掉线 ⇒ wanxing-facade 零端点），而 11-13 的 -32032 出在平台出网。
+        # 两种都表现为"每次投递都失败"，混成一句话就会把人送去查错的那一层。
         print(f"::error::投递通道中断：本轮 {lane['attempted']} 次 SUBMIT 全部栽在服务侧错误"
-              f"（{'; '.join(lane['reasons'])}），0 张被受理。这不是工单的问题——"
-              "先查萬星 a2a 端点与 platform pod 出网（raw.githubusercontent.com）。",
+              f"（{'; '.join(lane['reasons'])}），0 张被受理。这不是工单的问题。"
+              "先分诊：线内 NodePort 打同一 a2a 路径——401/403=端点在（查边缘与上游 pod 的"
+              " endpoints，别加放行）、404=端点没实现、000=上游不可达；再看 platform pod 能否"
+              "取到 raw.githubusercontent.com（工单文件在 raw 上）。",
               file=sys.stderr)
         return 3
     return 0
