@@ -96,6 +96,31 @@ def test_openmeteo_unknown_city_dropped(ewd):
     assert {e for _c, e, *_ in rows} == {"BJS"}
 
 
+def test_city_table_covers_every_spider_city(ewd):
+    """spider 的 `CITIES` 有 8 个城市，映射表必须全收。
+
+    第一版只写了 4 个：payload 248 行、落库也是 248 行（4 城 × 2 指标 × 31 天），
+    日志里看不出少了一半城市 —— 因为「丢了 4 城」与「本来只有 4 城」逐字同形。
+    """
+    for c in ("beijing", "shanghai", "guangzhou", "shenzhen",
+              "chengdu", "hangzhou", "wuhan", "xian"):
+        assert c in ewd.CITY_CODES, f"spider 的 CITIES 里有 {c}，映射表漏了"
+
+
+def test_unmapped_city_is_announced(ewd):
+    """未映射的城市要在 skips 里点名，不许静默消失（调真函数，不重写逻辑）。"""
+    spec = ewd.SOURCES["open-meteo"]
+    payload = _openmeteo(_days(), "beijing") + _openmeteo(_days(), "atlantis")
+    assert ewd.unmapped_groups(spec, payload) == ["atlantis"]
+    assert ewd.unmapped_groups(spec, _openmeteo(_days(), "wuhan")) == []
+
+
+def test_non_city_source_reports_nothing_unmapped(ewd):
+    """站点型不需要映射表（站号即实体），别把新站号报成"未映射"。"""
+    assert ewd.unmapped_groups(ewd.SOURCES["noaa-ncei"], _noaa(_days(), "NEWSTATION1")) == []
+    assert ewd.unmapped_groups(ewd.SOURCES["elexon-bmrs"], _elexon(_days())) == []
+
+
 def test_truncated_entity_held_back(ewd):
     """深圳被 limit 切到 7 天时不许写（open-meteo 2026-11-14 的真实形态）。"""
     spec = ewd.SOURCES["open-meteo"]

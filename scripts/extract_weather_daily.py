@@ -48,13 +48,24 @@ MIN_PERIODS = 24
 MAX_GAP_DAYS = 5                 # 日频（周末可能缺测）
 
 # 城市名（payload 的 `city`）-> 册内**已存在**的 city 实体码。
-# 广州那条是历史遗留的 `CN-CITY-广州`；这里刻意沿用它而不是新建 `GZ`，
-# 否则同一座城市在实体表里出现两个码，而没有任何判据会把它们算成同一处。
+# 广州/成都/杭州/武汉/西安那几条是历史遗留的 `CN-CITY-<中文名>`；这里刻意沿用它而不是
+# 新建 `GZ`/`CD` 之类，否则同一座城市在实体表里出现两个码，而没有任何判据会把它们算成同一处
+# （册里已经有 `beijing`/`shanghai`/`shenzhen`/`guangzhou` 四条零观测的孤儿行，就是这么来的）。
+#
+# **这张表必须覆盖 spider 的 `CITIES` 全部 8 个城市**：漏一个不会报错，只会让那个城市的
+# 行在 `entity_code()` 里返回 None 然后被静默丢掉 —— 2026-11-14 第一版只写了 4 个，
+# payload 248 行落库 248 行（4 城 × 2 指标 × 31 天），日志看不出少了什么，
+# 因为「少了一半城市」与「本来就只有 4 个城市」在输出里长得一模一样。
+# 现在 `run_source` 会比对 payload 里的城市集合与这张表，未映射的逐个打出来。
 CITY_CODES = {
     "beijing": "BJS",
     "shanghai": "SHA",
     "shenzhen": "SZX",
     "guangzhou": "CN-CITY-广州",
+    "chengdu": "CN-CITY-成都",
+    "hangzhou": "CN-CITY-杭州",
+    "wuhan": "CN-CITY-武汉",
+    "xian": "CN-CITY-西安",
 }
 
 # 源 -> 抓取/映射配置。metrics 的值: (concept code, 中文名, 英文名, 单位, 值域下限, 值域上限)
@@ -184,6 +195,20 @@ def ensure_entities(cur, spec: dict, codes: set[str]) -> dict[str, int]:
     return ids
 
 
+def unmapped_groups(spec: dict, items: list[dict]) -> list[str]:
+    """payload 里出现、但落不到实体的分组值（现在只有 city 型需要映射表）。
+
+    单独成函数是为了能被判据直接调用：写在 `run_source` 里的分支只能靠「跑一遍看输出」验，
+    而输出的「没有告警」与「这段代码没执行」长得一样。
+    """
+    if not spec["entity"]:
+        return []
+    raw = {str(p.get(spec["entity"]) or "").strip() for p in items} - {""}
+    if spec["entity_type"] == "city":
+        return sorted(c for c in raw if c.lower() not in CITY_CODES)
+    return []
+
+
 def run_source(conn, cur, source: str, spec: dict, dry_run: bool) -> int:
     notes: list[str] = []
     skips: dict[str, str] = {}
@@ -192,6 +217,14 @@ def run_source(conn, cur, source: str, spec: dict, dry_run: bool) -> int:
         print(f"[{source}] 没有任何成功运行，跳过")
         return 0
     data = collect(spec, items)
+
+    # 未映射的分组值必须显式报出来：`entity_code()` 返回 None 的行是被**丢掉**的，
+    # 而丢掉与「本来就没有」在行数上一模一样。城市型最关键（spider 的 CITIES 会加城市），
+    # 站点型不需要映射（站号本身就是新实体），所以只有 city 型走这条。
+    for c in unmapped_groups(spec, items):
+        skips[f"unmapped-city@{c}"] = (
+            f"CITY_CODES 里没有 `{c}` —— 该城市的全部行被丢掉；"
+            f"要补映射到册内已存在的 city 码（见 CITY_CODES 注释）")
     rows = build_rows(data, spec, notes, skips)
 
     # **每个指标各建各的概念**：`ensure_concepts` 一次只收一个 unit，而这三个源的指标
