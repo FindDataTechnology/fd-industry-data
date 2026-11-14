@@ -38,7 +38,12 @@ jobs:
     # _status_idem_key）。3 新单 + 3 存量单曾跑满 19m54s 撞穿旧的 20 分钟上限
     # → 45 分钟给「数个新单 + 全部存量回读」留余量。超大单批（数十张）走人工
     # 批量通道，不指望本工作流一次跑完。
-    timeout-minutes: 45
+    #
+    # 2026-11-12/13 连续两晚撞穿这堵墙、deliver 被砍在中途（`if: always()` 的回执步
+    # 把半截状态提交进仓＝半投递），故抬到 60 分钟，并给 STATUS 回读加了总预算
+    # （inspector.STATUS_BUDGET_S=900s）。现在的上界：1800(SUBMIT) + 900(STATUS)
+    # + 其余步骤实测约 8 分钟 ≈ 53 分钟，落在 60 之内还有余量。
+    timeout-minutes: 60
     steps:
       - name: Checkout (shell clone, retry)
         run: |

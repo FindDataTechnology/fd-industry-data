@@ -1332,6 +1332,13 @@ def _status_idem_key(doc: dict, name: str) -> str:
 # 取最久未读的 N 张先读；其余下一轮继续（顺序由 _last_read_at 决定，不会饿死）。
 STATUS_MAX_PER_RUN = 8
 
+# STATUS 回读的**整体**时间预算（秒）。只有"每张 STATUS_READ_TIMEOUT × 最多 N 张"
+# 这一层时，最坏耗时 = 300 × 8 = 2400s，单这一步就能顶破 workflow 的 job 预算：
+# 2026-11-12 / 11-13 连续两晚 job 撞 45 分钟墙、deliver 被砍在中途，而
+# `if: always()` 的「Commit delivery receipts」仍把半截状态提交进仓（半投递）。
+# 有总预算才能在"上游回读变慢"时干净收尾：超预算就停手，剩下的下一轮接手。
+STATUS_BUDGET_S = 900.0
+
 
 def _last_read_at(doc: dict) -> str:
     """该单最后一次 STATUS 回读时间（ISO）；从未读过返回空串（排最前）。"""
@@ -1342,14 +1349,16 @@ def _last_read_at(doc: dict) -> str:
 
 
 def sync_status(outdir: Path, url: str, key: str, fetcher=None,
-                max_reads: int = STATUS_MAX_PER_RUN) -> list[dict]:
+                max_reads: int = STATUS_MAX_PER_RUN,
+                budget_s: float = STATUS_BUDGET_S) -> list[dict]:
     """回读未终态工单的 STATUS，映射进生命周期与终态枚举。
 
-    单轮最多读 max_reads 张，优先最久未读的（含从未读过的）。
+    单轮最多读 max_reads 张，优先最久未读的（含从未读过的）；且**总耗时**不超过
+    budget_s——每次回读的超时取「剩余预算」与 STATUS_READ_TIMEOUT 的较小值，预算
+    用尽即停手（剩下的下一轮接手）。这层总预算不是优化，是防"被外面一刀砍死"：
+    被 job 墙砍断时，前面的状态已经写进工单文件，`if: always()` 的回执步会把半截
+    结果照样提交，形成"投递做了一半"的混合态。
     """
-    fetcher = fetcher or (
-        lambda u, k, idem, body: _default_poster(u, k, idem, body, timeout=STATUS_READ_TIMEOUT)
-    )
     results: list[dict] = []
     if not outdir.is_dir():
         return results
@@ -1360,10 +1369,26 @@ def sync_status(outdir: Path, url: str, key: str, fetcher=None,
             continue
         pending.append((_last_read_at(doc), p, doc))
     pending.sort(key=lambda t: (t[0], str(t[1])))  # 最久未读优先（空串=从未读）
+    deadline = time.monotonic() + budget_s
     for _at, p, doc in pending[:max_reads]:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            results.append({
+                "ticket": "__status_budget__",
+                "state": None,
+                "error": f"本批已达 STATUS 时间预算（{int(budget_s)}s），其余下一轮接手",
+            })
+            break
+        if fetcher is None:
+            timeout = min(float(STATUS_READ_TIMEOUT), remaining)
+
+            def read(u, k, idem, body, _t=timeout):
+                return _default_poster(u, k, idem, body, timeout=_t)
+        else:
+            read = fetcher
         try:
-            status, text = fetcher(url, key, _status_idem_key(doc, p.name[:-5]),
-                                   f"STATUS reports/health-tickets/{p.name}")
+            status, text = read(url, key, _status_idem_key(doc, p.name[:-5]),
+                                f"STATUS reports/health-tickets/{p.name}")
         except Exception as e:  # noqa: BLE001 — 回读失败留痕不炸
             ticket_mod.append_event(doc, "status-failed", error=str(e)[:300])
             p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")

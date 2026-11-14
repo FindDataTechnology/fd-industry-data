@@ -235,3 +235,59 @@ def test_hollow_receipt_is_not_accepted():
     assert verdict["verdict"] != "accepted", (
         f"读不到工单的回执被判成 {verdict['verdict']}；这会让工单永不重投"
     )
+
+
+class _Clock:
+    """可手动推进的 monotonic，用于证明预算逻辑（不靠真 sleep）。"""
+
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def monotonic(self) -> float:
+        return self.now
+
+
+def test_status_read_stops_at_total_budget(tmp_path, monkeypatch):
+    """STATUS 回读必须有**总**预算：只有"每张 300s × 最多 8 张"时最坏 2400s。
+
+    2026-11-12/13 连续两晚，deliver 单步跑 37 分钟撞穿 job 的 45 分钟墙、被砍在中途，
+    而 `if: always()` 的回执步仍把半截状态提交进仓（半投递）。这里钉住"超预算就停手"。
+    """
+    d = _mk(tmp_path, slugs=("t-a", "t-b", "t-c", "t-d"))
+    clock = _Clock()
+    monkeypatch.setattr(ins, "time", clock)
+    calls: list[str] = []
+
+    def fetcher(url, key, idem, text):
+        calls.append(idem)
+        clock.now += 60.0
+        return 200, '{"state": "working"}'
+
+    res = ins.sync_status(d, "http://x", "k", fetcher=fetcher, max_reads=4, budget_s=100.0)
+
+    assert len(calls) == 2, f"预算 100s、每张 60s ⇒ 只该读 2 张，实读 {len(calls)} 张"
+    assert res[-1]["ticket"] == "__status_budget__", "超预算必须留下显式标记，不能静默截断"
+    assert "下一轮" in res[-1]["error"]
+
+
+def test_status_read_timeout_shrinks_to_remaining_budget(tmp_path, monkeypatch):
+    """每次回读的超时必须取「剩余预算」与 STATUS_READ_TIMEOUT 的较小值。
+
+    固定 300s 会让 8 张单在预算之外继续排队等待——预算形同不存在。
+    """
+    d = _mk(tmp_path, slugs=("t-a", "t-b", "t-c"))
+    clock = _Clock()
+    monkeypatch.setattr(ins, "time", clock)
+    timeouts: list[float | None] = []
+
+    def fake_poster(url, key, idem, body, timeout=None):
+        timeouts.append(timeout)
+        clock.now += 200.0
+        return 200, '{"state": "working"}'
+
+    monkeypatch.setattr(ins, "_default_poster", fake_poster)
+    ins.sync_status(d, "http://x", "k", max_reads=3, budget_s=350.0)
+
+    # 第 1 张：剩余 350 ⇒ 取 min(300, 350) = 300；推进到 200
+    # 第 2 张：剩余 150 ⇒ 取 min(300, 150) = 150；推进到 400 ⇒ 第 3 张超预算停手
+    assert timeouts == [300.0, 150.0], f"超时应随剩余预算收缩，实得 {timeouts}"
