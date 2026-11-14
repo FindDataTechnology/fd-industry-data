@@ -104,11 +104,19 @@ def test_real_manifest_components_share_one_tag_per_release():
     for name, repo in EXPECTED_REPOS.items():
         assert comps[name]["repo"] == repo, name
 
-    # 2. 一次发布一条线：四个消费/登记面必须同一个 tag。
+    # 2. 一次发布一条线：**消费面**必须同一个 tag。
     #    这是历史上真实翻车过的形态（out-of-band 三连、部分 bump），
     #    而不是从清单里读出来再跟自己比的那种自证。
-    tags = {comps[name]["tag"] for name in comps}
-    assert len(tags) == 1, f"四个面必须同 tag，实际 {sorted(tags)}"
+    #
+    #    登记面 `runner-tencent-cron` 不参与这一条：它不消费 k8s/ 里任何文件，
+    #    是 AppSet 的镜像源，与它的对账由下面第 4 条单独做（拿 chengsi 的
+    #    applicationset.yaml 实际值比）。两边混成一句会自相矛盾——2026-11-14
+    #    的有意半片（AppSet 回填 sha-d99474d、消费面仍 sha-f5a19aa，见 6caddd7）
+    #    会同时被第 2 条判「必须相同」和第 4 条判「必须等于 AppSet」，无解。
+    consumer_faces = sorted(set(EXPECTED_CONSUMPTION.values()))
+    tags = {comps[name]["tag"] for name in consumer_faces}
+    assert len(tags) == 1, f"消费面 {consumer_faces} 必须同 tag，实际 {sorted(tags)}"
+    assert comps["runner-tencent-cron"]["tag"], "登记面 tag 不得为空"
 
     # 3. 消费映射固定（谁是哪个组件的消费面）
     assert consumption == EXPECTED_CONSUMPTION

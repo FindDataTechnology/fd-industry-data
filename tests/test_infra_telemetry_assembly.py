@@ -29,6 +29,14 @@ def _server_tool_names() -> set[str]:
 
 
 def _pack_infra_allowtools() -> set[str]:
+    # PACK_MANIFEST 在**工作区级**（REPO.parent / fleet-packs/…），不在本仓里。
+    # 于是这条断言只在「仓检出在其正式位置」时成立：git worktree 的父目录是
+    # /tmp 之类的临时目录，那里没有 fleet-packs ⇒ 原来会抛 FileNotFoundError，
+    # 让任何在 worktree 里做的验证都带一条固定假红（判据把 checkout 位置当成世界）。
+    # 取不到就 skip 并说明理由，而不是假装红。
+    if not PACK_MANIFEST.is_file():
+        pytest.skip(f"需要工作区级 fleet-packs（{PACK_MANIFEST}）；"
+                    "worktree 的父目录不是工作区根，本条不成立")
     manifest = json.loads(PACK_MANIFEST.read_text(encoding="utf-8"))
     for server in manifest["mcpServers"]:
         if server["registryName"] == "infra-telemetry":
