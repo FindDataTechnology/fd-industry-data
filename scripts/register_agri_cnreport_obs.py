@@ -172,6 +172,21 @@ def _text_of(raw_path: str | None, code: str, year: int, form: str) -> Path | No
     return hits[0] if hits else None
 
 
+def _dsn(raw: str) -> str:
+    """生产 Secret 的 DSN 带 SQLAlchemy 方言前缀（`postgresql+psycopg2://…`），
+    `psycopg2.connect()` 不认，会报 `invalid dsn: missing "=" after …`。
+    本脚本有自己的 `__main__`（手工/作业直接跑），所以 wave 运行器那层归一化
+    盖不到它。2026-11-15 全仓审计后统一补上；与 scripts/extract_batch1.py 同一份。
+    """
+    raw = (raw or "").strip()
+    try:
+        from _semextract import parse_dsn
+        return parse_dsn(raw)
+    except Exception:                                  # noqa: BLE001
+        import re as _re
+        return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--apply", action="store_true")
@@ -199,7 +214,7 @@ def main(argv: list[str]) -> int:
         from report_documents where parse_status = 'ok'
     """).fetchall()
 
-    conn = psycopg2.connect(dsn)
+    conn = psycopg2.connect(_dsn(dsn))
     cur = conn.cursor()
     cur.execute("select id, code, verified from concepts where code = any(%s)",
                 ([f["concept"] for f in fields],))

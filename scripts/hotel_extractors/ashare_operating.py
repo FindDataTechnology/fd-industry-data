@@ -555,6 +555,21 @@ def extract(cur, notes) -> list[tuple]:
 
 
 # ── CLI ─────────────────────────────────────────────────────────────────────
+def _dsn(raw: str) -> str:
+    """生产 Secret 的 DSN 带 SQLAlchemy 方言前缀（`postgresql+psycopg2://…`），
+    `psycopg2.connect()` 不认。本模块有自己的 `__main__`（不走 wave 运行器），
+    所以那层归一化盖不到这里 —— 2026-11-15 审计发现 hotel 三个公司频道模块
+    都是这样漏的。与 scripts/extract_batch1.py 同一份实现。
+    """
+    raw = (raw or "").strip()
+    try:
+        from _semextract import parse_dsn
+        return parse_dsn(raw)
+    except Exception:                                  # noqa: BLE001
+        import re as _re
+        return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
+
+
 def main(argv=None) -> int:
     import argparse
     import os
@@ -574,7 +589,7 @@ def main(argv=None) -> int:
 
     import psycopg2
 
-    con = psycopg2.connect(args.dsn)
+    con = psycopg2.connect(_dsn(args.dsn))
     try:
         cur = con.cursor()
         notes: list = []

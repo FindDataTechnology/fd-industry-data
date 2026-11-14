@@ -74,6 +74,44 @@ def test_pending_dsn_fix_ledger_is_exact():
     assert not stale, f"这些已不再裸连，请从 PENDING_DSN_FIX 划掉：{stale}"
 
 
+STANDALONE = re.compile(r'if __name__ == "__main__"')
+CONNECTS = re.compile(r"psycopg2\.connect\(")
+
+
+def _standalone_connectors() -> dict[str, bool]:
+    """{相对路径: 是否归一化} —— 所有「带 `__main__` 且自己连库」的脚本。
+
+    **为什么定义域要扩到这一族**（2026-11-15 第三轮）：第一版只 glob 顶层
+    `extract_*.py`，于是 `hotel_extractors/ashare_operating.py`、`hkex_operating.py`、
+    `sec_8k_operating.py` 这三个**有自己的 `__main__`** 的公司频道模块全在视野外 ——
+    而它们正是 R2 里 `cninfo-operating` 的产出者，一旦手工/作业跑就会撞同一句
+    `invalid dsn: missing "=" after …`。判据改成「能被人或作业直接跑、且自己连库」，
+    就与「会不会拿到生产 Secret」这一件事对齐了。
+    """
+    out: dict[str, bool] = {}
+    for f in sorted(SCRIPTS.rglob("*.py")):
+        if any(x in f.parts for x in (".venv", "node_modules", "__pycache__", ".git")):
+            continue
+        text = f.read_text(errors="ignore")
+        if not (STANDALONE.search(text) and CONNECTS.search(text)):
+            continue
+        out[str(f.relative_to(SCRIPTS))] = NORMALIZED.search(text) is not None
+    return out
+
+
+def test_every_standalone_script_normalizes_the_dsn():
+    """带 `__main__` 且自己连库的脚本必须归一化（2026-11-15 全仓清零）。"""
+    found = _standalone_connectors()
+    assert found, "一个独立可跑的连库脚本都没扫到 —— 扫错目录了，别当成通过"
+    bad = sorted(n for n, ok in found.items() if not ok)
+    assert not bad, (
+        "这些脚本能直接跑、自己连库，却把 `postgresql+psycopg2://` 直接交给 "
+        "psycopg2（会报 `invalid dsn: missing \"=\" after …`）：\n  "
+        + "\n  ".join(bad)
+        + "\n修法：抄 `scripts/extract_batch1.py` 的 `_dsn()`，把 connect 处包一层"
+    )
+
+
 def test_every_extract_script_normalizes_the_dsn():
     """2026-11-15 收口：全仓 `extract_*.py` 都归一化了 DSN，名单已清空。
 
