@@ -99,14 +99,11 @@ def test_openmeteo_unknown_city_dropped(ewd):
 def test_truncated_entity_held_back(ewd):
     """深圳被 limit 切到 7 天时不许写（open-meteo 2026-11-14 的真实形态）。"""
     spec = ewd.SOURCES["open-meteo"]
-    payload = _openmeteo(_days(), "beijing") + _openmetoex(_days(7), "shenzhen")
+    payload = _openmeteo(_days(), "beijing") + _openmeteo(_days(7), "shenzhen")
     rows = ewd.build_rows(ewd.collect(spec, payload), spec, [], skips := {})
     assert {e for _c, e, *_ in rows} == {"BJS"}
     assert any(k.endswith("@SZX") and "让闸按住" in v for k, v in skips.items())
 
-
-def _openmetoex(days, city):
-    return _openmeteo(days, city)
 
 
 def test_metric_swap_is_fatal(ewd):

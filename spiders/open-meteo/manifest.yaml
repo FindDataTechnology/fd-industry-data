@@ -4,12 +4,15 @@ label: Open-Meteo Historical Reanalysis Daily
 source_url: https://open-meteo.com/
 # site: tencent              # 缺省 tencent；本单元只访问 archive-api.open-meteo.com 公开 REST，无需换执行位
 schedule: "38 7 * * *"  # 点亮（批次二）：07:38 取再分析日值；与 noaa-ncei 同类错峰 29 分钟
-# limit: **必须自己声明**（2026-11-14 补）。不写时 chart 缺省传 `--limit 100`，而本源一轮的行是
-# 「城市 × 日」的网格：**4 个城市 × 31 天 = 124 行 > 100** ⇒ 切在网格中间，第 4 个城市（深圳）
-# 只剩 7 天（实测：`beijing`/`shanghai`/`guangzhou` 各 31 天，`shenzhen` 只有 10-13..10-19）。
-# 这不是「滚动尾部」，是 limit 把最后一列整段剁掉——所以看「窗口有没有前进」的判据看不见它。
-# 取 200（124 的 1.6 倍余量），留给「加城市」「窗口放宽到 45 天」两种正常演进。
-limit: 200
+# limit: **必须自己声明**（2026-11-14 补）。不写时 chart 缺省传 `--limit 100`，而本源一轮的
+# 行是「城市 × 日」的网格：spider 的 `CITIES` 有 **8 个城市**、窗口 31 天 ⇒ **248 行**。
+# 100 会切在网格中间（实测：前四城各 31 天，第 4 城只剩 7 天）；200 也不够（第 7 城只剩 14 天、
+# 第 8 城整段没有）。**这不是「滚动尾部」，是 limit 把最后一列剁掉**，所以「窗口有没有前进」
+# 这类判据看不见它。
+# 规模要按 spider 的 `CITIES` 元组数算，**不要按观测到的行数反推** —— 观测到的行数本身就是被
+# 这一次截断后的结果（我第一次按"看到 4 个城市"算出 124，第二次按 7 个城市算出 217，都不对）。
+# 取 300（248 的 1.2 倍余量），够「加一两个城市」而不必再来改这一行。
+limit: 300
 data_period: day
 min_rows_per_run: 20    # runs=35 p10=100 p50=100; p50=limit 截断型，取上限 20% — 见 docs/min-rows-coverage-baseline.md §3
 scanner_mode: upstream-curated
