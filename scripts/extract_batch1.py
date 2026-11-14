@@ -458,17 +458,28 @@ def main() -> int:
                         "SELECT source_used, count(*) FROM semantic_observations"
                         " GROUP BY 1")
                     before_by_src = dict(c2.fetchall())
-                    for (code, etype, eid, d, gran, value) in rows:
-                        c2.execute(
+                    # **必须批量**：逐条 execute() 是 8.7 万次跨集群往返
+                    # （fd-prod pod → 100.64.0.3:30432）。2026-11-15 实测：
+                    # batch1 在 write 阶段 17 分钟没提交、pod CPU 只 9m（全在等
+                    # RTT），被 activeDeadlineSeconds 杀掉。与 _semextract.write_rows
+                    # / extract_uk_hpi.py 同一写法（每批 1000 行 ≈ 87 次往返）。
+                    from psycopg2.extras import execute_values
+                    payload = [
+                        (ids[code], etype, eid, d, gran, value, None,
+                         _source_of(code), obs_month_of(d))
+                        for (code, etype, eid, d, gran, value) in rows
+                    ]
+                    page = 1000
+                    for i in range(0, len(payload), page):
+                        execute_values(
+                            c2,
                             "INSERT INTO semantic_observations"
                             " (concept_id, entity_type, entity_id, date,"
                             "  granularity, value, unit, source_used, fetched_at,"
-                            "  obs_month)"
-                            " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)"
+                            "  obs_month) VALUES %s"
                             " ON CONFLICT ON CONSTRAINT uq_sem_obs DO NOTHING",
-                            (ids[code], etype, eid, d, gran, value,
-                             None, code.split('.')[0] if False else _source_of(code),
-                             obs_month_of(d)),
+                            payload[i:i + page],
+                            template="(%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)",
                         )
                     c2.execute("SELECT count(*) FROM semantic_observations")
                     after_total = c2.fetchone()[0]

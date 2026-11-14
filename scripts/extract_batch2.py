@@ -802,16 +802,32 @@ def ensure_unit_concepts(cur, src: str) -> dict[str, int]:
 
 
 def insert_rows(cur, ids, rows) -> int:
+    """批量写观测，返回真正插入的行数。
+
+    逐条 `execute()` 是每行一次跨集群往返；本批实测 4,995 行也要 3 分 52 秒，
+    其中绝大部分是 RTT。改成 execute_values 后一次往返 1000 行
+    （同 `_semextract.write_rows` / `extract_uk_hpi.py`）。
+    每批单独 execute_values ⇒ `cur.rowcount` 就是那批实际插入数，
+    因此不必额外 count(*) 也能算出 inserted。
+    """
+    if not rows:
+        return 0
+    from psycopg2.extras import execute_values
+    payload = [(ids[code], etype, eid, d, gran, value, None, _SOURCE_OF[code],
+                obs_month_of(d))
+               for (code, etype, eid, d, gran, value) in rows]
     inserted = 0
-    for (code, etype, eid, d, gran, value) in rows:
-        cur.execute(
+    page = 1000
+    for i in range(0, len(payload), page):
+        execute_values(
+            cur,
             "INSERT INTO semantic_observations"
             " (concept_id, entity_type, entity_id, date,"
             "  granularity, value, unit, source_used, fetched_at, obs_month)"
-            " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)"
+            " VALUES %s"
             " ON CONFLICT ON CONSTRAINT uq_sem_obs DO NOTHING",
-            (ids[code], etype, eid, d, gran, value, None, _SOURCE_OF[code],
-             obs_month_of(d)),
+            payload[i:i + page],
+            template="(%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)",
         )
         inserted += cur.rowcount
     return inserted
