@@ -68,7 +68,7 @@ IMAGE_EXPORTS: dict[str, frozenset[str]] = {
     }),
 }
 
-#: 跑在那个镜像里、由 ConfigMap 供给的脚本。**只列这四个**：其余脚本走
+#: 跑在那个镜像里、由 ConfigMap 供给的脚本。**只列这些**：其余脚本走
 #: `git clone` / checkout 供给（如 health_inspect.py 由 workflow 现拉仓），
 #: 不依赖镜像里的包版本，算进来只会得到一条与事实无关的红。
 DEPLOYED_VIA_CONFIGMAP = (
@@ -77,6 +77,10 @@ DEPLOYED_VIA_CONFIGMAP = (
     "plaza_freshness_alerts.py",
     "shard_health_alerts.py",
     "platform_capability_alerts.py",
+    # 2026-11-15：定时作业失败告警。列进来与上面几条同理——它也由 ConfigMap 挂进
+    # /src、也 import 镜像里的 fd_industry_data。**漏列才是缺陷**：「在 ConfigMap 里
+    # 跑、但不在契约表里」正是这道闸存在的理由。
+    "backup_job_alerts.py",
 )
 
 
@@ -117,23 +121,30 @@ def test_state_info_is_script_local_not_an_image_symbol():
     """回归今天那次故障本身：脚本**不得**再从包里取 `state_health`。
 
     不是不许有这个能力，而是不许以「包里新增符号」的方式获得它——那要等镜像。
+    后半条（必须接状态读数）只对**真的用了状态**的脚本生效：判据是「有没有声明
+    `STATE =`」。`backup_job_alerts.py` 刻意不用状态（它的去重靠「每轮都报」：
+    状态落在 emptyDir，跨轮次本来就不生效，摆一套出来只是假能力），
+    硬要求它写 `state_info = _state_info(STATE)` 就是 cargo cult。
     """
     for script in DEPLOYED_VIA_CONFIGMAP:
         p = REPO / "scripts" / script
         if not p.exists():
             continue
+        text = p.read_text(encoding="utf-8")
         names = [n for v in _imported_names(p).values() for n in v]
         assert "state_health" not in names, (
             f"{script} 又 import 了镜像里没有的 state_health；2026-11-14 就是这样让三条线"
             " ImportError 的。请用脚本内的 _state_info。"
         )
-        assert "state_info = _state_info(STATE)" in p.read_text(encoding="utf-8"), (
-            f"{script} 没接本轮状态读数"
+        if "STATE =" not in text:
+            continue
+        assert "state_info = _state_info(STATE)" in text, (
+            f"{script} 声明了 STATE 却没接本轮状态读数"
         )
 
 
 def test_every_deployed_script_exists():
-    """四个都必须有真源——「只在清单里」的那份没有任何东西能审、能 diff、能回溯。"""
+    """每个都必须有真源——「只在清单里」的那份没有任何东西能审、能 diff、能回溯。"""
     missing = [s for s in DEPLOYED_VIA_CONFIGMAP if not (REPO / "scripts" / s).exists()]
     assert not missing, f"这些告警脚本在仓里没有真源（只活在 ConfigMap 内联段里）：{missing}"
 

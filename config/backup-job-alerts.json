@@ -1,0 +1,19 @@
+{
+  "_note": "定时作业失败告警的投递声明（alert-delivery 要求：每条告警线须声明出口与接收人）。规则在 scripts/backup_job_alerts.py 里，本文件只承载投递与阈值。通道未配置时评估器记 not_configured（exit 3），绝不假装发过。",
+  "delivery": {
+    "channel": "smtp",
+    "to": ["1253774197@qq.com", "aloadtree@gmail.com"],
+    "min_severity": "warning",
+    "_note": "与其它告警线同一收件人；env FD_ALERT_SMTP_TO 非空时以 env 为准（smtp_from_env 的入参优先）。"
+  },
+  "thresholds": {
+    "stall_periods": 2,
+    "stall_slack_minutes": 60,
+    "never_scheduled_grace_minutes": 60,
+    "stuck_active_hours": 24,
+    "_why_stall_periods": "「2 个周期」而不是固定 36h：*/15 的告警线用 36h 会永远绿（一天 96 轮全失败也判不出来），月度作业用 36h 又天天红。2 倍周期意味着「连续漏掉一轮」才算停滞，一次晚点不叫事。",
+    "_why_slack": "60min 是给 cron 排队、控制器抖动留的余量；低于它会把正常抖动变成告警，这条线一吵就没人看了。",
+    "_why_never_scheduled": "刚建的 CronJob 还没来得及跑，别当故障；60min 也是 controller-manager 一轮 sync 的宽松上限。",
+    "_why_stuck": "Job 既无 Complete 也无 Failed 且跑了 24h —— 多半漏了 activeDeadlineSeconds（本仓 11-14 的 federation-observer 就是这个形态，靠 DeadlineExceeded 反而暴露了）。"
+  }
+}
