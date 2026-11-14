@@ -52,6 +52,30 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
 
 ## 运维配置（一次性，已落地 2026-10-04）
 
+### 告警脚本有**两条供给线**（2026-11-14 用一次自造故障换来）
+
+四条告警线（`node-health` / `ciyuan-line` / `plaza-freshness` / `shard-health`）的 CryptoJob
+都把 `/src` 挂成 ConfigMap、把 `/reports` 挂成 `emptyDir`，而脚本 import 的
+`fd_industry_data` 包来自**镜像**（`fd-industry-runner:<sha>`，实测路径
+`/usr/local/lib/python3.12/site-packages/fd_industry_data/`）。两条线各走各的：
+
+| 你改什么 | 怎么到线上 | 要等什么 |
+|---|---|---|
+| `scripts/*_alerts.py`（含内联副本） | ConfigMap → Argo sync | 分钟级（下一轮 Job 即生效） |
+| `fd_industry_data/**`（脚本 import 的包） | **镜像** | 一次重新出片 |
+
+**当天的事故**：给三条脚本加了 `from fd_industry_data.alerts_core import state_health`，
+本地全绿（venv 里有新包），而镜像里没有这个符号（进镜像 `hasattr` → False）⇒ 下一轮
+三条线会全部 `ImportError`、一封告警都不发——正好在 `cheap-5` 掉线当天把告警关掉。
+处置与防线：读改写成脚本内的 `_state_info()`（只用镜像确有的 `load_state`），
+并落 `tests/test_alert_script_image_contract.py`——把「脚本能 import 哪些名字」
+变成一张**按模块分表的实测快照**，新增符号必须先过它。
+
+判据纪律（同「判修复有没有出片只认进镜像 grep」）：**新增 import 前先证明镜像里有**，
+别拿本地单测绿当证据；验证方式是在 fd-prod 里用同一镜像 `--rm` 跑一次
+`python3 -c "import …; print(hasattr(…))"`，或直接跑线上正文的 `--help`。
+
+
 1. **self-hosted runner（k8s/ArgoCD 标准通道）**：清单事实源
    `fd-infra-deploy/all-services/prod/fd-health-runner.yaml`（cheap 集群 fd-prod，
    ArgoCD 自动同步）→ Pod `fd-health-runner`（镜像 `ccr.ccs.tencentyun.com/finddata/fd-health-runner:sha-*`，
