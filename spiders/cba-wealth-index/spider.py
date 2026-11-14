@@ -128,6 +128,9 @@ def _get(url: str, *, timeout: int = 90, attempts: int = 2) -> bytes:
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.read()
+        except urllib.error.HTTPError as exc:
+            # 404 等带码失败直接显式报码（上游撤件判据依赖精确的 "HTTP <code>" 前缀）
+            raise RuntimeError(f"{SOURCE}: HTTP {exc.code} {url}") from exc
         except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
             last = exc
             print(f"[{SOURCE}] GET 失败 {url}: {exc}", flush=True)
@@ -527,6 +530,8 @@ def run_cba_wealth_index(limit: int = 60, months: int = 1, period: str = "") -> 
     )
 
     rows: list[dict] = []
+    missing_404: list[str] = []  # 附件确证不存在（HTTP 404）的期：上游撤件信号
+    other_fail: list[str] = []   # 网络/解析等其他失败
     for item in periods:
         attack = catalog[item]
         try:
@@ -534,6 +539,10 @@ def run_cba_wealth_index(limit: int = 60, months: int = 1, period: str = "") -> 
             file_format, text = _document_text(payload)
         except (RuntimeError, ValueError, zipfile.BadZipFile, ET.ParseError,
                 pdftext.PdfTextError) as exc:
+            if "HTTP 404" in str(exc):
+                missing_404.append(item)
+            else:
+                other_fail.append(item)
             print(f"[{SOURCE}] {item} 附件不可用（{attack.url}）：{exc}", flush=True)
             continue
         title_period = _title_period(text)
@@ -561,5 +570,13 @@ def run_cba_wealth_index(limit: int = 60, months: int = 1, period: str = "") -> 
         )
 
     if not rows:
+        if missing_404 and not other_fail:
+            # 附件被上游整批撤下（404）而非网络/解析故障：给出可执行恢复判据，
+            # 避免每轮盲目重跑 565 行只换来同一条"全部期均未解析出指数值"。
+            raise RuntimeError(
+                f"{SOURCE}: 期 {'、'.join(missing_404)} 的附件全部 HTTP 404 —— "
+                "上游撤件（页面索引未同步），非解析问题；恢复条件=任一附件重新可下"
+                "（复检方法：HEAD 上述期附件 URL，任一 200 即恢复正常运行）"
+            )
         raise RuntimeError(f"{SOURCE}: 全部期均未解析出指数值")
     return rows[: int(limit)]
