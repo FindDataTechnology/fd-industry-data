@@ -1033,6 +1033,48 @@ def _conclusion_segment(message: str) -> str:
     return seg.lower().strip()
 
 
+def _http_error_detail(raw_text: str) -> str:
+    """把 HTTP 非 2xx 信封里的错误码带进裁决理由（2026-11-14）。
+
+    门面 a2a 的 402 正文是 ``{"error": {"code": "PLAN_EXHAUSTED", "message": …}}``。
+    此前 reason 只记 ``HTTP 402``，于是三种完全不同的成因——余额不足
+    （INSUFFICIENT_BALANCE）、调用方被停用（CALLER_SUSPENDED）、套餐分钟用完
+    （PLAN_EXHAUSTED）——在巡检报告里长得一模一样，只能回头翻门面代码才对得出
+    是哪一种。错误码本来就在正文里，判据没有理由把它丢掉。
+    """
+    try:
+        doc = json.loads(raw_text or "")
+    except (json.JSONDecodeError, TypeError):
+        return ""
+    if not isinstance(doc, dict):
+        return ""
+    code = ""
+    text = ""
+    err = doc.get("error")
+    if isinstance(err, dict):
+        code = str(err.get("code") or "")
+        text = str(err.get("message") or "")
+    elif isinstance(err, str):
+        text = err
+    if not code:
+        for key in ("code", "error_code", "type"):
+            val = doc.get(key)
+            if isinstance(val, (str, int)) and str(val).strip():
+                code = str(val)
+                break
+    if not text:
+        for key in ("message", "msg", "detail"):
+            val = doc.get(key)
+            if isinstance(val, str) and val.strip():
+                text = val
+                break
+    bits = [b.strip() for b in (code, text) if b and b.strip()]
+    if not bits:
+        return ""
+    detail = ": ".join(bits)[:160]
+    return f" · {detail}"
+
+
 def parse_submit_verdict(status: int, raw_text: str, message: str) -> dict:
     """把 SUBMIT 回执解析成**结构化裁决**（harden-crawl-delivery 2.11）。
 
@@ -1064,7 +1106,7 @@ def parse_submit_verdict(status: int, raw_text: str, message: str) -> dict:
         return {"verdict": "refused", "reason": "hollow receipt: agent 读不到工单实体",
                 "state": None, "response_excerpt": (raw_text or "")[:300]}
     if status >= 400:
-        verdict, reason = "error", f"HTTP {status}"
+        verdict, reason = "error", f"HTTP {status}{_http_error_detail(raw_text)}"
     else:
         try:
             doc = json.loads(raw_text)

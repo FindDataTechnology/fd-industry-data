@@ -85,3 +85,30 @@ def test_quote_inside_conclusion_does_not_flip_verdict():
     """结论首段判词，引述历史错误不误判。"""
     msg = "已入队。说明：某次 submit 曾回 invalid request，本次已修复。"
     assert _v(200, msg)["verdict"] in ("accepted", "duplicate")
+
+
+def test_http_error_carries_the_envelope_code():
+    """2026-11-14 实历：门面 402 有三种成因，此前报告里全是 `HTTP 402`。
+
+    `PLAN_EXHAUSTED` 是套餐分钟用完——它要求人去改套餐，而
+    `INSUFFICIENT_BALANCE` 要求人去充值，`CALLER_SUSPENDED` 要求人去解停。
+    三者处置完全不同，正文里本来就有 code，不该只在报告里留一个状态码。
+    """
+    body = json.dumps({"error": {"code": "PLAN_EXHAUSTED",
+                                 "message": "the caller's serving plan has no minutes left"}})
+    v = _v(402, body)
+    assert v["verdict"] == "error"
+    assert "HTTP 402" in v["reason"]
+    assert "PLAN_EXHAUSTED" in v["reason"]
+
+
+def test_http_error_without_a_json_body_stays_status_only():
+    """非 JSON 正文（网关的 HTML 错误页）不许编造错误码。"""
+    v = _v(503, "<html>502 Bad Gateway</html>")
+    assert v["reason"] == "HTTP 503"
+
+
+def test_http_error_detail_is_bounded():
+    """正文可能是整页错误文档——理由要留得住，不能把报告撑爆。"""
+    body = json.dumps({"error": {"code": "X", "message": "y" * 5000}})
+    assert len(_v(500, body)["reason"]) < 200
