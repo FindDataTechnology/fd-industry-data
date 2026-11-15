@@ -1568,6 +1568,38 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
     return results
 
 
+# 这些异常算「通道没给出回执」：连不上、超时、TLS 断、HTTP 报文半截，
+# 以及 `_default_poster` 重试用尽时自己抛的 RuntimeError（它也是"没收到答复"）。
+# 其余异常（ValueError/TypeError/KeyError/AttributeError…）一律是**我们自己的代码**
+# 出问题——把它读成通道故障，读的人就会去查出口代理，方向完全反了。
+_NETWORK_ERROR_KINDS = frozenset({
+    "URLError", "HTTPError", "TimeoutError", "timeout", "socket.timeout",
+    "ConnectionResetError", "ConnectionError", "ConnectionRefusedError",
+    "ConnectionAbortedError", "BrokenPipeError", "OSError", "SSLError",
+    "RemoteDisconnected", "IncompleteRead", "RuntimeError",
+})
+
+
+def _status_failure_kind(row: dict) -> str:
+    """STATUS 回读的一行属于哪一档：channel（通道）/ client（我们自己的代码）。
+
+    2026-11-15 实历：`sync_status` 里 `status, text = read(...)` 撞上三元组回执，
+    每张单都抛 ValueError；旧判据「有 error 又没有 http_status ⇒ 连不上」把这批
+    读成通道整死，`delivery_lane.status` 报 `outage`、原因写「STATUS 回读连不上」。
+    一个本地异常伪装成网络故障，会把排查引向完全相反的方向。
+
+    没有 `error_kind` 的老行按通道处置（与旧行为一致，不悄悄放宽）。
+    """
+    if isinstance(row.get("http_status"), int):
+        return "channel" if row["http_status"] >= 500 else "other"
+    if not row.get("error"):
+        return "other"
+    kind = row.get("error_kind")
+    if kind is None:
+        return "channel"
+    return "channel" if str(kind) in _NETWORK_ERROR_KINDS else "client"
+
+
 def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = None) -> dict:
     """投递通道体检：**每一次**尝试都栽在服务侧错误 ⇒ 通道断了，不是工单的问题。
 
@@ -1610,11 +1642,15 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
         r for r in (status or [])
         if not r.get("dry_run") and r.get("ticket") != "__status_budget__"
     ]
-    status_dead = [
-        r for r in status_rows
-        if (isinstance(r.get("http_status"), int) and r["http_status"] >= 500)
-        or (r.get("http_status") is None and r.get("error"))
-    ]
+    # 「通道坏了」与「我们自己代码坏了」必须分档（2026-11-15 实历）：`sync_status`
+    # 里 `status, text = read(...)` 撞上三元组回执，**每张单**都抛 ValueError，
+    # 而旧判据「有 error 又没有 http_status ⇒ 连不上」把它整批读成通道故障，
+    # delivery_lane 直接报 `outage`、原因写「STATUS 回读连不上」。两个方向的处置
+    # 完全相反：通道坏了去查出口/门面，代码坏了回仓里看——混成一档的那天，
+    # 差一步就去查出口代理了。所以客户端异常单列，判词点名异常类。
+    status_channel = [r for r in status_rows if _status_failure_kind(r) == "channel"]
+    status_client = [r for r in status_rows if _status_failure_kind(r) == "client"]
+    status_dead = status_channel
     # 同一原因只留一条，避免七行同样的 502 把摘要冲爆
     reasons: list[str] = []
     for r in errors + unknowns:
@@ -1628,11 +1664,15 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
         label = f"STATUS 回读失败 (HTTP {code})" if code is not None else "STATUS 回读连不上"
         if label not in reasons:
             reasons.append(label)
-    if not attempts and not status_dead:
+    for r in status_client:
+        label = f"STATUS 回读在自己代码里失败 ({r.get('error_kind') or 'unknown'})"
+        if label not in reasons:
+            reasons.append(label)
+    if not attempts and not status_dead and not status_client:
         verdict = "idle"            # 没东西可投 ≠ 通道坏了
     elif len(errors) == len(attempts) and attempts:
         verdict = "outage"
-    elif errors or unknowns or status_dead:
+    elif errors or unknowns or status_dead or status_client:
         verdict = "degraded"
     else:
         verdict = "ok"
@@ -1645,6 +1685,9 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
         # 全灭触发）：先把「回读通道坏了一半」变成可见，再谈它该不该判红。
         "status_reads": len(status_rows),
         "status_channel_errors": len(status_dead),
+        # 客户端异常单列一档：它不是通道故障的证据，红绿都不该按它判，
+        # 但**必须可见**——否则「代码坏了」会伪装成「网络坏了」继续骗三天。
+        "status_client_errors": len(status_client),
         "reasons": reasons[:3],
     }
 
@@ -1772,7 +1815,10 @@ def sync_status(outdir: Path, url: str, key: str, fetcher=None,
         except Exception as e:  # noqa: BLE001 — 回读失败留痕不炸
             ticket_mod.append_event(doc, "status-failed", error=str(e)[:300])
             p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
-            results.append({"ticket": p.name, "state": None, "error": str(e)[:200]})
+            # error_kind 让体检分得出「通道坏了」与「我们自己代码坏了」——
+            # 见 `_status_failure_kind`：两个方向的处置相反。
+            results.append({"ticket": p.name, "state": None, "error": str(e)[:200],
+                            "error_kind": type(e).__name__})
             continue
         parsed = parse_status(extract_message_text(text))
         # 痕迹只在真发生过跳转时才落账：每张单都写一份空 trace 会把生命周期刷成噪音。

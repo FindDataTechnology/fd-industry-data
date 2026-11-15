@@ -804,3 +804,64 @@ def test_unpack_reply_tolerates_short_and_odd_replies():
     assert ins._unpack_reply((302, "moved", {"location": "/a"}))[2]["location"] == "/a"
     assert ins._unpack_reply((302, "moved", "not-a-dict"))[2] == {}
     assert ins._unpack_reply(()) == (None, "", {})
+
+
+# ── 体检要分得清「通道坏了」与「我们自己代码坏了」 ────────────────────────────
+#
+# 2026-11-15 实历第二轮伤害：STATUS 面撞 ValueError 之后，旧的
+# `delivery_lane_health` 判据是「有 error 且没有 http_status ⇒ 连不上」，
+# 于是本地异常被报成 `status: "outage"`、原因写「STATUS 回读连不上」。
+# 两个方向的处置完全相反（一个查出口/门面，一个回仓里看代码），
+# 混成一档迟早把人引错方向。
+
+def test_client_side_status_error_is_not_reported_as_a_channel_outage():
+    lane = ins.delivery_lane_health(
+        submit=[],
+        status=[{"ticket": "t.yaml", "state": None,
+                 "error": "too many values to unpack (expected 2)",
+                 "error_kind": "ValueError"}] * 5,
+    )
+    assert lane["status_channel_errors"] == 0, lane
+    assert lane["status_client_errors"] == 5, lane
+    assert any("自己代码里失败" in r and "ValueError" in r for r in lane["reasons"]), lane
+    assert not any("连不上" in r for r in lane["reasons"]), lane
+    assert lane["status"] == "degraded", f"代码坏不该判通道 outage：{lane}"
+
+
+def test_real_network_status_error_still_reads_as_channel_failure():
+    lane = ins.delivery_lane_health(
+        submit=[],
+        status=[{"ticket": "t.yaml", "state": None, "error": "<urlopen error timed out>",
+                 "error_kind": "URLError"}],
+    )
+    assert lane["status_channel_errors"] == 1, lane
+    assert lane["status_client_errors"] == 0, lane
+    assert any("连不上" in r for r in lane["reasons"]), lane
+
+
+def test_legacy_status_rows_without_error_kind_keep_the_old_reading():
+    """没有 error_kind 的老行按通道处置——不悄悄放宽既有口径。"""
+    lane = ins.delivery_lane_health(
+        submit=[], status=[{"ticket": "t.yaml", "state": None, "error": "boom"}])
+    assert lane["status_channel_errors"] == 1 and lane["status_client_errors"] == 0, lane
+
+
+def test_http_5xx_status_is_channel_and_4xx_is_neither():
+    lane = ins.delivery_lane_health(
+        submit=[],
+        status=[{"ticket": "a", "http_status": 503},
+                {"ticket": "b", "http_status": 409, "state": None}])
+    assert lane["status_channel_errors"] == 1, lane   # 只有 5xx 算通道
+    assert lane["status_client_errors"] == 0, lane
+    assert lane["status_reads"] == 2, lane
+
+
+def test_status_failed_rows_carry_the_exception_type(tmp_path):
+    """`sync_status` 的 except 分支要把异常类记进行里，否则上面的分档无从谈起。"""
+    d = _mk(tmp_path, slugs=("t-a",))
+
+    def boom(url, key, idem, body):
+        raise ValueError("too many values to unpack (expected 2)")
+
+    res = ins.sync_status(d, "http://x", "k", fetcher=boom, max_reads=1)
+    assert res[0]["error_kind"] == "ValueError", res[0]
