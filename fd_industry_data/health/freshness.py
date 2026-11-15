@@ -6,10 +6,19 @@ source was permanently "fresh" for 75 days and a daily one stayed silent for
 two and a half days. This module answers the question directly — *how many of
 the moments this source was supposed to run have passed without a good run?*
 
-A good run is ``ok`` or ``ok_empty``: the source executed and reached its data
-surface. ``blocked-config`` is not good (nothing was fetched) but it is also
-not evidence of a broken crawler, so callers should classify it separately
-before deciding to alert.
+A good run is one whose ``status`` is in ``triage.REACHED`` — the live
+vocabulary is ``{"success", "partial"}`` (an earlier draft said ``ok`` /
+``ok_empty``; those statuses never existed in crawl_runs). ``blocked-config``
+is not good (nothing was fetched) but it is also not evidence of a broken
+crawler, so callers should classify it separately before deciding to alert.
+
+Callers pass ``created_at`` as the workload-start anchor. The only source the
+inspector has today is the first run of ANY status — so a source that was
+declared but never executed at all scores "cycles unknown", not 0: with no
+run there is no way to tell "brand new, first fire pending" from "declared
+months ago and never dispatched" (2026-11-15 live audit: the six batch-six
+low-frequency sources all landed here, and the honest answer was a note, not
+a fabricated count).
 
 The window is capped by ``lookback_days`` so a source that has been dead for
 years does not cost millions of minute steps; when the cap bites, the result

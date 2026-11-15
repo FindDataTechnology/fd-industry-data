@@ -72,6 +72,39 @@ def test_never_good_counts_from_creation():
     assert got.alerting
 
 
+def test_never_good_and_never_run_is_unknown_not_zero():
+    """声明了排期但从未有过任何运行的源：判不出，不许编 0（2026-11-15 实测）。
+
+    批次六（c1daa91，11-09 点亮）的六个低频源全部落在这里：monthly/weekly 的
+    首个 tick 还没到。inspector 只能拿「首次运行」当 created_at，没有运行就
+    没有锚点——把 unknown 悄悄改成 0 会让这六个源在 shadow 报表里永远新鲜，
+    而改成按 lookback 起点计数则会让它们一出生就欠 30 个周期（假红）。
+    """
+    got = cycles_since_last_good(
+        schedule="15 11 16 * *", tz="Asia/Shanghai",
+        last_good_at=None, created_at=None,
+        now=_cst(2026, 11, 15, 12, 0))
+    assert got.cycles == 0
+    assert not got.alerting
+    assert got.note and "no known start" in got.note
+
+
+def test_daily_source_dead_for_days_alerts_with_cycle_count():
+    """rmfyalk 2026-11-15 的活形态：日频、上次成功 11-05、此后全部失败。
+
+    阈值语义的另一端：它不该被「判不出」吞掉——有运行（失败的运行也提供
+    created_at 锚点）所以可数，且远超 2。九个欠账周期就是九天断流。
+    """
+    got = cycles_since_last_good(
+        schedule="10 3 * * *", tz="Asia/Shanghai",
+        last_good_at=_cst(2026, 11, 5, 20, 55),
+        created_at=_cst(2026, 10, 1, 3, 10),
+        now=_cst(2026, 11, 15, 14, 0))
+    assert got.cycles >= 9
+    assert got.alerting
+    assert got.note is None  # 无截断、无高频护栏——就是干净的欠账计数
+
+
 def test_utc_source_uses_its_own_timezone():
     # 23:00 UTC daily; last good 2026-11-07 23:00Z; now 2026-11-09 23:30Z -> 2
     got = cycles_since_last_good(
