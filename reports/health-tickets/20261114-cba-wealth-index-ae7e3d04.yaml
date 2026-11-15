@@ -163,5 +163,14 @@ lifecycle:
   response: "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n<html>\r\n<head><title>308\
     \ Permanent Redirect</title></head>\r\n<body>\r\n<center><h1>308 Permanent Redirect</h1></center>\r\
     \n<hr><center>tengine</center>\r\n</body>\r\n</html>"
+- at: '2026-11-15T08:27:52.895031+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T08:30:35.364721+00:00'
+  event: status-failed
+  error: too many values to unpack (expected 2)
 terminal: null
 evidence_signature: d5ab5a94aea5

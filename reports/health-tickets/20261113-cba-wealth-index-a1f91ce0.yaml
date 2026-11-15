@@ -169,5 +169,11 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-15T08:20:53.596307+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
 terminal: null
 evidence_signature: d5ab5a94aea5
