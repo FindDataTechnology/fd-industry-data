@@ -208,6 +208,53 @@ def _unknown_prefix_spend(doc: dict) -> list[tuple[str, float]]:
     return sorted(by_prefix.items(), key=lambda kv: (-kv[1], kv[0]))
 
 
+def route_key_facts(doc: dict) -> dict:
+    """路由键事实：别名表声明 ``route:true`` 的键，由 SQL 的 ``attribution.route_keys`` 带出。
+
+    **为什么它必须参与「覆盖率」**：路由键（例如 `特价` / `openrouter`）归入「自有平台」——
+    那是**一条登记过的线，但不是产品线**。它们的花费在结构上拆不到任何产品线（键名编码的是
+    上游折扣渠道，调用方的源 IP 又被 NodePort 入口抹成节点桥地址）。如果只报 ``unknown``，
+    读者会看到「未归因 1% ⇒ 按线读数覆盖 99%」这种**技术上对、实际误导**的结论：
+    真正能逐线判读的只有 11% 左右。
+
+    三态，不许混同（同「『一条记录都没有』须自成一态」）：
+    - 数据里**没有**这个读数（SQL 版本早于 declare-route-keys-in-report）⇒ ``state="absent"``，
+      明说覆盖率可能高估——**不许当成 0**，否则旧数据会显得比新数据更健康；
+    - 有读数但本窗口没花费 ⇒ ``state="declared_no_spend"``；
+    - 有读数且有花费 ⇒ ``state="present"``，给出总额/占比/逐键。
+    """
+    attr = (doc.get("attribution") or {})
+    rk = attr.get("route_keys")
+    if not isinstance(rk, dict):
+        return {
+            "state": "absent", "total_usd": None, "share": None, "keys": [],
+            "keys_label": "",
+            "note": ("本份数据没有 route_keys 读数（SQL 版本早于路由键声明）⇒ "
+                     "下面的『按线覆盖率』可能高估：路由键花的是钱、却归在一条非产品线上，"
+                     "这里看不出来"),
+        }
+    declared = bool(rk.get("note")) or bool(rk.get("keys")) or bool(rk.get("total_usd"))
+    total = round(float(rk.get("total_usd") or 0.0), 4)
+    keys = [{"seg": k.get("seg"), "usd": k.get("usd"), "requests": k.get("requests")}
+            for k in (rk.get("keys") or []) if isinstance(k, dict)]
+    # 点名用结构化字段拼，别对 note 做字符串外科手术（2026-11-15 首版就是 split('（')，
+    # 一旦 note 措辞变了就会拼出半句话）。
+    keys_label = "、".join(f"`{k['seg']}`" for k in keys[:3] if k.get("seg"))
+    if not declared or total <= 0:
+        return {
+            "state": "declared_no_spend", "total_usd": 0.0, "share": None, "keys": keys,
+            "keys_label": keys_label,
+            "note": "本窗口没有路由键花费" if declared else "本份数据没有声明任何路由键",
+        }
+    return {
+        "state": "present", "total_usd": total, "share": None, "keys": keys,
+        "keys_label": keys_label,
+        "note": (f"另有 ${total:.2f} 落在路由键（{keys_label}）："
+                 f"它们归在『自有平台』这条线里，但键名编码的是上游折扣路由、不是产品线，"
+                 f"结构上拆不到任何一条线——所以『自有平台』的数字不要当成某条产品线的业务"),
+    }
+
+
 def unattributed_share(doc: dict, *, top: int = 3) -> dict:
     """窗口内「未归因」占全部花费的比例——**只报事实，不做判断**。
 
@@ -222,31 +269,63 @@ def unattributed_share(doc: dict, *, top: int = 3) -> dict:
     - 窗口内无任何用量 ⇒ ``share=None`` 且 note 明说「无从计算（不是 0%）」；
     - 有用量且全部归因 ⇒ ``share=0.0``，note 说「全部归到了线」；
     - 有用量且有 ``unknown`` ⇒ 给比例与主要首段，供人判断该不该给它一条线。
+
+    2026-11-15 追加第三桶：``route_keys``（见 :func:`route_key_facts`）。**只有同时减掉
+    unknown 与路由键，剩下的才是「真正能逐线判读」的部分**，所以这一段的 note 现在给的是
+    ``product_readable_share``，而不是旧的 ``1 - unknown``。分母统一用本函数的 ``total``
+    （逐线窗口合计）——与路由键总额混用两个分母会让相减出现负数或超过 1。
     """
     totals = line_daily_totals(doc)
     total = round(sum(v["window_usd"] for v in totals.values()), 4)
     unknown = round(totals.get("unknown", {}).get("window_usd", 0.0), 4)
     ranked = _unknown_prefix_spend(doc)[:top]
     prefixes = [{"seg": seg, "usd": round(usd, 4)} for seg, usd in ranked]
+    route = route_key_facts(doc)
+    route_usd = route["total_usd"]
+    route_share = (round(route_usd / total, 4)
+                   if (total > 0 and route_usd is not None and route_usd > 0) else None)
+    if route_share is not None:
+        route["share"] = route_share
+
     if total <= 0:
         return {
             "total_usd": 0.0, "unattributed_usd": 0.0, "share": None,
-            "top_prefixes": [],
+            "top_prefixes": [], "route_keys": route,
+            "route_keys_usd": route_usd, "route_keys_share": None,
+            "product_readable_share": None,
             "note": "窗口内没有任何用量数据 ⇒ 未归因占比无从计算（这不等于 0% 未归因）",
         }
     share = round(unknown / total, 4)
-    if unknown <= 0:
+    # 路由键缺读数时**不给** product_readable_share：那个数此刻算不出来，
+    # 给个 1-share 会正好是「看起来更健康」的假事实。
+    readable = (round(1 - share - route_share, 4)
+                if route_share is not None
+                else (round(1 - share, 4) if route["state"] == "declared_no_spend" else None))
+    if unknown <= 0 and route_share is None:
         note = f"全部 ${total:.2f} 都归到了线，未归因 $0.00"
+    elif unknown <= 0:
+        note = (f"未归因 $0.00，但**另有 {route_share:.1%}（${route_usd:.2f}）落在路由键**："
+                f"它们归在非产品线上，所以真正可逐线判读的是 {readable:.1%}")
     else:
         note = (f"**{share:.1%} 的花费没有落在任何一条线上**"
-                f"（${unknown:.2f} / ${total:.2f}）：这些调用的 key 名首段对不上别名表，"
-                f"所以任何『按线』读数都只覆盖剩下的 {1 - share:.1%}")
+                f"（${unknown:.2f} / ${total:.2f}）：这些调用的 key 名首段对不上别名表")
         if prefixes:
             note += "；按花费前三：" + "、".join(
                 f"`{p['seg']}` ${p['usd']:.2f}" for p in prefixes)
+        if route_share is not None:
+            # 路由键在场时**不要**再写「覆盖剩下的 {1-share}」：那句在技术上是
+            # 「归到了某条线」，但读者会读成「可判读」——而其中 88% 归的是非产品线。
+            note += (f"。**另有 {route_share:.1%}（${route_usd:.2f}）落在路由键**"
+                     f"（{route['keys_label']}）⇒ 真正可逐线判读的只有 {readable:.1%}")
+        else:
+            note += f"，所以任何『按线』读数都只覆盖剩下的 {1 - share:.1%}"
+            if route["state"] == "absent":
+                note += "。⚠ 本份数据没有 route_keys 读数，上面的覆盖率**可能高估**"
     return {
         "total_usd": total, "unattributed_usd": unknown, "share": share,
-        "top_prefixes": prefixes, "note": note,
+        "top_prefixes": prefixes, "route_keys": route,
+        "route_keys_usd": route_usd, "route_keys_share": route_share,
+        "product_readable_share": readable, "note": note,
     }
 
 
@@ -345,6 +424,13 @@ def compose_messages(events: list[dict], detail: list[dict], doc: dict) -> list[
             "unattributed_usd": unattributed["unattributed_usd"],
             "window_total_usd": unattributed["total_usd"],
             "unattributed_note": unattributed["note"],
+            # 路由键（`特价`/`openrouter` 这类折扣渠道键）的花费：归在非产品线上，
+            # 不参与逐线判读。缺了这一组字段，读者会把「未归因 1%」读成「覆盖 99%」。
+            "route_keys_usd": unattributed.get("route_keys_usd"),
+            "route_keys_share": unattributed.get("route_keys_share"),
+            "product_readable_share": unattributed.get("product_readable_share"),
+            "route_keys_state": (unattributed.get("route_keys") or {}).get("state"),
+            "route_keys_note": (unattributed.get("route_keys") or {}).get("note"),
             "hint": ("先看该线今天的 key 与模型分布（sub2api 仓 tools/line-metrics.sql）；"
                      "若属预期增长，把 config 的 thresholds.lines.<线> 调高并留下理由——"
                      "不要默默把阈值抬到不响。"),
@@ -483,6 +569,10 @@ def main(argv: list[str] | None = None) -> int:
                           f"没有告警不等于额度在管着") if unlimited else "所有分组都有额度",
         # 同一族缺陷的另一半：按线读数覆盖了多少花费。永远打印，永不静默。
         "unattributed": unattributed,
+        # 路由键单独一栏：它**不是**「未归因」，而是「已归到一条非产品线」——
+        # 两者处置方向不同（后者要产品侧改调用方式：各线自己的键 / 请求期线身份头）。
+        "route_keys": unattributed.get("route_keys"),
+        "product_readable_share": unattributed.get("product_readable_share"),
         # 配了阈值但数据里没有这条线 ⇒ 多半是线名拼错（阈值静默失效）
         "unused_thresholds": sorted(set(per_line) - {d["line"] for d in detail if d.get("line")}),
         "threshold_default_usd": default_usd,

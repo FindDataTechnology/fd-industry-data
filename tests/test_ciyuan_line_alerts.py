@@ -349,3 +349,102 @@ def test_unattributed_note_rides_along_with_every_alert():
         assert body["unattributed_share"] == pytest.approx(0.892, abs=0.005)
         assert body["window_total_usd"] == pytest.approx(248.67, abs=0.01)
         assert "没有落在任何一条线上" in body["unattributed_note"]
+
+
+# ── route_keys：第三桶（2026-11-15，declare-route-keys-in-report）──────────────
+#
+# 背景：88% 的花费走 `特价`/`openrouter` 两把**路由键**，它们归在「自有平台」这条线上——
+# 一条登记过的线，但**不是产品线**。只报 `unknown` 时，「未归因 1% ⇒ 覆盖 99%」技术上对、
+# 实际误导：真正可逐线判读的只有 ~11%。下面四族用例各钉一个方向。
+
+def _doc_with_route_keys(*, unknown_usd=2.0, route_usd=217.0, line_usd=28.2,
+                         alert_usd=0.0, route_absent=False, route_keys_list=None):
+    """复刻 2026-11-15 产线形状：unknown 极小、路由键极大、真产品线很小。
+
+    **路由键的花费必须在 `per_line_day` 里也有一行**（落在「自有平台」）——那是它的归属线。
+    首版夹具只写了 attribution、没写这条线，分母于是少了 217，`total_usd` 直接算成 30.2；
+    这正是「夹具照想当然写，断言全绿到真库才崩」的反面：断言带具体数字才抓得住。
+    """
+    lines = [
+        ("unknown", "2026-11-15", 100, unknown_usd),
+        ("识律 lex", "2026-11-15", 10, line_usd / 2),
+        ("非产品流量", "2026-11-15", 10, line_usd / 2 + alert_usd),
+    ]
+    if not route_absent:
+        lines.append(("自有平台", "2026-11-15", 71000, route_usd))
+    doc = _doc(lines=lines)
+    if not route_absent:
+        keys = route_keys_list if route_keys_list is not None else [
+            {"seg": "特价", "usd": round(route_usd * 0.6, 4), "requests": 45000},
+            {"seg": "openrouter", "usd": round(route_usd * 0.4, 4), "requests": 26000},
+        ]
+        doc["attribution"] = {"route_keys": {
+            "keys": keys,
+            "total_usd": round(route_usd, 4),
+            "requests": 71000,
+            "share_of_window": None,
+            "note": "键名编码的是上游路由（折扣渠道），不是产品线",
+        }}
+    return doc
+
+
+def test_route_keys_are_subtracted_from_the_readable_coverage():
+    """**核心用例**：覆盖率必须是 1 − unknown − route_keys，不是 1 − unknown。
+
+    用生产量纲（unknown 0.8%、路由键 87.8%、真产品线 11.4%）：旧实现会打出「覆盖 99.2%」，
+    新实现必须打出「真正可逐线判读 11.4%」。两个数都写进断言里——只判「小于 1」会漏掉
+    「扣是扣了但扣错桶」这种半对的实现。
+    """
+    doc = _doc_with_route_keys()
+    facts = unattributed_share(doc)
+    assert facts["total_usd"] == pytest.approx(247.2, abs=0.05)
+    assert facts["route_keys_usd"] == pytest.approx(217.0, abs=0.01)
+    assert facts["route_keys_share"] == pytest.approx(0.8778, abs=0.005)
+    assert facts["product_readable_share"] == pytest.approx(0.1141, abs=0.005), \
+        "真正可逐线判读的比例必须是 1 − 0.8% − 87.8% ≈ 11.4%"
+    assert facts["route_keys"]["state"] == "present"
+    assert "路由键" in facts["note"] and "特价" in facts["note"]
+    assert "11" in facts["note"], "正文里要直接给出可判读的百分比，不能只给字段"
+
+
+def test_absent_route_keys_is_not_treated_as_zero():
+    """旧数据（SQL 版本早于路由键声明）⇒ state=absent，且**不给** product_readable_share。
+
+    给一个 1−unknown 的「覆盖 99%」正是要防的假事实：旧数据会显得比新数据更健康。
+    """
+    doc = _doc_with_route_keys(route_absent=True)
+    facts = unattributed_share(doc)
+    assert facts["route_keys"]["state"] == "absent"
+    assert facts["route_keys_usd"] is None
+    assert facts["product_readable_share"] is None, "算不出来时不许给数"
+    assert "可能高估" in facts["note"]
+    assert facts["share"] == pytest.approx(2.0 / 30.2, abs=0.005), "旧的 unknown 占比照旧要算"
+
+
+def test_declared_route_keys_without_spend_keeps_full_readable():
+    """声明了但本窗口没花费 ⇒ 覆盖率回到 1 − unknown（不是 None，也不是 0）。
+
+    这是上一族的反面：`declared_no_spend` 与 `absent` 必须分开——前者「知道没有」，
+    后者「不知道有没有」。
+    """
+    doc = _doc_with_route_keys(route_usd=0.0, route_keys_list=[])
+    facts = unattributed_share(doc)
+    assert facts["route_keys"]["state"] == "declared_no_spend"
+    assert facts["route_keys_share"] is None
+    assert facts["product_readable_share"] == pytest.approx(1 - 2.0 / 30.2, abs=0.005)
+    assert "路由键" not in facts["note"] or "没有" in facts["note"]
+
+
+def test_route_keys_ride_along_with_the_alert_body():
+    """超阈正文必须同时带 unknown 与路由键两组数——只带前者会让人以为覆盖 99%。"""
+    doc = _doc_with_route_keys(alert_usd=60.0)   # 非产品流量当日 $60.1 > 50 ⇒ 必须响
+    doc["groups"] = [_group("core")]
+    _, events, detail = evaluate(doc, {}, NOW, default_usd=50, per_line={})
+    msgs = compose_messages(events, detail, doc)
+    assert msgs, "非产品流量当日 28.1+60=88.1 > 阈值 50 ⇒ 必须触发，正文才存在"
+    body = json.loads(msgs[0]["body"])
+    assert body["route_keys_usd"] == pytest.approx(217.0, abs=0.01)
+    assert body["route_keys_share"] == pytest.approx(217.0 / 307.2, abs=0.005)
+    assert body["product_readable_share"] == pytest.approx(1 - 2.0 / 307.2 - 217.0 / 307.2, abs=0.005)
+    assert body["route_keys_state"] == "present"
+    assert "路由键" in body["route_keys_note"]
