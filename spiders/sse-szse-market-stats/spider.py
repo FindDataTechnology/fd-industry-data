@@ -65,15 +65,20 @@ avg_pe, source_url, scraped_at)``，每所最新交易日一行，共 2 行。
 - **SSE 必须带 Referer**：``query.sse.com.cn`` 校验
   ``Referer: http://www.sse.com.cn/``（实测带 Referer 返回全量 result，
   brief 原样请求返回空壳 result:null）。
-- **直连可达**：本机直连两所端点均 HTTP 200（2026-11-07 实测，见 README
-  证据表），免 key 免鉴权，无需代理出口，manifest 不声明 ``egress_secret``；
-  仅常规 UA，不做指纹伪装与频次对抗，遇风控升级按协议转人工。
+- **直连优先、代理兜底（2026-11-15 起）**：腾讯云出口 IP 会**间歇**被深交所 WAF
+  拦（TLS 握手被掐，2026-11-13/11-14 实历；同族东财封机房）——manifest 因此挂
+  ``egress_secret``（laptop 住宅出口代理）兜底。但出口被封是**双向间歇**的：
+  2026-11-15 实测直连 200/0.20s、经代理反而 SSL EOF。所以取数口是
+  「直连 → 网络级失败 → env 代理」两臂，哪条活着用哪条（``_http_get_json``）；
+  ``HTTPError`` 不换路（已到达服务器）。仅常规 UA，不做指纹伪装与频次对抗，
+  遇风控升级按协议转人工。
 - **失败即红**：HTTP 错误 / 非 JSON / 报表 error 字段 / 结构缺失 / 中文
   列名漂移 / 回溯 10 日仍 0 观测 → 抛 ``RuntimeError``，绝不静默回空。
 """
 from __future__ import annotations
 
 import json
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
@@ -115,15 +120,40 @@ SZSE_PE_LABEL = "股票平均市盈率"  # 倍（估值列，缺失 → null）
 
 
 def _http_get_json(url: str, headers: dict[str, str]) -> object:
-    """GET 一个 JSON 端点；HTTP 错误/非 JSON 抛 ``RuntimeError``（失败即红）。"""
+    """GET 一个 JSON 端点；**直连优先，网络级失败才落到注入的 HTTPS_PROXY**。
+
+    HTTP 错误/非 JSON 抛 ``RuntimeError``（失败即红）。两条路都**显式构造**：
+
+    - 直连臂用空 ``ProxyHandler`` —— envFrom 注入 ``HTTPS_PROXY`` 后 urllib 的
+      默认行为是**全部**走代理、没有任何回落；不显式建直连 opener，「直连优先」
+      就是一句空话（2026-11-15 实测 tencent 集群：直连 200/0.20s，经 laptop
+      代理反而 SSL EOF —— 只配 ``egress_secret`` 的日子比不配更糟）。
+    - 代理臂复用 env（无代理 env 时跳过，不对服务器重复打一遍）。
+    - ``HTTPError`` **不触发回落**：它说明请求已到达服务器，4xx/5xx 是端点级
+      失败，换出口没有意义 —— 只有连接层失败（超时/重置/TLS 断）才值得换路。
+    """
     req = urllib.request.Request(url, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定官方主机)
-            body = resp.read().decode("utf-8", errors="replace")
-    except Exception as exc:  # noqa: BLE001 —— 端点级失败即红
+    openers: list[tuple[str, urllib.request.OpenerDirector]] = [
+        ("direct", urllib.request.build_opener(urllib.request.ProxyHandler({})))
+    ]
+    if urllib.request.getproxies():
+        openers.append(("proxy", urllib.request.build_opener()))
+    attempts: list[str] = []
+    for via, opener in openers:
+        try:
+            with opener.open(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定官方主机)
+                body = resp.read().decode("utf-8", errors="replace")
+            break
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(
+                f"{SOURCE}: {url} 取数失败（{via}）— {type(exc).__name__}: {exc}"
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 —— 连接层失败记下、试下一条路
+            attempts.append(f"{via} {type(exc).__name__}: {exc}")
+    else:  # 两条路都没拿到 body
         raise RuntimeError(
-            f"{SOURCE}: {url} 取数失败 — {type(exc).__name__}: {exc}"
-        ) from exc
+            f"{SOURCE}: {url} 直连与代理均失败 — {'；'.join(attempts)}"
+        )
     try:
         return json.loads(body)
     except json.JSONDecodeError as exc:

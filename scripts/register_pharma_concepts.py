@@ -219,6 +219,21 @@ def upsert_variable(cur, family: str, label_en: str, label_zh: str, v: dict,
     return 1, 0
 
 
+def _dsn(raw: str) -> str:
+    """生产 Secret 的 DSN 带 SQLAlchemy 方言前缀（`postgresql+psycopg2://…`），
+    `psycopg2.connect()` 不认，会报 `invalid dsn: missing "=" after …`。
+    本脚本有自己的 `__main__`（手工/作业直接跑），所以 wave 运行器那层归一化
+    盖不到它。2026-11-15 全仓审计后统一补上；与 scripts/extract_batch1.py 同一份。
+    """
+    raw = (raw or "").strip()
+    try:
+        from _semextract import parse_dsn
+        return parse_dsn(raw)
+    except Exception:                                  # noqa: BLE001
+        import re as _re
+        return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
@@ -231,7 +246,7 @@ def main() -> int:
         raise SystemExit("FATAL: $FD_OPEN_DATA_DSN 未设置（source ~/.config/finddata/dashboards.env）")
 
     families = load_families(Path(args.vocab))
-    conn = psycopg2.connect(args.dsn)
+    conn = psycopg2.connect(_dsn(args.dsn))
     conn.autocommit = False
     cur = conn.cursor()
 

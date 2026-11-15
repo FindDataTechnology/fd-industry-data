@@ -140,7 +140,7 @@ def fetch_json(dsn: str, days: int) -> dict:
         import psycopg2  # noqa: PLC0415
     except ImportError as exc:
         raise LookupError("既没有 psycopg 也没有 psycopg2；告警线不做 psql 文本兜底") from exc
-    conn = psycopg2.connect(dsn, connect_timeout=40)
+    conn = psycopg2.connect(_dsn(dsn), connect_timeout=40)
     try:
         conn.set_session(readonly=True)
         with conn.cursor() as cur:
@@ -355,6 +355,20 @@ def compose_messages(events: list[dict], detail: list[dict], doc: dict) -> list[
 
 
 # ─── 入口 ─────────────────────────────────────────────────────────────────────
+
+def _dsn(raw: str) -> str:
+    """生产 Secret 的 DSN 带 SQLAlchemy 方言前缀（`postgresql+psycopg2://…`），
+    `psycopg2.connect()` 不认。本脚本有自己的 `__main__`，wave 运行器那层归一化
+    盖不到它；2026-11-15 全仓审计后统一补上（纯 no-op，对普通 DSN 无损）。
+    """
+    raw = (raw or "").strip()
+    try:
+        from _semextract import parse_dsn
+        return parse_dsn(raw)
+    except Exception:                                  # noqa: BLE001
+        import re as _re
+        return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
+
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(

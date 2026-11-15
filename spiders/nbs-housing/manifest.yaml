@@ -6,6 +6,11 @@ source_url: https://www.stats.gov.cn/sj/zxfb/
 schedule: "58 6 16 * *"       # 点亮（批次四）：每月 16 日 06:58；统计局 70 城房价与房地产月度均 15 日前后发布
 # 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
 backoff_limit: 3
+# 单轮取多少行。**必须显式声明**：chart 的缺省是 100，会盖掉 spider 自己的
+# `limit: int = 200`。统计局 70 城房价 × 多城市 × 多月：100 行只够最近一两个月的部分城市
+# 实测每轮上界恰好 100 行（2026-11-14 由 check_crawl_row_cap.py 的 R1b 点名——
+# 该判据只看「spider 缺省 vs chart 缺省」，不看 payload 形状）。
+limit: 200
 data_period: month
 data_period_field: period   # 水位字段（harden-crawl-delivery 3.3）：逐源声明并已在最近一次成功运行上验证可归一
 scanner_mode: upstream-curated

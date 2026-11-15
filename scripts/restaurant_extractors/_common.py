@@ -150,24 +150,41 @@ def insert_rows(cur, source_used: str, ids: dict, rows) -> int:
     read more than one upstream unit (e.g. TWSE listed + TPEx OTC monthly
     revenue): every observation must carry the real upstream it came from,
     never the sibling's name.
+
+    **批量写**（2026-11-15）：逐条 `execute()` 是每行一次跨集群往返
+    （fd-prod pod → 100.64.0.3:30432）。同一天实测 batch1 逐行写 8.7 万行
+    17 分钟还没提交、被 `activeDeadlineSeconds` 杀掉，改成 `execute_values`
+    后 3 分钟写完 —— 这是同一族写法的共用实现，hotel / restaurant /
+    agriculture / flower 四个 wave 全走它。每批单独 `execute_values`，
+    所以 `cur.rowcount` 就是那批实际插入数（ON CONFLICT 跳过的不计）。
     """
-    inserted = 0
+    from psycopg2.extras import execute_values
+
+    payload = []
     for row in rows:
         if len(row) == 7:
             code, etype, eid, d, gran, value, row_source = row
         else:
             code, etype, eid, d, gran, value = row
             row_source = source_used
-        cur.execute(
+        payload.append((ids[code], etype, eid, d, gran, value, None, row_source,
+                        obs_month_of(d)))
+    if not payload:
+        return 0
+    inserted = 0
+    page = 1000
+    for i in range(0, len(payload), page):
+        execute_values(
+            cur,
             "INSERT INTO semantic_observations"
             " (concept_id, entity_type, entity_id, date,"
             "  granularity, value, unit, source_used, fetched_at, obs_month)"
-            " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)"
+            " VALUES %s"
             " ON CONFLICT ON CONSTRAINT uq_sem_obs DO NOTHING",
-            (ids[code], etype, eid, d, gran, value, None, row_source,
-             obs_month_of(d)),
+            payload[i:i + page],
+            template="(%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)",
         )
-        inserted += cur.rowcount
+        inserted += max(cur.rowcount, 0)
     return inserted
 
 

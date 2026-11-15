@@ -167,8 +167,10 @@ class _PsqlConn:
 def connect(dsn: str | None = None):
     """只读连接：psycopg3 → psycopg2 → **psql 子进程**（无驱动环境，如 CI runner）。"""
     # 三处回落：显式 --dsn → 本地 FD_OPEN_DATA_DSN → 健康管道既有只读账号 FD_CENTRAL_PG_DSN
-    value = (dsn or os.environ.get("FD_OPEN_DATA_DSN", "")
-             or os.environ.get("FD_CENTRAL_PG_DSN", ""))
+    # 归一化一次，三条下游（psycopg3 / psycopg2 / psql CLI）都吃它 —— 生产 Secret
+    # 是 `postgresql+psycopg2://`，那个前缀只在 SQLAlchemy 里有意义。
+    value = _dsn(dsn or os.environ.get("FD_OPEN_DATA_DSN", "")
+                 or os.environ.get("FD_CENTRAL_PG_DSN", ""))
     if not value:
         raise _fatal(
             "ERROR: 需要 FD_OPEN_DATA_DSN 或 FD_CENTRAL_PG_DSN（先 "
@@ -933,6 +935,20 @@ def cmd_events(cur, cfg: dict, outdir: Path, now: datetime, dry_run: bool) -> in
                  "already_logged": existed, "new_events": new})
     print(f"events：扫到 {len(rows)} 条，新增 {len(new)} 条（已入账 {existed} 条）→ {ledger}")
     return 0
+
+
+def _dsn(raw: str) -> str:
+    """生产 Secret 的 DSN 带 SQLAlchemy 方言前缀（`postgresql+psycopg2://…`），
+    SQLAlchemy 之外没人认它 —— 下面三条下游（psycopg3 / psycopg2 / psql CLI）
+    都会报错或不认。2026-11-15 全仓审计后统一补上。
+    """
+    raw = (raw or "").strip()
+    try:
+        from _semextract import parse_dsn
+        return parse_dsn(raw)
+    except Exception:                                  # noqa: BLE001
+        import re as _re
+        return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
 
 
 def main(argv: list[str] | None = None) -> int:

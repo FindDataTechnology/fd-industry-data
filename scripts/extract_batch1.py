@@ -191,8 +191,9 @@ def ex_abs_sdmx(cur, notes):
             continue
         out.append(("cons.permits.monthly", "country", COUNTRY_AU, period,
                     "month", fmt(v)))
-    notes.append(f"abs-sdmx: 切片 1GSYD 住宅许可（payload 库存 2001-07..2009-10 共 100 期连续；"
-                 f"单元历史 2001-07 起约 290 期，本次入库以实存 payload 为准）")
+    notes.append(f"abs-sdmx: 切片 1GSYD 住宅许可（payload 库存 {len(seen)} 期连续，"
+                 f"2001-07 起；2026-11-14 上游窗口由 100 期放到 303 期后，"
+                 f"cons.permits.monthly 从 100 行补到 303 行、走到 2026-09）")
     return out
 
 
@@ -375,21 +376,53 @@ def ensure_concepts(cur) -> dict[str, int]:
     return ids
 
 
+def _dsn(raw: str) -> str:
+    """把 SQLAlchemy 风格的 DSN 归一成 psycopg2 认的形态（2026-11-15 补）。
+
+    生产 Secret 里 `FD_OPEN_DATA_MCP_DATABASE_URL` 的值是
+    `postgresql+psycopg2://user:pass@host:port/db`，而 `psycopg2.connect()` **不认**
+    这个 `+psycopg2` 方言前缀 —— 直接传会抛
+    `ProgrammingError: invalid dsn: missing "=" after "postgresql+psycopg2://..."`。
+    本脚本因此**从来没有在生产 DSN 下跑通过**（它不在 `semantic-extract-daily` 的
+    命令列表里，一直被手工用另一份 DSN 调用），2026-11-15 把它接进作业时才暴露。
+
+    归一规则与 `_semextract.parse_dsn()` 完全一致，**刻意只留一份实现**：那边是
+    公共件、与其它脚本同批重取（同一 ConfigMap），这里只是把它接过来；取不到时
+    退化成本地的同一行正则（离线单跑也要能用）。
+    """
+    raw = (raw or "").strip()
+    try:
+        from _semextract import parse_dsn
+        return parse_dsn(raw)
+    except Exception:                                  # noqa: BLE001
+        import re as _re
+        return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--only", action="append", default=[], metavar="UNIT",
+                    help="只跑这些单元（可重复；缺省整批）。2026-11-14 加："
+                         "单元之间是独立的，某一源的上游窗口刚被修好时需要单独回填它，"
+                         "而不是把整批七个单元一起重放")
     args = ap.parse_args()
     if not args.dsn:
         raise SystemExit("DSN missing — source ~/.config/finddata/dashboards.env first")
+    unknown = sorted(set(args.only) - set(EXTRACTORS))
+    if unknown:
+        raise SystemExit(f"--only 里有未知单元：{unknown}（可选：{sorted(EXTRACTORS)}）")
 
-    conn = psycopg2.connect(args.dsn)
+    conn = psycopg2.connect(_dsn(args.dsn))
     try:
         with conn.cursor() as cur:
             notes: list[str] = []
             rows: list[tuple] = []
             per_unit: list[tuple[str, int]] = []
-            for src, fn in EXTRACTORS.items():
+            todo = {k: v for k, v in EXTRACTORS.items()
+                    if not args.only or k in args.only}
+            for src, fn in todo.items():
                 before = len(rows)
                 rows.extend(fn(cur, notes))
                 per_unit.append((src, len(rows) - before))
@@ -425,17 +458,28 @@ def main() -> int:
                         "SELECT source_used, count(*) FROM semantic_observations"
                         " GROUP BY 1")
                     before_by_src = dict(c2.fetchall())
-                    for (code, etype, eid, d, gran, value) in rows:
-                        c2.execute(
+                    # **必须批量**：逐条 execute() 是 8.7 万次跨集群往返
+                    # （fd-prod pod → 100.64.0.3:30432）。2026-11-15 实测：
+                    # batch1 在 write 阶段 17 分钟没提交、pod CPU 只 9m（全在等
+                    # RTT），被 activeDeadlineSeconds 杀掉。与 _semextract.write_rows
+                    # / extract_uk_hpi.py 同一写法（每批 1000 行 ≈ 87 次往返）。
+                    from psycopg2.extras import execute_values
+                    payload = [
+                        (ids[code], etype, eid, d, gran, value, None,
+                         _source_of(code), obs_month_of(d))
+                        for (code, etype, eid, d, gran, value) in rows
+                    ]
+                    page = 1000
+                    for i in range(0, len(payload), page):
+                        execute_values(
+                            c2,
                             "INSERT INTO semantic_observations"
                             " (concept_id, entity_type, entity_id, date,"
                             "  granularity, value, unit, source_used, fetched_at,"
-                            "  obs_month)"
-                            " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)"
+                            "  obs_month) VALUES %s"
                             " ON CONFLICT ON CONSTRAINT uq_sem_obs DO NOTHING",
-                            (ids[code], etype, eid, d, gran, value,
-                             None, code.split('.')[0] if False else _source_of(code),
-                             obs_month_of(d)),
+                            payload[i:i + page],
+                            template="(%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)",
                         )
                     c2.execute("SELECT count(*) FROM semantic_observations")
                     after_total = c2.fetchone()[0]

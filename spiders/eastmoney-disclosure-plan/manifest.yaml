@@ -4,6 +4,11 @@ label: 东财定期报告预约披露日历（注册表驱动宇宙 universes/cn
 source_url: https://data.eastmoney.com/bbsj/   # 东财「年报季报」落地页；JSON 通道 datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_PUBLIC_BS_APPOIN（见 README）
 # site: 缺省 —— 本机直连东财数据中心实测 200（2026-11-07，见 README 证据表），无需代理出口
 schedule: "15 10 * * *"   # 逐字按批次六排期（日频巡检，错峰既有排期）
+# 单轮取多少行。**必须显式声明**：chart 的缺省是 100，会盖掉 spider 自己的
+# `limit: int = 200`。财报披露计划按日期×市场两维展开，100 行只够最近几周
+# 实测每轮恰好 100 行（45 天内每轮上界都是 100），2026-11-14 由
+# check_crawl_row_cap.py 的 R1 清单点名。
+limit: 200
 data_period: day
 scanner_mode: upstream-curated
 functions:

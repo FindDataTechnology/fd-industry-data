@@ -9,6 +9,11 @@ backoff_limit: 3
 #   **2026-11-09 订正**：原注释写「UTC 13:21」，与执行不符——CronJob 未声明 timeZone 时按控制器
 #   本地（CST）解释，实测 lastScheduleTime 为 05:21Z。槽位由 batch6_schedule_fit 按 UTC 小时选，
 #   实际落地在 CST 的同一「几点几分」；因全舰队同步平移，相对间隔不变，故不动槽位。
+# 单轮取多少行。**必须显式声明**：chart 的缺省是 100，会盖掉 spider 自己的
+# `limit: int = 200`。发行/流通要素公告逐条明细，100 行只够最近一两个交易日
+# 实测每轮恰好 100 行（45 天内每轮上界都是 100），2026-11-14 由
+# check_crawl_row_cap.py 的 R1 清单点名。
+limit: 200
 data_period: day
 scanner_mode: upstream-curated
 functions:

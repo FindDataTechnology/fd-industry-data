@@ -802,16 +802,32 @@ def ensure_unit_concepts(cur, src: str) -> dict[str, int]:
 
 
 def insert_rows(cur, ids, rows) -> int:
+    """批量写观测，返回真正插入的行数。
+
+    逐条 `execute()` 是每行一次跨集群往返；本批实测 4,995 行也要 3 分 52 秒，
+    其中绝大部分是 RTT。改成 execute_values 后一次往返 1000 行
+    （同 `_semextract.write_rows` / `extract_uk_hpi.py`）。
+    每批单独 execute_values ⇒ `cur.rowcount` 就是那批实际插入数，
+    因此不必额外 count(*) 也能算出 inserted。
+    """
+    if not rows:
+        return 0
+    from psycopg2.extras import execute_values
+    payload = [(ids[code], etype, eid, d, gran, value, None, _SOURCE_OF[code],
+                obs_month_of(d))
+               for (code, etype, eid, d, gran, value) in rows]
     inserted = 0
-    for (code, etype, eid, d, gran, value) in rows:
-        cur.execute(
+    page = 1000
+    for i in range(0, len(payload), page):
+        execute_values(
+            cur,
             "INSERT INTO semantic_observations"
             " (concept_id, entity_type, entity_id, date,"
             "  granularity, value, unit, source_used, fetched_at, obs_month)"
-            " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)"
+            " VALUES %s"
             " ON CONFLICT ON CONSTRAINT uq_sem_obs DO NOTHING",
-            (ids[code], etype, eid, d, gran, value, None, _SOURCE_OF[code],
-             obs_month_of(d)),
+            payload[i:i + page],
+            template="(%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)",
         )
         inserted += cur.rowcount
     return inserted
@@ -886,6 +902,29 @@ def register_short_window(cur, notes) -> tuple[int, int]:
     return updated, created
 
 
+def _dsn(raw: str) -> str:
+    """把 SQLAlchemy 风格的 DSN 归一成 psycopg2 认的形态（2026-11-15 补）。
+
+    生产 Secret 里 `FD_OPEN_DATA_MCP_DATABASE_URL` 的值是
+    `postgresql+psycopg2://user:pass@host:port/db`，而 `psycopg2.connect()` **不认**
+    这个 `+psycopg2` 方言前缀 —— 直接传会抛
+    `ProgrammingError: invalid dsn: missing "=" after "postgresql+psycopg2://..."`。
+    本脚本因此**从来没有在生产 DSN 下跑通过**（它不在 `semantic-extract-daily` 的
+    命令列表里，一直被手工用另一份 DSN 调用），2026-11-15 把它接进作业时才暴露。
+
+    归一规则与 `_semextract.parse_dsn()` 完全一致，**刻意只留一份实现**：那边是
+    公共件、与其它脚本同批重取（同一 ConfigMap），这里只是把它接过来；取不到时
+    退化成本地的同一行正则（离线单跑也要能用）。
+    """
+    raw = (raw or "").strip()
+    try:
+        from _semextract import parse_dsn
+        return parse_dsn(raw)
+    except Exception:                                  # noqa: BLE001
+        import re as _re
+        return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
@@ -895,7 +934,7 @@ def main() -> int:
     if not args.dsn:
         raise SystemExit("DSN missing — source ~/.config/finddata/dashboards.env first")
 
-    conn = psycopg2.connect(args.dsn)
+    conn = psycopg2.connect(_dsn(args.dsn))
     try:
         conn.autocommit = False
         with conn.cursor() as cur:

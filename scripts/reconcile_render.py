@@ -99,7 +99,7 @@ def db_source_rows(dsn: str) -> dict[str, str]:
     """{source: site} for platform rows; federated rows excluded."""
     import psycopg2
 
-    with psycopg2.connect(dsn) as conn, conn.cursor() as cur:
+    with psycopg2.connect(_dsn(dsn)) as conn, conn.cursor() as cur:
         cur.execute(
             "SELECT source, site FROM crawl_sources WHERE kind = 'platform'")
         return {s: site for s, site in (cur.fetchall() or [])}
@@ -166,6 +166,20 @@ def reconcile(manifests: dict[str, dict], cronjobs: dict[str, str] | None,
                 })
 
     return violations
+
+
+def _dsn(raw: str) -> str:
+    """生产 Secret 的 DSN 带 SQLAlchemy 方言前缀（`postgresql+psycopg2://…`），
+    `psycopg2.connect()` 不认。本脚本有自己的 `__main__`，wave 运行器那层归一化
+    盖不到它；2026-11-15 全仓审计后统一补上（纯 no-op，对普通 DSN 无损）。
+    """
+    raw = (raw or "").strip()
+    try:
+        from _semextract import parse_dsn
+        return parse_dsn(raw)
+    except Exception:                                  # noqa: BLE001
+        import re as _re
+        return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
 
 
 def main(argv: list[str]) -> int:

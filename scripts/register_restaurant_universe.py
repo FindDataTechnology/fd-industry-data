@@ -102,6 +102,20 @@ def meta_for(company: dict) -> dict:
     }
 
 
+def _dsn(raw: str) -> str:
+    """生产 Secret 的 DSN 带 SQLAlchemy 方言前缀（`postgresql+psycopg2://…`），
+    `psycopg2.connect()` 不认。本脚本有自己的 `__main__`，wave 运行器那层归一化
+    盖不到它；2026-11-15 全仓审计后统一补上（纯 no-op，对普通 DSN 无损）。
+    """
+    raw = (raw or "").strip()
+    try:
+        from _semextract import parse_dsn
+        return parse_dsn(raw)
+    except Exception:                                  # noqa: BLE001
+        import re as _re
+        return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
@@ -112,7 +126,7 @@ def main() -> int:
 
     rows = load_universe()
 
-    conn = psycopg2.connect(args.dsn)
+    conn = psycopg2.connect(_dsn(args.dsn))
     conn.autocommit = False
     cur = conn.cursor()
     created = updated = reused = 0

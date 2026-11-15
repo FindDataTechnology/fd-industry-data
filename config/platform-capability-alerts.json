@@ -1,0 +1,13 @@
+{
+  "_note": "平台能力端点告警的投递声明（alert-delivery 要求：每条告警线须声明出口与接收人）。规则在 scripts/platform_capability_alerts.py 里，本文件只承载投递与目标面。通道未配置时评估器记 not_configured（exit 3），绝不假装发过。",
+  "delivery": {
+    "channel": "smtp",
+    "to": ["1253774197@qq.com", "aloadtree@gmail.com"],
+    "_note": "与其它告警线同一收件人；env FD_ALERT_SMTP_TO 非空时以 env 为准。"
+  },
+  "targets": {
+    "base": "https://platform.finddatatech.cloud",
+    "_why": "走公网面而不是 ClusterIP：能力消失的形态既可能是镜像里没这段代码，也可能是网关/边缘把前缀吞了。公网面同时覆盖两者，且与真实客户端同一条路。",
+    "_why_not_internal": "集群内探针打 ClusterIP 会绕开边缘，2026-11-13 那次「八条告警面全探 ClusterIP 而边缘按比例失败」正是这么漏掉的。"
+  }
+}
