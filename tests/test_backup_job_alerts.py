@@ -39,7 +39,7 @@ def cronjob(name="wanxing-backup", *, schedule="0 3 * * *", suspend=False,
 
 
 def job(cronjob_name="wanxing-backup", name=None, *, failed=False, complete=False,
-        created=60, started=None, reason="BackoffLimitExceeded"):
+        created=60, started=None, completed=None, reason="BackoffLimitExceeded"):
     name = name or f"{cronjob_name}-28991234"
     status: dict = {}
     conds = []
@@ -52,6 +52,8 @@ def job(cronjob_name="wanxing-backup", name=None, *, failed=False, complete=Fals
         status["conditions"] = conds
     if started is not None:
         status["startTime"] = iso(started)
+    if completed is not None:
+        status["completionTime"] = iso(completed)
     return {
         "metadata": {"name": name, "namespace": "fd-prod", "creationTimestamp": iso(created),
                      "ownerReferences": [{"kind": "CronJob", "name": cronjob_name}]},
@@ -186,7 +188,62 @@ def test_manual_job_with_trailing_digits_is_still_manual():
     assert [f["kind"] for f in facts] == ["manual-job"]
 
 
-def test_recovered_failure_does_not_flag():
+# ── 成功时刻只认排期轮次（2026-11-15 补：手工件会把 stall 洗绿）──────────────
+
+def test_manual_success_does_not_clear_a_stall():
+    """真形态（fd-prod `sink-freshness` 2026-11-15）：排期最后一轮失败、另一个会话建
+    `--from=cronjob` 的验证作业成功 ⇒ `lastSuccessfulTime` 被推到 12min 前。
+    不设守卫的话，`stall` 会被这次手工成功清成绿——正是「判据只能人跑」的反面。"""
+    findings, facts, rows = run(
+        [cronjob("sink-freshness", last_success=12, last_schedule=296)],
+        [job("sink-freshness", name="sink-freshness-verify-r9", complete=True,
+             created=12, completed=12),
+         job("sink-freshness", name="sink-freshness-29911510", failed=True, created=296)],
+    )
+    assert [f["kind"] for f in findings] == ["job-failed"]  # 排期失败照常报
+    assert "success-time-untrusted" in [f["kind"] for f in facts]
+    assert rows[0]["verdict"] == "job-failed"
+
+
+def test_manual_success_alone_makes_stall_undecidable_not_green():
+    """只剩「手工成功」一条记录（排期成功 Job 已被 GC）⇒ 停滞**判不出**，不许读成通过。"""
+    findings, facts, rows = run(
+        [cronjob(last_success=12, last_schedule=4000)],
+        [job(name="fedobs-repro-1", complete=True, created=12, completed=12)],
+    )
+    assert findings == [], "判不出就不许报 stall（会变成天天假红），也不许报绿"
+    assert [f["kind"] for f in facts] == ["manual-job", "success-time-untrusted"]
+    assert rows[0]["verdict"] == "undecidable"
+
+
+def test_manual_success_newer_than_tick_is_untrusted_even_without_the_job():
+    """手工作业跑完把 Job 删了（只剩状态）：晚于最新 tick ⇒ 同样不可信。"""
+    findings, facts, rows = run([cronjob(last_success=12, last_schedule=4000)], [])
+    assert findings == []
+    assert [f["kind"] for f in facts] == ["success-time-untrusted"]
+    assert "晚于最新一个排期 tick" in facts[0]["detail"]
+    assert rows[0]["verdict"] == "undecidable"
+
+
+def test_scheduled_success_still_clears_the_stall():
+    """绿路（成对）：排期轮次自己成功过 ⇒ 照旧判绿，且报的是排期成功龄期。"""
+    findings, facts, rows = run(
+        [cronjob(last_success=2000, last_schedule=60)],
+        [job(name="wanxing-backup-29911240", complete=True, created=30, completed=25)],
+    )
+    assert findings == []
+    assert [f["kind"] for f in facts] == []
+    assert rows[0]["verdict"] == "ok"
+    assert rows[0]["last_scheduled_success_age_minutes"] == 25
+
+
+def test_status_fallback_still_used_when_it_makes_sense():
+    """绿路（成对）：成功 Job 已被 `successfulJobsHistoryLimit` 清掉、状态早于最新 tick
+    ⇒ 仍可兜底，别把合法形态判成「判不出」。"""
+    findings, facts, rows = run([cronjob(last_success=1500, last_schedule=60)], [])
+    assert findings == []
+    assert [f["kind"] for f in facts] == []
+    assert rows[0]["verdict"] == "ok"
     """历史失败但之后成功过：修好的故障不该长期占着红。"""
     findings, _, _ = run(
         [cronjob(last_success=60, last_schedule=60)],

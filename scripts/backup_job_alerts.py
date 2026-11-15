@@ -319,11 +319,46 @@ def evaluate(
             continue
 
         deadline = gap * stall_periods + stall_slack
-        last_ok_age = _age_minutes(status.get("lastSuccessfulTime"), now)
-        last_sched_age = _age_minutes(status.get("lastScheduleTime"), now)
+        last_ok_status = _ts(status.get("lastSuccessfulTime"))
+        last_sched = _ts(status.get("lastScheduleTime"))
         created_age = _age_minutes((cj.get("metadata") or {}).get("creationTimestamp"), now)
+
+        # **成功时刻只认排期轮次**（2026-11-15 补，与 `check_cronjob_health.py` 同口径）：
+        # `status.lastSuccessfulTime` 会被 `kubectl create job --from=cronjob/X` 的**手工作业**
+        # 推进（它带 ownerReference，控制器把它算成自己的成功），于是「手工跑一次」就能把
+        # **停滞**判据洗绿 —— 那正是这条线存在时要防的形态（判据只能人跑＝没有判据）。
+        sched_ok = manual_ok = None
+        for j in by_cj.get(name, []):
+            if _condition(j, "Complete") is None:
+                continue
+            when = (_ts((j.get("status") or {}).get("completionTime"))
+                    or _ts((j.get("status") or {}).get("startTime")))
+            if when is None:
+                continue
+            m = SCHEDULED_JOB_RE.match(str((j["metadata"] or {}).get("name") or ""))
+            if m and m.group("cronjob") == name:
+                if sched_ok is None or when > sched_ok:
+                    sched_ok = when
+            elif manual_ok is None or when > manual_ok:
+                manual_ok = when
+        last_ok = sched_ok
+        untrusted = None
+        # `sched_ok` 缺失时允许状态兜底（`successfulJobsHistoryLimit` 会清掉成功 Job），
+        # 但**只有它说得通时**才算：与手工作业的完成时刻逐秒相等，或晚于最新一个 tick
+        # （排期轮次都在 tick 开始，比它还晚的「成功」只可能是手工件）。
+        if last_ok is None and last_ok_status is not None:
+            if manual_ok is not None and abs((last_ok_status - manual_ok).total_seconds()) <= 60:
+                untrusted = f"来自手工/复现作业的成功（{manual_ok.isoformat()}），与它逐秒相等"
+            elif last_sched is not None and last_ok_status > last_sched:
+                untrusted = f"晚于最新一个排期 tick（{last_sched.isoformat()}）"
+            if untrusted is None:
+                last_ok = last_ok_status
+        last_ok_age = None if last_ok is None else (now - last_ok).total_seconds() / 60.0
+        last_sched_age = _age_minutes(status.get("lastScheduleTime"), now)
         row.update({"gap_minutes": gap, "deadline_minutes": deadline,
-                    "last_success_age_minutes": None if last_ok_age is None else round(last_ok_age),
+                    "last_success_age_minutes": None if last_ok_status is None
+                    else round(_age_minutes(status.get("lastSuccessfulTime"), now) or 0.0),
+                    "last_scheduled_success_age_minutes": None if last_ok_age is None else round(last_ok_age),
                     "last_schedule_age_minutes": None if last_sched_age is None else round(last_sched_age)})
 
         # ① 最新一轮**排期**作业失败
@@ -373,6 +408,13 @@ def evaluate(
         # ③ 停滞（从没成功过 / 成功太久以前）与 ④ 从未调度
         # 这两条的区分只在「控制器有没有在跑它」：lastScheduleTime 为空＝没排过；
         # 有排期但从没成功＝跑了但每轮都失败（那是另一条故障，报 stall 而不是 never-scheduled）。
+        if untrusted:
+            # 判不出就说出声：这一档**不报 stall**（说不清是真的停了还是刚被手工件洗过），
+            # 也不许读成「通过」。`job-failed` / `stuck-active` 不受影响，照常按排期轮次判。
+            facts.append({"kind": "success-time-untrusted", "namespace": ns, "name": name,
+                          "detail": f"lastSuccessfulTime（{last_ok_status.isoformat()}）{untrusted}"
+                                    " —— 不拿它清红；停滞判据本轮**判不出**"})
+            row["verdict"] = "undecidable" if row.get("verdict") in (None, "ok") else row["verdict"]
         if last_ok_age is None:
             if last_sched_age is None:
                 if created_age is not None and created_age > max(never_grace, gap):
@@ -382,11 +424,11 @@ def evaluate(
                                   f"（宽限 {max(never_grace, gap) / 60:.1f}h）——控制器没在跑它",
                     })
                     row["verdict"] = "never-scheduled"
-            elif last_sched_age > deadline:
+            elif last_sched_age > deadline and not untrusted:
                 findings.append({
                     "kind": "stall", "namespace": ns, "name": name,
                     "detail": f"调度过（{last_sched_age / 60:.1f}h 前）但从未成功"
-                              f"（lastSuccessfulTime 为空）；阈值 {deadline / 60:.1f}h",
+                              f"（无任何排期轮次成功记录）；阈值 {deadline / 60:.1f}h",
                 })
                 row["verdict"] = "stall"
         elif last_ok_age > deadline:
