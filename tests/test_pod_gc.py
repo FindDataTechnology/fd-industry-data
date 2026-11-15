@@ -111,6 +111,37 @@ def test_succeeded_job_pods_still_deleted_even_if_pod_phase_failed():
     assert held == 0
 
 
+def test_forensic_hold_is_capped_per_cronjob():
+    """设计内常红（`image-gc` 每 15 分钟按 82% 门判失败）不能把 Pod 攒成照片墙：
+    每个 CronJob 只留最新 N 个，多出来的照删。2026-11-15 自查实历。"""
+    # 年龄必须都 ≥ 1h（否则先被 min_age 跳过，这条就测不到限额）
+    pods = [pod(f"image-gc-vm-0-4-ubuntu-2991180{n}-aaaa", "Failed",
+                owners=[{"kind": "Job", "name": f"image-gc-vm-0-4-ubuntu-2991180{n}"}],
+                start=(NOW - timedelta(minutes=61 + n)).isoformat())
+            for n in range(4)]
+    dead, _, _, held = select_pods(
+        pods, NOW, 1.0,
+        failed_jobs={f"image-gc-vm-0-4-ubuntu-2991180{n}" for n in range(4)},
+        forensic_max=2)
+    assert held == 2, "只留最新 2 个"
+    # `start = NOW - (61+n)` ⇒ n 越大越老；留最新两个（n=0,1）⇒ 删 n=2,3
+    assert sorted(dead) == ["image-gc-vm-0-4-ubuntu-29911802-aaaa",
+                            "image-gc-vm-0-4-ubuntu-29911803-aaaa"], "更早的两个照删"
+
+
+def test_forensic_cap_is_per_cronjob_not_global():
+    """限额按 CronJob 前缀各算各的：不能跨作业串味（否则第二个作业永远留不下证据）。"""
+    pods = [pod("a-29911800-1", "Failed", owners=[{"kind": "Job", "name": "a-29911800"}]),
+            pod("a-29911801-1", "Failed", owners=[{"kind": "Job", "name": "a-29911801"}],
+                start=(NOW - timedelta(hours=2)).isoformat()),
+            pod("b-29911800-1", "Failed", owners=[{"kind": "Job", "name": "b-29911800"}])]
+    dead, _, _, held = select_pods(pods, NOW, 1.0,
+                                   failed_jobs={"a-29911800", "a-29911801", "b-29911800"},
+                                   forensic_max=1)
+    assert held == 2, "a 留最新一个、b 留一个"
+    assert dead == ["a-29911800-1"], "a 里更早那条（默认 3h 前）照删"
+
+
 def test_forensic_hold_expires():
     old = (NOW - timedelta(hours=80)).isoformat()
     pods = [pod("stuck-abcd-1", "Failed", owners=[{"kind": "Job", "name": "stuck-abcd"}], start=old)]

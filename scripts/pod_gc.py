@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import ssl
 import sys
 import time
@@ -50,6 +51,7 @@ SA_DIR = "/var/run/secrets/kubernetes.io/serviceaccount"
 DEFAULT_NS = "scraw"
 DEFAULT_MIN_AGE_H = 1.0
 DEFAULT_FORENSIC_H = 72.0
+DEFAULT_FORENSIC_MAX = 2
 DELETABLE_PHASES = ("Succeeded", "Failed")
 DELETABLE_OWNER_KINDS = ("Job", "ReplicaSet")
 
@@ -137,7 +139,8 @@ def unavailable_note(exc: BaseException) -> str:
 
 def select_pods(pods: list[dict], now: datetime, min_age_h: float,
                 failed_jobs: set[str] | None = None,
-                forensic_h: float = DEFAULT_FORENSIC_H) -> tuple[list[str], int, int, int]:
+                forensic_h: float = DEFAULT_FORENSIC_H,
+                forensic_max: int = DEFAULT_FORENSIC_MAX) -> tuple[list[str], int, int, int]:
     """纯选择：返回 (要删的名字, 跳过的完成态数, 解析失败数, 封存留观的数)。
 
     跳过计数让「什么都没删」与「全都太新/无 owner」在日志里可分辨——
@@ -146,11 +149,18 @@ def select_pods(pods: list[dict], now: datetime, min_age_h: float,
 
     `failed_jobs=None` 表示 Job 表取不到：退回 Pod 自己的退出码判失败，
     调用方要在输出里标明这一点（`jobs_map: unavailable`）。
+
+    **封存有上限（`forensic_max`，每个 CronJob 只留最新 N 个）**：有些作业的失败是
+    **设计内常红** —— `node-debugger-privileged/image-gc-vm-0-4-ubuntu` 每 15 分钟按
+    82% escalate 门判一次失败，留 72h 就是 ~288 个 Pod 全钉着镜像，而那条线正是为了
+    「盘紧时给 kubelet 的镜像 GC 松绑」才存在的（2026-11-15 自查当场看到 2 个）。
+    证据的价值在**最近一次失败**的日志里，不在第 288 份副本。
     """
     dead: list[str] = []
     skipped = 0
     unparsed = 0
     held = 0
+    forensic_pods: list[tuple[datetime, str, str]] = []  # (时间, Pod 名, owner Job 名)
     for pod in pods:
         status = pod.get("status") or {}
         if status.get("phase") not in DELETABLE_PHASES:
@@ -173,10 +183,22 @@ def select_pods(pods: list[dict], now: datetime, min_age_h: float,
         else:
             job = owner_job_name(pod)
             forensic = job is not None and job in failed_jobs
+        name = (pod.get("metadata") or {}).get("name") or ""
         if forensic and age_h < forensic_h:
-            held += 1
+            forensic_pods.append((ts, name, owner_job_name(pod) or name))
             continue
-        dead.append((pod.get("metadata") or {}).get("name") or "")
+        dead.append(name)
+
+    # 封存限额：按 owner Job 去掉尾部的 `-<epoch分钟>` 归到 CronJob，每个前缀只留最新 N 个。
+    forensic_pods.sort(key=lambda item: item[0], reverse=True)
+    seen: dict[str, int] = {}
+    for _ts, name, job in forensic_pods:
+        prefix = re.sub(r"-\d{5,}$", "", job)
+        seen[prefix] = seen.get(prefix, 0) + 1
+        if seen[prefix] <= max(0, int(forensic_max)):
+            held += 1
+        else:
+            dead.append(name)
     return [n for n in dead if n], skipped, unparsed, held
 
 
@@ -202,6 +224,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--dry-run", action="store_true", help="只列出，不删")
     ap.add_argument("--from-json", help="离线快照：{items:[pod…]}；缺省真打 API")
     ap.add_argument("--jobs-from-json", help="离线快照：{items:[job…]}；缺省真打 API")
+    ap.add_argument("--forensic-max", type=int,
+                    default=int(os.environ.get("POD_GC_FORENSIC_MAX") or DEFAULT_FORENSIC_MAX),
+                    help="每个 CronJob 最多留几个失败 Job 的 Pod（缺省 2；设 0 只用于自证）")
     args = ap.parse_args(argv)
 
     now = datetime.now(timezone.utc)
@@ -228,7 +253,7 @@ def main(argv: list[str] | None = None) -> int:
             failed_jobs, jobs_map = None, unavailable_note(exc)
 
     dead, skipped, unparsed, held = select_pods(
-        pods, now, args.min_age_hours, failed_jobs, args.forensic_hours)
+        pods, now, args.min_age_hours, failed_jobs, args.forensic_hours, args.forensic_max)
 
     deleted, failed = 0, []
     if not args.dry_run:
@@ -246,6 +271,7 @@ def main(argv: list[str] | None = None) -> int:
         "namespace": args.namespace,
         "min_age_hours": args.min_age_hours,
         "forensic_hours": args.forensic_hours,
+        "forensic_max": args.forensic_max,
         "jobs_map": jobs_map,
         "candidates": len(dead),
         "deleted": deleted,
