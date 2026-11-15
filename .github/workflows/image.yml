@@ -3,8 +3,17 @@
 # Jenkins→Harbor remains the fallback channel for this repo.
 #
 # NOTE: the fd-industry-runner content admission gate (validate_manifests +
-# conformance_gate) runs inside the Dockerfile `gate` stage on every build,
-# so a red gate fails the build before any push — same protection as Jenkins.
+# conformance_gate) runs inside the Dockerfile `gate` stage, and that stage is
+# held **in the build graph** by the `COPY --from=gate /w/.content-gate-ok`
+# line in the `runner` stage — a red gate fails the build before any push,
+# same protection as Jenkins.
+#
+# 2026-11-15 订正：此前本注释只写「gate 阶段在每次构建时运行」，但本工作流没设
+# `target`、Dockerfile 里也没有任何阶段依赖 `gate` ⇒ BuildKit 视其为孤儿阶段，
+# **闸一次都没跑过**（历史三次构建日志里 `[gate` 出现 0 次；而内容本身是合规的：
+# 手工跑 validate_manifests = 165 manifests / 0 violations、conformance_gate
+# = PASS 163 units / 0 violations）。现在靠 COPY 建立硬依赖。判「闸跑过没」
+# 只看构建日志里有没有 `[gate ` 那一行，不看这段注释。
 name: image
 
 on:
