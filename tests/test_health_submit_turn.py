@@ -865,3 +865,113 @@ def test_status_failed_rows_carry_the_exception_type(tmp_path):
 
     res = ins.sync_status(d, "http://x", "k", fetcher=boom, max_reads=1)
     assert res[0]["error_kind"] == "ValueError", res[0]
+
+
+# ── 判词必须说出 308 指向哪（2026-11-15 线上实历） ───────────────────────────
+#
+# 验收轮 43707971044 里第一次拿到真的 308 痕迹，判词是
+#   「HTTP 308 跳转未落到 API（未跟：out-of-attempts）」
+# —— 一个字的 Location 都没有。而「308 指向哪」正是唯一有用的那条事实，
+# 追了三轮还是拿不到。同时 `out-of-attempts` 本身是个**覆写**：
+# 那三次都没能跟（没 Location 或跨主机），最后一跳把真实原因盖成了「预算用完」。
+
+def test_unfollowable_redirect_keeps_its_real_reason_on_the_last_attempt(monkeypatch):
+    """三次都跨主机 ⇒ 说「跨主机」，不许被 `out-of-attempts` 盖掉。"""
+    calls: list[str] = []
+
+    def always_cross(req, timeout=None):
+        calls.append(req.full_url)
+        raise urllib.error.HTTPError(
+            req.full_url, 308, "Permanent Redirect",
+            {"Location": "https://elsewhere.example/landing"}, None)
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", always_cross)
+    st, _tx, trace = ins._default_poster("https://wanxing.example/api/x", "k", "i", "b")
+    assert st == 308
+    assert trace["not_followed"] == "cross-host-or-scheme", trace
+    assert trace["location"] == "https://elsewhere.example/landing", trace
+    assert trace["followed"] is False
+
+
+def test_redirect_verdict_names_the_location_it_refused_to_follow():
+    v = ins.parse_submit_verdict(
+        308, "tengine html", "",
+        trace={"followed": False, "not_followed": "cross-host-or-scheme",
+               "location": "https://elsewhere.example/landing"})
+    assert "elsewhere.example/landing" in v["reason"], v
+    assert v["verdict"] == "unknown", v
+
+
+def test_redirect_verdict_names_the_location_even_for_a_bare_reason():
+    """没有专门分支的原因（如 out-of-attempts）也要印出 Location。"""
+    v = ins.parse_submit_verdict(
+        308, "", "", trace={"followed": False, "not_followed": "out-of-attempts",
+                            "location": "https://waf.example/challenge?token=SECRET"})
+    assert "waf.example/challenge" in v["reason"], v
+    assert "SECRET" not in v["reason"], f"Location 的 query 必须脱敏：{v['reason']}"
+
+
+def test_redirect_verdict_says_so_when_no_location_was_given():
+    v = ins.parse_submit_verdict(
+        308, "", "", trace={"followed": False, "not_followed": "out-of-attempts"})
+    assert "没给 Location" in v["reason"], v
+
+
+def test_a_redirect_still_gets_followed_after_connection_retries_ate_the_budget(monkeypatch):
+    """连接层失败把重试次数吃光、最后一跳才拿到 308 —— 手里有 Location 就要跟。
+
+    2026-11-15 线上形态：判词里出现 `out-of-attempts`，读起来像「跳转没法处理」，
+    真相是两跳 RemoteDisconnected 之后第 3 跳才见到 308，而跟跳当时与连接重试
+    **共用**同一份预算 ⇒ 明明能跟却跟不了。跟跳现在有独立的一次预算。
+    """
+    monkeypatch.setattr(ins, "_POSTER_RETRY_BACKOFF_S", 0.0)
+    calls: list[str] = []
+
+    class _Resp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self, _n=None):
+            return b'{"result": {}}'
+
+    def fake(req, timeout=None):
+        calls.append(req.full_url)
+        if len(calls) == 1:
+            raise urllib.error.URLError("conn refused")
+        if len(calls) == 2:
+            raise urllib.error.URLError("conn refused")
+        if len(calls) == 3:
+            raise urllib.error.HTTPError(
+                req.full_url, 308, "Permanent Redirect",
+                {"Location": "/api/wanxing/v1/a2a/af"}, None)
+        return _Resp()
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", fake)
+    st, _tx, trace = ins._default_poster("https://wanxing.example/api/x", "k", "i", "b")
+    assert st == 200, (st, trace, calls)
+    assert trace["followed"] is True and trace["hops"] == 1, trace
+    assert trace["final_url"].endswith("/api/wanxing/v1/a2a/af"), trace
+    assert len(calls) == 4, calls
+
+
+def test_the_hop_budget_is_still_bounded_to_one(monkeypatch):
+    """额外预算只给一跳：跟完之后再撞 308 就停手，不兜圈。"""
+    monkeypatch.setattr(ins, "_POSTER_RETRY_BACKOFF_S", 0.0)
+    calls: list[str] = []
+
+    def always_308(req, timeout=None):
+        calls.append(req.full_url)
+        raise urllib.error.HTTPError(
+            req.full_url, 308, "Permanent Redirect",
+            {"Location": "/api/wanxing/v1/a2a/af"}, None)
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", always_308)
+    st, _tx, trace = ins._default_poster("https://wanxing.example/api/x", "k", "i", "b")
+    assert st == 308
+    assert trace["hops"] == 1 and trace["not_followed"] == "already-followed-once", trace
+    assert len(calls) == 2, f"只该打两次（原地址 + 一跳），实际 {len(calls)}"

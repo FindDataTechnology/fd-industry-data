@@ -1015,7 +1015,12 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
     # 发生过的事带出去：跟了几跳、跳去哪、带没带挑战 cookie、为什么没跟。
     trace: dict = {"followed": False, "hops": 0, "location": None, "cookies": 0,
                    "final_url": url, "not_followed": None}
-    for i in range(1, attempts + 1):
+    # 用 while 而不是 for+range：`range` 在循环开始那一刻就把上界算死，
+    # 而在里面给跟跳加预算（`attempts += 1`）**不会延长循环**——第一版就是这么写的，
+    # 结果「跟跳额外给一次预算」完全没生效，测试直接掉到 `unreachable` 的兜底 raise。
+    i = 0
+    while i < attempts:
+        i += 1
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.status, resp.read(8000).decode("utf-8", "replace"), trace
@@ -1026,16 +1031,25 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
             trace["location"] = loc
             trace["cookies"] = len(cookies)
             if e.code in (301, 302, 303, 307, 308):
+                # 顺序即真相（2026-11-15 线上订正）：原来 `i >= attempts` 排在
+                # 「跨主机」之前，于是三次都没能跟（没 Location 或跨主机）时，
+                # **最后一跳把真实原因覆写成 `out-of-attempts`**——判词读起来像
+                # 「本来能跟、只是预算用完了」，而真相是「从来就没法跟」。
+                # 现在先判能否跟，最后才谈预算；确定性答复（没 Location / 跨主机 /
+                # 已跟一跳）当场返回，不再拿剩下的重试预算白打三次。
                 if not loc:
                     trace["not_followed"] = "no-location"
                 elif followed:
                     trace["not_followed"] = "already-followed-once"
-                elif i >= attempts:
-                    trace["not_followed"] = "out-of-attempts"
                 elif not _same_host(url, loc):
                     trace["not_followed"] = "cross-host-or-scheme"
+                elif i >= attempts:
+                    # 现在只有「连接层失败把预算吃光、最后才拿到 3xx」才走这里；
+                    # 而跟跳有独立预算，所以这一档实际已近乎不可达——留着是为了
+                    # 万一将来预算语义变了，它至少会说出来而不是静默。
+                    trace["not_followed"] = "out-of-attempts"
             if (e.code in (301, 302, 303, 307, 308) and loc and not followed
-                    and i < attempts and _same_host(url, loc)):
+                    and _same_host(url, loc)):
                 followed = True
                 trace["followed"] = True
                 trace["hops"] += 1
@@ -1052,7 +1066,14 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
                     urllib.parse.urljoin(url, loc), data=data, method="POST",
                     headers=hop_hdrs)
                 trace["final_url"] = req.full_url
-                continue  # 用同一份重试预算跟这一跳
+                # 这一跳**额外给一次预算**，不占连接重试的次数（2026-11-15 线上
+                # 订正）：原先它和连接层失败共用同一份预算，于是「两跳
+                # RemoteDisconnected + 第 3 跳才拿到 308」这种真实形态下，
+                # 我们手里握着一个现成的 Location 却没有预算去跟，判词只能写
+                # `out-of-attempts`——把「本可以跟」说成了「跳转根本没法处理」。
+                # 跟跳最多一次（`followed` 守卫），所以预算上界仍是 +1，不会兜圈。
+                attempts += 1
+                continue  # 用这份额外预算跟这一跳
             return e.code, text, trace
         except (urllib.error.URLError, ConnectionError, TimeoutError):
             if i >= attempts:
@@ -1269,7 +1290,18 @@ def parse_submit_verdict(status: int, raw_text: str, message: str,
             reason = (f"HTTP {status} 跳转未落到 API（已跟一跳后仍 3xx，"
                       f"指向 {_redact_url(t.get('location') or '')}；只跟一跳）")
         else:
-            reason = f"HTTP {status} 跳转未落到 API（未跟：{t.get('not_followed') or '原因未记录'}）"
+            # 2026-11-15 线上订正：这一档此前只说「未跟：out-of-attempts」，
+            # **一个字的 Location 都没有**——于是「308 到底指向哪」这个唯一有用的
+            # 事实追了三轮还拿不到（同一个形状反复出现，判词却每轮都只说"没跟"）。
+            # 现在凡有 Location 就印出来（脱敏：只留 scheme://host/path）。
+            why = t.get("not_followed") or "原因未记录"
+            loc = _redact_url(t.get("location") or "")
+            if loc:
+                reason = (f"HTTP {status} 跳转未落到 API（未跟：{why}；"
+                          f"Location {loc}）")
+            else:
+                reason = (f"HTTP {status} 跳转未落到 API（未跟：{why}；"
+                          f"响应没给 Location）")
     else:
         try:
             doc = json.loads(raw_text)
