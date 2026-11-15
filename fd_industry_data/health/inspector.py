@@ -947,7 +947,7 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
 
 # ── 接线：SUBMIT / STATUS（poster/fetcher 可注入） ─────────────────────────
 
-def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900) -> tuple[int, str]:
+def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900) -> tuple[int, str, dict]:
     """a2a 消息发送：JSON-RPC message/send 封装（文本指令在 parts[0].text）。
 
     首投可能触发整回合（实测 110s+），SUBMIT 超时放宽到 15 分钟；超时按未完成
@@ -990,17 +990,36 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
     attempts = _POSTER_ATTEMPTS
     followed = False
     cookies: list[str] = []   # 前置在同一调用内发的挑战 cookie（如 SafeLine sl-session）
+    # 跳转痕迹（2026-11-15）：判词此前无条件写「已按同主机跟一跳仍如此」，而**没带
+    # Location、或 Location 跨主机/跨协议时我们根本没跟**——那种情形下这句话是假的，
+    # 读判词的人会以为已经跟过、转头去查 WAF，而真相是「不知道 308 指向哪」。把实际
+    # 发生过的事带出去：跟了几跳、跳去哪、带没带挑战 cookie、为什么没跟。
+    trace: dict = {"followed": False, "hops": 0, "location": None, "cookies": 0,
+                   "final_url": url, "not_followed": None}
     for i in range(1, attempts + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return resp.status, resp.read(8000).decode("utf-8", "replace")
+                return resp.status, resp.read(8000).decode("utf-8", "replace"), trace
         except urllib.error.HTTPError as e:  # noqa: BLE001
             text = e.read(8000).decode("utf-8", "replace")
             loc = e.headers.get("Location") if e.headers else None
             cookies.extend(_challenge_cookies(e.headers))
+            trace["location"] = loc
+            trace["cookies"] = len(cookies)
+            if e.code in (301, 302, 303, 307, 308):
+                if not loc:
+                    trace["not_followed"] = "no-location"
+                elif followed:
+                    trace["not_followed"] = "already-followed-once"
+                elif i >= attempts:
+                    trace["not_followed"] = "out-of-attempts"
+                elif not _same_host(url, loc):
+                    trace["not_followed"] = "cross-host-or-scheme"
             if (e.code in (301, 302, 303, 307, 308) and loc and not followed
                     and i < attempts and _same_host(url, loc)):
                 followed = True
+                trace["followed"] = True
+                trace["hops"] += 1
                 hop_hdrs = dict(hdrs)
                 if cookies:
                     # 2026-11-15 验收轮真跑实证：跟跳带了 Location 仍拿回同一页
@@ -1013,12 +1032,14 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
                 req = urllib.request.Request(
                     urllib.parse.urljoin(url, loc), data=data, method="POST",
                     headers=hop_hdrs)
+                trace["final_url"] = req.full_url
                 continue  # 用同一份重试预算跟这一跳
-            return e.code, text
+            return e.code, text, trace
         except (urllib.error.URLError, ConnectionError, TimeoutError):
             if i >= attempts:
                 raise
             time.sleep(_POSTER_RETRY_BACKOFF_S * i)
+    raise RuntimeError("unreachable: poster retry loop exited without a reply")
 
 
 def _challenge_cookies(headers) -> list[str]:
@@ -1039,6 +1060,21 @@ def _challenge_cookies(headers) -> list[str]:
         if "=" in first:
             out.append(first)
     return out
+
+
+def _redact_url(url: str) -> str:
+    """跳转目标只留 scheme://host/path，丢掉 query 与 fragment。
+
+    判词要能点名「跳到哪」，但有些前置会把 token 塞进 query（`?ticket=…`），
+    那不该进工单与日志。取不到就原样截断到 120 字符。
+    """
+    try:
+        parts = urllib.parse.urlsplit(url)
+    except ValueError:
+        return (url or "")[:120]
+    if not parts.hostname:
+        return (url or "")[:120]
+    return f"{parts.scheme}://{parts.netloc}{parts.path}"[:160]
 
 
 def _same_host(url: str, location: str) -> bool:
@@ -1156,7 +1192,8 @@ def _http_error_detail(raw_text: str) -> str:
     return f" · {detail}"
 
 
-def parse_submit_verdict(status: int, raw_text: str, message: str) -> dict:
+def parse_submit_verdict(status: int, raw_text: str, message: str,
+                         trace: dict | None = None) -> dict:
     """把 SUBMIT 回执解析成**结构化裁决**（harden-crawl-delivery 2.11）。
 
     此前只判「是不是失败」并把回执全文当结论存下来。2026-11-09 实测
@@ -1192,9 +1229,28 @@ def parse_submit_verdict(status: int, raw_text: str, message: str) -> dict:
         # POST 撞上前置跳转（实测 2026-11-14：Tengine 回 308，正文就是那一页 HTML）。
         # 既不是受理也不是拒收，但**必须留下原因**：此前 reason 是空串，摘要里只剩一个
         # `unknown`，看不出「投递根本没到 API」与「agent 回了看不懂的话」的区别。
-        # 判词里写明 `_default_poster` 已按同主机跟过一跳仍如此，重投才有意义。
+        #
+        # 2026-11-15：判词只许讲**真的发生过的事**。原先这句话无论跟没跟都写「已按同
+        # 主机跟一跳仍如此」，而 location 缺失／跨主机时我们根本没跟——读判词的人会被
+        # 引去查 WAF，真相却是「不知道这 308 指向哪」。现在按 trace 分档点名。
         verdict = "unknown"
-        reason = f"HTTP {status} 跳转未落到 API（`_default_poster` 已按同主机跟一跳仍如此）"
+        t = trace or {}
+        if not t:
+            reason = f"HTTP {status} 跳转未落到 API（调用方未提供跳转痕迹）"
+        elif t.get("followed"):
+            reason = (f"HTTP {status}：已按同主机跟 {t.get('hops') or 1} 跳"
+                      f"（带挑战 cookie {t.get('cookies') or 0} 个、以 POST 重放）"
+                      f"仍 3xx，最终 {_redact_url(t.get('final_url') or '')}")
+        elif t.get("not_followed") == "no-location":
+            reason = f"HTTP {status} 跳转未落到 API（响应没带 Location，无从跟）"
+        elif t.get("not_followed") == "cross-host-or-scheme":
+            reason = (f"HTTP {status} 跳转未落到 API（Location 指向 " 
+                      f"{_redact_url(t.get('location') or '')} —— 跨主机或跨协议，带 Bearer 不跟）")
+        elif t.get("not_followed") == "already-followed-once":
+            reason = (f"HTTP {status} 跳转未落到 API（已跟一跳后仍 3xx，"
+                      f"指向 {_redact_url(t.get('location') or '')}；只跟一跳）")
+        else:
+            reason = f"HTTP {status} 跳转未落到 API（未跟：{t.get('not_followed') or '原因未记录'}）"
     else:
         try:
             doc = json.loads(raw_text)
@@ -1416,8 +1472,8 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
             try:
                 body = _submit_body(repo_slug, rel, p, inline=_SUBMIT_INLINE)
 
-                def _post(idem_key: str) -> tuple[int | None, str, float]:
-                    """投一次门面，返回 (status, text, 实际耗时秒)。
+                def _post(idem_key: str) -> tuple[int | None, str, float, dict]:
+                    """投一次门面，返回 (status, text, 实际耗时秒, 跳转痕迹)。
 
                     两件事必须一起做，否则预算只是装饰：
                     1) **计时**——实测单次 ~300s（agent 回合串行），只累计 sleep 会让
@@ -1425,18 +1481,23 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                     2) **收缩 timeout**——`_default_poster` 默认 900s 且连接层重试
                        3 次，固定超时下一次调用最坏 45 分钟，能独占整个作业墙。
                        按「剩余预算 / 重试次数」给，整批才真的封顶。
+
+                    痕迹是给判词用的（跟没跟、跳去哪）。注入的替身多半只回 2 元组，
+                    所以按长度取——**没有痕迹就老实说「未提供」，不假装跟过**。
                     """
                     remaining = max(0.0, _SUBMIT_BATCH_BUDGET_S - batch_waited)
                     t0 = time.monotonic()
                     if _POSTER_TAKES_TIMEOUT:
-                        st, tx = poster(url, key, idem_key, body,
-                                        timeout=min(_SUBMIT_CALL_TIMEOUT_S,
-                                                    remaining / _POSTER_ATTEMPTS))
+                        res = poster(url, key, idem_key, body,
+                                     timeout=min(_SUBMIT_CALL_TIMEOUT_S,
+                                                 remaining / _POSTER_ATTEMPTS))
                     else:
-                        st, tx = poster(url, key, idem_key, body)
-                    return st, tx, time.monotonic() - t0
+                        res = poster(url, key, idem_key, body)
+                    st, tx = res[0], res[1]
+                    trace = res[2] if len(res) > 2 else {}
+                    return st, tx, time.monotonic() - t0, trace
 
-                status, text, spent = _post(idem)
+                status, text, spent, hop_trace = _post(idem)
                 batch_waited += spent
                 # turn 被占：有界等待后重试同一张单；预算耗尽则本批停手
                 waited = 0.0
@@ -1446,7 +1507,7 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                     time.sleep(_SUBMIT_TURN_POLL_S)
                     waited += _SUBMIT_TURN_POLL_S
                     batch_waited += _SUBMIT_TURN_POLL_S
-                    status, text, spent = _post(f"{idem}-w{int(waited)}")
+                    status, text, spent, hop_trace = _post(f"{idem}-w{int(waited)}")
                     # 重试本身也是一次完整回合，计入单张等待与整批耗时
                     waited += spent
                     batch_waited += spent
@@ -1466,7 +1527,7 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                     results.append(entry)
                     break  # 后面每张都会各自 409，继续只会白打门面
                 message = extract_message_text(text)
-                verdict = parse_submit_verdict(status, text, message)
+                verdict = parse_submit_verdict(status, text, message, trace=hop_trace)
                 ok = verdict["verdict"] in ("accepted", "duplicate")
                 entry.update({
                     "submitted": ok,

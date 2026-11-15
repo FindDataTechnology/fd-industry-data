@@ -178,7 +178,7 @@ def test_poster_retries_connection_errors(monkeypatch):
 
     monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
     try:
-        status, text = ins._default_poster("http://x", "k", "idem-1", "SUBMIT x y")
+        status, text, _t = ins._default_poster("http://x", "k", "idem-1", "SUBMIT x y")
     finally:
         monkeypatch.setattr(ins.urllib.request, "urlopen", real_urlopen)
     assert status == 200
@@ -199,7 +199,7 @@ def test_poster_does_not_retry_http_error(monkeypatch):
                                      io.BytesIO(b'{"code":"TURN_IN_FLIGHT"}'))
 
     monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
-    status, text = ins._default_poster("http://x", "k", "idem-2", "SUBMIT x y")
+    status, text, _t = ins._default_poster("http://x", "k", "idem-2", "SUBMIT x y")
     assert status == 409
     assert "TURN_IN_FLIGHT" in text
     assert len(calls) == 1, "HTTPError 不得重试"
@@ -553,7 +553,7 @@ def test_poster_follows_one_same_host_redirect(tmp_path, monkeypatch):
         return _Resp()
 
     monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
-    st, tx = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem1", "body")
+    st, tx, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem1", "body")
     assert st == 200, (st, tx)
     assert calls == ["https://wanxing.example/api/wanxing/v1/a2a/x",
                      "https://wanxing.example/api/wanxing/v1/a2a/other"], calls
@@ -567,7 +567,7 @@ def test_poster_follows_one_same_host_redirect(tmp_path, monkeypatch):
                                      {"Location": "https://evil.example/x"}, None)
 
     monkeypatch.setattr(ins.urllib.request, "urlopen", cross_host)
-    st, _ = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem2", "body")
+    st, _, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem2", "body")
     assert st == 308, st
     assert len(calls) == 1, f"跨主机不得跟随，实际打了 {calls}"
 
@@ -579,7 +579,7 @@ def test_poster_follows_one_same_host_redirect(tmp_path, monkeypatch):
         raise urllib.error.HTTPError(req.full_url, 308, "Permanent Redirect", {}, None)
 
     monkeypatch.setattr(ins.urllib.request, "urlopen", no_loc)
-    st, _ = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem3", "body")
+    st, _, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem3", "body")
     assert st == 308 and len(calls) == 1, (st, calls)
 
     # ④ 同主机但**降级协议**（https → http）：主机名相等也不许跟——跟过去等于把
@@ -593,7 +593,7 @@ def test_poster_follows_one_same_host_redirect(tmp_path, monkeypatch):
                                      {"Location": "http://wanxing.example/api/wanxing/v1/a2a/x"}, None)
 
     monkeypatch.setattr(ins.urllib.request, "urlopen", downgrade)
-    st, _ = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem4", "body")
+    st, _, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem4", "body")
     assert st == 308, st
     assert len(calls) == 1, f"跨协议不得跟随（会把 Bearer 明文发出），实际打了 {calls}"
 
@@ -611,6 +611,80 @@ def test_redirect_verdict_names_the_hop_not_silence():
     v = ins.parse_submit_verdict(308, html, "")
     assert v["verdict"] == "unknown", v
     assert "308" in v["reason"] and "跳转" in v["reason"], v["reason"]
+
+
+def test_redirect_verdict_says_not_followed_when_no_location():
+    """没带 Location 的 3xx 判词必须说「没跟」，不许说「已跟一跳仍如此」。
+
+    旧判词是固定串：「`_default_poster` 已按同主机跟一跳仍如此」。而没 Location
+    时我们根本没跟——那句话把读判词的人引去查 WAF，真相是「这 308 指向哪都不知道」。
+    """
+    v = ins.parse_submit_verdict(308, "308 Permanent Redirect", "",
+                                 trace={"followed": False, "not_followed": "no-location"})
+    assert "没带 Location" in v["reason"], v["reason"]
+    assert "已按同主机跟" not in v["reason"], v["reason"]
+
+
+def test_redirect_verdict_names_cross_host_location_it_refused_to_follow():
+    """跨主机的 Location 判词要点名目标主机，并说明「带 Bearer 不跟」。"""
+    v = ins.parse_submit_verdict(
+        308, "308", "",
+        trace={"followed": False, "not_followed": "cross-host-or-scheme",
+               "location": "https://elsewhere.example/api/x?a=1"})
+    assert "elsewhere.example" in v["reason"], v["reason"]
+    assert "跨主机" in v["reason"] and "Bearer" in v["reason"], v["reason"]
+    assert "?a=1" not in v["reason"], "query 不该进判词（可能带 token）"
+
+
+def test_redirect_verdict_counts_the_hop_and_cookies_when_it_did_follow():
+    """真跟过才说「已跟」：判词要带跳数、cookie 数与最终 URL。"""
+    v = ins.parse_submit_verdict(
+        308, "308", "",
+        trace={"followed": True, "hops": 1, "cookies": 1,
+               "final_url": "https://h.example/api/other?t=secret"})
+    assert "跟 1 跳" in v["reason"] and "cookie 1 个" in v["reason"], v["reason"]
+    assert "https://h.example/api/other" in v["reason"], v["reason"]
+    assert "secret" not in v["reason"], "query 里的凭据不该落进工单"
+
+
+def test_redirect_verdict_without_trace_says_so_instead_of_claiming_a_hop():
+    """注入的 poster 只回 2 元组时，判词说「未提供痕迹」，不冒充跟过。"""
+    v = ins.parse_submit_verdict(308, "308", "", trace={})
+    assert "未提供跳转痕迹" in v["reason"], v["reason"]
+
+
+def test_poster_retry_hop_reports_trace_of_what_really_happened(monkeypatch):
+    """跟跳成立的调用要把 followed/hops/cookies/final_url 如实带出来。"""
+    class _Resp:
+        status = 200
+
+        def read(self, _n=None):
+            return b'{"result": {}}'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    calls = []
+
+    def fake_urlopen(req, timeout=None):
+        calls.append(req.full_url)
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(
+                req.full_url, 308, "Permanent Redirect",
+                {"Location": "/api/v2/x",
+                 "Set-Cookie": "sl-session=zz; Path=/; HttpOnly"}, None)
+        return _Resp()
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
+    st, _tx, trace = ins._default_poster("https://h.example/api/v1/x", "k", "i1", "b")
+    assert st == 200
+    assert trace["followed"] is True and trace["hops"] == 1, trace
+    assert trace["cookies"] == 1, trace
+    assert trace["final_url"] == "https://h.example/api/v2/x", trace
+    assert trace["not_followed"] is None, trace
 
 
 def test_poster_carries_waf_challenge_cookie_on_the_follow_hop(monkeypatch):
@@ -651,7 +725,7 @@ def test_poster_carries_waf_challenge_cookie_on_the_follow_hop(monkeypatch):
         return _Resp()
 
     monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
-    st, tx = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x",
+    st, tx, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x",
                                  "k", "idem-cookie", "body")
     assert st == 200, (st, tx)
     assert calls[1][0] == "https://wanxing.example/api/wanxing/v1/a2a/other"
@@ -667,6 +741,6 @@ def test_poster_carries_waf_challenge_cookie_on_the_follow_hop(monkeypatch):
         return _Resp()
 
     monkeypatch.setattr(ins.urllib.request, "urlopen", plain_308)
-    st, _ = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x",
+    st, _, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x",
                                 "k", "idem-nocookie", "body")
     assert st == 200 and calls[1][1] is None, (st, calls)
