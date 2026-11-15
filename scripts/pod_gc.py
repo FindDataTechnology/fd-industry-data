@@ -7,22 +7,29 @@
 k8s 自带的 `terminated-pod-gc-threshold` 缺省 12500：在 38 GiB 级别的镜像盘上，
 等它动手时盘早满了。
 
-**删什么（三条同时成立）**：
+**删什么（四条同时成立）**：
   1. 相位是 `Succeeded` 或 `Failed`（Running / Pending 一律不碰）；
   2. 年龄 ≥ `POD_GC_MIN_AGE_H`（缺省 1.0 小时）——刚结束的先留着，给当场排查用；
   3. 有 `Job` 或 `ReplicaSet` 控制器 owner。
-     裸 Pod（没有控制器）**永不删**：它可能是有人手工起的现场，删了不可恢复。
+     裸 Pod（没有控制器）**永不删**：它可能是有人手工起的现场，删了不可恢复；
+  4. **不是失败 Job 的 Pod**（见下一条）——否则不删。
 
-**为什么不伤排查**：Job/ReplicaSet 对象本身保留（`failedJobsHistoryLimit` 管的是它们），
-`check_cronjob_health.py` 读的是 Job 的 condition 与 `lastSuccessfulTime`，不读 Pod；
-失败 Pod 的日志本来就常被裁掉（`failedJobsHistoryLimit` 保 Job、Pod 被清）。
-所以删 Pod ≈ 删残骸，不动证据。
+**「删 Pod ≈ 删残骸，不动证据」是错的（2026-11-15 实历，第一版就是这么写的）**：
+`fd-prod/sink-freshness` 的排期轮在 11-14T21:10Z 失败（`BackoffLimitExceeded`），
+两个失败 Pod 在 22:11Z 就被这条作业清了，等要看「为什么失败」时只剩一行 condition，
+日志没了。`failedJobsHistoryLimit` 保的是 Job 对象，**保不住 Pod 日志**；而失败原因
+只在最后一个 Pod 的日志里。所以现在：owner Job 带 `Failed=True` 的 Pod 进**封存档**，
+留 `POD_GC_FORENSIC_H`（缺省 72 小时）再删。数量有界——每个 CronJob 至多
+`failedJobsHistoryLimit × (backoffLimit+1)` 个，失败本来就是少数。
+取不到 Job 表时（离线、API 被拒）退回 Pod 自己的 `terminated.exitCode != 0` 判，
+并在输出里标 `jobs_map: unavailable`，让「封存档没生效」这件事可见。
 
 用法：
     python3 scripts/pod_gc.py --dry-run            # 只列出将删的
     python3 scripts/pod_gc.py                      # 真删（在 Pod 内跑）
 参数：`POD_GC_NAMESPACE`（缺省取 SA 所在 ns，兜底 scraw）、`POD_GC_MIN_AGE_H`（缺省 1.0，
-设 0 只用于自证能红）、`POD_GC_API`（缺省由 KUBERNETES_SERVICE_HOST 拼）。
+设 0 只用于自证能红）、`POD_GC_FORENSIC_H`（缺省 72.0，设 0 只用于自证「封存到期会删」）、
+`POD_GC_API`（缺省由 KUBERNETES_SERVICE_HOST 拼）。
 
 判据不在这个进程里：容器内 `disk_usage("/")` 量的是它自己的 rootfs，不是宿主镜像盘，
 打印出来是假读数。真判据是「节点事件不再有 ImageGCFailed / FailedCreatePodSandBox」
@@ -42,6 +49,7 @@ from datetime import datetime, timezone
 SA_DIR = "/var/run/secrets/kubernetes.io/serviceaccount"
 DEFAULT_NS = "scraw"
 DEFAULT_MIN_AGE_H = 1.0
+DEFAULT_FORENSIC_H = 72.0
 DELETABLE_PHASES = ("Succeeded", "Failed")
 DELETABLE_OWNER_KINDS = ("Job", "ReplicaSet")
 
@@ -79,15 +87,56 @@ def owned_by_controller(pod: dict) -> bool:
     return False
 
 
-def select_pods(pods: list[dict], now: datetime, min_age_h: float) -> tuple[list[str], int, int]:
-    """纯选择：返回 (要删的名字, 跳过的完成态数, 解析失败数)。
+def owner_job_name(pod: dict) -> str | None:
+    for ref in (pod.get("metadata") or {}).get("ownerReferences") or []:
+        if ref.get("kind") == "Job":
+            return ref.get("name")
+    return None
+
+
+def failed_job_names(jobs: list[dict]) -> set[str]:
+    """Job 表里 `Failed=True` 的那些名字。
+
+    只认 condition，不认 `status.failed > 0`：重试过但最终成功的 Job 也有 failed 计数，
+    而它的失败 Pod 是残骸；永久失败的 Job 才是「日志是唯一证据」的那种。
+    """
+    out: set[str] = set()
+    for job in jobs:
+        name = (job.get("metadata") or {}).get("name")
+        if not name:
+            continue
+        for cond in ((job.get("status") or {}).get("conditions") or []):
+            if cond.get("type") == "Failed" and str(cond.get("status")) == "True":
+                out.add(name)
+                break
+    return out
+
+
+def pod_exit_code(pod: dict) -> int | None:
+    """Pod 自己最后一次容器退出码；读不到返回 None（不据此判失败）。"""
+    for cs in ((pod.get("status") or {}).get("containerStatuses") or []):
+        term = ((cs.get("state") or {}).get("terminated") or {})
+        if "exitCode" in term:
+            return term["exitCode"]
+    return None
+
+
+def select_pods(pods: list[dict], now: datetime, min_age_h: float,
+                failed_jobs: set[str] | None = None,
+                forensic_h: float = DEFAULT_FORENSIC_H) -> tuple[list[str], int, int, int]:
+    """纯选择：返回 (要删的名字, 跳过的完成态数, 解析失败数, 封存留观的数)。
 
     跳过计数让「什么都没删」与「全都太新/无 owner」在日志里可分辨——
-    否则一次判据写错会伪装成「本来就没东西可删」。
+    否则一次判据写错会伪装成「本来就没东西可删」。封存计数同理：少了它，
+    「没有失败作业」与「封存档写反成永不留」长得一模一样。
+
+    `failed_jobs=None` 表示 Job 表取不到：退回 Pod 自己的退出码判失败，
+    调用方要在输出里标明这一点（`jobs_map: unavailable`）。
     """
     dead: list[str] = []
     skipped = 0
     unparsed = 0
+    held = 0
     for pod in pods:
         status = pod.get("status") or {}
         if status.get("phase") not in DELETABLE_PHASES:
@@ -101,11 +150,20 @@ def select_pods(pods: list[dict], now: datetime, min_age_h: float) -> tuple[list
             # 时间读不出就不删：一次时间格式变更不该变成「删光」。
             unparsed += 1
             continue
-        if (now - ts).total_seconds() / 3600.0 >= min_age_h:
-            dead.append((pod.get("metadata") or {}).get("name") or "")
-        else:
+        age_h = (now - ts).total_seconds() / 3600.0
+        if age_h < min_age_h:
             skipped += 1
-    return [n for n in dead if n], skipped, unparsed
+            continue
+        if failed_jobs is None:
+            forensic = (pod_exit_code(pod) or 0) != 0
+        else:
+            job = owner_job_name(pod)
+            forensic = job is not None and job in failed_jobs
+        if forensic and age_h < forensic_h:
+            held += 1
+            continue
+        dead.append((pod.get("metadata") or {}).get("name") or "")
+    return [n for n in dead if n], skipped, unparsed, held
 
 
 def _api_call(path: str, method: str = "GET", token: str = "", ctx=None):
@@ -124,8 +182,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--namespace", default=os.environ.get("POD_GC_NAMESPACE") or DEFAULT_NS)
     ap.add_argument("--min-age-hours", type=float,
                     default=float(os.environ.get("POD_GC_MIN_AGE_H") or DEFAULT_MIN_AGE_H))
+    ap.add_argument("--forensic-hours", type=float,
+                    default=float(os.environ.get("POD_GC_FORENSIC_H") or DEFAULT_FORENSIC_H),
+                    help="失败 Job 的 Pod 封存多久（缺省 72h）；设 0 只用于自证")
     ap.add_argument("--dry-run", action="store_true", help="只列出，不删")
     ap.add_argument("--from-json", help="离线快照：{items:[pod…]}；缺省真打 API")
+    ap.add_argument("--jobs-from-json", help="离线快照：{items:[job…]}；缺省真打 API")
     args = ap.parse_args(argv)
 
     now = datetime.now(timezone.utc)
@@ -134,12 +196,25 @@ def main(argv: list[str] | None = None) -> int:
         with open(args.from_json, encoding="utf-8") as fh:
             pods = (json.load(fh) or {}).get("items") or []
         token, ctx = "", None
+        if args.jobs_from_json:
+            with open(args.jobs_from_json, encoding="utf-8") as fh:
+                failed_jobs = failed_job_names((json.load(fh) or {}).get("items") or [])
+            jobs_map = "fixture"
+        else:
+            failed_jobs, jobs_map = None, "unavailable"
     else:
         token = open(f"{SA_DIR}/token", encoding="utf-8").read().strip()
         ctx = ssl.create_default_context(cafile=f"{SA_DIR}/ca.crt")
         pods = _api_call(f"/api/v1/namespaces/{args.namespace}/pods", token=token, ctx=ctx).get("items") or []
+        try:
+            jobs = _api_call(f"/apis/batch/v1/namespaces/{args.namespace}/jobs",
+                             token=token, ctx=ctx).get("items") or []
+            failed_jobs, jobs_map = failed_job_names(jobs), "ok"
+        except Exception as exc:  # noqa: BLE001 - 取不到 Job 表不该让整轮不清理
+            failed_jobs, jobs_map = None, f"unavailable: {type(exc).__name__}"
 
-    dead, skipped, unparsed = select_pods(pods, now, args.min_age_hours)
+    dead, skipped, unparsed, held = select_pods(
+        pods, now, args.min_age_hours, failed_jobs, args.forensic_hours)
 
     deleted, failed = 0, []
     if not args.dry_run:
@@ -156,9 +231,12 @@ def main(argv: list[str] | None = None) -> int:
     print(json.dumps({
         "namespace": args.namespace,
         "min_age_hours": args.min_age_hours,
+        "forensic_hours": args.forensic_hours,
+        "jobs_map": jobs_map,
         "candidates": len(dead),
         "deleted": deleted,
         "dry_run": bool(args.dry_run),
+        "held_for_forensics": held,
         "skipped_finished_but_kept": skipped,
         "unparsed_timestamps": unparsed,
         "failed": failed[:5],
