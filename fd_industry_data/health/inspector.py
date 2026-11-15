@@ -1461,10 +1461,17 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
         if r.get("ticket") != "__batch_limit__" and r.get("http_status") is not None
     ]
     errors = [r for r in attempts if r.get("verdict") == "error"]
+    # 「回执看不懂」不能算健康（2026-11-15 实测自伤）：此前这里只收 verdict=="error"，
+    # 于是**全部 unknown 的一轮报 status=ok、accepted=0、reasons=[]**——与本文档
+    # 头写的「回执看不懂 ⇒ 只报 degraded」正好相反，而且正是最该被看见的一轮
+    # （实测 2026-11-14 那轮 8 张单有 3 张撞前置 308，verdict 全落 unknown）。
+    # 现在 unknowns 只降级到 degraded、**不进 service_errors**（那个数讲的是"服务侧
+    # 报错"，308 是前置跳转不是服务错误），也不判 outage（outage 仍要求全是 error）。
+    unknowns = [r for r in attempts if r.get("verdict") == "unknown"]
     # 同一原因只留一条，避免七行同样的 502 把摘要冲爆
     reasons: list[str] = []
-    for r in errors:
-        why = str(r.get("verdict_reason") or "error")
+    for r in errors + unknowns:
+        why = str(r.get("verdict_reason") or r.get("verdict") or "error")
         code = r.get("http_status")
         label = f"{why} (HTTP {code})" if code is not None else why
         if label not in reasons:
@@ -1473,7 +1480,7 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
         verdict = "idle"            # 没东西可投 ≠ 通道坏了
     elif len(errors) == len(attempts):
         verdict = "outage"
-    elif errors:
+    elif errors or unknowns:
         verdict = "degraded"
     else:
         verdict = "ok"

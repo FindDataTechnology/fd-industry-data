@@ -109,3 +109,34 @@ class TestCliExitCode:
         rows = [_row(f"t{i}.yaml", verdict="error") for i in range(3)]
         assert self._run(tmp_path, monkeypatch, rows, dry_run=True) == 0, \
             "干跑不投递，不该因为通道体检把校准轮判红"
+
+
+def test_lane_unknown_receipts_are_degraded_not_ok():
+    """全部回执看不懂（如 8/8 撞前置 308）不许报 ok —— 那是「一张都没投进去」。
+
+    2026-11-15 实测自伤：`delivery_lane_health` 只把 verdict=="error" 计进 errors，
+    于是全 unknown 的一轮返回 status=ok、accepted=0、reasons=[]，与本文档头承诺的
+    「回执看不懂 ⇒ 只报 degraded」相反；而 2026-11-14 那轮 8 张单恰好有 3 张撞
+    Tengine 的 308（verdict 全落 unknown）。降级到 degraded、但**不**进
+    service_errors（那个数讲的是服务侧报错）、也不判 outage（outage 仍要求全 error）。
+    """
+    all_unknown = [{"ticket": f"t{i}", "http_status": 308, "verdict": "unknown",
+                    "submitted": False, "verdict_reason": "HTTP 308 跳转未落到 API"}
+                   for i in range(3)]
+    lane = ins.delivery_lane_health(all_unknown)
+    assert lane["status"] == "degraded", lane
+    assert lane["service_errors"] == 0, lane
+    assert lane["accepted"] == 0, lane
+    assert lane["reasons"] and "308" in lane["reasons"][0], lane
+
+    mixed = [{"ticket": "a", "http_status": 200, "verdict": "accepted", "submitted": True,
+              "verdict_reason": ""},
+             {"ticket": "b", "http_status": 308, "verdict": "unknown", "submitted": False,
+              "verdict_reason": "HTTP 308 跳转"}]
+    assert ins.delivery_lane_health(mixed)["status"] == "degraded"
+
+    # 反向：全 error 仍是 outage，空跑仍是 idle —— 不许把这两档一起挪走
+    all_err = [{"ticket": "x", "http_status": 502, "verdict": "error", "submitted": False,
+                "verdict_reason": "HTTP 502"}] * 2
+    assert ins.delivery_lane_health(all_err)["status"] == "outage"
+    assert ins.delivery_lane_health([])["status"] == "idle"
