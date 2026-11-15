@@ -204,4 +204,17 @@ lifecycle:
 - at: '2026-11-15T08:43:19.792804+00:00'
   event: status-failed
   error: too many values to unpack (expected 2)
+- at: '2026-11-15T12:46:22.620846+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+  trace:
+    followed: true
+    hops: 1
+    location: https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal
+    cookies: 0
+    final_url: https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal
+    not_followed: out-of-attempts
 terminal: null
