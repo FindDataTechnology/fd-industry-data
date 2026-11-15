@@ -706,3 +706,36 @@ def test_orphan_sweep_only_judges_its_own_site(monkeypatch):
                         lambda ns: pytest.fail("没有站点就不该查 k8s"))
     assert dcli.reap_orphaned_runs(quiet, "") == 0
     assert quiet.executed == [] and quiet.reaped == []
+
+
+def test_orphan_sweep_failure_is_distinguishable_and_never_leaks_dsn(monkeypatch, capsys):
+    """回收器自己坏了，必须与「今天确实没有孤儿」长得不一样。
+
+    旧版把异常打成 `orphan sweep skipped: {e}` —— 与 `0 candidate(s)` 一样都是「回收器
+    没动静」，而回收器停摆不产生 backlog、不产生错误行（同族于 federation-observer 卡
+    DeadlineExceeded 那次）。所以现在：① 成功/空行点名站点；② 失败行点名站点与异常
+    **类型**；③ **不打印异常原文**——psycopg2 的连接错误会把 DSN 带出来。
+    """
+    def boom(*a, **kw):
+        raise RuntimeError("connection to server at db.internal failed: password=sup3rs3cret")
+
+    monkeypatch.setattr(dcli.dispatch, "orphaned_run_candidates", boom)
+    monkeypatch.setenv("FD_DISPATCH_NAMESPACE", "fd-industry")
+    assert dcli.reap_orphaned_runs(SweepConn([]), "tencent") == 0  # tick 不被拖垮
+
+    err = capsys.readouterr().err
+    assert "FAILED" in err and "site=tencent" in err, err
+    assert "RuntimeError" in err, err                      # 点名类型，便于归因
+    assert "sup3rs3cret" not in err, "异常原文会把 DSN/口令带进日志：" + err
+    assert "不是「没有孤儿」" in err, err
+
+    # 对照：正常空轮必须说清「扫的是哪个站点」，且不带 FAILED
+    monkeypatch.undo()
+    monkeypatch.setattr(dcli, "list_jobs", lambda ns: [])
+    monkeypatch.setenv("FD_DISPATCH_NAMESPACE", "fd-industry")
+    monkeypatch.setattr(dcli.dispatch, "orphaned_run_candidates",
+                        lambda *a, **kw: [])
+    assert dcli.reap_orphaned_runs(SweepConn([]), "xinru-server1") == 0
+    out = capsys.readouterr().out
+    assert "site=xinru-server1" in out and "0 candidate(s)" in out, out
+    assert "FAILED" not in out, out

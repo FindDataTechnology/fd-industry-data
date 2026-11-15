@@ -561,7 +561,7 @@ def reap_orphaned_runs(conn, site: str) -> int:
             conn, grace_seconds=grace,
             default_timeout_seconds=default_timeout, site=site)
         if not candidates:
-            print("fd-dispatcher: orphan sweep: 0 candidate(s)")
+            print(f"fd-dispatcher: orphan sweep: site={site}, 0 candidate(s)")
             return 0
         jobs = list_jobs(ns)
         for cand in candidates:
@@ -576,13 +576,20 @@ def reap_orphaned_runs(conn, site: str) -> int:
                 print(f"fd-dispatcher: orphan-reaped crawl_runs #{cand['id']} "
                       f"{src} (no active job)")
     except Exception as e:  # noqa: BLE001 - a sweep bug must not break the tick
-        print(f"fd-dispatcher: orphan sweep skipped: {e}", file=sys.stderr)
+        # 2026-11-15: 这行必须与「0 candidate(s)」**长得不一样**。判据写错（SQL 报错、
+        # 列名不存在、权限不足）与「今天确实没有孤儿」在旧版里都是「回收器没动静」，
+        # 而回收器停摆不产生 backlog、不产生错误行 —— 同族于 federation-observer
+        # 卡 DeadlineExceeded 那次。所以：点名站点、点名异常类型，且**不打印 e 本身**
+        # （psycopg2 的连接错误会把 DSN 带出来，bin/ 里有先例）。
+        print(f"fd-dispatcher: orphan sweep FAILED for site={site}: "
+              f"{type(e).__name__}（本轮一个都没判；不是「没有孤儿」）",
+              file=sys.stderr)
         return 0
     if reaped:
-        print(f"fd-dispatcher: orphan sweep: reaped {reaped} run(s)")
+        print(f"fd-dispatcher: orphan sweep: site={site}, reaped {reaped} run(s)")
     else:
-        print(f"fd-dispatcher: orphan sweep: {len(candidates)} candidate(s), "
-              f"0 reaped (all still active)")
+        print(f"fd-dispatcher: orphan sweep: site={site}, "
+              f"{len(candidates)} candidate(s), 0 reaped (all still active)")
     return reaped
 
 
