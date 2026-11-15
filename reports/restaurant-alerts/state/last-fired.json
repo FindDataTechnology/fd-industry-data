@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-14T17:19:03.086602+00:00",
+  "at": "2026-11-15T17:59:57.923685+00:00",
   "rules": {
     "catering_yoy_negative|retail.cn.catering.yoy": {
       "key": "catering_yoy_negative|retail.cn.catering.yoy",
@@ -61,12 +61,12 @@
       "key": "price_spike|agri.pork.price.wholesale",
       "rule": "price_spike",
       "concept": "agri.pork.price.wholesale",
-      "state": "quiet",
-      "verdict": "quiet",
-      "latest_period": "2026-10-26",
-      "current_fired": false,
-      "trigger_date": null,
-      "trigger_value": null,
+      "state": "fired",
+      "verdict": "fired",
+      "latest_period": "2026-11-02",
+      "current_fired": true,
+      "trigger_date": "2026-11-02",
+      "trigger_value": -3.740208,
       "threshold": 2.5,
       "comparator": "abs_gte",
       "reason": null
