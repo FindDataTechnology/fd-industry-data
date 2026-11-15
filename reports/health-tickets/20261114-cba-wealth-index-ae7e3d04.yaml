@@ -180,5 +180,17 @@ lifecycle:
   response: "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n<html>\r\n<head><title>308\
     \ Permanent Redirect</title></head>\r\n<body>\r\n<center><h1>308 Permanent Redirect</h1></center>\r\
     \n<hr><center>tengine</center>\r\n</body>\r\n</html>"
+- at: '2026-11-15T12:33:45.620451+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T15:01:14.982591+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: d5ab5a94aea5

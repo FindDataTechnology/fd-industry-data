@@ -166,5 +166,28 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T12:28:59.366777+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32041, "message": "turn exceeded 600s"}'
+- at: '2026-11-15T12:33:50.177912+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T15:00:14.774138+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32041, "message": "turn exceeded 600s"}'
+- at: '2026-11-15T15:01:34.467079+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 61b09bd56a7d
