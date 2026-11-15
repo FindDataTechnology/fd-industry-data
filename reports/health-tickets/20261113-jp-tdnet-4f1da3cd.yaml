@@ -177,5 +177,10 @@ lifecycle:
   turn_fails: 6
   limit: 6
   last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
-terminal: null
+- at: '2026-11-15T14:54:52.286774+00:00'
+  event: terminal
+  terminal: recovered
+  previous: null
+  note: 连续 3 次成功（阈值 3，自 2026-11-13T00:19:47.419531+00:00 起算）
+terminal: recovered
 evidence_signature: 98c4b7d37a4c
