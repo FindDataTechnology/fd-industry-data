@@ -172,8 +172,24 @@ def get_job(ns: str, name: str) -> dict:
 
 
 def delete_job(ns: str, name: str) -> None:
+    """Delete a Job **with its pod**.
+
+    The caller is the cancel path (``if cancel: delete_job(...)``), so the Job
+    it removes is normally still running its crawler. A bare DELETE carries no
+    ``DeleteOptions`` and the API's default propagation for that is
+    ``Orphan``: the Job disappears and the pod keeps running with its
+    ownerReference stripped — nothing can collect it afterwards (no Job left to
+    carry ``ttlSecondsAfterFinished``; ``pod-gc`` refuses bare pods by design).
+    Cancelling then means "keep burning the same CPU, unmanaged".
+
+    ``Background`` removes the Job first and lets the GC take the pod;
+    ``Foreground`` would block the dispatcher's poll loop until the container's
+    graceful period ends.
+    """
     try:
-        _k8s_api("DELETE", f"/apis/batch/v1/namespaces/{ns}/jobs/{name}")
+        _k8s_api("DELETE", f"/apis/batch/v1/namespaces/{ns}/jobs/{name}",
+                 {"apiVersion": "v1", "kind": "DeleteOptions",
+                  "propagationPolicy": "Background"})
     except urllib.error.HTTPError as e:
         if e.code != 404:  # already gone: cancel achieved
             raise

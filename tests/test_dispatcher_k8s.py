@@ -296,6 +296,25 @@ def test_delete_job_tolerates_404(monkeypatch):
     assert seen == ["DELETE"]
 
 
+def test_delete_job_cascades_so_the_crawler_pod_dies(monkeypatch):
+    """取消一次爬取要真的杀掉 pod：裸 DELETE 默认 Orphan，pod 会继续跑。
+
+    判据落在**请求本身**（同 `fd-open-data-mcp` 那一笔的两条）：集群侧
+    「Job 已经没了」在改动前后一模一样，只看结果正是这个缺陷的藏身处。
+    """
+    seen = []
+    monkeypatch.setattr(dcli, "_k8s_api",
+                        lambda m, p, body=None: seen.append((m, p, body)) or {})
+    dcli.delete_job("scraw", "flk-law-crawl-42")
+    method, path, body = seen[-1]
+    assert method == "DELETE" and path.endswith("/jobs/flk-law-crawl-42")
+    assert body is not None, (
+        "DELETE 没带 DeleteOptions —— API 默认 Orphan，爬虫 pod 会一直跑下去")
+    assert body.get("propagationPolicy") == "Background", (
+        f"传播策略是 {body.get('propagationPolicy')!r}，必须是 Background："
+        "Foreground 会把 dispatcher 的轮询卡在优雅停机后面")
+
+
 def test_job_state_transitions():
     assert job_state(JOB_ACTIVE) == ("active", None)
     assert job_state(JOB_DONE) == ("success", None)
