@@ -39,20 +39,26 @@ components:
     #   注：dispatcher 只派单、不写 crawl_items，writer 修复对它没有功能收益——
     #   统一 tag 的目的是消除"同一镜像两个 tag"的运维负担，不是为了修它。
     # tag 选择已核对方向：线上其余活影像 ea21592/92ae150/d84cc82/01c5ffb 都更旧。
+    # 2026-11-15：滚到 sha-02609d8（孤儿回收按站点收窄 + docker 站点盲区念报；
+    # 两集群已 apply 并验收，见 2be902c）。消费面 dispatcher.yaml /
+    # xinru-dispatcher.yaml 随本档一致。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-f5a19aa
+    tag: sha-02609d8
   runner-xinru:
     # ccr relay mirror consumed by the xinru (scraw ns) site dispatcher
     # 2026-11-11 晚：随三站点统一到 sha-f5a19aa（实测 xinru-server1 的 fd-industry-dispatcher 已是该 tag）。
+    # 2026-11-15：随 runner 统一到 sha-02609d8。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-f5a19aa
+    tag: sha-02609d8
   observer:
     # federation observer CronJob (scraw ns, xinru-master).
     # 2026-11-06：随三站点发布滚动到 sha-750da3f。
     # 2026-11-11：滚到 sha-3a7c63c；xinru-server1 上原为 sha-ea21592（11-13 更旧的 10-13 版）。
     # 2026-11-11 晚：统一到 sha-f5a19aa（实测 xinru 与 xinru-server1 的 federation-observer 均为该 tag）。
+    # 2026-11-15：随三站点统一到 sha-02609d8（invariant：三个消费面必须同 tag）。
+    #   observer 用不到的增量（dispatch/health/nrdl 新增分支）对它惰性。
     repo: ccr.ccs.tencentyun.com/finddata/fd-industry-runner
-    tag: sha-f5a19aa
+    tag: sha-02609d8
   runner-tencent-cron:
     # tencent(chengsi) ArgoCD ApplicationSet `fd-industry-crawl` renders every
     # per-source CronJob with this image (helm.parameters.image in the AppSet

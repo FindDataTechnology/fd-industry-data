@@ -52,7 +52,7 @@ spec:
               # 单容器：脚本来自 ConfigMap（`fd-pharma-extract-src`，由
               # `scripts/render_extract_configmap.py` 从仓库脚本渲染），不再有
               # git checkout 的 initContainer。
-              image: &image ccr.ccs.tencentyun.com/finddata/fd-industry-runner:sha-f5a19aa
+              image: &image ccr.ccs.tencentyun.com/finddata/fd-industry-runner:sha-02609d8
               command: ["python3", "/src/extract_pharma.py", "--apply"]
               env:
                 - name: PYTHONUNBUFFERED
