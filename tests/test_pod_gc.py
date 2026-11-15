@@ -14,11 +14,12 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from scripts.pod_gc import (  # noqa: PLC2701 — 脚本与测同仓
-    failed_job_names, main, parse_ts, select_pods)
+    failed_job_names, main, parse_ts, select_pods, unavailable_note)
 
 NOW = datetime(2026, 11, 14, 12, 0, tzinfo=timezone.utc)
 
@@ -173,3 +174,39 @@ def test_main_with_empty_snapshot_still_reports(tmp_path):
     snap.write_text(json.dumps({"items": []}), encoding="utf-8")
     assert main(["--from-json", str(snap), "--dry-run"]) == 0
     assert Path(snap).exists()
+
+
+def test_unavailable_note_carries_http_status():
+    # 2026-11-15 实历：Role 补 `batch/jobs` 的提交与）Job 起跑只差 34 秒，
+    # 日志里只有 `HTTPError` 四个字 ⇒ 分不出「还在等 Argo 同步」与「压根没授上」。
+    err = urllib.error.HTTPError("http://x/apis/batch/v1/namespaces/fd-prod/jobs",
+                                403, "Forbidden", None, None)
+    assert unavailable_note(err) == "unavailable: HTTPError:403"
+    # 404 是另一件事（路径/版本不对 ⇒ 改代码），不许与 403 同形
+    assert unavailable_note(urllib.error.HTTPError("u", 404, "nope", None, None)) == \
+        "unavailable: HTTPError:404"
+    # 没有状态码的异常保持原样，不补一个假的 0
+    assert unavailable_note(TimeoutError("timed out")) == "unavailable: TimeoutError"
+    assert unavailable_note(ConnectionResetError("boom")) == "unavailable: ConnectionResetError"
+
+
+def test_main_surfaces_job_table_status_code(tmp_path, monkeypatch, capsys):
+    # 端到端：取不到 Job 表时，输出里的 jobs_map 必须带上 HTTP 状态码。
+    import scripts.pod_gc as pg
+
+    (tmp_path / "token").write_text("dummy-token\n", encoding="utf-8")
+    (tmp_path / "ca.crt").write_text("", encoding="utf-8")
+    monkeypatch.setattr(pg, "SA_DIR", str(tmp_path))
+    monkeypatch.setattr(pg.ssl, "create_default_context", lambda **_kw: None)
+
+    def fake_api(path, *_args, **_kwargs):
+        if path.endswith("/jobs"):
+            raise urllib.error.HTTPError(path, 403, "Forbidden", None, None)
+        return {"items": [pod("old", "Succeeded")]}
+
+    monkeypatch.setattr(pg, "_api_call", fake_api)
+    assert main(["--namespace", "fd-prod", "--dry-run"]) == 0
+    out = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
+    assert out["jobs_map"] == "unavailable: HTTPError:403"
+    assert out["held_for_forensics"] == 0
+    assert out["deleted"] == 1, "dry-run 只计数不删；取不到 Job 表不该让整轮不清理"

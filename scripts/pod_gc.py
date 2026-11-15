@@ -121,6 +121,20 @@ def pod_exit_code(pod: dict) -> int | None:
     return None
 
 
+def unavailable_note(exc: BaseException) -> str:
+    """`unavailable: HTTPError:403` —— 状态码必须带出来。
+
+    **只写异常类名会让三种完全不同的故障长得一模一样**（2026-11-15 实历）：
+    403 是 Role 少一条 `batch/jobs`（改 RBAC）、404 是 API 路径/版本不对（改代码）、
+    401/超时是凭据/网络。当天 `sink-freshness` 那个失败 Job 正好撞上 Role 修复的
+    提交窗口（Job 02:11:00Z 起跑，Role 02:11:34Z 才提交、02:19:54Z 才同步），
+    日志里只有 `HTTPError` 四个字——不查一遍 RBAC 根本分不出是「还在等同步」
+    还是「压根没授上」。同族于「权限缺口与功能缺失同形」。
+    """
+    code = getattr(exc, "code", None)
+    return f"unavailable: {type(exc).__name__}" + (f":{code}" if code else "")
+
+
 def select_pods(pods: list[dict], now: datetime, min_age_h: float,
                 failed_jobs: set[str] | None = None,
                 forensic_h: float = DEFAULT_FORENSIC_H) -> tuple[list[str], int, int, int]:
@@ -211,7 +225,7 @@ def main(argv: list[str] | None = None) -> int:
                              token=token, ctx=ctx).get("items") or []
             failed_jobs, jobs_map = failed_job_names(jobs), "ok"
         except Exception as exc:  # noqa: BLE001 - 取不到 Job 表不该让整轮不清理
-            failed_jobs, jobs_map = None, f"unavailable: {type(exc).__name__}"
+            failed_jobs, jobs_map = None, unavailable_note(exc)
 
     dead, skipped, unparsed, held = select_pods(
         pods, now, args.min_age_hours, failed_jobs, args.forensic_hours)
