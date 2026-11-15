@@ -219,8 +219,9 @@ def finish_pending(conn, pending_id: int, *, run_id: int | None, status: str,
 
 
 def orphaned_run_candidates(conn, *, grace_seconds: int,
-                            default_timeout_seconds: int) -> list[dict]:
-    """Running crawl_runs rows older than their source's declared budget.
+                            default_timeout_seconds: int,
+                            site: str | None = None) -> list[dict]:
+    """Running crawl_runs rows of **this site** older than their declared budget.
 
     A row is a *candidate* only on age: the caller must additionally confirm
     the cluster has no active Job for the source before reaping. The budget
@@ -233,7 +234,18 @@ def orphaned_run_candidates(conn, *, grace_seconds: int,
     Age alone never justifies reaping — the 2026-10-14 orphan (run #2033) was
     a row whose Job had already Failed while its poller died, and the fix must
     not kill a genuinely live run whose executor simply has a long budget.
+
+    ``site`` 是**作用域，不是可选优化**：回收的判据是「本集群里没有它的活动
+    Job」，而一个进程只看得见自己那个集群、自己那个命名空间的 Job。中央库是所有
+    站点共写的（`FD_CRAWL_DB_URL`）：tencent 的 dispatcher 与 xinru 的
+    dispatcher（`k8s/xinru-dispatcher.yaml`，`FD_DISPATCH_SITE=xinru-server1`、
+    命名空间 `scraw`）各写各的行 ⇒ 不过滤站点时，tencent 会拿自己集群的 Job 表去
+    判 xinru 的行，**那边正在跑的 Job 它永远看不见，活得好好的一行会被当孤儿回收**。
+    所以「判不出自己站点」时**不猜**：`site` 缺省返回空列表（回收是破坏性动作，
+    异常时必须退回「什么都不做」），绝不退化成「所有站点」。
     """
+    if not site:
+        return []
     with conn, conn.cursor() as cur:
         cur.execute(
             """
@@ -241,13 +253,16 @@ def orphaned_run_candidates(conn, *, grace_seconds: int,
                    coalesce(s.timeout_seconds, %s) AS budget
             FROM crawl_runs r
             LEFT JOIN crawl_sources s ON s.source = r.source
+            LEFT JOIN pending_runs p ON p.id = r.pending_run_id
             WHERE r.status = 'running'
+              AND coalesce(p.site, s.site, %s) = %s
               AND r.started_at < now()
                   - make_interval(secs => coalesce(s.timeout_seconds, %s)
                                           + %s)
             ORDER BY r.started_at
             """,
-            (default_timeout_seconds, default_timeout_seconds, grace_seconds),
+            (default_timeout_seconds, DEFAULT_SITE, site,
+             default_timeout_seconds, grace_seconds),
         )
         return [{"id": row[0], "source": row[1], "started_at": row[2],
                  "budget": row[3]} for row in cur.fetchall()]

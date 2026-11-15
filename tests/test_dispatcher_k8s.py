@@ -658,3 +658,32 @@ def test_orphan_sweep_k8s_error_never_breaks_tick(monkeypatch):
     monkeypatch.setenv("FD_DISPATCH_NAMESPACE", "scraw")
     assert dcli.reap_orphaned_runs(conn, "xinru-server1") == 0  # no raise
     assert conn.reaped == []
+
+
+def test_orphan_sweep_only_judges_its_own_site(monkeypatch):
+    """回收判据是「**本集群**里没有它的活动 Job」⇒ 只能判自己站点的行。
+
+    中央库是所有站点共写的（`FD_CRAWL_DB_URL`）：tencent 的 dispatcher（命名空间
+    `fd-industry`）与 xinru 的 dispatcher（`k8s/xinru-dispatcher.yaml`，
+    `FD_DISPATCH_SITE=xinru-server1`、命名空间 `scraw`）各写各的行。不过滤站点时
+    tencent 会拿自己集群的 Job 表去判 xinru 的行——那边正在跑的 Job 它永远看不见，
+    **活得好好的一行会被当孤儿回收**。`reap_orphaned_runs(conn, site)` 的 `site`
+    参数此前完全没被读过（AST 扫「未用参数」扫出来的）。
+    """
+    conn = SweepConn([CAND])
+    monkeypatch.setattr(dcli, "list_jobs", lambda ns: [])
+    monkeypatch.setenv("FD_DISPATCH_NAMESPACE", "fd-industry")
+    dcli.reap_orphaned_runs(conn, "tencent")
+
+    cand_sql = [(s, p) for s, p in conn.executed if "FROM crawl_runs r" in s]
+    assert cand_sql, "候选查询必须发生"
+    sql, params = cand_sql[0]
+    assert "pending_runs p" in sql and "p.site" in sql, sql
+    assert "= %s" in sql and params and "tencent" in params, (sql, params)
+
+    # 判不出自己的站点 ⇒ 一条都不判（回收是破坏性动作，异常时退回「什么都不做」）
+    quiet = SweepConn([CAND])
+    monkeypatch.setattr(dcli, "list_jobs",
+                        lambda ns: pytest.fail("没有站点就不该查 k8s"))
+    assert dcli.reap_orphaned_runs(quiet, "") == 0
+    assert quiet.executed == [] and quiet.reaped == []

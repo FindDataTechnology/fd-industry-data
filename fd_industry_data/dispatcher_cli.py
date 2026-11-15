@@ -517,9 +517,14 @@ def reap_orphaned_runs(conn, site: str) -> int:
     active Job for its source, so a genuinely live run (long budget, slow
     Job startup) is never touched. FD_ORPHAN_GRACE_SECONDS=0 disables it.
 
-    Only runs where the k8s API is reachable (the same in-cluster path the
-    dispatch branch uses) — a site whose executor is subprocess-based has no
-    Job to check against, so it is skipped rather than guessed at.
+    Only runs whose Jobs this process could actually see — i.e. **this site's**
+    rows. The central DB is shared by every site's dispatcher (tencent in
+    `fd-industry`, xinru in `scraw` via `k8s/xinru-dispatcher.yaml`), and
+    `list_jobs()` only answers for the local cluster/namespace, so judging
+    another site's row means "no active Job" is always true: a genuinely
+    running run there would be reaped as an orphan. Scope comes from `site`
+    (2026-11-15); a dispatcher that cannot name its own site sweeps nothing
+    rather than guessing "all sites".
     """
     try:
         grace = int(os.environ.get("FD_ORPHAN_GRACE_SECONDS", "1800"))
@@ -538,7 +543,7 @@ def reap_orphaned_runs(conn, site: str) -> int:
         ns = os.environ.get("FD_DISPATCH_NAMESPACE") or _in_cluster_ns()
         candidates = dispatch.orphaned_run_candidates(
             conn, grace_seconds=grace,
-            default_timeout_seconds=default_timeout)
+            default_timeout_seconds=default_timeout, site=site)
         if not candidates:
             print("fd-dispatcher: orphan sweep: 0 candidate(s)")
             return 0
