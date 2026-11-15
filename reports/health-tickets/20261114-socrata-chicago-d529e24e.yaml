@@ -137,5 +137,15 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-15T06:38:18.778262+00:00'
+  event: submit-deferred
+  reason: turn in flight (409)
+  waited_s: 95
+- at: '2026-11-15T06:38:50.983100+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 61b09bd56a7d
