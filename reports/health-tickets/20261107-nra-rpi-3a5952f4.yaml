@@ -161,6 +161,9 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-15T08:36:37.826254+00:00'
+  event: status-failed
+  error: too many values to unpack (expected 2)
 terminal: null
 brief:
   source_urls:

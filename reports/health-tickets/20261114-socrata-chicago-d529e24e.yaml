@@ -151,5 +151,14 @@ lifecycle:
   event: submit-deferred
   reason: turn in flight (409)
   waited_s: 95
+- at: '2026-11-15T08:28:03.072607+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T08:33:02.253940+00:00'
+  event: status-failed
+  error: too many values to unpack (expected 2)
 terminal: null
 evidence_signature: 61b09bd56a7d
