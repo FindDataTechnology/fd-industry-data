@@ -947,6 +947,25 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
 
 # ── 接线：SUBMIT / STATUS（poster/fetcher 可注入） ─────────────────────────
 
+def _unpack_reply(res) -> tuple[int | None, str, dict]:
+    """把 poster/fetcher 的回执统一成 `(status, text, trace)`。
+
+    **为什么要有这个函数**：`_default_poster` 自 2026-11-15（865e157）起回**三元组**
+    （多带一份跳转痕迹），而 `sync_status` 里写的是 `status, text = read(...)`。
+    注入的替身全都只回二元组，所以那一行在测试里永远走不到——真跑时每张单都在
+    STATUS 面炸 `ValueError: too many values to unpack (expected 2)`，判词里只剩
+    这一行，读起来像网络问题，其实是「通道改了口径、调用方没跟上」。
+    （同族：夹具能绕过的那条路径等于没验。）
+
+    宽度按实际长度取：注入的替身回 2 元组照样能跑，不逼所有假实现跟着升级。
+    """
+    st = res[0] if len(res) > 0 else None
+    tx = res[1] if len(res) > 1 else ""
+    raw = res[2] if len(res) > 2 else None
+    trace = raw if isinstance(raw, dict) else {}
+    return st, tx, trace
+
+
 def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900) -> tuple[int, str, dict]:
     """a2a 消息发送：JSON-RPC message/send 封装（文本指令在 parts[0].text）。
 
@@ -1493,8 +1512,7 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                                                  remaining / _POSTER_ATTEMPTS))
                     else:
                         res = poster(url, key, idem_key, body)
-                    st, tx = res[0], res[1]
-                    trace = res[2] if len(res) > 2 else {}
+                    st, tx, trace = _unpack_reply(res)
                     return st, tx, time.monotonic() - t0, trace
 
                 status, text, spent, hop_trace = _post(idem)
@@ -1748,20 +1766,23 @@ def sync_status(outdir: Path, url: str, key: str, fetcher=None,
         else:
             read = fetcher
         try:
-            status, text = read(url, key, _status_idem_key(doc, p.name[:-5]),
-                                f"STATUS reports/health-tickets/{p.name}")
+            status, text, trace = _unpack_reply(
+                read(url, key, _status_idem_key(doc, p.name[:-5]),
+                     f"STATUS reports/health-tickets/{p.name}"))
         except Exception as e:  # noqa: BLE001 — 回读失败留痕不炸
             ticket_mod.append_event(doc, "status-failed", error=str(e)[:300])
             p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
             results.append({"ticket": p.name, "state": None, "error": str(e)[:200]})
             continue
         parsed = parse_status(extract_message_text(text))
+        # 痕迹只在真发生过跳转时才落账：每张单都写一份空 trace 会把生命周期刷成噪音。
+        extra = {"trace": trace} if trace.get("followed") or trace.get("location") else {}
         ticket_mod.append_event(doc, "status", http_status=status, state=parsed["state"],
-                                note=parsed["note"], pr_url=parsed["pr_url"])
+                                note=parsed["note"], pr_url=parsed["pr_url"], **extra)
         if parsed["state"] in TERMINAL_MAP:
             # STATUS 回读的 "merged" 对应人工合并，故走人工路径（closed 是人工门）。
             ticket_mod.set_terminal(doc, TERMINAL_MAP[parsed["state"]], note=parsed["note"],
                                     human=(parsed["state"] == "merged"))
         p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
-        results.append({"ticket": p.name, "http_status": status, **parsed})
+        results.append({"ticket": p.name, "http_status": status, **parsed, **extra})
     return results

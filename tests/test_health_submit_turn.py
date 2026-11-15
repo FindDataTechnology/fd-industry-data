@@ -744,3 +744,63 @@ def test_poster_carries_waf_challenge_cookie_on_the_follow_hop(monkeypatch):
     st, _, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x",
                                 "k", "idem-nocookie", "body")
     assert st == 200 and calls[1][1] is None, (st, calls)
+
+
+# ── STATUS 面：回执形状变了，调用方必须跟上（2026-11-15 线上回归） ────────────
+#
+# 实历：`_default_poster` 为带跳转痕迹改成回三元组，`sync_status` 里仍是
+# `status, text = read(...)` ⇒ 每张单在 STATUS 面炸
+# `ValueError: too many values to unpack (expected 2)`，验收轮 43693266748 的
+# 判词里只剩这一行。**它躲过了全部自证**——注入的 fetcher 全都只回二元组，
+# 测试走的从来不是默认 poster 那条路（同族：夹具绕过的那条路径等于没验）。
+
+def test_status_lane_survives_the_three_tuple_default_poster(tmp_path, monkeypatch):
+    """不注入 fetcher 时才走 `_default_poster`——这是线上真正跑的那条路。"""
+    d = _mk(tmp_path, slugs=("t-a",))
+    seen: list[str] = []
+
+    def poster(url, key, idem, body, timeout=900):
+        seen.append(body)
+        return 200, '{"state": "working"}', {"followed": False, "hops": 0, "cookies": 0}
+
+    monkeypatch.setattr(ins, "_default_poster", poster)
+    res = ins.sync_status(d, "http://x", "k", max_reads=1, budget_s=100.0)
+    assert seen == ["STATUS reports/health-tickets/20261110-t-a.yaml"]
+    assert res[0].get("error") is None, f"STATUS 面不该报错：{res[0]}"
+    assert res[0]["http_status"] == 200 and res[0]["state"] == "working", res[0]
+
+
+def test_status_lane_keeps_working_with_two_tuple_fetchers(tmp_path):
+    """注入的替身回二元组也照样能跑：不逼所有假实现跟着升级。"""
+    d = _mk(tmp_path, slugs=("t-a",))
+
+    def fetcher(url, key, idem, body):
+        return 200, '{"state": "working"}'
+
+    res = ins.sync_status(d, "http://x", "k", fetcher=fetcher, max_reads=1)
+    assert res[0]["state"] == "working" and res[0].get("error") is None, res[0]
+    # 没有痕迹就不落空 trace（每张单一份空 trace 会把生命周期刷成噪音）
+    assert "trace" not in res[0], res[0]
+
+
+def test_status_lane_records_the_location_when_it_had_to_hop(tmp_path, monkeypatch):
+    """STATUS 面同样要留跳转痕迹：3xx 时判词得说得出跳到哪。"""
+    d = _mk(tmp_path, slugs=("t-a",))
+
+    def poster(url, key, idem, body, timeout=900):
+        return 308, "", {"followed": True, "hops": 1, "location": "/api/wanxing/v1/a2a/af",
+                         "cookies": 0, "final_url": "https://x/api/wanxing/v1/a2a/af",
+                         "not_followed": None}
+
+    monkeypatch.setattr(ins, "_default_poster", poster)
+    res = ins.sync_status(d, "http://x", "k", max_reads=1, budget_s=100.0)
+    assert res[0]["http_status"] == 308, res[0]
+    assert res[0]["trace"]["location"] == "/api/wanxing/v1/a2a/af", res[0]
+
+
+def test_unpack_reply_tolerates_short_and_odd_replies():
+    """宽度按实际长度取；第三位不是 dict 时当作「没有痕迹」而不是崩掉。"""
+    assert ins._unpack_reply((200, "ok")) == (200, "ok", {})
+    assert ins._unpack_reply((302, "moved", {"location": "/a"}))[2]["location"] == "/a"
+    assert ins._unpack_reply((302, "moved", "not-a-dict"))[2] == {}
+    assert ins._unpack_reply(()) == (None, "", {})
