@@ -588,12 +588,19 @@ class _SweepCursor:
     def execute(self, sql, params=None):
         flat = " ".join(sql.split())
         self._conn.executed.append((flat, params))
+        if "GROUP BY 1" in flat:
+            # 诊断面：running 行按站点分组（`running_counts_by_site`）
+            self._last = "counts"
+            self.rowcount = 0
+            return
         self._last = ("candidates" if "FROM crawl_runs r" in flat else "reap")
         if self._last == "reap":
             self._conn.reaped.append(params[1])  # run_id
             self.rowcount = 1
 
     def fetchall(self):
+        if self._last == "counts":
+            return list(self._conn.site_counts.items())
         return list(self._conn.candidates)
 
     def __enter__(self):
@@ -606,8 +613,10 @@ class _SweepCursor:
 class SweepConn:
     """Stand-in for the orphan sweep: candidates list + reap recorder."""
 
-    def __init__(self, candidates):
+    def __init__(self, candidates, site_counts=None):
         self.candidates = candidates
+        # 诊断面查询的返回：{site: n}（None 键 = 无站点归属，回退到查询方自己的站点）
+        self.site_counts = site_counts if site_counts is not None else {}
         self.executed = []
         self.reaped = []
 
@@ -739,3 +748,50 @@ def test_orphan_sweep_failure_is_distinguishable_and_never_leaks_dsn(monkeypatch
     out = capsys.readouterr().out
     assert "site=xinru-server1" in out and "0 candidate(s)" in out, out
     assert "FAILED" not in out, out
+
+
+def test_orphan_sweep_reports_running_rows_of_sites_it_cannot_judge(monkeypatch, capsys):
+    """别家站点还有 running 行 ⇒ 必须念出来，不许把「没人收」读成「没有孤儿」。
+
+    站点收窄（4ce1299）之后本回收器只判自己站点；docker 站点（zihan /
+    xinru-server2 / nbs-workers）的执行者是宿主 worker、根本不起 Job，**这一档
+    没有任何回收器**。2026-11-15 只读实测：三个 docker 站点的 pending_runs 合计
+    129 行 —— 盲区不是空的，只是今天恰好没有挂着的行。
+    """
+    conn = SweepConn([], {"tencent": 2, "zihan": 1, "xinru-server2": 3, None: 1})
+    monkeypatch.setenv("FD_DISPATCH_NAMESPACE", "fd-industry")
+    dcli.reap_orphaned_runs(conn, "tencent")
+    out = capsys.readouterr().out
+    assert "zihan=1" in out and "xinru-server2=3" in out, out
+    assert "没有回收器" in out, out
+    # 自己的站点不进「别家」榜；无归属的行回退到本站点，也不进
+    assert "tencent=" not in out.replace("site=tencent", ""), out
+    assert "None=" not in out, out
+
+
+def test_orphan_sweep_says_nothing_when_no_other_site_is_running(monkeypatch, capsys):
+    """没有别家在跑 ⇒ 一个字的诊断都不加，正常日志保持干净。"""
+    conn = SweepConn([], {"tencent": 2})
+    monkeypatch.setenv("FD_DISPATCH_NAMESPACE", "fd-industry")
+    assert dcli.reap_orphaned_runs(conn, "tencent") == 0
+    out = capsys.readouterr().out
+    assert "0 candidate(s)" in out, out
+    assert "别家站点" not in out, out
+
+
+def test_orphan_sweep_counts_failure_is_named_not_swallowed(monkeypatch, capsys):
+    """诊断查询自己坏了 ⇒ 点名异常类型（stderr），且不影响回收本身。
+
+    「数不出来」与「数出来是 0」必须长得不一样 —— 否则统计查询挂掉的那天，
+    日志照旧打「没有孤儿」，而别家站点可能已经挂了一周。
+    """
+    def boom(conn):
+        raise RuntimeError("connection reset")
+
+    monkeypatch.setattr(dcli.dispatch, "running_counts_by_site", boom)
+    monkeypatch.setenv("FD_DISPATCH_NAMESPACE", "fd-industry")
+    assert dcli.reap_orphaned_runs(SweepConn([]), "tencent") == 0
+    cap = capsys.readouterr()          # 只读一次：readouterr() 会把缓冲清空
+    assert "没数出来" in cap.err and "RuntimeError" in cap.err, cap.err
+    assert "0 candidate(s)" in cap.out, cap.out   # 回收本身照常
+    assert "别家站点" not in cap.out, cap.out      # 没数出来就不许装作数过了

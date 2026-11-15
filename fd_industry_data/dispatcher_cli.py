@@ -548,6 +548,10 @@ def reap_orphaned_runs(conn, site: str) -> int:
         grace = 1800
     if grace <= 0:
         return 0
+    if not site:
+        # 判不出自己站点 ⇒ 这一轮什么都不判，也**不查任何东西**：诊断面若照跑，
+        # 就会在「本轮没判」的同时打出一行看似正常的统计，读的人会以为判过了。
+        return 0
     try:
         default_timeout = int(os.environ.get("FD_ORPHAN_DEFAULT_TIMEOUT",
                                             "28800"))
@@ -555,15 +559,28 @@ def reap_orphaned_runs(conn, site: str) -> int:
         default_timeout = 28800
 
     reaped = 0
+    candidates = []
+    elsewhere = {}
+    elsewhere_known = True
     try:
         ns = os.environ.get("FD_DISPATCH_NAMESPACE") or _in_cluster_ns()
         candidates = dispatch.orphaned_run_candidates(
             conn, grace_seconds=grace,
             default_timeout_seconds=default_timeout, site=site)
-        if not candidates:
-            print(f"fd-dispatcher: orphan sweep: site={site}, 0 candidate(s)")
-            return 0
-        jobs = list_jobs(ns)
+        # 诊断面：别家站点还有几条 running。本回收器判不了它们（看不见它们的 Job），
+        # 而 docker 站点（zihan/xinru-server2/nbs-workers）连 Job 都没有 ⇒ 那一档
+        # **没有任何回收器**。不念出来，「今天没有孤儿」与「这些站点的孤儿没人看」
+        # 就是同一行日志。查询本身坏了不能拖垮回收，但必须点名（判不出 ≠ 没有）。
+        try:
+            counts = dispatch.running_counts_by_site(conn)
+        except Exception as e:  # noqa: BLE001
+            elsewhere_known = False
+            print(f"fd-dispatcher: orphan sweep: site={site}: 别家站点的 running "
+                  f"行数**没数出来**（{type(e).__name__}）", file=sys.stderr)
+        else:
+            elsewhere = {s: n for s, n in counts.items()
+                         if s and s != site and n > 0}
+        jobs = list_jobs(ns) if candidates else []
         for cand in candidates:
             src = cand["source"]
             if active_job_for(jobs, src) is not None:
@@ -585,11 +602,21 @@ def reap_orphaned_runs(conn, site: str) -> int:
               f"{type(e).__name__}（本轮一个都没判；不是「没有孤儿」）",
               file=sys.stderr)
         return 0
-    if reaped:
+    if not candidates:
+        print(f"fd-dispatcher: orphan sweep: site={site}, 0 candidate(s)")
+    elif reaped:
         print(f"fd-dispatcher: orphan sweep: site={site}, reaped {reaped} run(s)")
     else:
         print(f"fd-dispatcher: orphan sweep: site={site}, "
               f"{len(candidates)} candidate(s), 0 reaped (all still active)")
+    if elsewhere:
+        # 「没人收」是字面意思：本进程只看得见自己的 Job；docker 站点没有 Job。
+        # 这一行只报警不做动作 —— 按租约回收会误杀超过 30 分钟的正常爬取
+        # （`pending_runs.lease_until` 全程不续期），所以处置在人。
+        listed = ", ".join(f"{s}={n}" for s, n in sorted(elsewhere.items()))
+        print(f"fd-dispatcher: orphan sweep: site={site}: 别家站点还有 running 行 "
+              f"{listed} —— 它们的执行者不是本集群的 Job，**这一档没有回收器**"
+              f"（宿主 worker 崩了就会一直挂着）")
     return reaped
 
 

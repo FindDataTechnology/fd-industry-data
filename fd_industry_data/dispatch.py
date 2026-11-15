@@ -268,6 +268,41 @@ def orphaned_run_candidates(conn, *, grace_seconds: int,
                  "budget": row[3]} for row in cur.fetchall()]
 
 
+def running_counts_by_site(conn) -> dict:
+    """运行中的 crawl_runs 按拥有它的站点分组（只读，纯诊断）。
+
+    为什么需要它：回收判据是「本集群里没有它的活动 Job」，而 `list_jobs()` 只看得见
+    自己那个集群 ⇒ 一个 dispatcher 只能判**自己站点**的行（见
+    `orphaned_run_candidates`）。可是中央库里有站点的执行者根本不是 k8s：
+
+    - `zihan`（`VM-0-2-ubuntu-dispatch`）、`xinru-server2`（`VM-0-13-debian-dispatch`）、
+      `nbs-workers` —— 宿主 worker 自己 claim 自己跑，**不起 Job**；
+    - 2026-11-15 只读实测：`pending_runs` 三个 docker 站点合计 129 行，`crawl_runs`
+      里它们也有 success 记录 ⇒ 不是空站点。
+
+    于是站点收窄之后，这些站点的 running 行**没有任何回收器覆盖**：worker 崩了，
+    行就永久挂在 running（旧版会被随便哪个 dispatcher 收掉，代价是误杀在跑的）。
+    这笔账没法用一个租约判据补齐——`pending_runs.lease_until` 只在 claim 时设一次
+    （1800s）、**全程不续期**，所以「租约过期 / pending 不再 claimed」推不出「跑的人
+    死了」，按它回收会正好误杀超 30 分钟的正常爬取。
+
+    所以这里只做**可见性**：让每轮 sweep 把「别家站点还有几条 running」念出来。
+    少了那一行，「今天没有孤儿」与「这些站点的孤儿根本没人看」在日志里同形。
+    """
+    with conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT coalesce(p.site, s.site) AS site, count(*)::int
+            FROM crawl_runs r
+            LEFT JOIN crawl_sources s ON s.source = r.source
+            LEFT JOIN pending_runs p ON p.id = r.pending_run_id
+            WHERE r.status = 'running'
+            GROUP BY 1
+            """
+        )
+        return {row[0]: row[1] for row in cur.fetchall()}
+
+
 def reap_orphaned_run(conn, run_id: int, *, reason: str) -> bool:
     """Close one orphaned running row as failed; True when this call did it.
 
