@@ -548,6 +548,27 @@ dispatcher 侧避免因一次数据不足就判任务失败、连带罚掉共享
    注入（`HTTP(S)_PROXY` + Node 版后缀 `NO_PROXY`），同一 URL 200。
    即投递要读的工单文件在 raw 上，而 platform 取不到它。
 
+**2026-11-15 补第三处成因，与前两处相反：通道没坏，是我们自己的代码坏了。**
+`_default_poster` 为了让判词说得出「跳没跳、跳去哪」改成回三元组
+`(status, text, trace)`，`submit_new_tickets` 跟上了，`sync_status` 里仍是
+`status, text = read(...)` ⇒ **每张单**在 STATUS 面抛
+`ValueError: too many values to unpack (expected 2)`（验收轮 43693266748 逐张可见）。
+它躲过全部自证，因为注入的 fetcher 全都只回二元组——测试走的从来不是默认实现那条路
+（同族：夹具能绕过的那条路径等于没验）。
+
+更值得记的是**第二层伤害**：旧判据「有 `error` 且没有 `http_status` ⇒ 连不上」把这批
+本地异常读成通道整死，`delivery_lane.status` 报 `outage`、原因写「STATUS 回读连不上」。
+处置方向完全相反（查出口/门面 vs 回仓里看代码），混成一档就会把人引向错的方向。
+现在 `sync_status` 的 `except` 记 `error_kind = type(e).__name__`，
+`_status_failure_kind()` 用 `_NETWORK_ERROR_KINDS`（URLError/超时/TLS/半截报文，以及
+poster 重试用尽时自己抛的 `RuntimeError`）分出 `channel` 与 `client`；`delivery_lane`
+增 `status_client_errors`，判词点名异常类（「STATUS 回读在自己代码里失败 (ValueError)」），
+参与 `degraded`、**不进 `outage`**（红线口径不变）。没有 `error_kind` 的老行仍按
+`channel` 处置——不悄悄放宽既有口径。
+
+**读这一块的口径**：`status_client_errors > 0` 时不要去看网络，去看仓里最近动过的
+回执/解包代码；`status_channel_errors > 0` 才是通道的事。
+
 ### 巡检面 ≠ 交付面（2026-11-09 实测，务必记住）
 
 巡检每晚 `git clone --depth=1` **GitHub** 的 `main`（`36d5836`，127 个 `spiders/` 目录）；
