@@ -611,3 +611,62 @@ def test_redirect_verdict_names_the_hop_not_silence():
     v = ins.parse_submit_verdict(308, html, "")
     assert v["verdict"] == "unknown", v
     assert "308" in v["reason"] and "跳转" in v["reason"], v["reason"]
+
+
+def test_poster_carries_waf_challenge_cookie_on_the_follow_hop(monkeypatch):
+    """WAF 的 308 是「发 Set-Cookie、让你带 cookie 再来」的挑战。
+
+    2026-11-15 验收轮真跑实证：跟跳带了 Location 仍拿回同一页 308（reason
+    「已按同主机跟一跳仍如此」）——旧跟跳只带原 headers，挑战 cookie 被丢掉。
+    本用例复刻雷池的形状：第一跳 308 + `Set-Cookie: sl-session=…`，第二跳
+    **只有**带 `Cookie` 才放行（不带就还是 308）。cookie 只在本次调用内存活，
+    不跨调用、不跨工单。
+    """
+    calls: list[tuple[str, str | None]] = []
+
+    class _Resp:
+        status = 200
+
+        def read(self, _n=None):
+            return b'{"result": {"ok": true}}'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout=None):
+        calls.append((req.full_url, req.get_header("Cookie")))
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(
+                req.full_url, 308, "Permanent Redirect",
+                {"Location": "/api/wanxing/v1/a2a/other",
+                 "Set-Cookie": "sl-session=abc123; Path=/; HttpOnly"}, None)
+        if req.get_header("Cookie") != "sl-session=abc123":
+            # 不带 cookie 就还是同一道门——这正是「跟一跳仍如此」的成因
+            raise urllib.error.HTTPError(
+                req.full_url, 308, "Permanent Redirect",
+                {"Location": "/api/wanxing/v1/a2a/other"}, None)
+        return _Resp()
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
+    st, tx = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x",
+                                 "k", "idem-cookie", "body")
+    assert st == 200, (st, tx)
+    assert calls[1][0] == "https://wanxing.example/api/wanxing/v1/a2a/other"
+    assert calls[1][1] == "sl-session=abc123", calls[1]
+    # 无 Set-Cookie 的普通 308（既有 ①③④ 臂）不受影响：不产生 Cookie 头
+    calls.clear()
+
+    def plain_308(req, timeout=None):
+        calls.append((req.full_url, req.get_header("Cookie")))
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(req.full_url, 308, "Permanent Redirect",
+                                         {"Location": "/api/wanxing/v1/a2a/other"}, None)
+        return _Resp()
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", plain_308)
+    st, _ = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x",
+                                "k", "idem-nocookie", "body")
+    assert st == 200 and calls[1][1] is None, (st, calls)

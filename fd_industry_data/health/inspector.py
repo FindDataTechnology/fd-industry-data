@@ -989,6 +989,7 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
     # 不由我们决定。
     attempts = _POSTER_ATTEMPTS
     followed = False
+    cookies: list[str] = []   # 前置在同一调用内发的挑战 cookie（如 SafeLine sl-session）
     for i in range(1, attempts + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -996,17 +997,48 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
         except urllib.error.HTTPError as e:  # noqa: BLE001
             text = e.read(8000).decode("utf-8", "replace")
             loc = e.headers.get("Location") if e.headers else None
+            cookies.extend(_challenge_cookies(e.headers))
             if (e.code in (301, 302, 303, 307, 308) and loc and not followed
                     and i < attempts and _same_host(url, loc)):
                 followed = True
+                hop_hdrs = dict(hdrs)
+                if cookies:
+                    # 2026-11-15 验收轮真跑实证：跟跳带了 Location 仍拿回同一页
+                    # 308（verdict_reason「已按同主机跟一跳仍如此」）——WAF 的 308
+                    # 是「发 Set-Cookie、让你带 cookie 再来」的挑战，而跟跳原先
+                    # 只带原 headers，挑战 cookie 被丢掉，于是必被同一道门挡回。
+                    # cookie 只随这一跳去 _same_host 已保证的同一个主机；只在
+                    # 本次调用的内存里存活，不跨调用、不跨工单，无会话状态。
+                    hop_hdrs["Cookie"] = "; ".join(cookies)
                 req = urllib.request.Request(
-                    urllib.parse.urljoin(url, loc), data=data, method="POST", headers=hdrs)
+                    urllib.parse.urljoin(url, loc), data=data, method="POST",
+                    headers=hop_hdrs)
                 continue  # 用同一份重试预算跟这一跳
             return e.code, text
         except (urllib.error.URLError, ConnectionError, TimeoutError):
             if i >= attempts:
                 raise
             time.sleep(_POSTER_RETRY_BACKOFF_S * i)
+
+
+def _challenge_cookies(headers) -> list[str]:
+    """从响应头抽 Set-Cookie 的 name=value 对（挑战 cookie，如 SafeLine sl-session）。
+
+    只取 name=value；Path/Expires/HttpOnly 等属性丢弃——我们只在**同一次调用**
+    内原样带回去，不做任何跨调用的会话状态。没有 Set-Cookie 就是空列表。
+    """
+    out: list[str] = []
+    raws = None
+    if headers is not None:
+        get_all = getattr(headers, "get_all", None)
+        raws = get_all("Set-Cookie") if get_all else headers.get("Set-Cookie")
+    if isinstance(raws, str):     # dict 分支拿到的是单条字符串，别逐字符迭代
+        raws = [raws]
+    for raw in raws or []:
+        first = raw.split(";", 1)[0].strip()
+        if "=" in first:
+            out.append(first)
+    return out
 
 
 def _same_host(url: str, location: str) -> bool:
