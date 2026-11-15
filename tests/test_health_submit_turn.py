@@ -526,9 +526,10 @@ def test_poster_follows_one_same_host_redirect(tmp_path, monkeypatch):
     实测（2026-11-14）：一轮 8 次 SUBMIT 有 3 次拿到 Tengine 的 308 HTML 页
     （19:15:51Z / 23:14:05Z / 23:22:05Z），urllib 对 POST+308 直接抛 HTTPError，
     于是那几次投递既没到 API、也没被记成任何一类失败（verdict=unknown，reason 空）。
-    这里用假 urlopen 复刻三段：① 308+Location 同主机 → 跟过去拿到 200；
+    这里用假 urlopen 复刻四段：① 308+Location 同主机同协议 → 跟过去拿到 200；
     ② 308+跨主机 Location → **不跟**（不能把 Bearer 送给别的主机）；
-    ③ 308 无 Location → 原样返回 308，不无限跳。
+    ③ 308 无 Location → 原样返回 308，不无限跳；
+    ④ 同主机但 https→http → **不跟**（协议降级＝凭据明文出门）。
     """
     calls: list[str] = []
 
@@ -580,6 +581,21 @@ def test_poster_follows_one_same_host_redirect(tmp_path, monkeypatch):
     monkeypatch.setattr(ins.urllib.request, "urlopen", no_loc)
     st, _ = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem3", "body")
     assert st == 308 and len(calls) == 1, (st, calls)
+
+    # ④ 同主机但**降级协议**（https → http）：主机名相等也不许跟——跟过去等于把
+    #    `Authorization: Bearer …` 明文发上线。这条只有断言协议才抓得到：只比
+    #    hostname 的实现会在这里跟过去，而其它三条臂全绿。
+    calls.clear()
+
+    def downgrade(req, timeout=None):
+        calls.append(req.full_url)
+        raise urllib.error.HTTPError(req.full_url, 308, "Permanent Redirect",
+                                     {"Location": "http://wanxing.example/api/wanxing/v1/a2a/x"}, None)
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", downgrade)
+    st, _ = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem4", "body")
+    assert st == 308, st
+    assert len(calls) == 1, f"跨协议不得跟随（会把 Bearer 明文发出），实际打了 {calls}"
 
 
 def test_redirect_verdict_names_the_hop_not_silence():

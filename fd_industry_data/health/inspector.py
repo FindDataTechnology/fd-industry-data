@@ -983,9 +983,10 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
     # 在回执里只剩一页 Tengine 的 308 HTML——既不像受理也不像拒收，verdict 落
     # `unknown`，摘要里一个字都没有。实测 2026-11-14 那轮 8 张单有 3 张是这个形状
     # （19:15:51Z / 23:14:05Z / 23:22:05Z），投递根本没到门面（门面同期只记了别的单
-    # 的 admitted/refused）。这里自己跟**一跳**，且**只跟同主机**：
-    # 跨主机的 Location 一律不跟——那等于把 Bearer 凭据送给另一个主机，而跳转目标
-    # 由前置决定，不由我们决定。
+    # 的 admitted/refused）。这里自己跟**一跳**，且**只跟同主机同协议**：
+    # 跨主机或跨协议的 Location 一律不跟——跨主机等于把 Bearer 凭据送给另一个主机，
+    # 跨协议（https→http）等于把同一个凭据明文发上线路，而跳转目标由前置决定、
+    # 不由我们决定。
     attempts = _POSTER_ATTEMPTS
     followed = False
     for i in range(1, attempts + 1):
@@ -1009,10 +1010,15 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
 
 
 def _same_host(url: str, location: str) -> bool:
-    """跳转目标是否与原请求同主机（跨主机一律不跟，避免把凭据送出去）。"""
-    a = urllib.parse.urlsplit(url).hostname or ""
-    b = urllib.parse.urlsplit(urllib.parse.urljoin(url, location)).hostname or ""
-    return bool(a) and a == b
+    """跳转目标是否与原请求同主机**同协议**（任一不同都不跟）。
+
+    同主机还不够：`https://…` 被跳到 `http://…同名主机` 时主机名相等，但那一跳会把
+    `Authorization: Bearer …` 明文送上线。协议必须一致（http→https 的升级也不跟，
+    因为那同样是换了一条链路，而跳转目标由前置决定、不由我们决定）。
+    """
+    a = urllib.parse.urlsplit(url)
+    b = urllib.parse.urlsplit(urllib.parse.urljoin(url, location))
+    return bool(a.hostname) and a.hostname == b.hostname and a.scheme == b.scheme
 
 
 def _part_texts(result: dict) -> list[str]:
