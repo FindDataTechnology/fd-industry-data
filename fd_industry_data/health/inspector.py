@@ -13,6 +13,8 @@ import re
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -965,28 +967,52 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
             }
         },
     }
-    req = urllib.request.Request(
-        url, data=json.dumps(payload).encode("utf-8"), method="POST",
-        headers={
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-            "Idempotency-Key": idem,
-        },
-    )
+    data = json.dumps(payload).encode("utf-8")
+    hdrs = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Idempotency-Key": idem,
+    }
+    req = urllib.request.Request(url, data=data, method="POST", headers=hdrs)
     # 网络层失败重试：实测（2026-11-10）一轮 10 次 SUBMIT 里有 7 次直接
     # RemoteDisconnected / URLError，成功率被打到 30%——而每次失败都白占一个 turn 窗口。
     # 只对**连接层**异常重试（HTTPError 是有答复的，不重试）；idem 不变，安全。
+    #
+    # 3xx 例外（2026-11-15）：POST 撞上 301/302/303/307/308 时 CPython 的
+    # HTTPRedirectHandler 不跟随（它只跟 GET/HEAD 的 307/308），于是「前置要求跳转」
+    # 在回执里只剩一页 Tengine 的 308 HTML——既不像受理也不像拒收，verdict 落
+    # `unknown`，摘要里一个字都没有。实测 2026-11-14 那轮 8 张单有 3 张是这个形状
+    # （19:15:51Z / 23:14:05Z / 23:22:05Z），投递根本没到门面（门面同期只记了别的单
+    # 的 admitted/refused）。这里自己跟**一跳**，且**只跟同主机**：
+    # 跨主机的 Location 一律不跟——那等于把 Bearer 凭据送给另一个主机，而跳转目标
+    # 由前置决定，不由我们决定。
     attempts = _POSTER_ATTEMPTS
+    followed = False
     for i in range(1, attempts + 1):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.status, resp.read(8000).decode("utf-8", "replace")
         except urllib.error.HTTPError as e:  # noqa: BLE001
-            return e.code, e.read(8000).decode("utf-8", "replace")
+            text = e.read(8000).decode("utf-8", "replace")
+            loc = e.headers.get("Location") if e.headers else None
+            if (e.code in (301, 302, 303, 307, 308) and loc and not followed
+                    and i < attempts and _same_host(url, loc)):
+                followed = True
+                req = urllib.request.Request(
+                    urllib.parse.urljoin(url, loc), data=data, method="POST", headers=hdrs)
+                continue  # 用同一份重试预算跟这一跳
+            return e.code, text
         except (urllib.error.URLError, ConnectionError, TimeoutError):
             if i >= attempts:
                 raise
             time.sleep(_POSTER_RETRY_BACKOFF_S * i)
+
+
+def _same_host(url: str, location: str) -> bool:
+    """跳转目标是否与原请求同主机（跨主机一律不跟，避免把凭据送出去）。"""
+    a = urllib.parse.urlsplit(url).hostname or ""
+    b = urllib.parse.urlsplit(urllib.parse.urljoin(url, location)).hostname or ""
+    return bool(a) and a == b
 
 
 def _part_texts(result: dict) -> list[str]:
@@ -1124,6 +1150,13 @@ def parse_submit_verdict(status: int, raw_text: str, message: str) -> dict:
                 "state": None, "response_excerpt": (raw_text or "")[:300]}
     if status >= 400:
         verdict, reason = "error", f"HTTP {status}{_http_error_detail(raw_text)}"
+    elif 300 <= status < 400:
+        # POST 撞上前置跳转（实测 2026-11-14：Tengine 回 308，正文就是那一页 HTML）。
+        # 既不是受理也不是拒收，但**必须留下原因**：此前 reason 是空串，摘要里只剩一个
+        # `unknown`，看不出「投递根本没到 API」与「agent 回了看不懂的话」的区别。
+        # 判词里写明 `_default_poster` 已按同主机跟过一跳仍如此，重投才有意义。
+        verdict = "unknown"
+        reason = f"HTTP {status} 跳转未落到 API（`_default_poster` 已按同主机跟一跳仍如此）"
     else:
         try:
             doc = json.loads(raw_text)

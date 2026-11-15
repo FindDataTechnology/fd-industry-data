@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pathlib
 import sys
+import urllib.error
 
 import pytest
 
@@ -517,3 +518,80 @@ def test_relayed_upstream_errors_count_toward_cap(tmp_path, cfg, monkeypatch):
     capped = [r for r in res if r.get("ticket") == name]
     assert capped and capped[0]["verdict"] == "exhausted", capped
     assert calls == [], f"被判耗尽后不得再打门面；实际 calls={calls}"
+
+
+def test_poster_follows_one_same_host_redirect(tmp_path, monkeypatch):
+    """POST 撞上前置的 308 时自己跟一跳（CPython 不跟 POST 的 307/308）。
+
+    实测（2026-11-14）：一轮 8 次 SUBMIT 有 3 次拿到 Tengine 的 308 HTML 页
+    （19:15:51Z / 23:14:05Z / 23:22:05Z），urllib 对 POST+308 直接抛 HTTPError，
+    于是那几次投递既没到 API、也没被记成任何一类失败（verdict=unknown，reason 空）。
+    这里用假 urlopen 复刻三段：① 308+Location 同主机 → 跟过去拿到 200；
+    ② 308+跨主机 Location → **不跟**（不能把 Bearer 送给别的主机）；
+    ③ 308 无 Location → 原样返回 308，不无限跳。
+    """
+    calls: list[str] = []
+
+    class _Resp:
+        status = 200
+
+        def read(self, _n=None):
+            return b'{"result": {"ok": true}}'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout=None):
+        calls.append(req.full_url)
+        if len(calls) == 1:
+            hdrs = {"Location": "/api/wanxing/v1/a2a/other"}
+            raise urllib.error.HTTPError(req.full_url, 308, "Permanent Redirect", hdrs, None)
+        return _Resp()
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
+    st, tx = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem1", "body")
+    assert st == 200, (st, tx)
+    assert calls == ["https://wanxing.example/api/wanxing/v1/a2a/x",
+                     "https://wanxing.example/api/wanxing/v1/a2a/other"], calls
+
+    # ② 跨主机：不跟，凭据不出门
+    calls.clear()
+
+    def cross_host(req, timeout=None):
+        calls.append(req.full_url)
+        raise urllib.error.HTTPError(req.full_url, 308, "Permanent Redirect",
+                                     {"Location": "https://evil.example/x"}, None)
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", cross_host)
+    st, _ = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem2", "body")
+    assert st == 308, st
+    assert len(calls) == 1, f"跨主机不得跟随，实际打了 {calls}"
+
+    # ③ 无 Location：原样返回
+    calls.clear()
+
+    def no_loc(req, timeout=None):
+        calls.append(req.full_url)
+        raise urllib.error.HTTPError(req.full_url, 308, "Permanent Redirect", {}, None)
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", no_loc)
+    st, _ = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem3", "body")
+    assert st == 308 and len(calls) == 1, (st, calls)
+
+
+def test_redirect_verdict_names_the_hop_not_silence():
+    """3xx 的裁决必须是 `unknown` + **写明跳转**，不能是空 reason。
+
+    之前 `status < 400` 落到 else 分支、HTML 解析失败 ⇒ verdict=unknown、reason=""，
+    摘要里读不出「投递根本没到 API」与「agent 回了看不懂的话」的区别。
+    """
+    html = ('<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\r\n<html>\r\n'
+            '<head><title>308 Permanent Redirect</title></head>\r\n<body>\r\n'
+            '<center><h1>308 Permanent Redirect</h1></center>\r\n<hr><center>tengine</center>\r\n'
+            '</body>\r\n</html>')
+    v = ins.parse_submit_verdict(308, html, "")
+    assert v["verdict"] == "unknown", v
+    assert "308" in v["reason"] and "跳转" in v["reason"], v["reason"]
