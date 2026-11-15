@@ -4,7 +4,7 @@ label: 文化和旅游部 国内居民出游数据（季度稿 · 人次/花费/
 source_url: https://zwgk.mct.gov.cn/zfxxgkml/447/465/index_3081.html
 # site: 缺省 tencent —— 2026-11-08 实测直连 200，无验证码/无 Cookie/无频率限制（与 mct-star-hotel 同栏目）。
 #
-# schedule: 月频探针（每月 10 日 10:42 UTC = 18:42 CST）——发布节奏是「一季度（4 月）/上半年（7 月）/
+# schedule: 月频探针（每月 10 日 10:42 CST（= 02:42Z；原注释误写 UTC））——发布节奏是「一季度（4 月）/上半年（7 月）/
 #   前三季度（10 月）/年度（次年年初）」四种累计期，没有固定发布日，故按月度探针覆盖；
 #   10 日避开月初公报集中上传窗口，且与 mct-star-hotel（20 日 05:23）不同刻。
 #   槽位经 scripts/schedule_overlap_check.py 60 天仿真校验。
