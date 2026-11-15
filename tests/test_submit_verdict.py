@@ -76,6 +76,23 @@ def test_unknown_receipt_stops_after_retry_cap():
     assert inspector._submit_recorded(doc) is True  # 达上限停手
 
 
+def test_unknown_cap_counts_real_events_not_just_ok_true():
+    """**现网形态**：unknown 事件是 `ok: false`（ok 只在 accepted/duplicate 时为真）。
+
+    旧循环先 `if ... or e["ok"] is False: continue`，于是 unknown 事件永远走不到
+    上限检查 ⇒ docstring 承诺的「unknown 重试有上限」不存在，实际是**无限重投**：
+    2026-11-15 实测三张吃过 308 的单（jp-tdnet / cba-wealth-index / fred-cpi）
+    全部 `_submit_recorded=False`，一张也不会停手。上限必须按 unknown 条数数。
+    """
+    unknown = {"event": "submitted", "ok": False, "verdict": "unknown",
+               "response": "<html><title>308 Permanent Redirect</title><center>tengine</center>"}
+    assert inspector._submit_recorded({"lifecycle": [unknown] * 2}) is False  # 未达上限，仍重投
+    assert inspector._submit_recorded({"lifecycle": [unknown] * 3}) is True   # 达上限停手
+    # 旧事件没有 verdict 字段：回退重解析存档原文，同样计数
+    legacy = {"event": "submitted", "ok": False, "response": "hmm"}
+    assert inspector._submit_recorded({"lifecycle": [legacy] * 3}) is True
+
+
 def test_accepted_receipt_is_recorded():
     doc = {"lifecycle": [{"event": "submitted", "ok": True, "response": "已入队"}]}
     assert inspector._submit_recorded(doc) is True

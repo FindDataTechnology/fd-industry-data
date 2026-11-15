@@ -1268,22 +1268,31 @@ def _submit_recorded(doc: dict) -> bool:
 
     存量的 `ok: true` 记录也会按现行语义重判（fix-health-ticket-landing-race）：
     历史上有拒收回执被误记为成功，若只信 `ok` 字段，这些单永远不会被重投。
-    ``unknown``（读不懂的回执）不算受理，但重试有上限——见 ``_SUBMIT_UNKNOWN_MAX``。
+
+    ``unknown``（读不懂的回执，308 HTML 是实例）不算受理，且**重试有上限**
+    （``_SUBMIT_UNKNOWN_MAX``）——上限按 unknown 的**条数**数，不按总尝试数：
+    unknown 事件全带 `ok: false`，若沿用「遇 ok=False 就 continue」的旧循环，
+    上限检查永远走不到，实际形态是**无限重投**（2026-11-15 实测三张 308 单全部
+    `False`，docstring 承诺的停手不存在）。已受理/重复不算 unknown；达到上限
+    返回 True 即停手转人工。
     """
     attempts = 0
+    unknowns = 0
     for e in doc.get("lifecycle") or []:
         if e.get("event") not in ("submitted", "submit-failed"):
             continue
         attempts += 1
-        if e.get("event") == "submit-failed" or e.get("ok") is False:
+        if e.get("event") == "submit-failed":
             continue
         resp = str(e.get("response", ""))
-        verdict = parse_submit_verdict(200, resp, resp)["verdict"]
+        # 新事件自带 verdict 字段（写事件时已判过）；旧事件回退到重解析存档原文。
+        verdict = str(e.get("verdict") or "") or parse_submit_verdict(200, resp, resp)["verdict"]
         if verdict in ("accepted", "duplicate"):
             return True
-        # unknown：允许有限重试，超过上限就停手（别每轮都打门面）。
-        if attempts >= _SUBMIT_UNKNOWN_MAX:
-            return True
+        if verdict == "unknown":
+            unknowns += 1
+            if unknowns >= _SUBMIT_UNKNOWN_MAX:
+                return True
     return False
 
 
