@@ -1102,6 +1102,15 @@ def _challenge_cookies(headers) -> list[str]:
     return out
 
 
+def _excerpt(text: str | None, limit: int = 160) -> str:
+    """回执体摘要：压掉空白、截断。给判词一个「当事的事实值」。
+
+    只进工单与摘要，不进任何对外通知的正文（见 §12 的展示纪律）。
+    """
+    flat = " ".join(str(text or "").split())
+    return flat[:limit]
+
+
 def _redact_url(url: str) -> str:
     """跳转目标只留 scheme://host/path，丢掉 query 与 fragment。
 
@@ -1693,7 +1702,11 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
             reasons.append(label)
     for r in status_dead:
         code = r.get("http_status")
-        label = f"STATUS 回读失败 (HTTP {code})" if code is not None else "STATUS 回读连不上"
+        body = str(r.get("response") or "")[:80]
+        base = f"STATUS 回读失败 (HTTP {code})" if code is not None else "STATUS 回读连不上"
+        # 有回执体就带上：`HTTP 503` 与 `HTTP 503 {"error":{"code":"AGENT_NOT_FOUND"}}`
+        # 的处置方向完全不同（一个查通道、一个改路由）——2026-11-15 实历。
+        label = f"{base}: {body}" if body else base
         if label not in reasons:
             reasons.append(label)
     for r in status_client:
@@ -1855,6 +1868,13 @@ def sync_status(outdir: Path, url: str, key: str, fetcher=None,
         parsed = parse_status(extract_message_text(text))
         # 痕迹只在真发生过跳转时才落账：每张单都写一份空 trace 会把生命周期刷成噪音。
         extra = {"trace": trace} if trace.get("followed") or trace.get("location") else {}
+        # 4xx/5xx 的**回执体**是判因的唯一线索（2026-11-15 实历）：STATUS 面 8 次全 503，
+        # 而只看状态码时「目标 agent 路由不存在」与「通道坏了」长得一模一样——真相是
+        # connector-identity 那次滚版把 slug 派生改了，老 slug `packs-…-spider-heal`
+        # 在 `/api/wanxing/v1/agents`（18 个）里根本没有，而巡检只写了「HTTP 503」。
+        # 判词带不上当事的事实值，读的人就会朝错的层修（同族：308 不印 Location）。
+        if isinstance(status, int) and status >= 400:
+            extra["response"] = _excerpt(text)
         ticket_mod.append_event(doc, "status", http_status=status, state=parsed["state"],
                                 note=parsed["note"], pr_url=parsed["pr_url"], **extra)
         if parsed["state"] in TERMINAL_MAP:

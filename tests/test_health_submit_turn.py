@@ -975,3 +975,36 @@ def test_the_hop_budget_is_still_bounded_to_one(monkeypatch):
     assert st == 308
     assert trace["hops"] == 1 and trace["not_followed"] == "already-followed-once", trace
     assert len(calls) == 2, f"只该打两次（原地址 + 一跳），实际 {len(calls)}"
+
+
+# ── 5xx 的判词必须带上回执体（2026-11-15 实历） ──────────────────────────────
+#
+# 验收轮 43726486898 的 STATUS 面 8 次全 503，而判词只写 `HTTP 503`。
+# 真相是目标 agent 的路由不存在：connector-identity 那次滚版把 slug 派生改了，
+# 巡检盯的 `packs-…-spider-heal` 在 `/api/wanxing/v1/agents`（18 个）里没有。
+# 只看状态码时「路由不存在」与「通道坏了」同形，两个处置方向相反。
+
+def test_status_lane_keeps_the_error_body_so_the_cause_is_named(tmp_path):
+    d = _mk(tmp_path, slugs=("t-a",))
+
+    def fetcher(url, key, idem, body):
+        return 503, '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment source unreachable"}}'
+
+    res = ins.sync_status(d, "http://x", "k", fetcher=fetcher, max_reads=1)
+    assert res[0]["http_status"] == 503, res[0]
+    assert "DEPLOYMENT_SOURCE_UNAVAILABLE" in res[0]["response"], res[0]
+
+
+def test_channel_reason_carries_the_body_when_there_is_one():
+    lane = ins.delivery_lane_health(
+        submit=[],
+        status=[{"ticket": "t.yaml", "http_status": 503, "state": None,
+                 "response": '{"error":{"code":"AGENT_NOT_FOUND"}}'}])
+    assert lane["status_channel_errors"] == 1, lane
+    assert any("AGENT_NOT_FOUND" in r for r in lane["reasons"]), lane
+
+
+def test_channel_reason_stays_short_without_a_body():
+    lane = ins.delivery_lane_health(
+        submit=[], status=[{"ticket": "t.yaml", "http_status": 502, "state": None}])
+    assert lane["reasons"] == ["STATUS 回读失败 (HTTP 502)"], lane
