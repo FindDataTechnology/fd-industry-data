@@ -140,3 +140,44 @@ def test_lane_unknown_receipts_are_degraded_not_ok():
                 "verdict_reason": "HTTP 502"}] * 2
     assert ins.delivery_lane_health(all_err)["status"] == "outage"
     assert ins.delivery_lane_health([])["status"] == "idle"
+
+
+def test_status_reads_reach_the_lane_but_only_channel_level_failures_count():
+    """STATUS 回读这一半此前是**死参数**：`status` 收进签名，函数体一次都没读过。
+
+    2026-11-14 那轮实测：13×200 / 16×402 / 19×409 / 16×502 —— 三分之一回读死在
+    通道层，而体检一个字都没提。但**不能按 `>=400` 收**：历史分布主体是语义拒收
+    （409 TURN_IN_FLIGHT 75 次、402 计划耗尽 53 次、429 限流 31 次），收进去就是
+    一道常年红的闸。通道级只有 5xx 与「连不上」（异常行有 error、无 http_status）。
+    """
+    # ① 回读全是 502、没有 SUBMIT ⇒ 是 degraded，不是 idle（「没东西可投」不成立）
+    dead = [{"ticket": f"t{i}", "http_status": 502, "state": None} for i in range(3)]
+    lane = ins.delivery_lane_health([], dead)
+    assert lane["status"] == "degraded", lane
+    assert lane["status_reads"] == 3 and lane["status_channel_errors"] == 3, lane
+    assert any("STATUS" in r and "502" in r for r in lane["reasons"]), lane
+
+    # ② 语义拒收不许降级（这一臂防的就是「按 >=400 收」那种写法）
+    semantic = [{"ticket": "a", "http_status": 409, "state": None},
+                {"ticket": "b", "http_status": 402, "state": None},
+                {"ticket": "c", "http_status": 429, "state": None},
+                {"ticket": "d", "http_status": 200, "state": "queued"}]
+    assert ins.delivery_lane_health([], semantic)["status"] == "idle", ins.delivery_lane_health([], semantic)
+    ok_submit = [{"ticket": "s", "http_status": 200, "verdict": "accepted", "submitted": True}]
+    assert ins.delivery_lane_health(ok_submit, semantic)["status"] == "ok"
+
+    # ③ 连不上（异常行：有 error、无 http_status）算通道级
+    conn = [{"ticket": "x", "state": None, "error": "URLError: [Errno 111] refused"}]
+    lane = ins.delivery_lane_health([], conn)
+    assert lane["status"] == "degraded" and lane["status_channel_errors"] == 1, lane
+
+    # ④ dry_run 行与预算哨兵必须排除 —— 否则一次校准轮就报「通道坏了」
+    dry = [{"ticket": "d", "state": None, "http_status": None, "dry_run": True}]
+    sentinel = [{"ticket": "__status_budget__", "state": None,
+                 "error": "本批已达 STATUS 时间预算（120s）"}]
+    assert ins.delivery_lane_health([], dry)["status"] == "idle", "干跑行不许算通道错误"
+    assert ins.delivery_lane_health([], sentinel)["status"] == "idle", "预算哨兵不是失败"
+
+    # ⑤ outage 口径不变：SUBMIT 全灭仍是 outage，回读的 5xx 不改变它
+    all_err = [{"ticket": "x", "http_status": 502, "verdict": "error", "submitted": False}] * 2
+    assert ins.delivery_lane_health(all_err, dead)["status"] == "outage"

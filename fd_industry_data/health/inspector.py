@@ -1470,6 +1470,10 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
     判据刻意保守，宁可漏判也不误判：只有「每一次尝试都是服务侧错误」才算 outage。
     只要有一张被受理、被拒（`refused`：工单内容问题）或回执看不懂，就只报
     degraded——否则一张内容有问题的单会把整条通道判死。
+
+    `status` 那一半（STATUS 回读）只收**通道级**失败：5xx 与连不上；402/409/429
+    是语义拒收，计进去会得到常年红的闸（实测历史分布见函数体）。它参与 degraded
+    与 `reasons`，但**不参与 outage**——红线的口径保持原样。
     """
     attempts = [
         r for r in (submit or [])
@@ -1483,6 +1487,23 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
     # 现在 unknowns 只降级到 degraded、**不进 service_errors**（那个数讲的是"服务侧
     # 报错"，308 是前置跳转不是服务错误），也不判 outage（outage 仍要求全是 error）。
     unknowns = [r for r in attempts if r.get("verdict") == "unknown"]
+    # STATUS 回读这一半此前是**死参数**（`status` 收进签名、函数体一次都没读过）：
+    # 2026-11-14 那轮实测 16 个 502 / 19 个 409 / 16 个 402 / 13 个 200 —— 三分之一
+    # 的回读死在通道层，而体检一个字都没提。但**不能按 `>=400` 收**：实测历史里
+    # 主体是 409 `TURN_IN_FLIGHT`（75）、402 计划耗尽（53）、429 限流（31），那些是
+    # **语义拒收**，计进去就是一道常年红的闸。通道级的只有两类：5xx，以及
+    # `_default_poster` 抛异常（连不上，行里有 `error`、没有 `http_status`）。
+    # dry_run 行（`http_status=None` 但一次请求都没发）与 `__status_budget__` 哨兵
+    # 必须排除——否则一次校准轮就会报成通道坏了。
+    status_rows = [
+        r for r in (status or [])
+        if not r.get("dry_run") and r.get("ticket") != "__status_budget__"
+    ]
+    status_dead = [
+        r for r in status_rows
+        if (isinstance(r.get("http_status"), int) and r["http_status"] >= 500)
+        or (r.get("http_status") is None and r.get("error"))
+    ]
     # 同一原因只留一条，避免七行同样的 502 把摘要冲爆
     reasons: list[str] = []
     for r in errors + unknowns:
@@ -1491,11 +1512,16 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
         label = f"{why} (HTTP {code})" if code is not None else why
         if label not in reasons:
             reasons.append(label)
-    if not attempts:
+    for r in status_dead:
+        code = r.get("http_status")
+        label = f"STATUS 回读失败 (HTTP {code})" if code is not None else "STATUS 回读连不上"
+        if label not in reasons:
+            reasons.append(label)
+    if not attempts and not status_dead:
         verdict = "idle"            # 没东西可投 ≠ 通道坏了
-    elif len(errors) == len(attempts):
+    elif len(errors) == len(attempts) and attempts:
         verdict = "outage"
-    elif errors or unknowns:
+    elif errors or unknowns or status_dead:
         verdict = "degraded"
     else:
         verdict = "ok"
@@ -1504,6 +1530,10 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
         "attempted": len(attempts),
         "service_errors": len(errors),
         "accepted": sum(1 for r in attempts if r.get("submitted")),
+        # 回读这一半只报事实 + 参与 degraded，**不改 outage 口径**（红线仍由 SUBMIT
+        # 全灭触发）：先把「回读通道坏了一半」变成可见，再谈它该不该判红。
+        "status_reads": len(status_rows),
+        "status_channel_errors": len(status_dead),
         "reasons": reasons[:3],
     }
 
