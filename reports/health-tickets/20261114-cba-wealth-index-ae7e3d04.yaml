@@ -172,5 +172,13 @@ lifecycle:
 - at: '2026-11-15T08:30:35.364721+00:00'
   event: status-failed
   error: too many values to unpack (expected 2)
+- at: '2026-11-15T11:31:05.103136+00:00'
+  event: submitted
+  http_status: 308
+  ok: false
+  verdict: unknown
+  response: "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n<html>\r\n<head><title>308\
+    \ Permanent Redirect</title></head>\r\n<body>\r\n<center><h1>308 Permanent Redirect</h1></center>\r\
+    \n<hr><center>tengine</center>\r\n</body>\r\n</html>"
 terminal: null
 evidence_signature: d5ab5a94aea5
