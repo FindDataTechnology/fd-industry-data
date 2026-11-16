@@ -89,15 +89,22 @@ def main() -> int:
     if args.snapshot:
         records = inspector.load_runs_from_snapshot(args.snapshot)
         source_kind = f"snapshot:{args.snapshot}"
+        # 快照（离线/测试）不读宽窗历史：离线判定保持旧口径，不因历史缺失翻红
+        watermark_history = None
     else:
         _parse_errors: list[str] = []
         records = inspector.load_runs_from_psql(
             config, os.environ.get("FD_CENTRAL_PG_DSN", ""), parse_errors=_parse_errors)
         source_kind = "psql"
+        # 宽窗水位历史只给推进率用（watermark-history-for-coarse-cadence 2.2）：
+        # 一次查询、每源至多几十行；读不到 ⇒ 空字典，分诊退回窗口内口径（判不出≠绿）。
+        watermark_history = inspector.load_watermark_history_from_psql(
+            config, os.environ.get("FD_CENTRAL_PG_DSN", ""))
 
     runs_by_source = inspector.group_runs(records)
     plan = inspector.plan_tickets(runs_by_source, repo, config, now,
-                                  dsn=os.environ.get("FD_CENTRAL_PG_DSN", ""))
+                                  dsn=os.environ.get("FD_CENTRAL_PG_DSN", ""),
+                                  watermark_history=watermark_history)
     if do_emit:
         stats = inspector.write_plan(plan, repo, outdir, config, now)
         # 自愈收口（harden-crawl-delivery 2.9）：源在开单之后连续 N 次成功即置

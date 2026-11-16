@@ -171,6 +171,55 @@ def load_runs_from_psql(config: HealthConfig, dsn: str, binary: str = "psql",
     return out
 
 
+def load_watermark_history_from_psql(config: HealthConfig, dsn: str,
+                                      binary: str = "psql") -> dict[str, list[tuple]]:
+    """读**宽窗**水位历史：``{source: [(started_at: datetime, raw_period: str)]}``。
+
+    只给「推进率」用（2026-11-16）。粗节奏源要在足够长的跨度上才测得出「水位在不在按
+    节奏推进」——月频需要 ≥2 个周期＝61 天，而 `telemetry_sql` 的窗只有 30 天，于是
+    `uk-hpi`（它的 spider 自己写着「实测最新文件可落后当月 3 个月」）被永久判成冻结。
+
+    **刻意不复用 `telemetry_sql`**：那个窗口还驱动新鲜度、连续失败计数与行数统计，
+    放宽它会一次性改掉一批既有判决。这里只取 source/时刻/数据期三列。
+
+    读不到就是读不到：dsn 为空、子进程失败、超时、非零退出，一律返回 ``{}`` ——
+    调用方据此退回「只用窗口内运行」的旧口径，而不是把「没读到」当成「没有推进」。
+    """
+    if not dsn:
+        return {}
+    try:
+        proc = subprocess.run(
+            [binary, dsn, "-At", "-F", "\t", "-c", config.watermark_history_sql],
+            capture_output=True, text=True, timeout=180,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        print(f"fd-health: 水位历史读取失败（{type(exc).__name__}）——退回窗口内口径",
+              file=sys.stderr)
+        return {}
+    if proc.returncode != 0:
+        print(f"fd-health: 水位历史查询失败（{proc.returncode}）："
+              f"{proc.stderr.strip()[:200]}——退回窗口内口径", file=sys.stderr)
+        return {}
+    out: dict[str, list[tuple]] = {}
+    for line in proc.stdout.splitlines():
+        cols = line.split("\t")
+        if len(cols) < 3:
+            continue
+        source, started_at, raw = (c.strip() for c in cols[:3])
+        if not _SOURCE_RE.match(source) or not raw:
+            continue
+        try:
+            at = datetime.fromisoformat(started_at.replace(" ", "T"))
+        except ValueError:
+            continue
+        if at.tzinfo is None:
+            at = at.replace(tzinfo=timezone.utc)
+        out.setdefault(source, []).append((at, raw))
+    for points in out.values():
+        points.sort(key=lambda item: item[0])
+    return out
+
+
 def group_runs(records: list[dict]) -> dict[str, list[triage.Run]]:
     grouped: dict[str, list[triage.Run]] = {}
     for r in records:
@@ -563,7 +612,8 @@ def declaration_mismatches(runs_by_source: dict, repo: Path) -> list[dict]:
 
 
 def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config: HealthConfig,
-                 now: datetime, *, dsn: str = "") -> Plan:
+                 now: datetime, *, dsn: str = "",
+                 watermark_history: dict[str, list[tuple]] | None = None) -> Plan:
     emit, deferred, healthy, unknown, unregistered = [], [], 0, [], []
     blocked_config: list[str] = []
     plan_parse_errors: list[str] = []
@@ -610,7 +660,8 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
         verdict = triage.classify(source, f"spiders/{source}/", period, runs, now, config.thresholds,
                                   scheduled_absent=source in ticketable,
                                   min_rows_per_run=min_rows_floor(repo, source),
-                                  data_period=manifest_data_period(repo, source)[0])
+                                  data_period=manifest_data_period(repo, source)[0],
+                                  watermark_history=(watermark_history or {}).get(source))
         if verdict.category is None and not verdict.needs_human:
             healthy += 1
             continue
