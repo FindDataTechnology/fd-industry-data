@@ -75,7 +75,12 @@
   backtick 直接可用。
 - 上游行 SQL 显式排序后再截 `limit`；`value` round 6 位归一。
 - 空响应/非数组/零行/帽命中/解析失败一律 `RuntimeError`（失败即红，不静默
-  返回空列表）。单查询无重试、无频次放大。
+  返回空列表）。
+- **瞬时网络错误有界重试**（`MAX_ATTEMPTS=3`，退避 `2s→4s`，封顶 30s）：
+  只重试 `URLError`（含超时 Errno 60 / DNS / 拒绝连接）、`TimeoutError`、5xx；
+  4xx（含 SQL 报错 400）与业务异常直抛，不重试。重试日志走 stderr，不污染
+  stdout JSON。最多 3 次尝试，不做频次放大、不换出口（出口仍由
+  `HTTPS_PROXY` 决定，代理本身不可达仍会失败并报错）。
 - 免 key、无鉴权；未见风控（浏览器/Python UA 均通，本单元未带特殊 UA）。
   如遇风控升级按协议转人工，不逆向。
 
