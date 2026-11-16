@@ -25,6 +25,11 @@ GHA health-inspect（xinru-server1，每日 03:17 CST；只读中央库 crawl_ru
   `network` 与 `source-revision` 严格互斥：超时/5xx/DNS/连接拒绝永远判 `network`。
 - 工单 evidence：`last_success`（最近成功时间）与 `watermark`（水位=最新数据期 + 口径来源；
   遥测不提供数据期时 `latest: null` 且 basis 如实标 unknown）。
+- **水位冻结（规则 1d）的阈值按源自己的节奏给**（2026-11-16）：`month`/`year` 落后 2 个周期、
+  `day` 落后 **10 个日历日**才判「冻结」。日频不能沿用 2——`periods_behind()` 在 day 节奏下
+  返回的就是日历天数，而周末与法定长假没有新数据期是常态（只在交易日发布的源每个周一都会
+  「落后 3 天」；当时 150 个源里 16 条命中，其中三条水位是周五）。10 = 周末 3 + 长假 8 +
+  发布延迟 1。判词与 `rule_trace` 都写出**生效阈值**（`判据 =10`），读工单不必回查代码。
 - 终态 `terminal`：`fixed-pending-human` / `sample-update-pending-human` / `manual` /
   `retire-suggested` / `queued`（未终态含 None）。
 
