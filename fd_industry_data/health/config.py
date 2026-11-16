@@ -83,6 +83,18 @@ class HealthConfig:
     )
     # 单源周期覆盖（source -> 小时）；缺省按 manifest.frequency 推断
     expected_period_overrides: dict = field(default_factory=dict)
+    # 宽窗水位历史（**只给推进率用**，2026-11-16）：粗节奏源要在足够长的跨度上才测得出
+    # 「水位在不在按节奏推进」——月频需要 ≥2 个周期＝61 天，而 `telemetry_sql` 的窗只有
+    # 30 天。`uk-hpi` 的 spider 自己写着「实测最新文件可落后当月 3 个月」，30 天窗测不出
+    # ⇒ 它被永久判成冻结。
+    #
+    # **刻意不放开 `telemetry_sql` 的 30 天窗**：那个窗口还驱动新鲜度、连续失败计数与行数
+    # 统计，放宽它会一次性改掉一批既有判决。这里只取三列、默认 400 天，成本可忽略。
+    watermark_history_sql: str = (
+        "SELECT source, started_at, COALESCE(metrics->'watermark'->>'period','') "
+        "FROM crawl_runs WHERE started_at >= now() - interval '400 days' "
+        "ORDER BY source, started_at"
+    )
     # 巡检排除的源（如接入演练中的临时源）
     excluded_sources: tuple = ()
     # 遥测窗内零运行的在册源怎么处理（add-flower-vertical 6.1）：
@@ -100,6 +112,7 @@ _KNOWN_KEYS = (
     "master_switch",
     "lookback_hours",
     "telemetry_sql",
+    "watermark_history_sql",
     "expected_period_overrides",
     "excluded_sources",
     "absent_source_policy",
