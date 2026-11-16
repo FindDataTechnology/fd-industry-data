@@ -204,7 +204,8 @@ def _matches_anti_bot(run: Run) -> bool:
 
 
 def _watermark_stall(runs: list[Run], data_period: str | None,
-                     now: datetime) -> dict | None:
+                     now: datetime,
+                     watermark_history: list[tuple] | None = None) -> dict | None:
     """数据期是否冻结；冻结则返回 ``watermark.judge()`` 的结论，否则 None。
 
     「运行新鲜」与「数据前进」是两件事（`harden-crawl-delivery` D5 的原话）：
@@ -221,6 +222,10 @@ def _watermark_stall(runs: list[Run], data_period: str | None,
     判不出就返回 None（不出单）：`judge()` 对「未声明字段 / 值不可归一 /
     粒度比节奏更粗 / 无节奏」返回 unavailable 或 unknown，这里一律不升级成
     故障——全仓多数源没声明水位字段，把「判不出」当「停滞」会造一道常年红的闸。
+
+    推进率的样本源（watermark-history-for-coarse-cadence 2.1）：``watermark_history``
+    非空且可归一点 ≥2 时**优先用历史**（宽窗才测得出粗节奏的推进率）；否则退回
+    ``runs`` 窗口内样本——快照路径与读不到历史时行为与旧口径完全一致。
     """
     points: list[tuple[datetime, "watermark_mod.Period"]] = []
     latest = None
@@ -240,11 +245,22 @@ def _watermark_stall(runs: list[Run], data_period: str | None,
     if latest is None:
         return None
     points.sort(key=lambda item: item[0])
+    rate_points = points
+    if watermark_history:
+        hist: list[tuple[datetime, "watermark_mod.Period"]] = []
+        for at, raw in watermark_history:
+            period = watermark_mod.normalise(raw)
+            if period is None:
+                continue  # 不可归一的历史行不进样本（与窗口内口径同）
+            hist.append((at, period))
+        if len(hist) >= 2:
+            hist.sort(key=lambda item: item[0])
+            rate_points = hist
     verdict = watermark_mod.judge(
         {"state": "ok", "period": latest, "raw": latest.raw},
         data_period,
         now.date(),
-        advance_rate=watermark_mod.window_advance_rate(points, data_period),
+        advance_rate=watermark_mod.window_advance_rate(rate_points, data_period),
     )
     return verdict if verdict.get("state") == "stall" else None
 
@@ -302,8 +318,15 @@ def classify(
     scheduled_absent: bool = False,
     min_rows_per_run: int | None = None,
     data_period: str | None = None,
+    watermark_history: list[tuple] | None = None,
 ) -> Verdict:
     """确定性分诊入口。规则与优先级见模块 docstring。
+
+    ``watermark_history``（watermark-history-for-coarse-cadence 2.1）：该源的**宽窗**
+    水位历史 ``[(运行时刻, 原始数据期)]``（由 `plan_tickets` 从 `watermark_history_sql`
+    读一次、逐源传入）。推进率**优先用它**算——粗节奏源（月频 ≥2 周期＝61 天）在
+    30 天遥测窗里测不出推进率，`uk-hpi` 因此被永久假红。缺失/不足 2 个可归一点时
+    退回窗口内运行（旧口径，快照路径与读不到历史时零变化）。
 
     ``scheduled_absent``（add-flower-vertical 6.1）：该源 manifest 里**有 schedule**
     但整个遥测窗内没有一条运行记录。这时 ``runs`` 为空、尾部失败=0，落到规则 2
@@ -400,7 +423,7 @@ def classify(
         # + 写出来的还是同一个月」正是要抓的那种静默。放在健康短路**内部**而不是
         # 另起一条规则，是为了保证它永不抢走失败样本的类别——本规则只把「原本会判
         # 健康」的源改判成需人看，其它一律照旧。
-        stall = _watermark_stall(ordered, data_period, now)
+        stall = _watermark_stall(ordered, data_period, now, watermark_history)
         if stall is not None:
             trace = (
                 "rule1d:success-but-frozen-watermark "
