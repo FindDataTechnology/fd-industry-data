@@ -251,4 +251,12 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-16T00:05:51.968207+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
+    plane is unreachable right now; retry shortly"}}'
 terminal: null

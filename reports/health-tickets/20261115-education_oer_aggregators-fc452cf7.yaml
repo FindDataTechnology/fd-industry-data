@@ -46,5 +46,24 @@ golden: []
 lifecycle:
 - at: '2026-11-15T23:23:45.280456+00:00'
   event: created
+- at: '2026-11-15T23:42:24.741586+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32041, "message": "turn exceeded 600s"}'
+- at: '2026-11-16T00:02:37.952453+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+  trace:
+    followed: true
+    hops: 1
+    location: https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal
+    cookies: 0
+    final_url: https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal
+    not_followed: out-of-attempts
 terminal: null
 evidence_signature: 1548d9895db0
