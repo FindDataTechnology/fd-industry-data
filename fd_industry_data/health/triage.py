@@ -55,6 +55,8 @@ import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from . import watermark as watermark_mod
+
 ANTIBOT_ACTION = "更换数据表面（官方 API/替代入口）或退役；禁止逆向"
 SOURCE_DEAD_ACTION = "退役评估"
 NETWORK_ACTION = "出口切换/代理复测（不改代码）"
@@ -69,6 +71,12 @@ EMPTY_SUCCESS_ACTION = (
     "min_rows_per_run（成功但没数据，不是「没有新数据」，也不是 0 值）")
 HUMAN_ACTION = "人工分诊（失败模式分歧/无法归类）"
 INSUFFICIENT_ACTION = "补充遥测样本后复检（证据不足）"
+#: 水位冻结（2026-11-16）：运行新鲜、无连续失败，但数据期不前进。从这一点**分不出**
+#: 「上游真的停发」与「我方抓取窗口/增量判据没跟上」，所以给侦察动作与人工确认，
+#: 不猜类别（猜成「定向修 parser」会让人去改一段没坏的解析）。
+WATERMARK_STALL_ACTION = (
+    "先分辨上游是否真的停发：取该源最新发布期与抓取窗口（若为滚动窗，核对窗口是否覆盖当期）；"
+    "上游确有新期 ⇒ 修抓取窗口/增量判据，上游确实停发 ⇒ 按退役评估，不要改 parser 硬凑")
 
 _ANTIBOT_HTTP = (403, 429)
 _DEAD_HTTP = (404, 410)
@@ -190,6 +198,39 @@ def _matches_anti_bot(run: Run) -> bool:
     return bool(_ANTIBOT_RE.search(run.error or ""))
 
 
+def _watermark_stall(runs: list[Run], data_period: str | None,
+                     now: datetime) -> dict | None:
+    """数据期是否冻结；冻结则返回 ``watermark.judge()`` 的结论，否则 None。
+
+    「运行新鲜」与「数据前进」是两件事（`harden-crawl-delivery` D5 的原话）：
+    一个每天重写同一旧月份的 spider 行数漂亮、水位冻结。本函数只做「取最新可
+    归一水位 → 交给 `watermark.judge()`」这两步，**阈值与节奏换算一律不在这里
+    重写**（`ALERT_AFTER_PERIODS` / `periods_behind()` 已在那个模块里定义并有
+    单测）——两份实现迟早会分叉。
+
+    判不出就返回 None（不出单）：`judge()` 对「未声明字段 / 值不可归一 /
+    粒度比节奏更粗 / 无节奏」返回 unavailable 或 unknown，这里一律不升级成
+    故障——全仓多数源没声明水位字段，把「判不出」当「停滞」会造一道常年红的闸。
+    """
+    latest = None
+    for run in runs:
+        if not run.watermark:
+            continue
+        period = watermark_mod.normalise(run.watermark)
+        if period is None:
+            continue
+        if latest is None or period.sort_key > latest.sort_key:
+            latest = period
+    if latest is None:
+        return None
+    verdict = watermark_mod.judge(
+        {"state": "ok", "period": latest, "raw": latest.raw},
+        data_period,
+        now.date(),
+    )
+    return verdict if verdict.get("state") == "stall" else None
+
+
 def _trailing_failed(runs: list[Run]) -> list[Run]:
     """尾部连续 failed 段（时间升序返回）。"""
     tail: list[Run] = []
@@ -242,6 +283,7 @@ def classify(
     *,
     scheduled_absent: bool = False,
     min_rows_per_run: int | None = None,
+    data_period: str | None = None,
 ) -> Verdict:
     """确定性分诊入口。规则与优先级见模块 docstring。
 
@@ -335,6 +377,22 @@ def classify(
     fresh_cutoff = period * thresholds.freshness_multiplier
     fresh = last_success_age is not None and last_success_age <= fresh_cutoff
     if fresh and tail_failed < thresholds.consecutive_failures:
+        # 规则 1d（2026-11-16）：**先于**返回健康，查一次数据期有没有前进。
+        # 与规则 1c 同形、同理：`rows_written > 0` 不证明新鲜，「跑成功 + 时刻新鲜
+        # + 写出来的还是同一个月」正是要抓的那种静默。放在健康短路**内部**而不是
+        # 另起一条规则，是为了保证它永不抢走失败样本的类别——本规则只把「原本会判
+        # 健康」的源改判成需人看，其它一律照旧。
+        stall = _watermark_stall(ordered, data_period, now)
+        if stall is not None:
+            trace = (
+                "rule1d:success-but-frozen-watermark "
+                f"watermark={stall.get('period')!r}"
+                f" {stall.get('periods_behind')} 个 {data_period} 周期未前进"
+                f"（判据 ={stall.get('threshold')}）"
+                f" last_success_age={_fmt_hours(last_success_age)}h"
+                f"<={_fmt_hours(fresh_cutoff)}h tail_failed={tail_failed}"
+            )
+            return Verdict(None, True, False, WATERMARK_STALL_ACTION, trace)
         trace = (
             f"rule1:healthy last_success_age={_fmt_hours(last_success_age)}h"
             f"<={_fmt_hours(fresh_cutoff)}h"
