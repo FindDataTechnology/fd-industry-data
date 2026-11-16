@@ -53,6 +53,45 @@ def test_bare_jsonrpc_error_object_is_error():
     assert "-32003" in v["reason"]
 
 
+def test_jsonrpc_error_envelope_carries_code_and_message():
+    """2026-11-17 实历：`{"error": {"code": -32041, "message": "turn exceeded 600s"}}`。
+
+    health-inspect 连续 5 轮在投递段判 outage（`attempted 7 / service_errors 7`），
+    报告里只写 `JSON-RPC error envelope (HTTP 200)` ⇒ 读起来像门面挂了，实际是
+    **A2A 每回合 600s 预算被撞穿**：前者要去查鉴权/网络，后者要去调回合预算，
+    处置完全相反。错误码与 message 本来就在信封里，判据没有理由丢掉。
+    """
+    body = json.dumps({"jsonrpc": "2.0", "id": 7,
+                       "error": {"code": -32041, "message": "turn exceeded 600s"}})
+    v = _v(200, body)
+    assert v["verdict"] == "error"
+    assert "error envelope" in v["reason"]
+    assert "-32041" in v["reason"]
+    assert "turn exceeded 600s" in v["reason"]
+
+
+def test_bare_jsonrpc_error_carries_its_message():
+    """裸错误分支也带 message（同一次事故里两种形状都在）。
+
+    只印 code 时 `-32003` 与 `-32041` 仍要靠人回查协议表；message 一句话就说清
+    是「Connection error」还是「turn exceeded 600s」。
+    """
+    v = _v(200, '{"code": -32003, "message": "Connection error."}')
+    assert v["verdict"] == "error"
+    assert "-32003" in v["reason"]
+    assert "Connection error" in v["reason"]
+
+
+def test_jsonrpc_envelope_without_code_keeps_reason_bare():
+    """信封里既没码也没人话时，reason 不许留一个空尾巴（` · `）。
+
+    避免「为了带出细节」反而让每条回执都多两个不可读的字符。
+    """
+    v = _v(200, json.dumps({"jsonrpc": "2.0", "error": {"data": {"retry": 3}}}))
+    assert v["verdict"] == "error"
+    assert v["reason"] == "JSON-RPC error envelope"
+
+
 def test_jsonrpc_result_envelope_is_accepted():
     assert _v(200, json.dumps({"result": {"state": "queued"}}))["verdict"] == "accepted"
 
