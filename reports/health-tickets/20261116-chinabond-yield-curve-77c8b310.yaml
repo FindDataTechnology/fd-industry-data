@@ -43,5 +43,11 @@ lifecycle:
   pr_url: ''
   response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
     plane is unreachable right now; retry shortly"}}'
+- at: '2026-11-16T08:34:12.385212+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
 terminal: null
 evidence_signature: 98c4b7d37a4c

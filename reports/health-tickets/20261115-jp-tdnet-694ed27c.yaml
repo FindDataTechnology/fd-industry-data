@@ -48,5 +48,19 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32041, "message": "turn exceeded 600s"}'
+- at: '2026-11-16T08:20:14.283527+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T08:54:47.447756+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"TURN_IN_FLIGHT","message":"a turn for this caller and
+    agent is already running; retry after the hint"}}'
 terminal: null
 evidence_signature: 98c4b7d37a4c

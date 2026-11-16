@@ -43,5 +43,8 @@ lifecycle:
   pr_url: ''
   response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
     plane is unreachable right now; retry shortly"}}'
+- at: '2026-11-16T08:54:25.919040+00:00'
+  event: submit-failed
+  error: Remote end closed connection without response
 terminal: null
 evidence_signature: 98c4b7d37a4c

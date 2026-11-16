@@ -200,5 +200,13 @@ lifecycle:
   pr_url: ''
   response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
     plane is unreachable right now; retry shortly"}}'
+- at: '2026-11-16T08:54:59.866282+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"TURN_IN_FLIGHT","message":"a turn for this caller and
+    agent is already running; retry after the hint"}}'
 terminal: null
 evidence_signature: d5ab5a94aea5

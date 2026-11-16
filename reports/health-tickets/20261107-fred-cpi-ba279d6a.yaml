@@ -317,6 +317,19 @@ lifecycle:
   turn_fails: 8
   limit: 6
   last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-16T08:16:57.472994+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-16T08:54:57.912864+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"TURN_IN_FLIGHT","message":"a turn for this caller and
+    agent is already running; retry after the hint"}}'
 terminal: null
 brief:
   source_urls:
