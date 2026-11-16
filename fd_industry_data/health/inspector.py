@@ -1307,6 +1307,19 @@ def _conclusion_segment(message: str) -> str:
     return seg.lower().strip()
 
 
+def _doc_message(doc: dict) -> str:
+    """从错误对象里取人话那句（message/msg/detail），取不到返回空串。
+
+    单列出来是给 ``parse_submit_verdict`` 的裸错误分支复用：那一支的错误码
+    已经在 reason 里（`JSON-RPC code -32003`），只缺 message。
+    """
+    for key in ("message", "msg", "detail"):
+        val = doc.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    return ""
+
+
 def _http_error_detail(raw_text: str) -> str:
     """把 HTTP 非 2xx 信封里的错误码带进裁决理由（2026-11-14）。
 
@@ -1337,11 +1350,7 @@ def _http_error_detail(raw_text: str) -> str:
                 code = str(val)
                 break
     if not text:
-        for key in ("message", "msg", "detail"):
-            val = doc.get(key)
-            if isinstance(val, str) and val.strip():
-                text = val
-                break
+        text = _doc_message(doc)
     bits = [b.strip() for b in (code, text) if b and b.strip()]
     if not bits:
         return ""
@@ -1424,14 +1433,22 @@ def parse_submit_verdict(status: int, raw_text: str, message: str,
             doc = json.loads(raw_text)
             if isinstance(doc, dict):
                 if doc.get("error"):
-                    verdict, reason = "error", "JSON-RPC error envelope"
+                    # 2026-11-17：信封里的 code/message 此前被整段丢掉，reason 只有
+                    # 固定一句 `JSON-RPC error envelope`。health-inspect 连续 5 轮
+                    # 在投递段判 outage（`attempted 7 / service_errors 7`），报告里
+                    # 读起来像门面挂了；真相是信封里写着 `{"code": -32041,
+                    # "message": "turn exceeded 600s"}`——**A2A 每回合 600s 预算被撞穿**，
+                    # 与鉴权/网络无关，处置完全不同。同 2026-11-14 那条 402 的教训：
+                    # 错误码本来就在正文里，判据没有理由把它丢掉。
+                    verdict, reason = "error", f"JSON-RPC error envelope{_http_error_detail(raw_text)}"
                 else:
                     # 裸的 JSON-RPC 错误对象：`{"code": -32003, "message": "..."}` ——
                     # 没有 error 外层键。2026-11-09 回放 7 条历史回执里，有 2 条是
                     # 这个形状，此前都被当成「受理成功」，工单从此不再重投。
                     code = doc.get("code")
                     if isinstance(code, int) and code < 0:
-                        verdict, reason = "error", f"JSON-RPC code {code}"
+                        msg = _doc_message(doc)[:160]
+                        verdict, reason = "error", f"JSON-RPC code {code}" + (f" · {msg}" if msg else "")
                     elif doc.get("result") is not None:
                         verdict, reason = "accepted", "JSON-RPC result envelope"
         except (json.JSONDecodeError, TypeError):
