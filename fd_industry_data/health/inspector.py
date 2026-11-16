@@ -609,7 +609,8 @@ def plan_tickets(runs_by_source: dict[str, list[triage.Run]], repo: Path, config
             continue
         verdict = triage.classify(source, f"spiders/{source}/", period, runs, now, config.thresholds,
                                   scheduled_absent=source in ticketable,
-                                  min_rows_per_run=min_rows_floor(repo, source))
+                                  min_rows_per_run=min_rows_floor(repo, source),
+                                  data_period=manifest_data_period(repo, source)[0])
         if verdict.category is None and not verdict.needs_human:
             healthy += 1
             continue
