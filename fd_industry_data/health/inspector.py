@@ -220,6 +220,53 @@ def load_watermark_history_from_psql(config: HealthConfig, dsn: str,
     return out
 
 
+# 覆盖度行里最多点几个源名：多了没人读，而这一行要能在日志里一眼看完。
+_HIST_SAMPLE_SOURCES = 5
+
+
+def describe_watermark_history(hist: dict[str, list[tuple]],
+                               window_sources: "set[str] | None" = None) -> str:
+    """宽窗历史的覆盖度，一行。
+
+    **只增可见性**：返回值不参与任何判定（不传给 `plan_tickets`、不进工单正文），
+    调用方打完这行就丢。
+
+    为什么必须有这一行（2026-11-17 实历）：推进率只在 ``len(hist) >= 2`` 时才用历史，
+    否则静默退回 30 天窗；退回时粗节奏源的判词是 ``推进率 =不可测``——它与「源真的
+    停更」在所有可见读数里长得一模一样（顺延单不落盘、日志没有任何点数），于是
+    「我这条新判据这轮有没有输入」只能靠人拿 DSN 查库。`uk-hpi` 修法前后两轮判词
+    逐字相同，全靠「不可测」三个字才看出来。
+
+    **「历史为空」与「点数不足」处置相反**，所以必须分开报：前者查读方（权限／DSN／
+    列路径），后者等时间积累（`metrics->'watermark'->>'period'` 自 2026-11-10 才写入，
+    月频源攒够两个点要更久）。
+
+    ``window_sources``：窗口内**有水位**的源集合（判据用 `Run.watermark` 非空）。同一条
+    SQL 表达式、更宽的窗口 ⇒ 历史必然包含窗口内每一行，所以「窗口里有水位、历史里
+    一行都没有」只可能出在读方（查询失败被吞、列路径变了、权限只覆盖部分行）——
+    这一条不变量比点数统计更硬，因此单列一档点名。
+    """
+    sources = len(hist)
+    points = sum(len(v) for v in hist.values())
+    thin = sorted(s for s, pts in hist.items() if len(pts) < 2)
+    line = f"fd-health: 宽窗水位历史 源 {sources} / 点 {points}"
+    if thin:
+        sample = "、".join(thin[:_HIST_SAMPLE_SOURCES])
+        more = f"…等 {len(thin)} 个" if len(thin) > _HIST_SAMPLE_SOURCES else ""
+        line += (f"；{len(thin)} 个源只有 1 个可归一点"
+                 f"（推进率将退回窗口内口径）：{sample}{more}")
+    elif sources:
+        line += "；每源都有 ≥2 个可归一点"
+    if window_sources:
+        missing = sorted(set(window_sources) - set(hist))
+        if missing:
+            sample = "、".join(missing[:_HIST_SAMPLE_SOURCES])
+            more = f"…等 {len(missing)} 个" if len(missing) > _HIST_SAMPLE_SOURCES else ""
+            line += (f"；⚠ 窗口内有水位却不在历史里的源 {len(missing)} 个"
+                     f"（同一条 SQL 的更宽窗口必然包含它们 ⇒ 读方有问题）：{sample}{more}")
+    return line
+
+
 def group_runs(records: list[dict]) -> dict[str, list[triage.Run]]:
     grouped: dict[str, list[triage.Run]] = {}
     for r in records:
