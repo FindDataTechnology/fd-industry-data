@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from fd_industry_data.health import triage
+from fd_industry_data.health import inspector, triage
 
 NOW = datetime(2026, 11, 16, 12, 0, tzinfo=timezone.utc)
 DAY = 24.0
@@ -132,3 +132,55 @@ def test_unparseable_history_still_lets_an_advancing_source_stay_healthy_when_wi
     v = triage.classify("src", "spiders/src/", DAY, runs, NOW,
                         data_period="day", watermark_history=[_hist(5, "junk")])
     assert not v.needs_human, "历史不可解析不该把一个可测且在推进的源判红"
+
+
+# ---------------------------------------------------------------------------
+# 覆盖度一行（2026-11-17-watermark-history-coverage-signal）
+#
+# 判据：推进率只在历史 ≥2 点时生效，否则**静默**退回 30 天窗；退回时粗节奏源的
+# 判词是「推进率 =不可测」，与「源真停更」在所有可见读数里同形。这一行只增可见性，
+# 所以下面的断言都打在**这一行的措辞**上，且必须能分开「历史为空」与「点数不足」。
+# ---------------------------------------------------------------------------
+
+def test_coverage_line_says_empty_history_explicitly():
+    """真的空 ⇒ 打「源 0 / 点 0」，不给任何「一切正常」的暗示。"""
+    line = inspector.describe_watermark_history({})
+    assert "源 0" in line and "点 0" in line
+    assert "≥2" not in line, "空历史不该说每源都够"
+
+
+def test_coverage_line_names_single_point_sources():
+    """只有 1 点的源必须被点名——它的推进率会退回窗口口径。"""
+    hist = {"alpha": [(NOW, "2026-08")], "beta": [(NOW, "2026-10"), (NOW - timedelta(days=40), "2026-09")]}
+    line = inspector.describe_watermark_history(hist)
+    assert "源 2" in line and "点 3" in line
+    assert "alpha" in line and "beta" not in line
+    assert "剩余退回窗口内口径" in line or "退回窗口内口径" in line
+    assert "1 个源只有 1 个可归一点" in line
+
+
+def test_coverage_line_is_quiet_when_every_source_has_two_points():
+    hist = {"alpha": [(NOW, "2026-08"), (NOW - timedelta(days=40), "2026-07")]}
+    line = inspector.describe_watermark_history(hist)
+    assert "每源都有 ≥2 个可归一点" in line
+    assert "退回窗口内口径" not in line
+
+
+def test_coverage_line_caps_the_sample_and_states_the_total():
+    hist = {f"s{i}": [(NOW, "2026-08")] for i in range(6)}
+    line = inspector.describe_watermark_history(hist)
+    assert "6 个源只有 1 个可归一点" in line
+    assert "…等 6 个" in line
+    named = [f"s{i}" for i in range(6) if f"s{i}" in line]
+    assert len(named) <= 5, f"样例最多 5 个，实际点了 {len(named)}"
+
+
+def test_window_source_missing_from_history_is_called_out_as_a_reader_problem():
+    """同一条 SQL 的更宽窗口必然包含窗口内每一行 ⇒ 缺席只能出在读方，单列一档点名。
+
+    这是比点数统计更硬的不变量：它把「历史为空」从「点数不足」里彻底分出来。
+    """
+    hist = {"beta": [(NOW, "2026-10"), (NOW - timedelta(days=40), "2026-09")]}
+    line = inspector.describe_watermark_history(hist, window_sources={"alpha", "beta"})
+    assert "⚠" in line and "alpha" in line
+    assert "读方有问题" in line

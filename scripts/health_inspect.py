@@ -100,6 +100,13 @@ def main() -> int:
         # 一次查询、每源至多几十行；读不到 ⇒ 空字典，分诊退回窗口内口径（判不出≠绿）。
         watermark_history = inspector.load_watermark_history_from_psql(
             config, os.environ.get("FD_CENTRAL_PG_DSN", ""))
+        # 覆盖度一行（2026-11-17）：推进率只在历史 ≥2 点时生效，否则**静默**退回
+        # 30 天窗——那时粗节奏源的判词是「推进率 =不可测」，与「源真停更」在所有
+        # 可见读数里同形。这行只增可见性：不参与判定、不进工单正文。
+        print(inspector.describe_watermark_history(
+            watermark_history,
+            window_sources={r.get("source") for r in records
+                            if str(r.get("watermark") or "").strip()}))
 
     runs_by_source = inspector.group_runs(records)
     plan = inspector.plan_tickets(runs_by_source, repo, config, now,
