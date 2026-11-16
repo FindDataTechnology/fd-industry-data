@@ -192,6 +192,11 @@ def _fmt_hours(value: float | None) -> str:
     return "none" if value is None else f"{value:.2f}"
 
 
+def _fmt_rate(value: float | None) -> str:
+    """推进率的可读形态；`None`（测不出）如实写出来，不写 0（那是「确定没推进」）。"""
+    return "不可测" if value is None else f"{value:.2f}x"
+
+
 def _matches_anti_bot(run: Run) -> bool:
     if run.http_status in _ANTIBOT_HTTP:
         return True
@@ -204,14 +209,20 @@ def _watermark_stall(runs: list[Run], data_period: str | None,
 
     「运行新鲜」与「数据前进」是两件事（`harden-crawl-delivery` D5 的原话）：
     一个每天重写同一旧月份的 spider 行数漂亮、水位冻结。本函数只做「取最新可
-    归一水位 → 交给 `watermark.judge()`」这两步，**阈值与节奏换算一律不在这里
-    重写**（`ALERT_AFTER_PERIODS` / `periods_behind()` 已在那个模块里定义并有
-    单测）——两份实现迟早会分叉。
+    归一水位 + 算窗口内推进率 → 交给 `watermark.judge()`」这几步，**阈值与节奏
+    换算一律不在这里重写**（`ALERT_AFTER_PERIODS` / `periods_behind()` /
+    `window_advance_rate()` 已在那个模块里定义并有单测）——两份实现迟早会分叉。
+
+    为什么要算推进率（2026-11-16 实历）：`carbon-monitor` 声明日频、上游恒定滞后
+    约两个月（它自己的 `spider.py` 写着 "published with ~2 months lag"），只按
+    「落后 47 天」判就会把它永久判成冻结，而每日 5 张出单配额被它占掉、真故障
+    顺延。落后很多 **且** 不再推进才是故障。
 
     判不出就返回 None（不出单）：`judge()` 对「未声明字段 / 值不可归一 /
     粒度比节奏更粗 / 无节奏」返回 unavailable 或 unknown，这里一律不升级成
     故障——全仓多数源没声明水位字段，把「判不出」当「停滞」会造一道常年红的闸。
     """
+    points: list[tuple[datetime, "watermark_mod.Period"]] = []
     latest = None
     for run in runs:
         if not run.watermark:
@@ -221,12 +232,19 @@ def _watermark_stall(runs: list[Run], data_period: str | None,
             continue
         if latest is None or period.sort_key > latest.sort_key:
             latest = period
+        try:
+            at = _parse_ts(run.started_at)
+        except (TypeError, ValueError):
+            continue  # 时刻不可解析 ⇒ 不进推进率样本（仍可能参与「最新水位」）
+        points.append((at, period))
     if latest is None:
         return None
+    points.sort(key=lambda item: item[0])
     verdict = watermark_mod.judge(
         {"state": "ok", "period": latest, "raw": latest.raw},
         data_period,
         now.date(),
+        advance_rate=watermark_mod.window_advance_rate(points, data_period),
     )
     return verdict if verdict.get("state") == "stall" else None
 
@@ -388,7 +406,8 @@ def classify(
                 "rule1d:success-but-frozen-watermark "
                 f"watermark={stall.get('period')!r}"
                 f" {stall.get('periods_behind')} 个 {data_period} 周期未前进"
-                f"（判据 ={stall.get('threshold'):g}）"
+                f"（判据 ={stall.get('threshold'):g}"
+                f"，窗口内推进率 ={_fmt_rate(stall.get('advance_rate'))}）"
                 f" last_success_age={_fmt_hours(last_success_age)}h"
                 f"<={_fmt_hours(fresh_cutoff)}h tail_failed={tail_failed}"
             )

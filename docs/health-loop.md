@@ -30,6 +30,15 @@ GHA health-inspect（xinru-server1，每日 03:17 CST；只读中央库 crawl_ru
   返回的就是日历天数，而周末与法定长假没有新数据期是常态（只在交易日发布的源每个周一都会
   「落后 3 天」；当时 150 个源里 16 条命中，其中三条水位是周五）。10 = 周末 3 + 长假 8 +
   发布延迟 1。判词与 `rule_trace` 都写出**生效阈值**（`判据 =10`），读工单不必回查代码。
+- **「落后」不单独构成冻结：还要问水位在不在推进**（2026-11-16，规则 1d 的第二个合取项）：
+  `periods_behind()` 量的是「离今天多远」，它把上游**结构性发布滞后**与**真的停更**混成一个数。
+  `carbon-monitor` 的 `spider.py` 自己写着 "published with ~2 months lag"——日频数据、上游恒定
+  滞后约两个月，于是「落后 47 个 day 周期」对它**永远**成立，任何阈值都救不了，而每日 5 张出单
+  配额被它占掉、真故障顺延。判据因此改成：落后达阈值 **且** 窗口内推进率（水位推进天数 ÷ 经过
+  天数）低于 `MIN_ADVANCE_RATE = 0.5` 才判冻结，**两条都成立才出单**；推进率够了判词写明
+  「structural publication lag, not a freeze」并带出该值（`rule_trace` 里是 `推进率 =0.10x`）。
+  推进率**只在可测时生效**：窗口内可归一水位 <2 个、或跨度不足该节奏 2 个周期时算不出来，此时
+  **退回只按落后判**（判不出不许当成健康）。
 - 终态 `terminal`：`fixed-pending-human` / `sample-update-pending-human` / `manual` /
   `retire-suggested` / `queued`（未终态含 None）。
 
