@@ -39,6 +39,12 @@ GHA health-inspect（xinru-server1，每日 03:17 CST；只读中央库 crawl_ru
   「structural publication lag, not a freeze」并带出该值（`rule_trace` 里是 `推进率 =0.10x`）。
   推进率**只在可测时生效**：窗口内可归一水位 <2 个、或跨度不足该节奏 2 个周期时算不出来，此时
   **退回只按落后判**（判不出不许当成健康）。
+- **粗节奏源靠更宽的水位历史才测得出推进率**（同日第三笔）：月频要 ≥2 个周期＝61 天跨度，而遥测窗
+  只有 30 天 ⇒ 另读一份**只含 `source`/`started_at`/数据期**的 400 天历史（`watermark_history_sql`，
+  **不放开 30 天遥测窗**：那个窗还驱动新鲜度、连续失败与行数统计）。推进率在末尾
+  `max(30 天, 4 个期望周期)` 的切片上算，**不许用全窗**——半年前停掉的月频源在 400 天窗里推进率
+  仍有约 0.55，切片后才露 0。实测缺口：`uk-hpi` 声明 `month`、其 `spider.py` 记着「实测最新文件
+  可落后当月 3 个月」，30 天窗测不出 ⇒ 永久假红。读不到历史即退回窗口内口径（`推进率 =不可测`）。
 - 终态 `terminal`：`fixed-pending-human` / `sample-update-pending-human` / `manual` /
   `retire-suggested` / `queued`（未终态含 None）。
 
