@@ -227,4 +227,17 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-16T06:35:40.166937+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+  trace:
+    followed: true
+    hops: 1
+    location: https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal
+    cookies: 0
+    final_url: https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal
+    not_followed: out-of-attempts
 terminal: null

@@ -312,6 +312,11 @@ lifecycle:
   pr_url: ''
   response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
     plane is unreachable right now; retry shortly"}}'
+- at: '2026-11-16T06:01:47.369007+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
 terminal: null
 brief:
   source_urls:

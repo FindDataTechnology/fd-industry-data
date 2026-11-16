@@ -194,5 +194,18 @@ lifecycle:
   turn_fails: 6
   limit: 6
   last_response: '{"code": -32041, "message": "turn exceeded 600s"}'
+- at: '2026-11-16T06:01:53.864901+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32041, "message": "turn exceeded 600s"}'
+- at: '2026-11-16T06:25:33.978057+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
+    plane is unreachable right now; retry shortly"}}'
 terminal: null
 evidence_signature: 61b09bd56a7d
