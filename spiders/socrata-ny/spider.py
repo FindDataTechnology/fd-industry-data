@@ -34,20 +34,35 @@ dataset（非 chart/story），字段稳定可解析。
   （``source`` 字段 + 列名集合 + ``min_rows``），绝不锚具体价格（README 论证）。
 - **全部请求失败抛 ``RuntimeError``**（失败即红，绝不静默返回空列表）。
 - 免 key、免 UA 伪装；不做指纹伪装与频次对抗，遇风控升级按协议转人工，不逆向。
+- **网络层有界重试**：仅对传输层错误（URLError/socket.timeout/HTTP 5xx）重试 1 次；
+  退避走共享节流入口 ``fd_industry_data.http.throttle``（不自己写裸 sleep）。
+  403/429 等 4xx 立即抛出并提示检查 egress_secret 注入——不对风控升级做频次对抗、
+  不做逆向。
 """
 from __future__ import annotations
 
 import json
+import socket
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+
+from fd_industry_data.http import throttle as _throttle
 
 SOURCE = "socrata-ny"
 BASE = "https://data.ny.gov"
 DATASET_ID = "k7gz-mn77"          # Transportation Fuels Spot Prices: Beginning January 2011
 RESOURCE_PATH = f"/resource/{DATASET_ID}.json"
-TIMEOUT = 30                      # 秒/请求；超时即失败（不重试、不加频次）
+TIMEOUT = 30                      # 秒/请求；超时按传输层错误处理，走有界重试
 _UA = "fd-industry-data/2.0 (socrata-ny; industry data pipeline)"
+
+# 重试策略：仅对传输层错误（URLError、socket.timeout、HTTP 5xx）重试 1 次
+_MAX_ATTEMPTS = 2
+_BASE_DELAY = 1.0                 # 秒
+_MAX_DELAY = 4.0
+_EGRESS_TAIL = "fx01"  # 仅在诊断文案里给出 egress_secret 尾四位
 
 # 数值列 → 输出列名（美元/加仑 与 美元/桶 两类单位分列，不混淆）
 PRICE_COLUMNS = (
@@ -59,11 +74,51 @@ PRICE_COLUMNS = (
 
 
 def _get_json(url: str) -> list[dict]:
-    """GET 一个 SODA 端点并解析 JSON 数组。urllib 尊重环境代理变量。"""
-    req = urllib.request.Request(
-        url, headers={"User-Agent": _UA, "Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
-        return json.loads(resp.read().decode("utf-8"))
+    """GET 一个 SODA 端点并解析 JSON 数组。urllib 尊重环境代理变量。
+
+    有界重试策略（仅传输层错误）：
+    - URLError（DNS/连接/代理/TLS 错误）、socket.timeout、HTTP 5xx → 重试 1 次
+    - HTTP 403/429/其它 4xx → 立即抛出，不重试（避免频次对抗）
+    - 退避：指数退避 1s 起步、上限 4s，经共享节流入口等待
+    """
+    last_exc: Exception | None = None
+    gate = time.monotonic()  # 共享节流入口持有的时间戳（上次请求时刻）
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
+        req = urllib.request.Request(
+            url, headers={"User-Agent": _UA, "Accept": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            # 4xx 一律不重试：403 是出口 IP 被拒（不是可重试的瞬时错误），
+            # 重试等同频次对抗；直接抛出可执行诊断。
+            if 400 <= exc.code < 500:
+                if exc.code == 403:
+                    raise RuntimeError(
+                        f"socrata-ny: 请求被拒绝 (HTTP 403) {url} —— 目标站点拒绝当前出口 IP；"
+                        f"请检查 manifest 声明的 egress_secret（尾四位 …{_EGRESS_TAIL}）是否已注入"
+                        "运行环境；本单元不做协议破解、不做指纹伪装、不做频次对抗"
+                    ) from exc
+                raise RuntimeError(
+                    f"socrata-ny: 请求失败 {url}: HTTP {exc.code} {exc.reason}"
+                ) from exc
+            last_exc = exc          # 5xx：可重试
+        except urllib.error.URLError as exc:
+            last_exc = exc          # DNS/连接/代理/TLS
+        except socket.timeout as exc:
+            last_exc = exc
+        except Exception as exc:    # noqa: BLE001 —— 非预期异常按传输错误处理，允许一次重试
+            last_exc = exc
+
+        if attempt < _MAX_ATTEMPTS:
+            # 指数退避（1s 起步，上限 4s），经共享节流入口等待
+            delay = min(_MAX_DELAY, _BASE_DELAY * (2 ** (attempt - 1)))
+            gate = _throttle(gate, delay)
+        else:
+            raise RuntimeError(
+                f"socrata-ny: 请求失败（已尝试 {_MAX_ATTEMPTS} 次）{url}: "
+                f"{type(last_exc).__name__}: {last_exc}"
+            ) from last_exc
 
 
 def _to_float(raw) -> float | None:
