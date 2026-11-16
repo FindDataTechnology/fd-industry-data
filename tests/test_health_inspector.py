@@ -893,6 +893,119 @@ class TestDeferredCarriesVerdict:
         assert deferred[0]["category"] == "structure"
         assert deferred[0]["rule"] == "rule1c"
 
+    def test_daily_cap_deferral_carries_the_full_trace(self, tmp_path):
+        """规则名之外还要带判词正文（2026-11-17）。
+
+        只留 `rule1c` 三个字时，当事事实值（rows 是多少、下限是多少）全丢，
+        而工单 YAML 只在出单时才产生 ⇒ 顺延的这批判得对不对，每轮都无从复核。
+        """
+        from fd_industry_data.health import inspector, triage
+        from fd_industry_data.health.config import HealthConfig
+
+        repo = tmp_path
+        unit = repo / "spiders" / "aaa"
+        unit.mkdir(parents=True)
+        (unit / "manifest.yaml").write_text(
+            "name: aaa\ndata_period: day\nmin_rows_per_run: 5\n", encoding="utf-8")
+        runs = {"aaa": [triage.Run(started_at=(NOW - timedelta(hours=2)).isoformat(),
+                                   status="success", rows=0)]}
+        cfg = HealthConfig(max_daily_tickets=0)   # 名额为 0 ⇒ 必然顺延
+        plan = inspector.plan_tickets(runs, repo, cfg, NOW)
+        stats = inspector.write_plan(plan, repo, tmp_path / "tickets", cfg, NOW)
+        deferred = stats["deferred"]
+        assert len(deferred) == 1, deferred
+        assert deferred[0]["reason"] == "daily cap reached"
+        trace = deferred[0]["rule_trace"]
+        assert trace and trace.startswith("rule1c:"), trace
+        # 正文里的当事事实值必须在（不是只有规则名）
+        assert "min_rows_per_run=5" in trace, trace
+        assert "rows=0" in trace, trace
+
+    def test_deferred_trace_carries_the_watermark_advance_rate(self, tmp_path):
+        """rule1d 顺延条目要带**推进率实测值**——这正是 change 3 没能自证的那一格。
+
+        2026-11-16 的 run 43893532793 里 `uk-hpi` 仍命中 rule1d，而顺延行只有
+        `rule` 没有 `rule_trace`，于是「宽窗水位历史到底有没有生效」只能再派一轮去猜。
+        """
+        from fd_industry_data.health import inspector
+        from fd_industry_data.health.config import HealthConfig
+
+        repo = tmp_path
+        unit = repo / "spiders" / "uk-freeze"
+        unit.mkdir(parents=True)
+        (unit / "manifest.yaml").write_text(
+            "version: '1'\nname: uk-freeze\ndata_period: day\n"
+            "functions:\n- command: run_uk_freeze\n  frequency: daily\n",
+            encoding="utf-8")
+        frozen = (NOW.date() - timedelta(days=47)).isoformat()   # 47 个日历日未前进
+        records = [{
+            "source": "uk-freeze", "status": "success",
+            "started_at": (NOW - timedelta(hours=2)).isoformat(),
+            "rows": 10, "error": "", "http_status": 200, "watermark": frozen,
+        }]
+        # 宽窗历史：30 天里水位一动不动 ⇒ 推进率 0.00x（可测，且显然没在推进）
+        history = {"uk-freeze": [(NOW - timedelta(days=30), frozen), (NOW, frozen)]}
+        cfg = HealthConfig(max_daily_tickets=0)
+        plan = inspector.plan_tickets(inspector.group_runs(records), repo,
+                                      cfg, NOW, watermark_history=history)
+        stats = inspector.write_plan(plan, repo, tmp_path / "tickets", cfg, NOW)
+        deferred = stats["deferred"]
+        assert len(deferred) == 1, deferred
+        assert deferred[0]["rule"] == "rule1d", deferred
+        trace = deferred[0]["rule_trace"]
+        assert "success-but-frozen-watermark" in trace, trace
+        assert "窗口内推进率 =0.00x" in trace, trace
+        assert "判据 =10" in trace, trace          # day 节奏的生效阈值
+        assert frozen in trace, trace
+
+    def test_duplicate_deferral_carries_the_full_trace(self, tmp_path):
+        """去重顺延与配额顺延同款：判词正文不许因为「已有单」而丢掉。"""
+        from fd_industry_data.health import inspector
+        from fd_industry_data.health.config import HealthConfig
+
+        repo = tmp_path
+        unit = repo / "spiders" / "aaa"
+        unit.mkdir(parents=True)
+        (unit / "manifest.yaml").write_text(
+            "name: aaa\ndata_period: day\nmin_rows_per_run: 5\n", encoding="utf-8")
+        records = [{
+            "source": "aaa", "status": "success",
+            "started_at": (NOW - timedelta(hours=2)).isoformat(),
+            "rows": 0, "error": "", "http_status": 200,
+        }]
+        cfg = HealthConfig(max_daily_tickets=5)
+        outdir = tmp_path / "tickets"
+        first = inspector.plan_tickets(inspector.group_runs(records), repo, cfg, NOW)
+        stats1 = inspector.write_plan(first, repo, outdir, cfg, NOW)
+        assert len(stats1["written"]) == 1, stats1
+        # 第二轮：同源同类别同签名 ⇒ 去重顺延，正文仍要在
+        again = inspector.plan_tickets(inspector.group_runs(records), repo, cfg, NOW)
+        stats2 = inspector.write_plan(again, repo, outdir, cfg, NOW)
+        deferred = stats2["deferred"]
+        assert len(deferred) == 1, deferred
+        assert deferred[0]["reason"] == "duplicate of open ticket", deferred
+        assert deferred[0]["rule_trace"] == first.emit[0].verdict.rule_trace
+
+    def test_missing_trace_stays_none(self, tmp_path):
+        """判据没产出正文时两字段同为 None——不许用占位串填成「有正文」。"""
+        from fd_industry_data.health import inspector, triage
+        from fd_industry_data.health.config import HealthConfig
+
+        repo = tmp_path
+        (repo / "spiders").mkdir()
+        # `Verdict` 是 frozen 的 ⇒ 直接构造一个「判据没写正文」的条目，
+        # 不去改一个既有判词（改也改不了，这本身是对的）。
+        plan = inspector.Plan(
+            emit=[inspector.Emit(
+                source="aaa", unit="spiders/aaa/",
+                verdict=triage.Verdict(None, True, False, "看一眼", ""),
+                runs=[])],
+            deferred=[], healthy=0, skipped_unknown_period=[])
+        cfg = HealthConfig(max_daily_tickets=0)
+        stats = inspector.write_plan(plan, repo, tmp_path / "tickets", cfg, NOW)
+        assert stats["deferred"][0]["rule_trace"] is None
+        assert stats["deferred"][0]["rule"] is None
+
 
 class TestEvidenceOnlyCallsFailuresFailures:
     """工单证据里的 failing_runs 只能装真失败——partial/cancelled 不是失败。

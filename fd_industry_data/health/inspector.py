@@ -924,9 +924,18 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
         # 严重程度——这 7 个里可能有反爬或结构异常，也可能只是需要人工看一眼。
         # 实测（2026-11-09 预演）：12 个发现里 5 个出单、7 个顺延，而顺延的类别
         # 全是既有规则（rule2/3/6a），没有一个是新引入的下限误报——这类信息不该丢。
+        #
+        # **`rule_trace` 也要带**（2026-11-17）：只留规则名（`rule1d` 三个字）时，
+        # 判词里的当事事实值（水位、落后周期、生效判据、窗口内推进率）全部丢失，
+        # 而工单 YAML 只在出单时才产生 ⇒ 「顺延的那些判得对不对」每轮都得不到答案。
+        # 实历：run 43893532793 的 emit 里 `uk-hpi` 仍是 `rule1d / daily cap reached`，
+        # 而「宽窗水位历史到底有没有让它不再命中」这件事，只能靠再派一轮（58 分钟）去猜。
+        # 顺延条目恰恰是最该被复核的一批：它们占用了发现，只是没拿到日配额的那 5 张。
+        trace = item.verdict.rule_trace or None
         detail = {"source": item.source, "category": item.verdict.category,
-                  "rule": (item.verdict.rule_trace.split(":")[0]
-                           if item.verdict.rule_trace else None)}
+                  "rule": (trace.split(":")[0] if trace else None),
+                  # 与工单 `evidence.rule_trace` 同源（同一份 verdict），不另算一遍。
+                  "rule_trace": trace}
         # 工单身份（harden-crawl-delivery 2.7）：同源 + 同类别 + 同错误签名才算
         # 同一件事；这种情况追加到既有单，不再按「本批新单」重开一张。
         last_error = item.runs[-1].error if item.runs else ""
