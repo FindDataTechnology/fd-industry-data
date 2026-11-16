@@ -67,7 +67,13 @@ class HealthConfig:
     # error_head 为错误摘要列，无独立 http_status 列——http 状态从 error 文本判定）
     telemetry_sql: str = (
         "SELECT source, status, started_at, COALESCE(rows_written,0), "
-        "COALESCE(error_head,''), '', '', "
+        "COALESCE(error_head,''), '', "
+        # 第 7 列：本轮观测到的**数据期本体**（如 2026-08-31 / 2026-09），来自 runner
+        # 按 manifest 的 data_period_field 算出的 `metrics.watermark.period`。
+        # 2026-11-16 之前这里是空字符串字面量 ⇒ `triage.Run.watermark` 恒为 None，
+        # 于是「水位冻结」这条判据写了、有单测、却**永远不触发**（判据存在但人口为空）。
+        # 补上它 rule1d 才有输入；空仍是合法的（旧运行/未声明字段）。
+        "COALESCE(metrics->'watermark'->>'period',''), "
         "COALESCE(metrics->>'limit',''), "
         # 第 9 列：runner 记的水位状态（ok / unavailable / unknown）。空 = 那一轮
         # 没记（旧镜像或未声明字段），与「记了但不可得」是两件事，不合并。
