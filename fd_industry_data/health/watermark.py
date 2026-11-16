@@ -40,7 +40,27 @@ _DAY_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$")
 _WEEK_RE = re.compile(r"^(\d{4})-W(\d{1,2})$")
 _RANGE_SPLIT = re.compile(r"\s*[~—–至]\s*|\s+\.\.\s+")
 
-ALERT_AFTER_PERIODS = 2
+#: 判「停滞」的阈值，单位＝该源自己的期望周期数。
+#:
+#: 2026-11-16 生产实测（run 43812798047，150 个源）把「全节奏共用一个 2」的缺陷
+#: 暴露出来：`periods_behind()` 对 `day` 节奏返回的是**日历天数**，于是「落后 2」
+#: 等于「两天没有新日期」——而周末两天没有新交易日是常态。周一早上巡检，周五的
+#: 水位一律被判成「落后 3 个周期 = 冻结」：当天命中 16 条，其中
+#: `chinabond-yield-curve` / `chinamoney-ncd-curve` / `dce` 的水位正是 11-13（周五，
+#: 11-14/15 为周末）。代价不只是噪音：每日出单配额（5 张）被这批吃光、11 条顺延
+#: ⇒ **假红在挤掉真故障的位置**。
+#:
+#: 所以日频阈值按「最长合法静默」定：周末 3 天 ＋ 法定长假 8 天（国庆/春节一档）
+#: ＋ 发布延迟 1 天 ＝ 10 个日历日。月/年频仍是 2 个周期（60.9 / 730 天），
+#: 那两档本来没有周末问题。
+ALERT_AFTER_PERIODS = 2.0
+ALERT_AFTER_PERIODS_BY_CADENCE = {"day": 10.0, "month": 2.0, "year": 2.0}
+
+
+def alert_threshold(cadence: str | None) -> float:
+    """该节奏的停滞阈值（单位＝期望周期数）；未列出的节奏退回 `ALERT_AFTER_PERIODS`。"""
+    return ALERT_AFTER_PERIODS_BY_CADENCE.get(str(cadence or "").strip().lower(),
+                                               ALERT_AFTER_PERIODS)
 
 
 @dataclass(frozen=True)
@@ -180,14 +200,19 @@ def judge(watermark: dict, data_period: str | None, today: date) -> dict:
         return {"state": "unavailable", "periods_behind": None,
                 "period": period.canonical, "granularity": period.granularity,
                 "reason": reason}
-    stalled = behind >= ALERT_AFTER_PERIODS
+    # 阈值按节奏给：日频的「周期」是日历日，周末与长假没有新期是常态（见
+    # ALERT_AFTER_PERIODS_BY_CADENCE 上方那段实历）。判词里带出生效阈值，
+    # 工单正文因此自解释，读的人不必回查代码。
+    threshold = alert_threshold(data_period)
+    stalled = behind >= threshold
     return {
         "state": "stall" if stalled else "advance",
         "period": period.canonical,
         "granularity": period.granularity,
         "periods_behind": round(behind, 2),
-        "threshold": ALERT_AFTER_PERIODS,
-        "reason": (f"watermark {period.canonical} is {behind:.1f} periods behind"
+        "threshold": threshold,
+        "reason": (f"watermark {period.canonical} is {behind:.1f} periods behind "
+                   f"(threshold {threshold:g})"
                    if stalled else f"watermark {period.canonical} current"),
     }
 

@@ -388,7 +388,7 @@ def classify(
                 "rule1d:success-but-frozen-watermark "
                 f"watermark={stall.get('period')!r}"
                 f" {stall.get('periods_behind')} 个 {data_period} 周期未前进"
-                f"（判据 ={stall.get('threshold')}）"
+                f"（判据 ={stall.get('threshold'):g}）"
                 f" last_success_age={_fmt_hours(last_success_age)}h"
                 f"<={_fmt_hours(fresh_cutoff)}h tail_failed={tail_failed}"
             )

@@ -121,3 +121,32 @@ def test_failing_source_keeps_its_category_even_if_watermark_is_frozen():
     v = triage.classify("src", "spiders/src/", DAY, runs, NOW, data_period="day")
     assert v.category is not None, "有失败样本就必须照旧分类"
     assert "rule1d" not in v.rule_trace
+
+
+# ── 阈值按节奏给：工单正文里的判据必须是判决真的用的那个 ────────────────
+
+
+def test_trace_carries_the_effective_day_threshold():
+    """日频的判据是 10（周末 3 + 长假 8 + 延迟 1），不是 2。
+
+    判据值与抽屉里的表对不上时，读工单的人会照 2 去理解「落后 47 天」这件事，
+    处置方向就跟着错（「才两天没进来，等等看」）。
+    """
+    runs = _fresh_runs("2026-09-30")
+    v = triage.classify("carbon-monitor", "spiders/carbon-monitor/", DAY, runs, NOW,
+                        data_period="day")
+    assert v.needs_human
+    assert "判据 =10" in v.rule_trace, v.rule_trace
+    assert "判据 =2" not in v.rule_trace
+
+
+def test_a_friday_watermark_does_not_emit_a_ticket_on_monday():
+    """周五的水位 + 周一巡检 ≠ 冻结（2026-11-16 生产实测的三条假红）。"""
+    monday = datetime(2026, 11, 16, 5, 51, tzinfo=timezone.utc)   # 与那次 run 同刻
+    runs = [triage.Run(started_at=(monday - timedelta(hours=h)).isoformat(),
+                       status="success", rows=1200, watermark="2026-11-13")
+            for h in (0.5, 12, 24, 36)]
+    v = triage.classify("chinabond-yield-curve", "spiders/chinabond-yield-curve/",
+                        DAY, runs, monday, data_period="day")
+    assert not v.needs_human, v.rule_trace
+    assert "rule1:" in v.rule_trace
