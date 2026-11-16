@@ -64,5 +64,11 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T19:09:04.437156+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
 terminal: null
 evidence_signature: 98c4b7d37a4c

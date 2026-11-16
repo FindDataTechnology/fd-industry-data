@@ -267,4 +267,10 @@ lifecycle:
   pr_url: ''
   response: '{"error":{"code":"TURN_IN_FLIGHT","message":"a turn for this caller and
     agent is already running; retry after the hint"}}'
+- at: '2026-11-16T19:09:58.532533+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
