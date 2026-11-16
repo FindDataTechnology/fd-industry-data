@@ -96,6 +96,18 @@ def window_advance_rate(points, data_period: str | None) -> float | None:
     usable = [(at, period) for at, period in points if period is not None]
     if len(usable) < 2:
         return None
+    # 2026-11-16（watermark-history-for-coarse-cadence 2.3）：**先切片再测**。
+    # 调用方现在可能给 400 天的宽窗历史（粗节奏源要长跨度才测得出推进率），但
+    # 整窗直接测会把近期停更稀释掉——一个半年前停掉的月频源，400 天窗里推进率
+    # 还能有 0.55，混进太多「还在推进」的旧样本。只取**末尾** ``max(30 天,
+    # 4 个期望周期)``：日频仍是 30 天（与遥测窗同宽，既有判决零变化），月频约
+    # 122 天（仍 ≥ 2 个周期的最小可测跨度）。切片后不足 2 点 ⇒ 判不出。
+    slice_days = max(30.0, 4.0 * _PERIOD_DAYS[cadence])
+    newest_at = usable[-1][0]
+    usable = [(at, period) for at, period in usable
+              if (newest_at - at).total_seconds() / 86400.0 <= slice_days]
+    if len(usable) < 2:
+        return None
     (first_at, first), (last_at, last) = usable[0], usable[-1]
     elapsed_days = (last_at - first_at).total_seconds() / 86400.0
     if elapsed_days <= 0 or elapsed_days < 2 * _PERIOD_DAYS[cadence]:
