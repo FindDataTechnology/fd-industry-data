@@ -63,6 +63,47 @@ def alert_threshold(cadence: str | None) -> float:
                                                ALERT_AFTER_PERIODS)
 
 
+#: 期望周期长度（天）。把「周期」换算成日历天只在这一处做。
+_PERIOD_DAYS = {"day": 1.0, "month": 30.44, "year": 365.25}
+
+#: 水位推进率的及格线（推进天数 ÷ 经过天数，单位无关）。
+#:
+#: 为什么必须有这一条（2026-11-16 实历）：`periods_behind()` 量的是「离今天多远」，
+#: 它把两件事混成一个数——上游**结构性发布滞后**（水位永远离今天很远，但它天天在
+#: 前进）与**真的停更**（水位停在同一个值不动）。`carbon-monitor` 的 `spider.py`
+#: 第 5 行自己写着 "published with ~2 months lag"：日频数据、上游恒定滞后约两个月，
+#: 于是「落后 47 个 day 周期」对它**永远**成立，任何「落后 N 个周期」的阈值都救不了
+#: 它，而每日 5 张出单配额会被它占掉、真故障顺延。
+#:
+#: 健康值≈1（日频遇周末约 0.71：5/7）；真正的冻结≈0。取一半当及格线，两侧都留余量。
+MIN_ADVANCE_RATE = 0.5
+
+
+def window_advance_rate(points, data_period: str | None) -> float | None:
+    """窗口内水位推进速度：推进天数 ÷ 经过天数。``None`` = 判不出（样本不足）。
+
+    ``points`` 是 ``(运行时刻 datetime, Period)`` 序列，按时间升序；调用方负责丢掉
+    水位不可归一的运行。两个门槛都是为了「测不出就说测不出」，而不是把噪声当结论：
+
+    - 少于 2 个可归一水位 ⇒ 没有跨度可比；
+    - 跨度不足该节奏的 2 个周期 ⇒ 一天的抖动除以一天的跨度没有意义。
+
+    返回值的单位无关（天/天＝周期/周期），所以不必再按节奏缩放。
+    """
+    cadence = _CADENCE.get(str(data_period or "").strip().lower())
+    if cadence is None:
+        return None
+    usable = [(at, period) for at, period in points if period is not None]
+    if len(usable) < 2:
+        return None
+    (first_at, first), (last_at, last) = usable[0], usable[-1]
+    elapsed_days = (last_at - first_at).total_seconds() / 86400.0
+    if elapsed_days <= 0 or elapsed_days < 2 * _PERIOD_DAYS[cadence]:
+        return None
+    advanced_days = (last.end - first.end).days
+    return advanced_days / elapsed_days
+
+
 @dataclass(frozen=True)
 class Period:
     """A normalised data period with a total order across granularities."""
@@ -183,8 +224,16 @@ def periods_behind(period: Period, data_period: str | None, today: date) -> floa
     return days / 365.25
 
 
-def judge(watermark: dict, data_period: str | None, today: date) -> dict:
-    """Final state: advance / stall / unavailable / unknown."""
+def judge(watermark: dict, data_period: str | None, today: date,
+          advance_rate: float | None = None) -> dict:
+    """Final state: advance / stall / unavailable / unknown.
+
+    ``advance_rate`` 是窗口内水位推进速度（见 :func:`window_advance_rate`）。
+    它把「落后很多」拆成两种：上游结构性发布滞后（仍在按节奏前进）与真的停更
+    （停在同一个值不动）。可测且达到 :data:`MIN_ADVANCE_RATE` 时不判冻结——
+    否则一条恒定滞后两个月的日频源会被永久误判，而每日出单配额被它占掉。
+    ``None``（测不出）时不放松：仍按「落后达阈值」判。
+    """
     state = watermark.get("state")
     if state != "ok":
         return {"state": state, "periods_behind": None,
@@ -205,15 +254,24 @@ def judge(watermark: dict, data_period: str | None, today: date) -> dict:
     # 工单正文因此自解释，读的人不必回查代码。
     threshold = alert_threshold(data_period)
     stalled = behind >= threshold
+    if stalled and advance_rate is not None and advance_rate >= MIN_ADVANCE_RATE:
+        # 落后只是上游发布结构性滞后：水位仍在按节奏前进。见 MIN_ADVANCE_RATE。
+        stalled = False
+        reason = (f"watermark {period.canonical} is {behind:.1f} periods behind "
+                  f"(threshold {threshold:g}) but advancing at {advance_rate:.2f}x — "
+                  "structural publication lag, not a freeze")
+    else:
+        reason = (f"watermark {period.canonical} is {behind:.1f} periods behind "
+                  f"(threshold {threshold:g})"
+                  if stalled else f"watermark {period.canonical} current")
     return {
         "state": "stall" if stalled else "advance",
         "period": period.canonical,
         "granularity": period.granularity,
         "periods_behind": round(behind, 2),
         "threshold": threshold,
-        "reason": (f"watermark {period.canonical} is {behind:.1f} periods behind "
-                   f"(threshold {threshold:g})"
-                   if stalled else f"watermark {period.canonical} current"),
+        "advance_rate": None if advance_rate is None else round(advance_rate, 2),
+        "reason": reason,
     }
 
 

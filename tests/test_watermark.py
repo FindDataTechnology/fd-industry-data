@@ -13,6 +13,7 @@ from fd_industry_data.health.watermark import (
     ALERT_AFTER_PERIODS_BY_CADENCE,
     alert_threshold,
     judge,
+    window_advance_rate,
     max_period,
     normalise,
     periods_behind,
@@ -181,3 +182,87 @@ def test_stall_reason_carries_the_effective_threshold():
     out = judge(max_period([{"period": "2026-09-30"}], "period"), "day", MONDAY)
     assert out["state"] == "stall"
     assert "threshold 10" in out["reason"]
+
+
+# ── 判定冻结要问「还在不在推进」（2026-11-16，carbon-monitor 实历） ──────────
+#
+# `periods_behind()` 量「离今天多远」，把上游**结构性发布滞后**（水位永远很远、
+# 但天天前进）与**真的停更**（停在同一个值）混成一个数。`carbon-monitor` 的
+# `spider.py` 自己写着 "published with ~2 months lag" ⇒ 只按落后判会让它永久
+# 判冻结，而每日 5 张出单配额被它占掉、真故障顺延。
+
+from datetime import datetime, timezone  # noqa: E402 — 上面那组用例只用 date
+
+MONDAY_TS = datetime(2026, 11, 16, 5, 51, tzinfo=timezone.utc)
+
+
+def _pts(*pairs):
+    """[(天前, 水位字符串)] → 时间升序的 (datetime, Period)。"""
+    out = []
+    for days_ago, watermark in pairs:
+        period = normalise(watermark)
+        assert period is not None
+        out.append((MONDAY_TS - timedelta(days=days_ago), period))
+    out.sort(key=lambda item: item[0])
+    return out
+
+
+def test_structural_lag_is_not_a_freeze():
+    """恒定滞后、但水位天天前进 ⇒ 不是冻结（carbon-monitor 形态）。"""
+    wm = max_period([{"period": "2026-09-30"}], "period")   # 47 天前
+    stalled = judge(wm, "day", MONDAY)
+    assert stalled["state"] == "stall", "前置：只按落后判，这一条就是冻结"
+    assert stalled["advance_rate"] is None
+
+    out = judge(wm, "day", MONDAY, advance_rate=1.0)
+    assert out["state"] == "advance", "按节奏在推进，落后只是上游发布滞后"
+    assert "structural publication lag" in out["reason"]
+    assert out["threshold"] == 10.0 and out["advance_rate"] == 1.0
+
+
+def test_a_frozen_watermark_is_still_caught():
+    """同一水位横跨 30 天 ⇒ 推进率 0 ⇒ 仍判冻结（不放走真故障）。"""
+    wm = max_period([{"period": "2026-10-17"}], "period")
+    out = judge(wm, "day", MONDAY, advance_rate=0.0)
+    assert out["state"] == "stall"
+    assert out["advance_rate"] == 0.0
+
+
+def test_advance_rate_boundary_is_pinned_on_both_sides():
+    """0.5 算「在按节奏推进」（及格线含等号），0.49 不算。"""
+    wm = max_period([{"period": "2026-09-30"}], "period")
+    assert judge(wm, "day", MONDAY, advance_rate=0.5)["state"] == "advance"
+    assert judge(wm, "day", MONDAY, advance_rate=0.49)["state"] == "stall"
+
+
+def test_window_advance_rate_measures_advance_over_elapsed():
+    pts = _pts((30, "2026-10-17"), (0, "2026-11-16"))
+    assert window_advance_rate(pts, "day") == 1.0
+    flat = _pts((30, "2026-10-17"), (0, "2026-10-17"))
+    assert window_advance_rate(flat, "day") == 0.0
+    # 日频含周末：7 天里前进 5 天
+    weekly = _pts((7, "2026-11-09"), (0, "2026-11-14"))
+    assert abs(window_advance_rate(weekly, "day") - 5 / 7) < 1e-9
+
+
+def test_window_advance_rate_refuses_to_guess():
+    """测不出就说测不出：样本不足 / 跨度不足两个周期 / 无节奏 ⇒ None。"""
+    assert window_advance_rate(_pts((0, "2026-11-16")), "day") is None, "只有一个样本"
+    assert window_advance_rate(_pts((1, "2026-11-15"), (0, "2026-11-16")), "day") is None, \
+        "跨度 1 天 < 2 个 day 周期，一天的抖动不能当结论"
+    pts = _pts((30, "2026-09"), (0, "2026-10"))
+    assert window_advance_rate(pts, "month") is None, "跨度 30 天 < 2 个月"
+    # 月频的 2 个周期是 60.88 天（30.44×2）：60 天仍在下侧、62 天才越过门槛。
+    # 两侧各钉一条——只钉 60 天的话，把窗口守卫整段删掉也照样绿（它本就返回 None）。
+    assert window_advance_rate(_pts((60, "2026-09"), (0, "2026-10")), "month") is None, \
+        "60 天 < 60.88 天（2 × 30.44），仍在门槛下侧"
+    assert window_advance_rate(_pts((62, "2026-09"), (0, "2026-10")), "month") == 31 / 62, \
+        "62 天越过 60.88 天之后才可测；9 月 → 10 月推进 31 天"
+    assert window_advance_rate(_pts((30, "2026-10-17"), (0, "2026-11-16")), "irregular") is None
+
+
+def test_unmeasurable_rate_does_not_relax_the_lag_verdict():
+    """判不出推进率时退回按落后判——「测不出」不许当成健康。"""
+    wm = max_period([{"period": "2026-09-30"}], "period")
+    out = judge(wm, "day", MONDAY, advance_rate=None)
+    assert out["state"] == "stall", "测不出推进率时仍按落后判"

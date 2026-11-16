@@ -150,3 +150,52 @@ def test_a_friday_watermark_does_not_emit_a_ticket_on_monday():
                         DAY, runs, monday, data_period="day")
     assert not v.needs_human, v.rule_trace
     assert "rule1:" in v.rule_trace
+
+
+# ── 落后很多但仍在推进 ⇒ 不出单（carbon-monitor 实历，2026-11-16） ──────────
+
+
+def _lagged_runs(advancing: bool, n: int = 30, lag_days: int = 47):
+    """n 天、每天都跑成功，水位恒定滞后 ``lag_days``。
+
+    ``advancing=True`` 时水位每轮前进一天（上游恒定发布滞后，数据天天来）；
+    ``False`` 时所有轮次都是同一个水位（真的停更）。
+    """
+    base = NOW.date() - timedelta(days=lag_days)
+    runs = []
+    for i in range(n):                       # i=0 最旧
+        run_at = NOW - timedelta(days=n - 1 - i, hours=2)
+        wm = base + timedelta(days=(i if advancing else 0))
+        runs.append(triage.Run(started_at=run_at.isoformat(), status="success",
+                               rows=100, watermark=wm.isoformat()))
+    return runs
+
+
+def test_structural_publication_lag_does_not_emit_a_ticket():
+    """carbon-monitor：声明日频、上游恒定滞后 ~2 个月、水位天天前进。"""
+    v = triage.classify("carbon-monitor", "spiders/carbon-monitor/", DAY,
+                        _lagged_runs(advancing=True), NOW, data_period="day")
+    assert not v.needs_human, v.rule_trace
+    assert "rule1:" in v.rule_trace
+
+
+def test_the_same_shape_frozen_does_emit_a_ticket():
+    """成对：同一份「落后 47 天」，但水位不动 ⇒ 必须出单，且 trace 报推进率 0。"""
+    v = triage.classify("carbon-monitor", "spiders/carbon-monitor/", DAY,
+                        _lagged_runs(advancing=False), NOW, data_period="day")
+    assert v.needs_human
+    assert "rule1d" in v.rule_trace
+    assert "推进率 =0.00x" in v.rule_trace, v.rule_trace
+
+
+def test_trace_names_the_measured_rate():
+    """出单时 trace 要带出推进率，否则读的人只能凭「落后 N 天」猜。"""
+    runs = _lagged_runs(advancing=False)
+    # 让水位在最后一轮前进 3 天：29 天跨度里推进 3 天 ⇒ 0.10x，低于及格线仍出单。
+    # **别挑 17 天**——那是 0.59x，会把结论翻成健康，这条用例就什么都验不到了
+    # （它要验的是「出单那条路上的 trace」，不是「不出单」）。
+    runs[-1] = triage.Run(started_at=runs[-1].started_at, status="success", rows=100,
+                          watermark=(NOW.date() - timedelta(days=44)).isoformat())
+    v = triage.classify("src", "spiders/src/", DAY, runs, NOW, data_period="day")
+    assert v.needs_human
+    assert "推进率 =0.10x" in v.rule_trace, v.rule_trace
