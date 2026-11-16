@@ -1,0 +1,33 @@
+ticket_id: 20261116-dounan-flower-price-b6043918
+source: dounan-flower-price
+unit: spiders/dounan-flower-price/
+kind: repair
+created_at: '2026-11-16T05:51:34.277596+00:00'
+category: null
+needs_human: true
+suspected_anti_bot: false
+suggested_action: 先分辨上游是否真的停发：取该源最新发布期与抓取窗口（若为滚动窗，核对窗口是否覆盖当期）；上游确有新期 ⇒ 修抓取窗口/增量判据，上游确实停发
+  ⇒ 按退役评估，不要改 parser 硬凑
+evidence:
+  window:
+    from: '2026-11-07 17:50:10.145387+00'
+    to: '2026-11-15 16:15:10.35081+00'
+  failing_runs: []
+  last_success:
+    started_at: '2026-11-15 16:15:10.35081+00'
+    rows: 982
+  watermark:
+    latest: '2026-11-12'
+    basis: run telemetry watermark
+  notes: rule1d:success-but-frozen-watermark watermark='2026-11-12' 4.0 个 day 周期未前进（判据
+    =2） last_success_age=13.61h<=72.00h tail_failed=0
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261116-dounan-flower-price-b6043918.yaml
+golden:
+- spiders/dounan-flower-price/golden/001-dounan-flower-price.json
+lifecycle:
+- at: '2026-11-16T05:51:34.277596+00:00'
+  event: created
+terminal: null
+evidence_signature: 98c4b7d37a4c
