@@ -94,6 +94,12 @@ SA_DIR = Path("/var/run/secrets/kubernetes.io/serviceaccount")
 #: 19/19 手工作业不符合——所以「名字不像」是识别手工作业的**硬判据**，不是启发式。
 SCHEDULED_JOB_RE = re.compile(r"^(?P<cronjob>.+)-(?P<epoch>\d{5,})$")
 
+#: 「最新一轮的 Job 对象不在」时，`lastSuccessfulTime` 落在 tick 之后多久还**可以**算作那一轮
+#: 自己的收尾（与 tick 的最长间隔取小）。超出即「说明不了这一轮」——2026-11-16 实历：
+#: `sink-freshness` 的 tick 11-14T21:10Z、`lastSuccessfulTime` 是 11-15T15:42Z 的手工成功，
+#: 相隔 18.6h。窗口只用于「别把正常收尾误读成手工」，不是阈值判据。
+TICK_COMPLETION_PLAUSIBLE_MINUTES = 120.0
+
 MONTHS = {m: i for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
 DOWS = {d: i for i, d in enumerate(["sun", "mon", "tue", "wed", "thu", "fri", "sat"], 0)}
@@ -265,6 +271,19 @@ def _jobs_by_cronjob(jobs: list[dict]) -> dict[str, list[dict]]:
     return out
 
 
+def _job_when(job: dict) -> datetime | None:
+    """Job 的代表时刻：完成优先，跑着的用开始。"""
+    st = job.get("status") or {}
+    return _ts(st.get("completionTime")) or _ts(st.get("startTime"))
+
+
+def _tick_object_absent(name: str, owned: list[dict], tick: datetime) -> bool:
+    """`<cronjob>-<tick 的 epoch 分钟>` 这个 Job 对象**不在**（容忍 ±1 分钟口径差）。"""
+    minute = int(tick.timestamp() // 60)
+    have = {str((j.get("metadata") or {}).get("name") or "") for j in owned}
+    return not any(f"{name}-{minute + d}" in have for d in (-1, 0, 1))
+
+
 def evaluate(
     cronjobs: list[dict],
     jobs: list[dict],
@@ -350,7 +369,19 @@ def evaluate(
             if manual_ok is not None and abs((last_ok_status - manual_ok).total_seconds()) <= 60:
                 untrusted = f"来自手工/复现作业的成功（{manual_ok.isoformat()}），与它逐秒相等"
             elif last_sched is not None and last_ok_status > last_sched:
-                untrusted = f"晚于最新一个排期 tick（{last_sched.isoformat()}）"
+                # **`lastSuccessfulTime > lastScheduleTime` 本身不是手工的证据**（2026-11-16 订正，
+                # 与 `check_cronjob_health.py` 同口径）：前一个是那一轮 tick 的**开始**、后一个是
+                # 那一轮 Job 的**完成**，晚于它是常态（`pvc-snap-cheap4` 实测 tick 18:47:00 /
+                # 成功 18:50:56）。只有落在「那一轮自己说得通的收尾窗口」之外，才判「说明不了这一轮」。
+                # 窗口 = `TICK_COMPLETION_PLAUSIBLE_MINUTES` 与排期间隔取小。
+                window = timedelta(minutes=min(TICK_COMPLETION_PLAUSIBLE_MINUTES, max(gap, 1.0)))
+                late = last_ok_status - last_sched
+                if late <= window:
+                    last_ok = last_ok_status
+                else:
+                    untrusted = (f"晚于最新一个排期 tick（{last_sched.isoformat()}）"
+                                 f"{late.total_seconds() / 3600:.1f}h，"
+                                 f"超出那一轮的收尾窗口 {window.total_seconds() / 60:.0f}min")
             if untrusted is None:
                 last_ok = last_ok_status
         last_ok_age = None if last_ok is None else (now - last_ok).total_seconds() / 60.0
@@ -415,6 +446,44 @@ def evaluate(
                           "detail": f"lastSuccessfulTime（{last_ok_status.isoformat()}）{untrusted}"
                                     " —— 不拿它清红；停滞判据本轮**判不出**"})
             row["verdict"] = "undecidable" if row.get("verdict") in (None, "ok") else row["verdict"]
+
+            # **但「判不出」不许只活在日志里（2026-11-16 补）**：`compose()` 在没有 finding 时
+            # 根本不发信，所以上面那行 `·` 收信的人永远看不到——「判不出」在行级被读成了「没事」，
+            # 与这条线自己的纪律（判不出绝不退 0）矛盾。
+            #
+            # 实历：`fd-prod/sink-freshness` 的 `failedJobsHistoryLimit=5` 被四个手工
+            # `create job --from=cronjob` 的 Failed 作业占满（`sink-freshness-verify-qd3/qd4/qd5`、
+            # `sink-verify-tcal`），11-14T21:10Z 那轮**排期失败的对象被挤出历史池** ⇒ 本线既看不到
+            # `job-failed`、`stall` 又被 untrusted 挡住 ⇒ 整轮安静，而那一轮其实失败了。
+            #
+            # 所以能**证成**「这一轮是被挤掉的」时就升级成 finding，三个条件同时成立：
+            #   ① 最新 tick 的对象不在（它只有一个载体：`<cronjob>-<tick 的 epoch 分钟>`）；
+            #   ② 池里有**比该 tick 更新**的对象——否则是「被手工删净」（`pvc-snap-*` 那族演练后
+            #      `owned=0`），那时闸对历史本就无话可说，报红只是假红；
+            #   ③ 这一轮没被任何排期轮次成功覆盖（被覆盖的旧 tick 不该再提）。
+            # 已因 `job-failed` 判过的作业不再叠一条：**一处问题只算一次命中**。
+            owned = by_cj.get(name, [])
+            newer = [j for j in owned
+                     if _job_when(j) is not None and last_sched is not None
+                     and _job_when(j) > last_sched]
+            covered = (sched_ok is not None and last_sched is not None and sched_ok >= last_sched)
+            if (last_sched is not None and _tick_object_absent(name, owned, last_sched)
+                    and newer and not covered and row.get("verdict") == "undecidable"):
+                tick_min = int(last_sched.timestamp() // 60)
+                non_sched = [j for j in newer
+                             if not (lambda m: bool(m) and m.group("cronjob") == name)(
+                                 SCHEDULED_JOB_RE.match(str((j["metadata"] or {}).get("name") or "")))]
+                findings.append({
+                    "kind": "unverifiable", "namespace": ns, "name": name,
+                    "detail": (f"最新一轮排期（tick {last_sched.isoformat()}，"
+                               f"{(now - last_sched).total_seconds() / 3600:.1f}h 前）的 Job 对象不在了"
+                               f"（应有 `{name}-{tick_min}`），之后池里还有 {len(newer)} 个更新的对象"
+                               f"（非排期 {len(non_sched)} 个）——**这一轮的结果不可核**：既没有成功记录、"
+                               "也没有失败证据，别把它读成通过。手工 `create job --from=cronjob` 的作业"
+                               "会占 `failedJobsHistoryLimit` 槽位、把排期失败挤掉；"
+                               "验证请手写去掉 `ownerReferences` 的独立 Job"),
+                })
+                row["verdict"] = "unverifiable"
         if last_ok_age is None:
             if last_sched_age is None:
                 if created_age is not None and created_age > max(never_grace, gap):
@@ -542,6 +611,123 @@ def deliver(messages: list[dict], config: dict) -> tuple[DeliveryReceipt, object
     return receipt, verdict
 
 
+# ─────────────────────────── 自证 ───────────────────────────
+#
+# 为什么要有：`unverifiable` 这条判据的**全部价值**在于「该红时会红」，而它在正常数据上
+# 一律安静 —— 只跑生产数据永远证明不了它承重。这里用内存夹具把红路与三条绿路各钉一遍，
+# 红证＝把 `evaluate()` 里的 EV 条件逐个短路，对应臂立刻转 ✗。
+#
+# 时间基准统一取 `NOW`，夹具里的小时数都是相对它算的，避免「恰好跨过阈值」的漂移。
+
+#: 臂数**自核**：写完一个数字写在旁边迟早会漂（同族教训见巡检 ⑧/⑭）。
+SELF_TEST_ARMS = 9
+
+def _self_test() -> int:
+    now = datetime(2026, 11, 16, 12, 0, tzinfo=timezone.utc)
+    K = {"stall_periods": 2, "stall_slack_minutes": 60,
+         "never_scheduled_grace_minutes": 60, "stuck_active_hours": 24}
+
+    def cj(name, *, schedule="0 9 * * *", last_sched=None, last_ok=None):
+        st = {}
+        if last_sched is not None:
+            st["lastScheduleTime"] = last_sched.isoformat()
+        if last_ok is not None:
+            st["lastSuccessfulTime"] = last_ok.isoformat()
+        return {"metadata": {"name": name, "namespace": "ns",
+                             "creationTimestamp": "2026-01-01T00:00:00Z"},
+                "spec": {"schedule": schedule, "suspend": False}, "status": st}
+
+    def job(cj_name, jname, *, when, condition=None):
+        # 归组是**按 ownerReferences**（`_jobs_by_cronjob`），不是按名字前缀——
+        # 夹具里漏了 owner 就等于「池里没有这个作业」，红路会假绿。
+        return {"metadata": {"name": jname, "namespace": "ns",
+                             "creationTimestamp": when.isoformat(),
+                             "ownerReferences": [{"kind": "CronJob", "name": cj_name}]},
+                "status": {"completionTime": when.isoformat(),
+                           "startTime": when.isoformat(),
+                           "conditions": [{"type": condition, "status": "True"}] if condition else []}}
+
+    def tick_job(cj_name, tick, *, condition="Complete"):
+        return job(cj_name, f"{cj_name}-{int(tick.timestamp() // 60)}",
+                   when=tick + timedelta(minutes=1), condition=condition)
+
+    def run(cronjobs, jobs):
+        return evaluate(cronjobs, jobs, now=now, thresholds=K)
+
+    def kinds(items):
+        return sorted({f["kind"] for f in items})
+
+    fails = 0
+    arms = 0
+
+    def arm(label, ok):
+        nonlocal fails, arms
+        arms += 1
+        print(("  ✓ " if ok else "  ✗ ") + label)
+        if not ok:
+            fails += 1
+
+    tick = now - timedelta(hours=24)               # 最新一轮排期（日频）
+    late = now - timedelta(hours=5)                # 19h 后 ⇒ 超出 2h 收尾窗口
+    soon = tick + timedelta(minutes=30)            # 那一轮自己的收尾
+    manual = lambda name, when: job("sink", name, when=when, condition="Failed")
+
+    # ① 红路：tick 对象不在 + 池里有更新的手工 Failed + 成功时刻说明不了这一轮
+    findings, _, rows = run([cj("sink", last_sched=tick, last_ok=late)],
+                            [manual("sink-verify-1", now - timedelta(hours=4)),
+                             manual("sink-verify-2", now - timedelta(hours=3))])
+    arm("红路：不可核 ⇒ 出 unverifiable 且 verdict=unverifiable",
+        kinds(findings) == ["unverifiable"] and rows[0]["verdict"] == "unverifiable")
+    arm("红路：详情报出应有的 tick 对象名",
+        any(f"sink-{int(tick.timestamp() // 60)}" in f["detail"] for f in findings))
+
+    # ② 绿路：对象被手工删净（owned 为空，`pvc-snap-*` 那族）——闸对历史无话可说
+    findings, _, _ = run([cj("pvc-snap-cheap4", last_sched=tick, last_ok=late)], [])
+    arm("绿路：owned=0（删净）⇒ 不判 unverifiable", "unverifiable" not in kinds(findings))
+
+    # ③ 绿路：tick 对象在场（哪怕之后还有更新的手工件）⇒ 走 job-failed，不叠 unverifiable
+    findings, _, _ = run([cj("sink", last_sched=tick, last_ok=late)],
+                         [tick_job("sink", tick, condition="Failed"),
+                          manual("sink-verify-1", now - timedelta(minutes=30))])
+    arm("绿路：tick 对象在场 ⇒ job-failed 且不判 unverifiable",
+        kinds(findings) == ["job-failed"])
+
+    # ④ 绿路：被后一轮排期成功覆盖（tick 对象仍在，但已有更新的排期成功）
+    nxt = now - timedelta(minutes=30)
+    findings, _, _ = run([cj("sink", last_sched=tick, last_ok=late)],
+                         [manual("sink-verify-1", now - timedelta(minutes=45)),
+                          tick_job("sink", nxt)])
+    arm("绿路：之后有排期成功 ⇒ 不判 unverifiable", "unverifiable" not in kinds(findings))
+
+    # ⑤ 收尾窗口内：tick 之后 30min 的「成功」算那一轮自己的收尾（不是手工证据）
+    findings, facts, _ = run([cj("sink", last_sched=tick, last_ok=soon)],
+                             [manual("sink-verify-1", now - timedelta(minutes=20))])
+    arm("收尾窗口内 ⇒ 不出 success-time-untrusted、不出 unverifiable",
+        "success-time-untrusted" not in kinds(facts) and "unverifiable" not in kinds(findings))
+
+    # ⑥ 收尾窗口外 ⇒ 判 untrusted（并因此不可核）
+    findings, facts, _ = run([cj("sink", last_sched=tick, last_ok=late)],
+                             [manual("sink-verify-1", now - timedelta(minutes=20))])
+    arm("收尾窗口外 ⇒ 出 success-time-untrusted", "success-time-untrusted" in kinds(facts))
+
+    # ⑦ 已因 job-failed 判过的作业不叠 unverifiable（一处问题只算一次命中）
+    findings, _, _ = run([cj("sink", last_sched=tick, last_ok=late)],
+                         [tick_job("sink", tick, condition="Failed")])
+    arm("已判 job-failed ⇒ 不叠 unverifiable", kinds(findings) == ["job-failed"])
+
+    # ⑧ 正常作业（tick 对象在场且 Complete、成功时刻=那一轮收尾）零 finding
+    findings, _, rows = run([cj("fine", last_sched=tick, last_ok=soon)],
+                            [tick_job("fine", tick)])
+    arm("正常作业 ⇒ 零 finding、verdict=ok",
+        findings == [] and rows[0]["verdict"] == "ok")
+
+    if arms != SELF_TEST_ARMS:   # 加了臂没改常量（或反过来）时，先报这个
+        print(f"  ✗ 臂数漂了：实跑 {arms} 臂、常量写 {SELF_TEST_ARMS}")
+        fails += 1
+    print(f"自证：{arms} 臂 / 失败 {fails}")
+    return 0 if fails == 0 else 1
+
+
 # ─────────────────────────── 入口 ───────────────────────────
 
 def main(argv: list[str] | None = None) -> int:
@@ -554,7 +740,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--assume-failed", action="append", default=[], help="把该 CronJob 当作失败（自证）")
     ap.add_argument("--assume-stale", action="append", default=[], help="把该 CronJob 当作停滞（自证）")
     ap.add_argument("--now", default=None, help="覆盖当前时刻（ISO，测试用）")
+    ap.add_argument("--self-test", action="store_true",
+                    help="离线自证判据能红（不碰集群、不发信）")
     args = ap.parse_args(argv)
+
+    if args.self_test:
+        return _self_test()
 
     now = _ts(args.now) if args.now else datetime.now(timezone.utc)
     if now is None:
