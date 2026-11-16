@@ -46,5 +46,17 @@ lifecycle:
 - at: '2026-11-16T08:54:25.919040+00:00'
   event: submit-failed
   error: Remote end closed connection without response
+- at: '2026-11-16T15:51:47.140319+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T15:55:32.532503+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 98c4b7d37a4c

@@ -91,5 +91,11 @@ lifecycle:
   ok: false
   verdict: error
   response: '{"code": -32041, "message": "turn exceeded 600s"}'
+- at: '2026-11-16T15:22:55.644987+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
 terminal: null
 evidence_signature: 1548d9895db0
