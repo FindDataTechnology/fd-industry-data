@@ -361,6 +361,17 @@ lifecycle:
   turn_fails: 8
   limit: 6
   last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-17T02:40:27.669281+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-17T02:43:45.049253+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 brief:
   source_urls:

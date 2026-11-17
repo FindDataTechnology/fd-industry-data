@@ -83,5 +83,12 @@ lifecycle:
   response: '{"jsonrpc":"2.0","id":"63e69f4d-ad1e-45eb-af00-fba55a776796","result":{"role":"assistant","message_id":"m-mwjubh96","context_id":"wx:6afcb4dd0a92a8e8","kind":"message","parts":[{"kind":"text","text":"已见过
     FindDataTechnology/fd-industry-data#20261116-dce-91c47b8e，状态：终态 **manual**（本单
     SUBMIT 与 SUBMIT-IN'
+- at: '2026-11-17T02:40:54.323992+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32004, "message": "cold start failed after 4 attempts (inputRequestOwnerOf
+    is not defined)"}'
 terminal: null
 evidence_signature: 98c4b7d37a4c

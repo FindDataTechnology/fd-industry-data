@@ -102,5 +102,10 @@ lifecycle:
   state: queued
   note: ''
   pr_url: ''
+- at: '2026-11-17T02:40:34.686182+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
 terminal: null
 evidence_signature: 98c4b7d37a4c

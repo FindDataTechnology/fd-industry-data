@@ -91,5 +91,18 @@ golden:
 lifecycle:
 - at: '2026-11-17T02:29:03.867170+00:00'
   event: created
+- at: '2026-11-17T02:42:09.173959+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32004, "message": "cold start failed after 4 attempts (inputRequestOwnerOf
+    is not defined)"}'
+- at: '2026-11-17T02:43:35.860569+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 67c7fb3ee0d6
