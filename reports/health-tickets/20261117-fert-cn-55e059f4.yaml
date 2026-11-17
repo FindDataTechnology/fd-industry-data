@@ -42,5 +42,18 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-17T13:20:11.071356+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: duplicate
+  response: '已见过 `FindDataTechnology/fd-industry-data#reports/health-tickets/20261117-fert-cn-55e059f4.yaml`，状态：**终态（manual，转人工）**。
+
+
+    依据：该单在 inbox 中已记为 manual（诊断：列表 API 仅到 2026 年 8 月、上游确在滞后/停发 ⇒ 非单元缺陷、阈值口径属平台侧），本回合按协议去重——未重复入队、未重做诊断、未改码、未开
+    PR、未发通知。
+
+
+    （注：提交载荷里那次 `cold start failed` 是工单系统自身的投递错误，本 agent 侧工单已在此前轮次完成诊'
 terminal: null
 evidence_signature: 98c4b7d37a4c

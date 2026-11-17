@@ -90,5 +90,19 @@ lifecycle:
   verdict: error
   response: '{"code": -32004, "message": "cold start failed after 4 attempts (inputRequestOwnerOf
     is not defined)"}'
+- at: '2026-11-17T13:17:37.546982+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: refused
+  response: '{"jsonrpc":"2.0","id":"7869b45c-178a-4192-ae43-2ca3ae56e027","result":{"role":"assistant","message_id":"m-mwkpw47g","context_id":"wx:d6116517fe43414c","kind":"message","parts":[{"kind":"text","text":"已见过
+    `FindDataTechnology/fd-industry-data#20261116-dce-91c47b8e`，状态：**终态 manual**（本条
+    SUBMIT 与 SUBMIT-'
+- at: '2026-11-17T13:35:25.870847+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 98c4b7d37a4c

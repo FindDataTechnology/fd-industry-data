@@ -59,5 +59,12 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-17T13:19:00.394378+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: refused
+  response: '{"jsonrpc":"2.0","id":"0f165f5e-fe7a-4ee1-ae87-679124cbf5b7","result":{"role":"assistant","message_id":"m-mwkpxw4o","context_id":"wx:cca1bddc136efd7c","kind":"message","parts":[{"kind":"text","text":"已完成分诊与核验，结论如下。\n\n**已见过
+    FindDataTechnology/fd-industry-data#reports/health-tickets/20261117-educatio'
 terminal: null
 evidence_signature: 1548d9895db0

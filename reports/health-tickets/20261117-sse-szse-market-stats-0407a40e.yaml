@@ -104,5 +104,25 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-17T13:27:27.377251+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: duplicate
+  response: '**已见过** `FindDataTechnology/fd-industry-data#20261117-sse-szse-market-stats-0407a40e`，状态：**终态
+    done**（12:25Z 落定，来源 fd-memory 快照 6050f2a8）。
+
+
+    一行依据：该单上一轮已按处方「出口切换/代理复测（不改代码）」完成验证，故本轮**不重复入队、不重复动手**，未改任何代码、未开 PR、未 push。
+
+
+    **但需提请注意（本轮唯一动作＝只读复测，未改状态）：**
+
+
+    | 探针 | 结果 |
+
+    |---|---|
+
+    | SZSE 目标接口（经代理，`txtQueryDate=2'
 terminal: null
 evidence_signature: 67c7fb3ee0d6

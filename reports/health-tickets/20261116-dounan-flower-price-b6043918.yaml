@@ -88,5 +88,11 @@ lifecycle:
 
     - 在档记录已存在且为终态 manual（resubmit_count 由 2 → 3，resubmitted_at 22:35:43Z），本单 evidence_signature
     `98c4b7d37a4c` 与在档记录一致 ⇒ 同一单复投，按协议**只去重、不动手**：未重做诊断、未改 `spiders/dounan-fl'
+- at: '2026-11-17T13:35:29.142040+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 98c4b7d37a4c
