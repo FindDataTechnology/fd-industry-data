@@ -1,0 +1,17 @@
+{
+  "sample_id": "001-nra-rpi",
+  "created": "2026-11-11",
+  "target": "run_nra_rpi",
+  "params": {"limit": 30},
+  "expect": {
+    "min_rows": 3,
+    "rows_contains": [
+      {"field": "index", "equals": "RPI"},
+      {"field": "index", "equals": "current_situation"},
+      {"field": "index", "equals": "expectations"},
+      {"field": "unit", "equals": "index_level"}
+    ]
+  },
+  "whitelist_fields": ["scraped_at", "source_url"],
+  "note": "结构断言，不钉具体期次数值：本源仅最新一期可达（无逐期归档 URL 证据），golden 若钉值会在 NRA 发布下一期后必然假红。每期数值质量由 spider 内置交叉验证 RPI=(Current Situation+Expectations)/2 (±0.15) 把关，交叉验证不过的月份整月丢弃并记日志。生成时（2026-11-11）对 2026-09 期实测：RPI/current_situation/expectations 五个月（2026-05..2026-09）15 行全部通过交叉验证，最新月三值均为 100.7，与 PDF 文本层逐字核对。"
+}
