@@ -206,11 +206,11 @@ def main() -> int:
                     conn,
                     status="failed" if src in failed_src else "success",
                     started_at=started_at,
-                    detail=f"wave src={src} rows={n_rows} pkg={__name__}",
+                    detail=f"wave src={src} rows={n_rows} pkg=restaurant_extractors",
                 )
             for src, err in failed:
                 record_execution(conn, status="failed", started_at=started_at,
-                                 detail=f"wave src={src} rows=0 pkg={__name__} err={err[:300]}")
+                                 detail=f"wave src={src} rows=0 pkg=restaurant_extractors err={err[:300]}")
         finally:
             conn.close()
     return 1 if failed else 0
