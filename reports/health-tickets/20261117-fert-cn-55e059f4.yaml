@@ -55,5 +55,11 @@ lifecycle:
 
 
     （注：提交载荷里那次 `cold start failed` 是工单系统自身的投递错误，本 agent 侧工单已在此前轮次完成诊'
+- at: '2026-11-18T02:23:34.397584+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 98c4b7d37a4c

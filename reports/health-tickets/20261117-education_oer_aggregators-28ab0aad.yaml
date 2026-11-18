@@ -66,5 +66,31 @@ lifecycle:
   verdict: refused
   response: '{"jsonrpc":"2.0","id":"0f165f5e-fe7a-4ee1-ae87-679124cbf5b7","result":{"role":"assistant","message_id":"m-mwkpxw4o","context_id":"wx:cca1bddc136efd7c","kind":"message","parts":[{"kind":"text","text":"已完成分诊与核验，结论如下。\n\n**已见过
     FindDataTechnology/fd-industry-data#reports/health-tickets/20261117-educatio'
+- at: '2026-11-18T01:57:07.268997+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: accepted
+  response: 'The notification channel is not bound (wechat-oa send failed), but the
+    terminal state is recorded per protocol.
+
+
+    ## 结论：工单终态 = **manual（转人工）**
+
+
+    **依据**：
+
+    - 分诊类别：`network`（4/4 票全投 network）
+
+    - 故障表现：近 4 次运行全部 `TimeoutError: The read operation timed out`，最近成功回溯到 11-06（9
+    天前）
+
+    - 工单建议动作：**出口切换/代理复测（不改代码）** —— 明'
+- at: '2026-11-18T02:21:34.668929+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 1548d9895db0

@@ -49,5 +49,17 @@ lifecycle:
   verdict: error
   response: '{"code": -32003, "message": "502: {\"message\":\"Upstream service temporarily
     unavailable\",\"type\":\"upstream_error\"}"}'
+- at: '2026-11-18T02:07:09.582887+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32041, "message": "turn exceeded 600s"}'
+- at: '2026-11-18T02:24:12.484806+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 98c4b7d37a4c

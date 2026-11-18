@@ -280,5 +280,10 @@ lifecycle:
   turn_fails: 6
   limit: 6
   last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-18T01:48:51.576727+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
 terminal: null
 evidence_signature: d5ab5a94aea5
