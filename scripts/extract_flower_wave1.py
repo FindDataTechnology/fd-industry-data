@@ -133,6 +133,7 @@ def main() -> int:
     started_at = datetime.now(timezone.utc)
     conn = psycopg2.connect(_dsn(args.dsn))
     failed: list[tuple[str, str]] = []
+    per_unit: list[tuple[str, int, str]] = []
     try:
         conn.autocommit = False
         with conn.cursor() as cur:
@@ -159,6 +160,7 @@ def main() -> int:
                     codes = {r[0] for r in rows}
                     ids = ensure_unit_concepts(cur, source, mod.CONCEPTS, codes)
                     ins = insert_rows(cur, source, ids, rows)
+                    per_unit.append((source, len(rows), f"inserted {ins}"))
                     print(f"   extracted {len(rows)} rows, inserted {ins}")
                 except Exception as exc:  # noqa: BLE001 — per-unit isolation
                     cur.execute(f"ROLLBACK TO SAVEPOINT {sp}")
