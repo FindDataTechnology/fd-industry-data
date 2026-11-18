@@ -80,13 +80,28 @@ python3 fd-infra-deploy/tools/gen_wave_extract_configmap.py --check   # 漂移�
 
 ## 4. 存活判据
 
-`fd-industry-data/scripts/check_observation_lag.py`：比较每个源的
-`max(crawl_runs.started_at)` 与 `max(semantic_observations.fetched_at)`，爬取前进而
-观测不动超过 2 个爬取周期就红。
+`fd-industry-data/scripts/check_observation_lag.py`：读抽取器自己写的 `executions`
+存活台账（每次运行一行，`detail` 以 `wave src=<源>` 开头），四问分开答：
 
-**为什么不用现成的两种**：`freshness` 会把「上游停更」和「抽取器死了」混为一谈
-（`cncotton` 2025-08 就停发了会常年红）；`staleness` 的参照物是本表内数据自身的
-最大值，整表停摆时 lag 恒 0，是死门。
+| 问 | 信号 | 判 |
+|---|---|---|
+| 有没有数据 | `semantic_observations` 有行 | 无 ⇒ `never`（该去**写**抽取器） |
+| 抽取器活着吗 | 台账末次运行距今 | > 1.5 天 ⇒ `died` |
+| 末次成功吗 | 台账末次 `status` | 非 success ⇒ `lag`（跑了但失败） |
+| 数据期旧不旧 | `max(date)` 对 wall clock | **只报事实，从不判红** |
+
+**为什么不能用 `fetched_at`**（第一版就是，现网实测出 2 个假阳性）：写入是
+`ON CONFLICT DO NOTHING`，「跑了但上游没新数据」插 0 行、`fetched_at` 不动。
+`fert-cn` 的数据期与爬取期都到 2026-08（已对齐），但 `fetched_at` 停在 11-08，
+按它判就报「滞后 72 天」。
+
+**为什么不能用 `max(date)` 当主判据**（第二版，更糟）：15 个源红，其中 14 个是
+月频/季频源的**正常**滞后——期号天生落后 wall clock 一个发布周期。把它当门禁
+等于给每一条月频源挂一个永远清不掉的红。
+
+结论：只有**抽取器自己写的运行台账**能区分「上游没新数据」与「抽取器停了」。
+pharma 的 `fd-pharma-observations` 2026-11-11 已经踩完这条路（该 change 文档 §9），
+这里照抄它的实现。
 
 范围只含「本仓有 `crawl_items` 型抽取器」的 20 个源（`--scope all` 可看全表盘点，
 但那不是门禁：153 源里 85 个「从未抽取」会让闸常年红）。
