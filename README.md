@@ -1,132 +1,106 @@
-# FD Industry Data Spiders
+# dce — 大连商品交易所日线结算价（新浪通道）
 
-> **Wire (柏讯) product line** · the open-data supply line of [FindData](https://www.finddatatech.cloud/products/wire) — industry data spiders
+## 单元档案
 
-Scrapling/HTTP 适配器构成的行业数据爬虫内容仓（fd-industry-data）：在役源清单以
-`spiders/*/manifest.yaml` 为准（接入流程见 `docs/onboarding.md`），休眠与退役单元的
-历史内容见 `archive/`。
+| 项 | 值 |
+|---|---|
+| 默认通道 | 新浪期货日线 `InnerFuturesNewService.getDailyKLine`（stdlib urllib，无第三方依赖） |
+| 默认 symbols | `M0`（豆粕主力连续）、`C0`（玉米主力连续） |
+| 主量 | 结算价 settle（交易所口径，经新浪转载），辅 close/volume/持仓量 |
+| 调度 | `20 17 * * 1-5`（交易日 17:20 抓当日收盘+结算），`data_period: day`，manifest v2 |
+| golden | `golden/001-dce-m0.json`：M0 序列锚 2021-01-05 settle=3468.0，min_rows 4000 |
+| 抽取器 | `scripts/restaurant_extractors/dce.py`（dedup 按 (symbol, date)，settle==0 哨兵跳过，≥24 期门） |
 
-## Spiders
+## 通道实录：为什么不是官方站点
 
-| Spider | Source | Description |
-|--------|--------|-------------|
-| **flower-auction** | kifa.net | Kunming International Flower Auction Center 花拍数据（已按「需非云出口」parked，见 manifest 与 README） |
+**瑞数（Ruishu）JS 挑战，结构性挡死。** 旧页面通道（scrapling 模拟 Chrome 抓
+`www.dce.com.cn/dalianshangpin/...` 列表页）在生产环境的表现是：
 
-> 完整在役源以各目录 `manifest.yaml` 为准；休眠/退役单元（2026-10-04 批次等）见
-> `archive/triage-cleanup-*` 的 INDEX。活跃的数据源侦察簿在 finddata 工作区
-> `data-source-scouting/INDUSTRY-DATA-SOURCES.md`。
+- 直连/模拟浏览器均返回 **HTTP 412** 或空壳页——瑞数在首次响应里下 JS 质询，
+  求不出动态 cookie 就拿不到任何表格；
+- 生产 run 状态 success 但 **rows_written=0**（解析器在空壳页上零产出，
+  异常被吞）——这是 2026-11-06 清账裁决 park 的直接证据；
+- 继续投入需要常驻 JS 运行时 + 持续对抗瑞数升级，而同一份日线数据经新浪
+  免费可得，边际收益为零。
 
-## Requirements
+因此 2026-11-07 餐饮垂直线波0 **有意识翻案**该 park 裁决：默认通道切换为
+新浪日线，去 `parked`、恢复在产调度。裁决依据落在
+`output/adjudication/ledger.json`（decided_by `restaurant-vertical-2026-11-07`）。
 
-- Python 3.10+
-- scrapling >= 0.4.7
+旧页面通道代码**原样保留**在 `spider.py` 的 `_SCRAPING_AVAILABLE` 守卫块内
+（`DCESpider` / `run_spider` / `run_dce_pages`），不再被任何调度面引用；
+保留它只为存档页面结构知识，激活前必须先解决瑞数质询。
 
-Install dependencies:
-```bash
-pip install "scrapling[all]>=0.4.7"
-scrapling install --force
+## 新浪通道口径
+
+- **接口**：`GET https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20_dce_=/InnerFuturesNewService.getDailyKLine?symbol=<SYM>`
+  （jsonp 信封 `var _dce_=([...]);`；akshare `futures_zh_daily_sina` 同一底层，
+  其硬编码的 `type=2021_04_12` 参数经实测惰性——任意值或省略响应逐字节一致）。
+- **数据语义**：交易所日线经新浪转载——`d` 交易日 / `o h l c` 四价 / `v` 成交量 /
+  `p` 持仓量 / `s` 结算价。主力连续 `M0`/`C0` 是新浪按主力切换拼好的
+  roll 序列（历史深度实测 **2005-01-04 .. 2026-11-06，各 ~5300 行**）。
+- **结算价哨兵**：`s=0.000` 表示当日未转载结算价——M0 共 1589 天
+  （散布全史，最后一例 2024-09-25）。payload 照实存 0.0，
+  抽取器按"不造假"纪律跳过这些行，绝不写 0 价格。
+- **具体合约**：任意新浪合约符号可用（如 `M2701`，2026-01-19 起 193 行）；
+  非主力连续符号 `contract_desc` 保持原名，主力连续为中文描述。
+
+## Payload 契约
+
+```json
+{
+  "symbol": "M0",
+  "contract_desc": "豆粕主力连续",
+  "date": "2021-01-05",
+  "settle": 3468.0,
+  "close": 3483.0,
+  "volume": 1409491.0,
+  "open_interest": 1658509.0,
+  "source_url": "https://stock2.finance.sina.com.cn/futures/api/jsonp.php/InnerFuturesNewService.getDailyKLine?symbol=M0",
+  "scraped_at": "2026-11-07T13:50:12.225968+00:00"
+}
 ```
 
-## Usage
+确定性顺序：symbols 按入参顺序、日期升序；`limit` 截断该流。
+`--params '{"symbols":["M0","C0"]}'`（manifest 已声明 `symbols` 参数，
+runner 只透传入口签名显式接受的键）。
 
-### Run Individual Spiders
+## 本地运行
 
-```bash
-# 平台约定的标准入口（内容通道调度即调用它）
-python3 -c "import sys; sys.path.insert(0,'.'); from spiders.flower_auction.spider import run_flower_auction; print(run_flower_auction(limit=5))"
-
-# 或按单元目录调试
-cd spiders/flower-auction
-python spider.py
-```
-
-### Fleet Baseline (All Scheduled Spiders)
-
-Run every production source (manifest with a `schedule`) sequentially and
-produce a success-rate baseline report:
-
-```bash
-python3 scripts/fleet_baseline.py --dry-run    # list scheduled sources only
-python3 scripts/fleet_baseline.py --limit 20   # sequential run -> reports/fleet-baseline/
-```
-
-### Programmatic Usage
-
-```python
-from spiders.flower_auction.spider import FlowerAuctionSpider
-
-spider = FlowerAuctionSpider()
-result = spider.start()
-
-print(f"Scraped {result.stats.items_scraped} items")
-print(f"Duration: {result.stats.elapsed_seconds:.1f}s")
-
-result.items.to_json("output.json", indent=True)
-```
-
-## Output Structure
-
-Each spider produces:
-- **SQLite database** in `spiders/<name>/data/`
-- **JSON export** in `spiders/<name>/output/`
-
-## Data Coverage
-
-### Flower Industry Data
-- Auction prices and trading volumes
-- Flower variety statistics
-- Market trends and seasonal data
-- News and policy updates
-
-### Open Data Platforms
-- Dataset metadata extraction
-- Download links and file information
-- Dataset descriptions and tags
-- Repository statistics
-
-## Configuration
-
-Each spider has its own `manifest.yaml` with:
-- Data source URLs
-- Output schema
-- Rate limiting settings
-- Feature flags
-
-### Remote Browser (Playwright via CDP)
-
-By default, browser-enabled spiders (flower-auction) use a local headless Chromium instance. To use a remote browser (e.g., on k8s), set `BROWSER_CDP_URL`:
+确定性顺序：**按日期倒序、symbols 间轮转**（M0 最新一日、C0 最新一日、M0 次新、
+C0 次新……）。runner 默认 `--limit 100`，该排序下每次调度 run 刷新两个品种
+各最近 ~50 个交易日；全历史（~10.6k 行）由一次性大 limit 回填落入
+`crawl_items`（跨 run 持久，抽取器读全部成功 run 的 payload）：
 
 ```bash
-# Local browser (default)
-python spiders/flower-auction/spider.py
-
-# Remote browser via CDP
-BROWSER_CDP_URL=ws://browser-cdp:3000 python spiders/flower-auction/spider.py
+# 单跑（默认 M0+C0；全历史回填用大 limit，中央库按 (symbol,date) 语义去重）
+source ~/.config/finddata/dashboards.env
+FD_CRAWL_DB_URL="$FD_OPEN_DATA_DSN" FD_WRITER_MAX_ITEMS=50000 \
+  ./.venv/bin/python -m fd_industry_data.runner_cli dce \
+  --params '{"symbols":["M0","C0"]}' --limit 20000
 ```
 
-The remote browser can be any CDP-compatible service (e.g., `browserless/chrome`, `zenika/alpine-chrome`, or a headless Chrome with `--remote-debugging-port=9222`). Each spider gets its own isolated browser context.
+幂等：语义库按 `(concept, entity, date, granularity, source)` 唯一约束去重，
+重复 run 零新行；同一 (symbol, date) 多次抓取由抽取器保留 scraped_at 最新
+的 payload。
 
-## Notes
+## 验证数字（2026-11-07 实测）
 
-- **`robots.txt` 检查有工具，但需按单元接入**：`fd_industry_data.http.allowed_by_robots(url)`
-  按 host 缓存取 `robots.txt` 并与规则比对（标准库，零依赖）。**取不到时放行**
-  （RFC 9309：没有 robots.txt 等于没有限制）。**没有单一收口**——spider 的取数方式分散在
-  scrapling `Fetcher.get`（52 个）、`requests`、及各单元自有实现，工具无法在共享层强制生效；
-  **新单元应当调用它**，既有单元按需迁移。
-  （2026-11-09 之前这里写的是「All spiders respect `robots.txt`」——一句不成立的文档承诺，见审计 05 §6。）
-- Rate limiting is configured to avoid overloading servers
-- Flower auction data is time-sensitive and should be crawled frequently
-- Kaggle/GitHub spiders focus on metadata, not full dataset downloads
-- SQLite databases use deduplication constraints
+| 断言 | 值 |
+|---|---|
+| M0 行数 / 窗口 | 5315 行，2005-01-04 .. 2026-11-06 |
+| C0 行数 / 窗口 | 5309 行，2005-01-04 .. 2026-11-06 |
+| M2701（对照） | 193 行，2026-01-19 起 |
+| 锚点 M0 2021-01-05 | settle 3468.0 / close 3483.0 / vol 1,409,491 / 持仓 1,658,509 |
+| settle==0 行数 | M0 1589（末例 2024-09-25）；C0 1581 |
+| 结算价可用窗口 | 2010-06-08 .. 2026-11-06（两品种同；此前 settle 全为 0 哨兵）|
+| type 参数惰性 | 三种取值响应逐字节一致 |
 
-## License
+## 已知事项
 
-MIT
-
-## Runtime: gitops 内容通道（gitops-crawl-runtime）
-
-稳定运行时 = `finddata/fd-industry-runner` 镜像（Jenkins job `fd-industry-runner` 低频构建，含三段准入门：manifest v2 校验 → conformance gate → 镜像内 import 扫描，红则不推镜像）。内容 = 本仓 `spiders/<src>/`，经 chengsi ArgoCD 的 ApplicationSet（`fd-industry-crawl`）按 manifest v2 字段渲染 per-source CronJob。
-
-**加源三步**：① `spiders/<src>/`（manifest.yaml + spider.py，入口 `run_<src>(limit)`）→ ② push 过 CI 准入门 → ③ manifest 补 `schedule`（如 `"23 3 * * *"`，可选 `memory_limit`/`cpu_limit`）即点亮；清空 schedule 或 `enabled: false` 即停用（prune）。无 schedule 的源静默，不产生任何运行。19 个存量坏源见 `scripts/quarantine.txt`（修复后从清单移除即受门禁约束）。
-
-**遥测**：每次运行写中央表 `fd_open_data.crawl_runs`（source/kind/status/rows/commit/image_tag，成败皆报，报到失败本地兜底不伤主流程）；健康度卡片 `dashboards/crawl-health.html`（`python3 dashboards/crawl_health.py` 重生成）。特殊源 Job 用 `scripts/report_special_run.sh` 一行报到。
+1. 主力连续的历史由新浪拼接，交易所换月切点以新浪口径为准（未复权，
+   与逐合约结算价一致；跨切换日的价差不代表收益）。
+2. `settle==0` 天数约占 30%（2010-06-08 前全为 0，此后零星散布到 2024-09-25）；
+   结算价序列实际覆盖 2010-06-08 起约 3726 期，远超 24 期趋势门。
+3. 实体行 `DCE.M0` / `DCE.C0`（entity_type `contract`）由主代理在正式抽取前
+   注册；抽取器自身不建实体行，缺实体时照常产出行（entity_id=None）并留 note。
