@@ -51,7 +51,13 @@ DRIVERS = {
 #: 允许的形态值。
 SCHEDULED = "crawl_items"   # 读 crawl_items → 必须有常驻调用方
 LIVE = "live-fetch"         # 进程内打上游 → 不得定时执行
-UNKNOWN = "unknown"         # 两种都不像 → 判不出，测试红
+#: 读 crawl_items **但**仍会打上游（下载 PDF / 抓详情页取正文）。
+#: 这类不能定时跑：文档面在库外，每次抽取都要重新下载——既绕开爬取层的
+#: 限速/代理，又让一轮作业的时长取决于外部站点（2026-11-19 实测：hkex 的
+#: 抽取器在 pod 里 do_sys_poll 挂了 5 分钟以上）。正解是把下载挪进爬虫
+#: （payload 里存正文），抽取器只读库。
+HYBRID = "crawl_items+net"
+UNKNOWN = "unknown"         # 三种都不像 → 判不出，测试红
 
 #: 被排除模块的具名理由。键是 ``<包名>/<模块名>``（模块名去掉 .py）。
 #: **为什么按模块而不是按 SOURCE**：``eurostat-api`` 在 restaurant 包里是读
@@ -84,7 +90,37 @@ LIVE_FETCH_REASONS = {
         "在抽取进程里取会绕开凭据/配额管束；正解是改 unit_items",
     "flower_extractors/eurostat_flower_area":
         "_load_unit(spiders/eurostat-api)：同 hotel 的同名抽取器，共用单元",
+    # ── hybrid：读 crawl_items，但仍下载 PDF / 抓详情页取正文 ──
+    "hotel_extractors/hkex_operating":
+        "读 crawl_items 但 fetch_pdf(url) 仍要下载港交所公告 PDF 取正文；"
+        "在抽取 pod 里下载既绕开爬取层的限速/代理，又让一轮作业时长取决于外部站点"
+        "（2026-11-19 实测挂了 5 分钟以上）。正解是把 PDF 正文存进 payload，"
+        "抽取器只读库",
+    "hotel_extractors/sec_8k_operating":
+        "读 crawl_items 但 urlopen 抓 EDGAR 详情页/exhibit；同上，正解是正文入 payload",
 }
+
+
+#: 判「这个模块会不会打上游」的静态特征。刻意粗（宁可多判 hybrid）：
+#: 漏判的代价是一轮作业挂在外网站点上，多判的代价只是一个源推迟定时。
+_NET_HINTS = ("urlopen", "Request", "HTTPConnection", "HTTPSConnection",
+              "requests.get", "requests.post", "httpx.", "fetch_pdf")
+
+
+def _calls_network(tree: ast.AST) -> bool:
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            fn = node.func
+            nm = fn.id if isinstance(fn, ast.Name) else (
+                fn.attr if isinstance(fn, ast.Attribute) else None)
+            if nm:
+                names.add(nm)
+        elif isinstance(node, ast.Attribute):
+            names.add(node.attr)
+        elif isinstance(node, ast.Name):
+            names.add(node.id)
+    return any(h in names for h in _NET_HINTS)
 
 
 def classify_text(text: str) -> tuple[str | None, str, list[str]]:
@@ -117,8 +153,11 @@ def classify_text(text: str) -> tuple[str | None, str, list[str]]:
             if name:
                 calls.add(name)
 
+    # 网络调用的静态特征：urlopen / Request / http.client / requests.get|post
+    net = _calls_network(tree)
+
     if "unit_items" in calls:
-        kind = SCHEDULED
+        kind = HYBRID if net else SCHEDULED
     elif "live_items" in calls or "_load_unit" in calls:
         kind = LIVE
     else:

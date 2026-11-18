@@ -50,7 +50,7 @@ def test_every_module_is_classified(report):
 def test_scheduled_and_live_are_complementary(report):
     """每个模块必须恰好落在两侧之一。"""
     live_measured = {m["key"] for mods in report.values() for m in mods
-                     if m["kind"] == wes.LIVE}
+                     if m["kind"] in (wes.LIVE, wes.HYBRID)}
     scheduled_modules = set()
     for pkg, mods in report.items():
         for m in mods:
@@ -69,8 +69,10 @@ def test_scheduled_and_live_are_complementary(report):
 
 def test_excluded_modules_carry_a_reason(report):
     """排除名单必须等于实测集合，且每条都得有话说。"""
+    # 排除 = 不可定时跑的两种形态：live-fetch（进程内打上游）
+    # + hybrid（读库但仍下载正文）。两者都必须有具名理由。
     measured = {m["key"] for mods in report.values() for m in mods
-                if m["kind"] == wes.LIVE}
+                if m["kind"] in (wes.LIVE, wes.HYBRID)}
     declared = set(wes.LIVE_FETCH_REASONS)
     assert measured == declared, (
         "排除名单与实测不一致。\n"
