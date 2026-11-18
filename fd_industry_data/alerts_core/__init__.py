@@ -13,6 +13,21 @@
 """
 from __future__ import annotations
 
+from .caas import (
+    AckProjection,
+    EnvelopeCheck,
+    ack_order,
+    ack_projection,
+    ack_rank,
+    canonical_ack,
+    caps_for,
+    forms as caas_forms,
+    load as load_caas,
+    max_ack_for,
+    resolve_form,
+    validate_envelope,
+    version as caas_version,
+)
 from .ledger import (
     append_events,
     event_key,
@@ -45,4 +60,7 @@ __all__ = [
     "append_events", "read_events", "event_key", "load_state", "save_state",
     "state_health",
     "SmtpConfig", "dispatch", "send_email", "smtp_config_from_env",
+    "caas_forms", "caas_version", "load_caas", "ack_order", "canonical_ack",
+    "ack_rank", "caps_for", "max_ack_for", "resolve_form", "validate_envelope",
+    "ack_projection", "AckProjection", "EnvelopeCheck",
 ]

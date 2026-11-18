@@ -32,14 +32,30 @@ STRICT_ENV = "FD_ALERT_DELIVERY_STRICT"
 
 @dataclass(frozen=True)
 class DeliveryTarget:
-    """一条告警线声明出来的投递目标。"""
+    """一条告警线声明出来的投递目标。
+
+    ``forms`` / ``recipient_kind`` / ``ack`` 是 CaaS 契约（add-caas-delivery-contract）
+    加进来的三个可选维度。**缺省时回退到本 change 之前的等价行为**——渠道语义不变、
+    回执强度视为 ``delivered``——所以既有线路配置一个字不改也能跑。
+    """
 
     channel: str
     to: tuple[str, ...]
     min_severity: str = "warning"
+    forms: tuple[str, ...] = ()
+    recipient_kind: str = ""
+    ack: str = ""
 
     def as_dict(self) -> dict[str, Any]:
-        return {"channel": self.channel, "to": list(self.to), "min_severity": self.min_severity}
+        out: dict[str, Any] = {"channel": self.channel, "to": list(self.to), "min_severity": self.min_severity}
+        # 只在新维度被声明时才出现在产物里：老线路的 JSON 产物逐字节不变。
+        if self.forms:
+            out["forms"] = list(self.forms)
+        if self.recipient_kind:
+            out["recipient_kind"] = self.recipient_kind
+        if self.ack:
+            out["ack"] = self.ack
+        return out
 
 
 class DeliveryNotConfigured(Exception):
@@ -88,17 +104,69 @@ def resolve_target(config: Mapping[str, Any], env: Mapping[str, str] | None = No
             )
 
     severity = str(raw.get("min_severity") or "warning").strip().lower()
-    return DeliveryTarget(channel=channel, to=to, min_severity=severity)
+
+    # ── CaaS 可选维度（add-caas-delivery-contract）───────────────────────────
+    # 形态来自权威表：线路配置可显式声明 forms（与渠道能力必须相交），也可以只声明
+    # recipient_kind 由我们按表推导。两者都不声明时留空 = 沿用旧行为。
+    from . import caas  # noqa: PLC0415 — 避免循环导入
+
+    recipient_kind = str(raw.get("recipient_kind") or "").strip()
+    declared_forms = tuple(str(x).strip() for x in (raw.get("forms") or []) if str(x).strip())
+    ack = caas.canonical_ack(raw.get("ack")) or ""
+
+    if recipient_kind and recipient_kind not in (caas.load().get("recipients") or {}):
+        raise DeliveryNotConfigured(
+            f"delivery.recipient_kind={recipient_kind!r} 不在权威表的收件方类型里；"
+            "未登记的收件方类型不得投递"
+        )
+
+    channel_forms = caas.channel_forms(channel)
+    if declared_forms:
+        unknown = [f for f in declared_forms if f not in caas.forms()]
+        if unknown:
+            raise DeliveryNotConfigured(f"delivery.forms 含未登记形态：{', '.join(unknown)}")
+        allowed = set(channel_forms)
+        if allowed:
+            outside = [f for f in declared_forms if f not in allowed]
+            if outside:
+                raise DeliveryNotConfigured(
+                    f"delivery.forms 声明的 {', '.join(outside)} 超出 {channel} 渠道能力"
+                    f"（{', '.join(channel_forms) or '未知'}）"
+                )
+        forms = declared_forms
+    elif recipient_kind:
+        forms = caas.caps_for(recipient_kind)
+    else:
+        forms = ()
+
+    if ack:
+        ceiling = caas.max_ack_for(recipient_kind) if recipient_kind else caas.channel_max_ack(channel)
+        if ceiling and caas.ack_rank(ack) > caas.ack_rank(ceiling):
+            raise DeliveryNotConfigured(
+                f"delivery.ack={ack!r} 高于可达上限 {ceiling!r}；"
+                "声明做不到的强度会让回执永远处在降级态"
+            )
+
+    return DeliveryTarget(
+        channel=channel, to=to, min_severity=severity,
+        forms=forms, recipient_kind=recipient_kind, ack=ack,
+    )
 
 
 @dataclass
 class DeliveryReceipt:
-    """一轮投递的结局。三个计数互斥，加起来等于本轮的候选消息数。"""
+    """一轮投递的结局。三个计数互斥，加起来等于本轮的候选消息数。
+
+    ``ack_actual`` / ``downgraded`` 是 CaaS 投影位（add-caas-delivery-contract）：
+    原三个计数与它们的语义一个字没改，新位只回答「这批实际证明了什么强度」。
+    """
 
     sent: int = 0
     failed: int = 0
     skipped: int = 0
     reasons: list[str] = field(default_factory=list)
+    ack_actual: str = ""
+    downgraded: bool = False
 
     @property
     def total(self) -> int:
@@ -108,7 +176,20 @@ class DeliveryReceipt:
         out: dict[str, Any] = {"sent": self.sent, "failed": self.failed, "skipped": self.skipped}
         if self.reasons:
             out["reasons"] = list(self.reasons)
+        # 新键只在有值时出现，老产物逐字节不变。
+        if self.ack_actual:
+            out["ack_actual"] = self.ack_actual
+        if self.downgraded:
+            out["downgraded"] = True
         return out
+
+    def projection(self, ack_declared: str = "") -> Any:
+        """按信封声明的强度把本批结局投影成三值之一（见 caas.ack_projection）。"""
+        from . import caas  # noqa: PLC0415
+
+        if self.failed and self.sent == 0:
+            return caas.ack_projection(failed=True, retryable=True, reason="; ".join(self.reasons) or "no delivery")
+        return caas.ack_projection(ack_declared=ack_declared, ack_actual=self.ack_actual or "delivered")
 
 
 @dataclass(frozen=True)
