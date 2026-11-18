@@ -43,7 +43,30 @@ PACKAGE = "hotel_extractors"
 #: Series units this runner owns. Everything else in hotel_extractors/ is the
 #: wave-3 company channels and keeps its own entry points (they read stored
 #: crawl payloads; these either call a command surface or are pulled live).
-SERIES_UNITS = ("eurostat-api", "mct-star-hotel", "mct-tourism-demand")
+def _discover_units() -> tuple[str, ...]:
+    """包内全部暴露 ``SOURCE`` + ``extract`` 的模块的单元名。
+
+    **不再手写白名单**（原来是三个名字的元组）。手写的那份把包里另外三个
+    模块（``cninfo-operating`` / ``hkex-disclosure`` / ``sec-edgar-8k-operating``）
+    挡在驱动外面——它们在包里能跑、读 ``crawl_items``、本该被定时抽取，
+    却因为名字不在那个元组里而 ``--only`` 直接 SystemExit（2026-11-19 首跑实测，
+    hotel 整包静默缺失）。
+
+    这正是本 change 要消灭的那类清单：一份与代码不同步的手写名单，不同步的
+    方向永远是「静默少跑」。
+    """
+    pkg = importlib.import_module(PACKAGE)
+    names = []
+    for info in pkgutil.iter_modules(pkg.__path__):
+        if info.name.startswith("_"):
+            continue
+        mod = importlib.import_module(f"{PACKAGE}.{info.name}")
+        if hasattr(mod, "SOURCE") and hasattr(mod, "extract"):
+            names.append(mod.SOURCE)
+    return tuple(sorted(set(names)))
+
+
+SERIES_UNITS = _discover_units()
 
 
 def load_extractors(wanted: set[str] | None = None) -> dict:
@@ -55,8 +78,6 @@ def load_extractors(wanted: set[str] | None = None) -> dict:
             continue
         mod = importlib.import_module(f"{PACKAGE}.{info.name}")
         if not hasattr(mod, "SOURCE") or not hasattr(mod, "extract"):
-            continue
-        if mod.SOURCE not in SERIES_UNITS:
             continue
         if wanted and mod.SOURCE not in wanted:
             continue
