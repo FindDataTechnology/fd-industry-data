@@ -48,14 +48,17 @@ LAG_CYCLES = 2
 #: 没有足够爬取历史算间隔时的兜底（天）。
 DEFAULT_CYCLE_DAYS = 1.0
 
-#: 已退役/停用的源（``crawl_sources.enabled = false`` 或 manifest parked）不判：
-#: 它们本来就不该再推进，报红没有可执行的动作。
+#: 内存活门：距最近一次成功抽取超过这么多天就报。日更作业留半天缓冲。
+#: **为什么用 executions 而不是观测行的时刻戳**：``semantic_observations`` 的写入是
+#: ``ON CONFLICT DO NOTHING``——「跑了但上游没新数据」插 0 行、``fetched_at`` 不动。
+#: 所以观测行上没有任何痕迹能证明抽取器活着（pharma 文档 §9 记过同一个坑）。
+#: ``executions`` 是抽取器自己写的存活台账，每次运行一行，与有没有新数据无关。
+MAX_AGE_DAYS = 1.5
+
 SQL = """
 WITH crawl AS (
     SELECT source,
            max(started_at) AS crawl_ts,
-           count(*)        AS runs,
-           -- 相邻两次的典型间隔（中位数的近似：取最近若干次的平均）
            avg(gap)        AS cycle
       FROM (
         SELECT source, started_at,
@@ -72,51 +75,81 @@ crawl_latest AS (
      WHERE status = 'success'
      GROUP BY source
 ),
+-- 存活台账：驱动往 detail 里写 `src=<source>`（executions 表没有 source 列，
+-- 且一个包含多个源，所以按源而不是按包记）。每个源取最近一行。
+exec AS (
+    SELECT DISTINCT ON (src)
+           substring(detail from 'src=([a-z0-9.-]+)') AS src,
+           status, started_at
+      FROM executions
+     WHERE detail LIKE 'wave src=%'
+     ORDER BY src, started_at DESC
+),
 obs AS (
-    SELECT source_used AS source, max(fetched_at) AS obs_ts, count(*) AS rows
+    SELECT source_used AS source, max(date) AS data_latest, count(*) AS rows
       FROM semantic_observations
      GROUP BY source_used
 )
 SELECT cl.source,
        cl.crawl_ts,
-       o.obs_ts,
+       c.cycle,
+       o.data_latest,
        o.rows,
-       c.cycle
+       e.started_at AS last_run,
+       e.status     AS last_status
   FROM crawl_latest cl
-  LEFT JOIN obs o ON o.source = cl.source
+  LEFT JOIN obs  o ON o.source = cl.source
   LEFT JOIN crawl c ON c.source = cl.source
+  LEFT JOIN exec  e ON e.src = cl.source
  ORDER BY cl.source
 """
 
 
-def verdict(crawl_ts, obs_ts, cycle_days: float | None, *,
+def verdict(crawl_ts, data_latest, last_run, last_status, cycle_days: float | None, *,
             lag_cycles: int = LAG_CYCLES,
+            max_age_days: float = MAX_AGE_DAYS,
             default_cycle_days: float = DEFAULT_CYCLE_DAYS) -> tuple[str, str]:
-    """返回 ``(级别, 报文)``；级别 ∈ {"ok", "lag", "never"}。
+    """返回 ``(级别, 报文)``；级别 ∈ {"ok", "lag", "never", "died", "stale-data"}。
 
-    ``never`` = 爬过但一条观测都没有。这**不是**「滞后」，是「这条源从未接入
-    抽取」——两者要分开报：前者该去查抽取器，后者该去写抽取器。
+    四问分开答（合起来答过一次，把健康的源判成了滞后）：
+
+    1. **有没有数据** —— 一条观测都没有，但爬取有成功记录 ⇒ ``never``。
+    2. **抽取器活着吗** —— ``executions`` 台账里最近一次运行距今多久 ⇒ ``died``。
+       这是**唯一**判得了「抽取器停摆」的信号（见 MAX_AGE_DAYS 的注释）。
+    3. **上一次跑成功了吗** ⇒ 台账里最近一行是不是 ``failed`` ⇒ ``lag``。
+    4. **数据本身旧不旧** —— ``max(date)`` 对 wall clock。这一问**只报事实**，
+       从不判红：月频/年频源的期号天生落后 wall clock，判红等于给每一条月频源
+       挂一个永远清不掉的红（2026-11-19 实测：15 个源被判红，其中 14 个是
+       月频/季频源的正常滞后）。
     """
-    if obs_ts is None:
+    if data_latest is None and last_run is None:
+        return "never", "爬取有成功记录，但观测层一条都没有，也没有任何抽取台账"
+
+    # ── 第 2 问：抽取器活着吗（主判据）──
+    if last_run is not None:
+        import datetime as _dt
+        ref = crawl_ts or _dt.datetime.now(_dt.timezone.utc)
+        if ref.tzinfo is not None and last_run.tzinfo is None:
+            ref = ref.replace(tzinfo=None)
+        elif ref.tzinfo is None and last_run.tzinfo is not None:
+            last_run = last_run.replace(tzinfo=None)
+        age = (ref - last_run).total_seconds() / 86400.0
+        if age > max_age_days:
+            return "died", (
+                f"抽取器已 {age:.1f} 天没运行过（末次 {last_run:%Y-%m-%d %H:%M}，"
+                f"门限 {max_age_days} 天）—— 排期掉了或作业一直在失败")
+        if last_status and str(last_status).lower() != "success":
+            return "lag", (
+                f"末次抽取状态是 {last_status}（{last_run:%Y-%m-%d %H:%M}）—— 跑了但失败了")
+        # 活着且末次成功：数据水位只报事实，不判红
+        return "ok", (
+            f"抽取器在线（末次 {last_run:%Y-%m-%d %H:%M} 成功）；"
+            f"数据最新期 {data_latest}")
+
+    # ── 没有台账（本 change 之前的状态）：退回爬取水位比对，只判「从未抽取」──
+    if data_latest is None:
         return "never", "爬取有成功记录，但观测层一条都没有（从未接入抽取）"
-    if crawl_ts is None:
-        return "ok", "无爬取记录（不判）"
-    cycle = (cycle_days or default_cycle_days)
-    allowed = cycle * lag_cycles
-    # 两列来自不同的表/写入路径：`crawl_runs.started_at` 是 timestamptz，
-    # `semantic_observations.fetched_at` 也可能是无时区的（历史行）。相近即弃时区，
-    # 免得一次「naive vs aware」把整条判据打成异常。
-    if crawl_ts.tzinfo is not None and obs_ts.tzinfo is None:
-        crawl_ts = crawl_ts.replace(tzinfo=None)
-    elif crawl_ts.tzinfo is None and obs_ts.tzinfo is not None:
-        obs_ts = obs_ts.replace(tzinfo=None)
-    lag_days = (crawl_ts - obs_ts).total_seconds() / 86400.0
-    if lag_days <= allowed:
-        return "ok", f"跟得上（滞后 {lag_days:.1f} 天 ≤ 允差 {allowed:.1f} 天）"
-    return "lag", (
-        f"观测滞后 {lag_days:.1f} 天 > 允差 {allowed:.1f} 天"
-        f"（爬取 {crawl_ts:%Y-%m-%d %H:%M} / 观测 {obs_ts:%Y-%m-%d %H:%M}，"
-        f"周期约 {cycle:.1f} 天）—— 爬虫在跑而抽取没跟上")
+    return "ok", f"无存活台账（该源不归 wave 作业管）；数据最新期 {data_latest}"
 
 
 #: 存量豁免：判据仍然点名，但不计为失败。**逐行带理由与日期**，与
@@ -199,17 +232,19 @@ def run(scope: str = "wave") -> tuple[int, list[dict]]:
 
     out = []
     bad = 0
-    for source, crawl_ts, obs_ts, n_obs, cycle in rows:
+    for source, crawl_ts, cycle, data_latest, n_obs, last_run, last_status in rows:
         # psycopg2 把 `avg(interval)` 作为 timedelta 返回
         cycle_days = (cycle.total_seconds() / 86400.0) if cycle is not None else None
-        level, msg = verdict(crawl_ts, obs_ts, cycle_days)
+        level, msg = verdict(crawl_ts, data_latest, last_run, last_status, cycle_days)
         exempt = KNOWN_GAPS.get(source)
         if level in ("lag", "never") and not exempt:
             bad += 1
-        out.append({"source": source, "level": level, "message": msg,
-                    "known_gap": exempt,
+        out.append({"source": source, "level": level,
+                    "message": msg, "known_gap": exempt,
                     "crawl_ts": str(crawl_ts) if crawl_ts else None,
-                    "obs_ts": str(obs_ts) if obs_ts else None,
+                    "last_run": str(last_run) if last_run else None,
+                    "last_status": last_status,
+                    "data_latest": str(data_latest) if data_latest else None,
                     "obs_rows": n_obs})
     return (1 if bad else 0), out
 
@@ -217,34 +252,40 @@ def run(scope: str = "wave") -> tuple[int, list[dict]]:
 def self_test() -> int:
     """反向用例：不连库，只验判据本身。
 
-    三例都来自 design D4 的实测反例：
-      1. 爬取前进、观测停住 ⇒ lag（dce 2026-11-18 的真实形态：爬取到 11-18、
-         观测停在 11-07）；
-      2. 两者一起冻 ⇒ ok（cncotton：上游停更，不是抽取器的错）；
-      3. 从未抽取 ⇒ never（与 lag 分开报）。
+    每个例子都对应一次实测（design D4 + 2026-11-19 首轮）：
+
+      * **dce 修复前**：台账里末次是 11-07（11 天前）⇒ died。这是本 change 的存在理由。
+      * **dce 修复后**：末次是刚才 ⇒ ok。
+      * **fert-cn 假阳性回归**：数据期停在 2026-08（上游月更）、抓取刚跑过 ⇒ ok。
+        修复前用 `fetched_at` 判，它被判成滞后 72 天——错的是判据，不是数据。
+      * **末次失败** ⇒ lag（跑了但没成，与「没跑」分开报）。
+      * **从未抽取** ⇒ never。
+      * **无台账的源**（不归 wave 作业管）⇒ ok，不误报。
     """
     from datetime import datetime, timedelta
 
-    now = datetime(2026, 11, 18, 12, 0)
+    now = datetime(2026, 11, 19, 12, 0)
     cases = [
-        # (crawl, obs, cycle, 期望级别)
-        (now, now - timedelta(days=11), 1.0, "lag"),          # dce 实测形态
-        (now - timedelta(days=100), now - timedelta(days=100), 1.0, "ok"),  # 一起冻
-        (now, None, 1.0, "never"),                             # 从未抽取
-        (now, now - timedelta(hours=6), 1.0, "ok"),            # 同日正常
-        (now, now - timedelta(days=3), 1.0, "lag"),            # 日频滞后 3 天
-        (now, now - timedelta(days=3), 30.0, "ok"),            # 月频滞后 3 天正常
+        # (crawl, data_latest, last_run, last_status, cycle, 期望级别)
+        (now, "2026-11-06", now - timedelta(days=12), "success", 1.0, "died"),  # dce 修复前
+        (now, "2026-11-18", now - timedelta(hours=18), "success", 1.0, "ok"),    # dce 修复后
+        (now, "2026-08", now - timedelta(hours=2), "success", 40.0, "ok"),       # fert-cn 假阳性
+        (now, "2026-11-18", now - timedelta(hours=6), "failed", 1.0, "lag"),     # 跑了但失败
+        (now, None, None, None, 1.0, "never"),                                  # 从未抽取
+        (now, "2026-09", None, None, 1.0, "ok"),                                # 无台账（不归本作业）
+        (now, None, now - timedelta(days=5), "success", 1.0, "died"),           # 有台账无数据
     ]
     failures = []
-    for crawl, obs, cycle, want in cases:
-        got, msg = verdict(crawl, obs, cycle)
+    for crawl, latest, run, status, cycle, want in cases:
+        got, msg = verdict(crawl, latest, run, status, cycle)
         if got != want:
-            failures.append(f"  crawl={crawl} obs={obs} cycle={cycle} "
-                            f"→ {got}（期望 {want}）：{msg}")
+            failures.append(
+                f"  crawl={crawl:%m-%d} latest={latest} last_run={run and run:%m-%d} "
+                f"status={status} → {got}（期望 {want}）：{msg}")
     if failures:
         print("selftest FAILED:\n" + "\n".join(failures), file=sys.stderr)
         return 1
-    print(f"selftest OK（{len(cases)} 例，含 lag/ok/never 三档与月频反例）")
+    print(f"selftest OK（{len(cases)} 例：died/ok/lag/never 四档 + fert-cn 假阳性回归）")
     return 0
 
 

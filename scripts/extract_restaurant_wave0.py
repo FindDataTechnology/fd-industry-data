@@ -25,6 +25,7 @@ import importlib
 import os
 import pkgutil
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import psycopg2
@@ -51,6 +52,31 @@ def load_extractors() -> dict:
             continue
         found[mod.SOURCE] = mod
     return found
+
+
+def record_execution(conn, *, status: str, started_at, detail: str) -> None:
+    """写一行存活台账（``executions``），**独立事务**。
+
+    与 ``scripts/extract_pharma.py`` 同一实现、同一理由：抽取成功后若这行也
+    写不进去，「最后成功时刻」会停在旧值，在观测上与「根本没跑」无法区分。
+    而它为什么必须存在：``semantic_observations`` 的写入是
+    ``ON CONFLICT DO NOTHING``——「跑了但上游没新数据」插 0 行、``fetched_at``
+    不动。所以**观测行上没有任何痕迹能证明抽取器活着**，只有这张台账能。
+    ``schedule_id``/``concept_id`` 留空：本行记录的是这支脚本的存活，
+    不代表某个 MCP 概念的刷新，该表没有别处对它做聚合读。
+    """
+    try:
+        with conn.cursor() as c:
+            c.execute(
+                "INSERT INTO executions (schedule_id, concept_id, status, started_at,"
+                " finished_at, detail) VALUES (NULL, NULL, %s, %s, now(), %s)",
+                (status, started_at, detail[:900]),
+            )
+        conn.commit()
+    except Exception as e:  # noqa: BLE001
+        # 台账写不进去不应掩盖抽取本身的失败原因
+        print(f"WARN: 存活台账写入失败：{type(e).__name__}: {e}", file=sys.stderr)
+        conn.rollback()
 
 
 def _dsn(raw: str) -> str:
@@ -87,6 +113,7 @@ def main() -> int:
             raise SystemExit(f"unknown sources: {sorted(unknown)}; "
                              f"available: {sorted(extractors)}")
 
+    started_at = datetime.now(timezone.utc)
     conn = psycopg2.connect(_dsn(args.dsn))
     try:
         conn.autocommit = False
@@ -168,7 +195,24 @@ def main() -> int:
             for n in notes:
                 print("  -", n)
     finally:
-        conn.close()
+        # 台账必须在 conn.close() 之前、且**独立事务**：抽取事务已提交，
+        # 这里再写一行只记存活，不掺进抽取的成败。
+        try:
+            # 每个源写一行：判据按源查「它最近一次抽取是什么时候、成没成」。
+            # executions 表没有 source 列，所以约定 detail 以 `wave src=<源>` 开头。
+            failed_src = {s for s, _e in failed}
+            for src, n_rows, _kind in per_unit:
+                record_execution(
+                    conn,
+                    status="failed" if src in failed_src else "success",
+                    started_at=started_at,
+                    detail=f"wave src={src} rows={n_rows} pkg={__name__}",
+                )
+            for src, err in failed:
+                record_execution(conn, status="failed", started_at=started_at,
+                                 detail=f"wave src={src} rows=0 pkg={__name__} err={err[:300]}")
+        finally:
+            conn.close()
     return 1 if failed else 0
 
 
