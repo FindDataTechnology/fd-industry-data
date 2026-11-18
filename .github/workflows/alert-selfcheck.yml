@@ -74,6 +74,37 @@ jobs:
             *) echo "结果：自检自身失败（exit=$code）"; exit "$code" ;;
           esac
 
+      - name: CaaS 契约合规闸（形态表单源 + 回执三值 + 幂等键）
+        working-directory: src
+        run: |
+          # openspec: add-caas-delivery-contract 3.3 —— 这条闸必须定时跑，否则
+          # 它只是个"手工跑得动"的脚本（2026-11-17 的教训：门从未执行，输出和
+          # 「执行且通过」一模一样）。
+          #
+          # 先跑闸自检：喂四份刻意写坏的样本必须判红、合规样本必须判绿。
+          # 自检不过 = 闸本身坏了，此时它报的 PASS 不可信。
+          set +e
+          python3 scripts/check_caas_conformance.py --fixtures
+          sc=$?
+          set -e
+          if [ "$sc" -ne 0 ]; then
+            echo "::error title=合规闸自检失败::闸本身失效，其判绿不可信"
+            exit "$sc"
+          fi
+
+          # 正式跑。CI 是单仓检出：权威表与另外两个消费方（paas / ~/VAAS）都不在，
+          # 闸会把它们记为「未覆盖」并打出部分覆盖结论——那不是「通过」，是「没看见」。
+          # 所以这里不加 --require-full（加了会永久红）；跨仓全量在本地工作区跑。
+          set +e
+          python3 scripts/check_caas_conformance.py
+          code=$?
+          set -e
+          echo "check_caas_conformance exit=$code"
+          if [ "$code" -ne 0 ]; then
+            echo "::error title=CaaS 契约不合规::形态表漂移、回执不可投影或缺幂等键"
+            exit "$code"
+          fi
+
       - name: Commit check record + state
         working-directory: src
         run: |

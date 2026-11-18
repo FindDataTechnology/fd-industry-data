@@ -69,6 +69,11 @@ class Finding:
 @dataclass
 class Report:
     findings: list[Finding] = field(default_factory=list)
+    # Surfaces this checkout cannot see (the authority and the other consumer
+    # repos live outside a single-repo CI clone). Recorded rather than failed:
+    # a verdict that silently omits them would be the "judge says green because
+    # it never looked" shape this project keeps getting bitten by.
+    uncovered: list[str] = field(default_factory=list)
 
     def add(self, check: str, ok: bool, detail: str) -> None:
         self.findings.append(Finding(check, ok, detail))
@@ -77,9 +82,16 @@ class Report:
     def ok(self) -> bool:
         return all(f.ok for f in self.findings)
 
+    @property
+    def partial(self) -> bool:
+        """True when some surfaces were skipped — the verdict is NOT complete."""
+        return bool(self.uncovered)
+
     def as_dict(self) -> dict:
         return {
             "ok": self.ok,
+            "partial": self.partial,
+            "uncovered": list(self.uncovered),
             "findings": [f.as_dict() for f in self.findings],
             "failed": [f.check for f in self.findings if not f.ok],
         }
@@ -94,16 +106,25 @@ def _forms_from(p: Path) -> list[str]:
 
 
 def check_authority(report: Report, authority: Path = AUTHORITY, copies: dict[str, Path] | None = None) -> None:
-    """① 副本一致。"""
+    """① 副本一致。
+
+    In a single-repo CI checkout the authority lives in ANOTHER repo (the
+    workspace root's openspec/) and the other consumers are not present at all.
+    Reporting that as red would make the gate permanently red; reporting it as
+    green would be a lie. So an absent surface is recorded as UNCOVERED and the
+    report stops claiming to be a full verdict (see `run()` / `--covered`).
+    """
     copies = COPIES if copies is None else copies
     if not authority.exists():
-        report.add("authority", False, f"权威文件不存在：{authority}")
+        report.uncovered.append("authority")
+        report.add("authority", True, f"未覆盖：权威文件不在本检出（{authority}）")
         return
     want = _sha(authority)
     report.add("authority", True, f"权威 {authority.name} sha={want[:12]}")
     for name, path in copies.items():
         if not path.exists():
-            report.add("copy", False, f"{name}: 副本缺失 {path}")
+            report.uncovered.append(f"copy:{name}")
+            report.add("copy", True, f"{name}: 未覆盖（副本不在本检出）")
             continue
         got = _sha(path)
         report.add("copy", got == want, f"{name}: {'一致' if got == want else f'漂移 {got[:12]} != {want[:12]}'}")
@@ -134,7 +155,8 @@ def check_no_parallel_form_list(report: Report, scan: dict[str, Path] | None = N
     min_distinct = 3
     for name, path in scan.items():
         if not path.exists():
-            report.add("no-parallel-list", True, f"{name}: 不存在（跳过）")
+            report.uncovered.append(f"no-parallel-list:{name}")
+            report.add("no-parallel-list", True, f"{name}: 未覆盖（不在本检出）")
             continue
         hits = []
         for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
@@ -202,7 +224,8 @@ def check_idempotency(report: Report, impls: dict[str, Path] | None = None) -> N
         else:
             path, needle = spec, "idem"
         if not path.exists():
-            report.add("idempotency", True, f"{name}: 不存在（跳过）")
+            report.uncovered.append(f"idempotency:{name}")
+            report.add("idempotency", True, f"{name}: 未覆盖（不在本检出）")
             continue
         src = path.read_text(encoding="utf-8")
         report.add("idempotency", needle in src, f"{name}: {'有幂等键 ' + needle if needle in src else '缺幂等键'}")
@@ -295,6 +318,11 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--json", action="store_true", help="机读输出")
     ap.add_argument("--fixtures", action="store_true", help="只跑闸自检（负向样本）")
+    ap.add_argument(
+        "--require-full",
+        action="store_true",
+        help="有未覆盖面时也判红（跨仓工作区里跑；单仓 CI 不要加）",
+    )
     args = ap.parse_args(argv)
 
     if args.fixtures:
@@ -307,8 +335,22 @@ def main(argv: list[str] | None = None) -> int:
         for f in report.findings:
             print(("  OK  " if f.ok else "  RED ") + f"{f.check}: {f.detail}")
         print()
-        print("PASS" if report.ok else f"FAIL — {len(report.as_dict()['failed'])} 项不通过")
-    return 0 if report.ok else 1
+        if not report.ok:
+            print(f"FAIL — {len(report.as_dict()['failed'])} 项不通过")
+        elif report.partial:
+            # Say exactly what was not looked at. "PASS" alone here would be the
+            # false-green this whole project exists to avoid.
+            print(f"PASS（部分覆盖）— 未覆盖 {len(set(report.uncovered))} 面："
+                  + ", ".join(sorted(set(report.uncovered))[:6])
+                  + (" …" if len(set(report.uncovered)) > 6 else ""))
+        else:
+            print("PASS — 全部面已覆盖")
+
+    if not report.ok:
+        return 1
+    if args.require_full and report.partial:
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

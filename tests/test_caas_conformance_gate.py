@@ -95,5 +95,5 @@ def test_missing_idempotency_is_detected(gate, tmp_path):
 
 def test_json_output_shape(gate):
     payload = gate.run().as_dict()
-    assert set(payload) == {"ok", "findings", "failed"}
+    assert set(payload) == {"ok", "partial", "uncovered", "findings", "failed"}
     assert isinstance(payload["findings"], list)
