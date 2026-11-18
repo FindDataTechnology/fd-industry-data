@@ -35,6 +35,11 @@ JOB_SCRIPTS = (
     "extract_nasa_power.py", "extract_weather_daily.py",
     # 2026-11-15 第二批：领域 wave 抽取器（覆盖 R2 里 5 个「已映射但读面
     # 落后」的源）。它们此前**一次都没在集群里跑过**，原因就是这个 DSN。
+    # 2026-11-15 第二批：领域 wave 抽取器（覆盖 R2 里 5 个「已映射但读面
+    # 落后」的源）。它们此前**一次都没在集群里跑过**，原因就是这个 DSN。
+    # 2026-11-19 起这四个进了常驻作业（change
+    # schedule-wave-observation-extraction）：从「理论上会被调用」变成
+    # 「每天 18:10 真的被调用」——DSN 不归一化会在第一次调度就炸。
     "extract_agriculture_wave1.py", "extract_flower_wave1.py",
     "extract_hotel_wave0.py", "extract_pharma.py",
     "extract_restaurant_wave0.py",
