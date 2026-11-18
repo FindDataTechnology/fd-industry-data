@@ -182,7 +182,10 @@ def tracked_sources() -> list[str]:
     """
     import sys
     from pathlib import Path
-    scripts_dir = Path(__file__).resolve().parent
+    # **不能 resolve()**：ConfigMap 卷里是 symlink，resolve 会跳到 kubelet 的
+    # 临时目录（`/check/..2026_11_19_.../scripts`），同级模块就找不到了。
+    # 绝对化但不解引用即可——pod 里挂载后它就是真文件。
+    scripts_dir = Path(os.path.abspath(__file__)).parent
     if str(scripts_dir) not in sys.path:
         sys.path.insert(0, str(scripts_dir))
     import wave_extract_split as wes
