@@ -166,35 +166,39 @@ KNOWN_GAPS: dict[str, str] = {
 }
 
 
-def tracked_sources() -> list[str]:
-    """判据的**默认范围**：本仓四个波包里**有 crawl_items 型抽取器**的源。
+def tracked_sources(cur) -> list[str]:
+    """判据的**范围**：台账里出现过的源 ∪ 本仓有 crawl_items 型抽取器的源。
 
-    只收 ``crawl_items`` 型的源，而不是全部抽取器写的源：live-fetch 型
-    （``live_items`` / ``_load_unit``）不排期（design D3），它们的观测落后是
-    **已知且有意**的，判它们红等于让这条闸永远清不掉。
+    两处来源缺一不可：
+    * **台账**（``executions`` 里 ``wave src=<源>``）—— pod 里跑的时候只有这条路
+      可用：挂载卷只带脚本、不带四个抽取器包，扫包会得到 0 个源（2026-11-19 实测，
+      判据在集群里「通过」了但一个源都没判，比红更糟）。
+    * **本仓包**—— 本地跑的时候能在台账还没写之前就知道该有哪些源（新加的
+      抽取器不会因为「还没跑过」而漏判）。
 
-    为什么不判全表：全表实测 153 个源里 85 个「从未抽取」、23 个滞后——那些是
-    「还没写抽取器」与「抽取器在别处（semantic-extract-*）」的情形。把它们一起
-    判红会让这条闸常年红，而**常年红的闸等于没有闸**。
-    本判据只管一件事：**已经有定时抽取器的源，抽取器还在跟爬取走吗**。
-
-    全表模式仍在（``--scope all``），用途是盘点而非门禁。
+    两者的并集才是完整范围；只有其中一处可用时就用那一处。
     """
     import sys
     from pathlib import Path
-    # **不能 resolve()**：ConfigMap 卷里是 symlink，resolve 会跳到 kubelet 的
-    # 临时目录（`/check/..2026_11_19_.../scripts`），同级模块就找不到了。
-    # 绝对化但不解引用即可——pod 里挂载后它就是真文件。
-    scripts_dir = Path(os.path.abspath(__file__)).parent
-    if str(scripts_dir) not in sys.path:
-        sys.path.insert(0, str(scripts_dir))
-    import wave_extract_split as wes
-    report = wes.scan_scripts_dir(scripts_dir)
+
     names: set[str] = set()
-    for mods in report.values():
-        for m in mods:
-            if m["kind"] == wes.SCHEDULED:
-                names.add(m["source"])
+    cur.execute("SELECT DISTINCT substring(detail from 'src=([a-z0-9.-]+)')"
+                " FROM executions WHERE detail LIKE 'wave src=%'")
+    names |= {r[0] for r in cur.fetchall() if r[0]}
+
+    # 包扫描是**可选**增强：挂载环境里没有包目录，扫不到就跳过（不是错误）
+    scripts_dir = Path(os.path.abspath(__file__)).parent
+    if (scripts_dir / "wave_extract_split.py").exists():
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        try:
+            import wave_extract_split as wes
+            report = wes.scan_scripts_dir(scripts_dir)
+            for mods in report.values():
+                names |= {m["source"] for m in mods if m["kind"] == wes.SCHEDULED}
+        except Exception as e:  # noqa: BLE001
+            print(f"WARN: 包扫描不可用（{type(e).__name__}: {e}），只用台账定范围",
+                  file=sys.stderr)
     return sorted(names)
 
 
@@ -223,14 +227,15 @@ def run(scope: str = "wave") -> tuple[int, list[dict]]:
         with conn.cursor() as cur:
             cur.execute(SQL)
             rows = cur.fetchall()
+            allowed_sources = (set(tracked_sources(cur))
+                               if scope == "wave" else None)
     finally:
         conn.close()
     if not rows:
         print("判不出：crawl_runs 里没有任何成功记录（库空或连错库）", file=sys.stderr)
         return 2, []
 
-    if scope == "wave":
-        allowed_sources = set(tracked_sources())
+    if allowed_sources is not None:
         rows = [r for r in rows if r[0] in allowed_sources]
 
     out = []
