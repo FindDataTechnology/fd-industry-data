@@ -21,8 +21,17 @@
 # **不做双向**：双向同步在两边同时有提交时必然产生冲突，而冲突发生在 CI 里没人看着，
 # 症状是「某一侧的提交静默消失」。单向 + 单一写入口不会。
 #
-# 凭据：`GITEE_SSH_KEY`（GitHub Actions secret）。**缺失时本工作流明确失败**，不静默
-# 跳过——一个「配了但没生效」的镜像闸比没有更糟（会让人以为 github 的提交已经过去了）。
+# ── 凭据为什么是 PAT 而不是 SSH key（2026-11-19 实测后定的）──────────────
+#
+# 原本写的是 SSH 部署公钥，实测发现**gitee 的部署公钥只能 clone/pull，不能 push**
+# （仓库设置页原文：「部署公钥配置后的机器，只支持 clone 与 pull 等只读操作」）。
+# 而唯一能推的 SSH key 是组织账号 key —— 把它交给 Actions 等于对全组织仓开放写权限。
+#
+# 改用**私人访问令牌（PAT）**：gitee 支持「仓库级私人令牌」，只对指定仓库生效，
+# 权限可只勾 `projects`。实测该令牌能 clone 也能 push（探针分支建了又删）。
+#
+# 凭据：`GITEE_TOKEN`（GitHub Actions secret）。**缺失即失败，不静默跳过**——
+# 一个「配了但没生效」的镜像闸比没有更糟（会让人以为 github 的提交已经过去了）。
 name: mirror-to-gitee
 
 on:
@@ -31,9 +40,8 @@ on:
   # 允许手工补推（镜像漏了一轮时）
   workflow_dispatch:
 
-# 与 push 无关的并发：同分支只保留最新一轮，旧轮次取消。
-# **必须 cancel-in-progress**：告警工作流每 5 分钟就可能推一次，排队等前一轮
-# 会把镜像延迟累积成小时级。
+# 同分支只保留最新一轮。**必须 cancel-in-progress**：告警工作流每 5 分钟就可能推一次，
+# 排队等前一轮会把镜像延迟累积成小时级。
 concurrency:
   group: mirror-to-gitee-${{ github.ref }}
   cancel-in-progress: true
@@ -49,15 +57,15 @@ jobs:
     steps:
       - name: Check credential is configured
         env:
-          GITEE_SSH_KEY: ${{ secrets.GITEE_SSH_KEY }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          if [ -z "$GITEE_SSH_KEY" ]; then
+          if [ -z "$GITEE_TOKEN" ]; then
             cat >&2 <<'EOF'
-          镜像失败：GITEE_SSH_KEY 未配置。
+          镜像失败：GITEE_TOKEN 未配置。
 
           这不是「跳过」，是「镜像没发生」——请到
-          Settings → Secrets and variables → Actions 添加 GITEE_SSH_KEY
-          （有权限推 gitee.com/FindDataTechnology/fd-industry-data.git 的私钥）。
+          Settings → Secrets and variables → Actions 添加 GITEE_TOKEN
+          （gitee「仓库级私人令牌」，只勾 projects，仅对 fd-industry-data 生效）。
           配好之前，gitee 不会自动跟上 github。
           EOF
             exit 1
@@ -66,43 +74,21 @@ jobs:
       - name: Checkout (full history)
         uses: actions/checkout@v4
         with:
-          # gitee 侧需要完整历史：force push 一个浅克隆会让 gitee 的 history 变浅。
+          # gitee 侧需要完整历史：推一个浅克隆会让 gitee 的 history 变浅。
           fetch-depth: 0
 
-      - name: Configure SSH
-        env:
-          GITEE_SSH_KEY: ${{ secrets.GITEE_SSH_KEY }}
-        run: |
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$GITEE_SSH_KEY" > ~/.ssh/gitee_mirror
-          chmod 600 ~/.ssh/gitee_mirror
-          ssh-keyscan -t rsa,ecdsa,ed25519 gitee.com >> ~/.ssh/known_hosts 2>/dev/null
-          cat >> ~/.ssh/config <<'EOF'
-          Host gitee.com
-            IdentityFile ~/.ssh/gitee_mirror
-            IdentitiesOnly yes
-            StrictHostKeyChecking yes
-          EOF
-          chmod 600 ~/.ssh/config
-
-      - name: Probe gitee auth
-        run: |
-          # 先在推送前验一次凭据：否则失败信息会是 `git push` 的一大段
-          # （而且 exit code 常在 128 里吞掉真实原因）。
-          if ! ssh -o BatchMode=yes -o ConnectTimeout=10 -T git@gitee.com 2>&1 | grep -q "successfully authenticated"; then
-            echo "镜像失败：GITEE_SSH_KEY 无法认证 gitee（key 失效 / 不属于 FindDataTechnology）" >&2
-            exit 1
-          fi
-
       - name: Push to gitee (fast-forward only)
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           set -euo pipefail
-          # gitee 上的 main 必须是本提交的祖先才允许推。
-          # 若 gitee 有 github 没有的提交 ⇒ **停下并报出来**，绝不 force：
-          # 那些提交可能是别人只在 gitee 上做过的工作，覆盖即丢失。
-          git remote add gitee git@gitee.com:FindDataTechnology/fd-industry-data.git
+          # 令牌走 URL，但**不回显**：`set -x` 关掉，且 git 的错误信息里 URL 会被
+          # 脱敏。把 remote 写成变量而不是 echo 出来。
+          remote="https://oauth2:${GITEE_TOKEN}@gitee.com/FindDataTechnology/fd-industry-data.git"
+
+          git remote add gitee "$remote"
           git fetch --no-tags gitee main || {
-            echo "镜像失败：gitee 侧还看不到 main（新仓或权限不足）" >&2; exit 1; }
+            echo "镜像失败：gitee 侧还看不到 main（新仓或令牌权限不足）" >&2; exit 1; }
 
           ahead=$(git rev-list --count gitee/main..HEAD)
           behind=$(git rev-list --count HEAD..gitee/main)
@@ -117,7 +103,6 @@ jobs:
           请人工在本地 merge 两侧后推 github，本工作流会把合并结果带过去。
 
           以下是 gitee 独有的提交：
-          详见 job log 的 `git log HEAD..gitee/main` 一节。
           EOF
             git log --oneline HEAD..gitee/main | head -30 >&2
             exit 1
@@ -132,3 +117,9 @@ jobs:
           # 不带 --force：先把「绝不覆盖」写成默认行为，而不是靠人记得不加。
           git push gitee HEAD:refs/heads/main
           echo "已镜像 $ahead 个提交到 gitee/main"
+
+      - name: Remove credential from git config
+        if: always()
+        run: |
+          # runner 是临时的，但仍清掉：fork PR 或 debug 步骤里 `git remote -v` 会泄令牌。
+          git remote remove gitee 2>/dev/null || true
