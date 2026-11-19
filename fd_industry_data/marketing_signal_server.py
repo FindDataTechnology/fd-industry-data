@@ -14,7 +14,9 @@ Entry: ``python -m fd_industry_data.marketing_signal_server``（stdio）
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
+import threading
 from pathlib import Path
 from typing import Any, Callable
 
@@ -92,6 +94,12 @@ def build_server(
     )
     get_fetchers = fetchers if fetchers is not None else _default_fetchers
 
+    #: 每个源的取数总预算（秒）。spider 自己的单请求超时是 45s，但一个源可能
+    #: 发多页/多分片，串起来能把一次 tools/call 拖到三分钟以上（实测：墙内取
+    #: TED + 世行两个境外源时，MCP 调用 180s 未返回）。预算到了就放弃该源并
+    #: 如实记 failure —— 这仍是「通道故障 ≠ 没有信号」的口径，只是给了上限。
+    per_source_budget = float(os.getenv("MARKETING_SIGNALS_SOURCE_BUDGET_SEC", "45"))
+
     def _gather(limit_per_source: int, sources: list[str] | None) -> tuple[list[Signal], list[dict]]:
         f = get_fetchers() if callable(get_fetchers) else get_fetchers
         wanted = sources or list(USABLE_SOURCES)
@@ -106,10 +114,29 @@ def build_server(
             if fn is None:
                 failed.append({"source": name, "reason": "fetcher not configured"})
                 continue
-            try:
-                raw[name] = fn(limit_per_source)
-            except Exception as e:  # 通道故障与空结果严格区分
-                failed.append({"source": name, "reason": f"{type(e).__name__}: {e}"})
+            # 单源预算：在独立线程里跑，超时即放弃（线程无法强杀，但它持有的
+            # 只是 urllib 连接，进程退出前会随 GC 释放；本服务是无状态的）。
+            box: dict[str, object] = {}
+
+            def _run(_fn=fn, _box=box, _n=limit_per_source):
+                try:
+                    _box["rows"] = _fn(_n)
+                except Exception as e:
+                    _box["err"] = f"{type(e).__name__}: {e}"
+
+            t = threading.Thread(target=_run, daemon=True)
+            t.start()
+            t.join(per_source_budget)
+            if t.is_alive():
+                failed.append({
+                    "source": name,
+                    "reason": f"budget exceeded ({per_source_budget:.0f}s) — channel may be unreachable",
+                })
+                continue
+            if "err" in box:
+                failed.append({"source": name, "reason": str(box["err"])})
+                continue
+            raw[name] = box.get("rows") or []
         return collect(raw), failed
 
     @mcp.tool()
@@ -213,6 +240,24 @@ def _selftest() -> int:
         d3 = _payload(await mcp.call_tool("signals_recent", {"sources": ["samr-food-inspection"]}))
         if not d3["source_failures"] or "verified" not in str(d3["source_failures"]):
             fails.append("未验证源未被拒")
+
+        # 单源预算：慢源必须被放弃并记 failure，不能拖死整个调用。
+        # 这条钉住 in-pod 实测的形状（境外源 180s 未返回）。
+        import os as _os
+        _os.environ["MARKETING_SIGNALS_SOURCE_BUDGET_SEC"] = "1"
+        try:
+            slow = build_server(fetchers={
+                "nfra-penalty": lambda n: __import__("time").sleep(10) or [],
+            })
+            t0 = __import__("time").time()
+            d4 = _payload(await slow.call_tool("signals_recent", {"sources": ["nfra-penalty"]}))
+            took = __import__("time").time() - t0
+            if took > 3:
+                fails.append(f"慢源未被预算拦住（耗时 {took:.1f}s）")
+            if not any("budget" in str(f) for f in d4["source_failures"]):
+                fails.append("超预算源未被如实记为 failure")
+        finally:
+            _os.environ.pop("MARKETING_SIGNALS_SOURCE_BUDGET_SEC", None)
 
     asyncio.run(run())
 
