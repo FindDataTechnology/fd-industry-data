@@ -79,9 +79,12 @@ from fd_industry_data.alerts_core.delivery import (  # noqa: E402
     DeliveryReceipt,
     judge,
     resolve_target,
-    smtp_from_env,
     strict_enabled,
 )
+# dispatch_any 住在 notify（按声明通道分派到各发送实现）。add-mattermost-
+# infrastructure 组 4：此前这里固定调 smtp_from_env，配置里写 channel: webhook
+# 会被静默忽略、照样发邮件并判绿。注意本文件**仍 import dispatch**：自证块用它。
+from fd_industry_data.alerts_core.notify import dispatch_any  # noqa: E402
 
 EXIT_OK = 0
 EXIT_FIRING = 1
@@ -595,19 +598,25 @@ def deliver(messages: list[dict], config: dict) -> tuple[DeliveryReceipt, object
     receipt = DeliveryReceipt()
     try:
         target = resolve_target(config, os.environ)
-        cfg_smtp = smtp_from_env(os.environ, recipients=target.to)
     except (OSError, ValueError, DeliveryNotConfigured) as exc:
         verdict = judge(receipt, firing=len(messages), strict=strict_enabled(os.environ),
                         not_configured_reason=str(exc))
         return receipt, verdict
-    sent = dispatch(messages, cfg_smtp)
+    # 按声明通道分派。声明 webhook 而未配接收端、或声明 relay 时，
+    # dispatch_any 抛 DeliveryNotConfigured —— 与上面那条解析失败同路返判红，
+    # 而不是回退到邮件再把结局记成成功。
+    try:
+        sent = dispatch_any(messages, target, os.environ)
+    except DeliveryNotConfigured as exc:
+        verdict = judge(receipt, firing=len(messages), strict=strict_enabled(os.environ),
+                        not_configured_reason=str(exc))
+        return receipt, verdict
     receipt = DeliveryReceipt(
         sent=int(sent.get("sent", 0)), failed=int(sent.get("failed", 0)),
         skipped=1 if sent.get("skipped") else 0,
         reasons=[str(f) for f in sent.get("failures") or []],
     )
-    verdict = judge(receipt, firing=len(messages), strict=strict_enabled(os.environ),
-                    not_configured_reason="SMTP 凭据缺失（host/from）" if receipt.skipped else None)
+    verdict = judge(receipt, firing=len(messages), strict=strict_enabled(os.environ))
     return receipt, verdict
 
 

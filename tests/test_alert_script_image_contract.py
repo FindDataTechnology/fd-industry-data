@@ -58,8 +58,10 @@ IMAGE_EXPORTS: dict[str, frozenset[str]] = {
         "read_events", "save_state",
     }),
     "fd_industry_data.alerts_core.notify": frozenset({
-        "ENV_KEYS", "EmailMessage", "SmtpConfig", "annotations", "dispatch",
-        "send_email", "smtp_config_from_env",
+        "ENV_KEYS", "EmailMessage", "SmtpConfig", "WEBHOOK_TIMEOUT_SEC",
+        "WEBHOOK_URL_ENV", "annotations", "dataclass", "dispatch", "dispatch_any",
+        "dispatch_webhook", "os", "send_email", "send_webhook",
+        "smtp_config_from_env", "smtplib", "webhook_url_from_env",
     }),
     "fd_industry_data.alerts_core.state": frozenset({
         "FIRING", "FIRING_V", "INSUFFICIENT", "OK", "PENDING", "QUIET", "RESOLVED",

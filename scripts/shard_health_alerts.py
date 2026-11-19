@@ -24,9 +24,13 @@ from fd_industry_data.alerts_core import (
     RuleState, append_events, dispatch, evaluate_threshold, load_state, save_state,
 )
 from fd_industry_data.alerts_core.delivery import (
-    DeliveryNotConfigured, DeliveryReceipt, judge, resolve_target, smtp_from_env,
+    DeliveryNotConfigured, DeliveryReceipt, judge, resolve_target,
     strict_enabled,
 )
+# dispatch_any 住在 notify（按声明通道分派到各发送实现）；delivery 只做判定、
+# 不做网络。add-mattermost-infrastructure 组 4：此前这里固定调 smtp_from_env，
+# 配置里写 channel: webhook 会被静默忽略、照样发邮件并判绿。
+from fd_industry_data.alerts_core.notify import dispatch_any
 from fd_industry_data.alerts_core.state import FIRING, RESOLVED, attach_rule
 
 def _state_info(path) -> dict:
@@ -179,18 +183,22 @@ def main(argv: list[str] | None = None) -> int:
         try:
             cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
             target = resolve_target(cfg, os.environ)
-            cfg_smtp = smtp_from_env(os.environ, recipients=target.to)
         except (OSError, ValueError, DeliveryNotConfigured) as exc:
             receipt.reasons.append(str(exc))
             verdict_code = judge(receipt, firing=firing, strict=strict_enabled(os.environ),
                                  not_configured_reason=str(exc))
         else:
-            if cfg_smtp is None:
+            # 按声明通道分派。声明 webhook 而未配接收端、或声明 relay 时，
+            # dispatch_any 抛 DeliveryNotConfigured —— judge() 据此判红，
+            # 而不是回退到邮件再把结局记成成功。
+            try:
+                sent = dispatch_any(msgs, target, os.environ)
+            except DeliveryNotConfigured as exc:
+                receipt.reasons.append(str(exc))
                 verdict_code = judge(receipt, firing=firing,
                                      strict=strict_enabled(os.environ),
-                                     not_configured_reason="SMTP 凭据缺失（host/from）")
+                                     not_configured_reason=str(exc))
             else:
-                sent = dispatch(msgs, cfg_smtp)
                 receipt = DeliveryReceipt(sent=sent.get("sent", 0),
                                           failed=sent.get("failed", 0),
                                           skipped=1 if sent.get("skipped") else 0,
