@@ -36,7 +36,13 @@ version = { attr = "fd_industry_data.__version__" }
 include = ["fd_industry_data*", "spiders*", "infra_telemetry*"]
 
 [tool.setuptools.package-data]
-fd_industry_data = ["sites.yaml"]
+# `caas-forms.json` 是 delivery/caas 的权威表（渠道能力、收件方类型、回执强度）。
+# `caas.py` 用 Path(__file__).parent 读它，所以它必须真的进 wheel——否则
+# `resolve_target()` 抛 FileNotFoundError，所有线的投递都变成 not_configured。
+# 2026-11-19 实测：镜像里 pip 安装那份缺这个文件（Dockerfile 的 COPY 目录那条路
+# 有，pip 那条路没有），于是 webhook 通道一验就撞上，而在那之前所有线都走 smtp、
+# 走的也是 resolve_target，只是没人读到那一行错误。
+fd_industry_data = ["sites.yaml", "alerts_core/*.json"]
 
 [project.scripts]
 fd-runner = "fd_industry_data.runner_cli:main"
