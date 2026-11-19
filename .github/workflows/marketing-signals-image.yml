@@ -79,11 +79,8 @@ jobs:
         run: |
           set -euo pipefail
           img="$REGISTRY/$NAMESPACE/$IMAGE_NAME@${{ steps.build.outputs.digest }}"
-          docker run --rm --entrypoint python "$img" -c '
-import fd_industry_data.marketing_signal_server as s
-assert s.TOOL_NAMES == ("signals_recent", "signals_by_entity"), s.TOOL_NAMES
-print("SMOKE OK:", s.TOOL_NAMES)
-'
+          docker run --rm --entrypoint python "$img" -c \
+            'import fd_industry_data.marketing_signal_server as s; assert s.TOOL_NAMES == ("signals_recent", "signals_by_entity"), s.TOOL_NAMES; print("SMOKE OK:", s.TOOL_NAMES)'
 
       - name: 内容变了才铸不可变 tag
         env:
