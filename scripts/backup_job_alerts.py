@@ -69,7 +69,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-# 只 import 镜像 `fd-industry-runner:sha-f5a19aa` **确有的符号**（见
+# 只 import 镜像 `fd-industry-runner:sha-11ad0c3` **确有的符号**（见
 # tests/test_alert_script_image_contract.py 的 IMAGE_EXPORTS 实测快照）。
 # 2026-11-14 有人给三条告警脚本加了镜像里没有的 `state_health`，本地全绿、线上三条线
 # 全部 ImportError、一封告警都没发出去——这条纪律不是洁癖。

@@ -59,7 +59,7 @@ def _state_info(path) -> dict:
 
     **刻意不 import `alerts_core.state_health`**：脚本由 ConfigMap 挂进 `/src`，而
     `fd_industry_data` 来自镜像，两条供给线各走各的。2026-11-14 实测镜像
-    `fd-industry-runner:sha-f5a19aa` 里没有那个新符号（`hasattr` → False），
+    `fd-industry-runner:sha-11ad0c3` 里没有那个新符号（`hasattr` → False），
     加了就会 ImportError、一条告警都发不出来。这里只用镜像确有的 `load_state`。
     与 `alerts_core.ledger.state_health` 语义相同，由
     `tests/test_alert_script_image_contract.py` 逐档对齐。
