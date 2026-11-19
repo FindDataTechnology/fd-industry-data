@@ -149,7 +149,19 @@ def build_server(
 
 
 def main() -> None:
-    build_server().run()
+    """stdio 缺省；``MARKETING_SIGNALS_TRANSPORT=http`` 走 streamable-http
+    （与 edu_catalog/server.py 同形状，pod 形态用这个）。"""
+    import os
+
+    transport = os.getenv("MARKETING_SIGNALS_TRANSPORT", "stdio")
+    if transport == "stdio":
+        build_server().run()
+        return
+    build_server().run(
+        transport="http",
+        host=os.environ.get("MARKETING_SIGNALS_HOST", "0.0.0.0"),
+        port=int(os.environ.get("MARKETING_SIGNALS_PORT", "8412")),
+    )
 
 
 if __name__ == "__main__":

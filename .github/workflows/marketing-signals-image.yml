@@ -1,0 +1,112 @@
+# marketing-signals 镜像发布 — GitHub Actions → TCR（hkccr）
+#
+# 形状 = edu-catalog-image.yml 同模：本服务的源码变才构建；tag = commit sha + main。
+# 内容闸门：digest 变了才铸 sha-<commit>，让「同内容多 tag」结构上不可能。
+name: marketing-signals-image
+
+on:
+  push:
+    paths:
+      - "fd_industry_data/marketing_signal.py"
+      - "fd_industry_data/marketing_signal_server.py"
+      - "fd_industry_data/tabular/**"
+      - "fd_industry_data/http.py"
+      - "fd_industry_data/__init__.py"
+      - "spiders/ted-notices/**"
+      - "spiders/worldbank-procnotices/**"
+      - "spiders/nfra-penalty/**"
+      - "spiders/__init__.py"
+      - "marketing_signals.Dockerfile"
+      - ".github/workflows/marketing-signals-image.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: marketing-signals-image-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: hkccr.ccs.tencentyun.com
+  NAMESPACE: finddata
+  IMAGE_NAME: marketing-signals
+  DOCKERFILE: marketing_signals.Dockerfile
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.TCR_USERNAME }}
+          password: ${{ secrets.TCR_PASSWORD }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=main
+
+      - id: prev
+        name: 读 main 当前 digest（内容基线）
+        run: |
+          img="$REGISTRY/$NAMESPACE/$IMAGE_NAME"
+          cur=$(docker buildx imagetools inspect "$img:main" \
+                --format '{{.Manifest.Digest}}' 2>/dev/null || true)
+          echo "digest=$cur" >> "$GITHUB_OUTPUT"
+          echo "main 当前 digest: ${cur:-<不存在，本次为首次构建>}"
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE }}
+          platforms: linux/amd64
+          push: true
+          # 硬约束：开了 attestation，同内容两次构建 digest 必然不同，闸门永久失效。
+          provenance: false
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 镜像冒烟：起来了就说明最小文件集自洽（缺模块会在 import 时炸）。
+      # 这一步是「本地无 docker 也能验」的替代品，且验的是**镜像里**的文件集。
+      - name: 镜像冒烟（容器内导入 + 工具面）
+        run: |
+          set -euo pipefail
+          img="$REGISTRY/$NAMESPACE/$IMAGE_NAME@${{ steps.build.outputs.digest }}"
+          docker run --rm --entrypoint python "$img" -c '
+import fd_industry_data.marketing_signal_server as s
+assert s.TOOL_NAMES == ("signals_recent", "signals_by_entity"), s.TOOL_NAMES
+print("SMOKE OK:", s.TOOL_NAMES)
+'
+
+      - name: 内容变了才铸不可变 tag
+        env:
+          NEW: ${{ steps.build.outputs.digest }}
+          OLD: ${{ steps.prev.outputs.digest }}
+        run: |
+          set -euo pipefail
+          img="$REGISTRY/$NAMESPACE/$IMAGE_NAME"
+          [ -n "$NEW" ] || { echo "::error::构建未产出 digest"; exit 1; }
+          if [ "$NEW" = "$OLD" ]; then
+            echo "内容未变（$NEW）：不铸新 tag"
+            echo "### 内容未变，未产出新 tag" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          tag="sha-${GITHUB_SHA::7}"
+          docker buildx imagetools create -t "$img:$tag" "$img@$NEW"
+          echo "已铸 $tag → $NEW"
+          {
+            echo "### 内容有变化，已铸不可变 tag"
+            echo ""
+            echo "| 字段 | 值 |"
+            echo "|---|---|"
+            echo "| tag | \`$tag\` |"
+            echo "| digest | \`$NEW\` |"
+            echo "| 上一内容 digest | \`${OLD:-<无>}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
