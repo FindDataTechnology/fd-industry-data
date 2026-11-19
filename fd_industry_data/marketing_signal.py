@@ -133,7 +133,7 @@ def _from_nfra(rows: Iterable[dict]) -> list[Signal]:
                 source="nfra-penalty",
                 entity=entity,
                 event=f"行政处罚：{(r.get('violation') or '')[:50]}",
-                date=(r.get("notice_date") or r.get("date") or "").strip(),
+                date=(r.get("doc_date") or r.get("notice_date") or r.get("date") or "").strip(),
                 line="wire",
                 capability=USABLE_SOURCES["nfra-penalty"][1],
                 detail={"amount": r.get("amount"), "office": r.get("office")},
@@ -191,7 +191,9 @@ def _selftest() -> int:
     nfra_rows = [
         {"party": "兴业银行股份有限公司", "violation": "数据安全", "date": "2026-11-18", "amount": 695},
         {"party": "某银行员工张三", "violation": "受贿", "date": "2026-11-18"},
-        {"party": "中国人寿再保险有限责任公司及相关责任人员", "violation": "报送不真实", "date": "2026-11-18"},
+        # 真源用的字段名是 doc_date（不是 date）——2026-11-19 pod 内实测发现，
+        # 当时日期读成空串、compact() 出来是「类型||来源」。这条夹具钉住它。
+        {"party": "中国人寿再保险有限责任公司及相关责任人员", "violation": "报送不真实", "doc_date": "2026-11-18"},
     ]
     nfra = _from_nfra(nfra_rows)
     if len(nfra) != 2:
@@ -200,6 +202,9 @@ def _selftest() -> int:
         fails.append("nfra 未过滤自然人")
     if any("及相关责任人员" in s.entity for s in nfra):
         fails.append("nfra 未剥离责任人后缀")
+    # 日期不许为空（doc_date 那次回归的形状）
+    if any(not s.date for s in nfra):
+        fails.append(f"nfra 日期为空：{[s.entity for s in nfra if not s.date]}")
 
     # 未验证的源必须被忽略
     got = collect({"samr-food-inspection": [{"a": 1}], "usaspending-awards": [{"b": 2}]})
