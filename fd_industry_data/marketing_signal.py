@@ -31,6 +31,11 @@ USABLE_SOURCES: dict[str, tuple[str, str]] = {
     "nfra-penalty": ("wire", "金融处罚：柏讯·企业风险 / 识律·合规检索"),
 }
 
+#: 境外源可达性（2026-11-20 用户告知）：TED / 世行在墙内 `Errno 101` / DNS 失败，
+#: **11-23 之后境外流量刷新即可达**，届时无需改代码或加代理。在那之前
+#: `signals_recent` 会把它们如实报进 `source_failures`（「通道故障 ≠ 没有信号」），
+#: 单源 45s 预算保证慢源不拖死调用。
+#:
 #: 判读阶段确认不接入的源（保留在册以便日后重议时有据）
 EXCLUDED_SOURCES: dict[str, str] = {
     "samr-food-inspection": "通报级聚合，行内无被抽检企业名（企业清单在 spcjsac.gsxt.gov.cn）",
