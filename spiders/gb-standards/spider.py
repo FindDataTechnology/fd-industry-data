@@ -48,17 +48,29 @@ HEADERS = {
     "Referer": "https://std.samr.gov.cn/gb",
     "Accept": "application/json, text/plain, */*",
 }
-TIMEOUT = 20  # 秒；轻量 JSON，超时即跳过该页（不重试、不加频次）
+TIMEOUT = 30  # 秒；轻量 JSON，超时即跳过该页（不重试、不加频次）
 PAGE_SIZE = 20  # 实测生效的页大小，封顶使用
 REQUEST_GAP = 0.8  # 秒；政府站点，串行低频不并发
 _HIGHLIGHT_RE = re.compile(r"</?sacinfo>")
+# 网络层修复：单页重试（最多 2 次、指数退避）
+_MAX_PAGE_RETRIES = 2
+_PAGE_RETRY_BASE_DELAY = 1.5  # 秒
 
 
-def _get_json(url: str):
-    """GET 一个 JSON 端点（仅固定 https 主机；无鉴权、无重试放大）。"""
-    req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
-        return json.loads(resp.read().decode("utf-8", "replace"))
+def _get_json(url: str, retries: int = _MAX_PAGE_RETRIES):
+    """GET 一个 JSON 端点（仅固定 https 主机；无鉴权、带有界重试）。"""
+    last_exc = None
+    for attempt in range(retries + 1):
+        try:
+            req = urllib.request.Request(url, headers=HEADERS)
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:  # noqa: S310 (固定 https 主机)
+                return json.loads(resp.read().decode("utf-8", "replace"))
+        except Exception as exc:  # noqa: BLE001
+            last_exc = exc
+            if attempt < retries:
+                time.sleep(_PAGE_RETRY_BASE_DELAY * (2 ** attempt))
+            continue
+    raise last_exc
 
 
 def _text(value) -> str | None:
@@ -70,7 +82,7 @@ def _text(value) -> str | None:
 
 
 def fetch_page(search_text: str, page_number: int) -> list[dict]:
-    """取一页检索结果，返回明细行列表。"""
+    """取一页检索结果，返回明细行列表（带有界重试）。"""
     params = urllib.parse.urlencode({
         "searchText": search_text,
         "pageNumber": page_number,
