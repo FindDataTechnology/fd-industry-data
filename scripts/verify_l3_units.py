@@ -36,12 +36,14 @@ SPA_MARKERS = ['id="root"', 'id="app"', "window.__nuxt", "__next_data__", "ng-ap
                'id="___gatsby"', "window.__initial_state__"]
 
 # retest egress pool (design D1): name -> (host, port).
-# 2026-11-08: the mihomo fleet moved from xinru-server2 (100.64.0.7:3008x) to
-# windows-laptop (100.64.0.10:31081-31115); the three probes the L3 retest plan
-# used are remapped by position (31081=us01, 31084=us04, 31091=us11). gost@30080
-# is a different provider and stays on the mesh node.
-MIHOMO_HOST = os.environ.get("FD_MIHOMO_HOST", "100.64.0.10")
-GOST_HOST = os.environ.get("FD_GOST_HOST", "100.64.0.7")
+# 2026-11-08: the mihomo pool moved hosts; the three probes the L3 retest plan used are
+# remapped by position (31081=us01, 31084=us04, 31091=us11). gost@30080 is a different
+# provider and stays on its own node.
+# 两个出口主机都必须显式给：地址随部署不同，写在这里就是公布机队。
+MIHOMO_HOST = os.environ.get("FD_MIHOMO_HOST")
+GOST_HOST = os.environ.get("FD_GOST_HOST")
+if not MIHOMO_HOST or not GOST_HOST:
+    raise SystemExit("FD_MIHOMO_HOST and FD_GOST_HOST must both be set")
 EGRESS_PORTS: dict[str, tuple[str, int]] = {
     "gost@30080": (GOST_HOST, 30080),
     "us01@31081": (MIHOMO_HOST, 31081),
