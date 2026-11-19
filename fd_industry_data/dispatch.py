@@ -219,8 +219,9 @@ def finish_pending(conn, pending_id: int, *, run_id: int | None, status: str,
 
 
 def orphaned_run_candidates(conn, *, grace_seconds: int,
-                            default_timeout_seconds: int) -> list[dict]:
-    """Running crawl_runs rows older than their source's declared budget.
+                            default_timeout_seconds: int,
+                            site: str | None = None) -> list[dict]:
+    """Running crawl_runs rows of **this site** older than their declared budget.
 
     A row is a *candidate* only on age: the caller must additionally confirm
     the cluster has no active Job for the source before reaping. The budget
@@ -233,7 +234,18 @@ def orphaned_run_candidates(conn, *, grace_seconds: int,
     Age alone never justifies reaping — the 2026-10-14 orphan (run #2033) was
     a row whose Job had already Failed while its poller died, and the fix must
     not kill a genuinely live run whose executor simply has a long budget.
+
+    ``site`` 是**作用域，不是可选优化**：回收的判据是「本集群里没有它的活动
+    Job」，而一个进程只看得见自己那个集群、自己那个命名空间的 Job。中央库是所有
+    站点共写的（`FD_CRAWL_DB_URL`）：tencent 的 dispatcher 与 xinru 的
+    dispatcher（`k8s/xinru-dispatcher.yaml`，`FD_DISPATCH_SITE=xinru-server1`、
+    命名空间 `scraw`）各写各的行 ⇒ 不过滤站点时，tencent 会拿自己集群的 Job 表去
+    判 xinru 的行，**那边正在跑的 Job 它永远看不见，活得好好的一行会被当孤儿回收**。
+    所以「判不出自己站点」时**不猜**：`site` 缺省返回空列表（回收是破坏性动作，
+    异常时必须退回「什么都不做」），绝不退化成「所有站点」。
     """
+    if not site:
+        return []
     with conn, conn.cursor() as cur:
         cur.execute(
             """
@@ -241,16 +253,54 @@ def orphaned_run_candidates(conn, *, grace_seconds: int,
                    coalesce(s.timeout_seconds, %s) AS budget
             FROM crawl_runs r
             LEFT JOIN crawl_sources s ON s.source = r.source
+            LEFT JOIN pending_runs p ON p.id = r.pending_run_id
             WHERE r.status = 'running'
+              AND coalesce(p.site, s.site, %s) = %s
               AND r.started_at < now()
                   - make_interval(secs => coalesce(s.timeout_seconds, %s)
                                           + %s)
             ORDER BY r.started_at
             """,
-            (default_timeout_seconds, default_timeout_seconds, grace_seconds),
+            (default_timeout_seconds, DEFAULT_SITE, site,
+             default_timeout_seconds, grace_seconds),
         )
         return [{"id": row[0], "source": row[1], "started_at": row[2],
                  "budget": row[3]} for row in cur.fetchall()]
+
+
+def running_counts_by_site(conn) -> dict:
+    """运行中的 crawl_runs 按拥有它的站点分组（只读，纯诊断）。
+
+    为什么需要它：回收判据是「本集群里没有它的活动 Job」，而 `list_jobs()` 只看得见
+    自己那个集群 ⇒ 一个 dispatcher 只能判**自己站点**的行（见
+    `orphaned_run_candidates`）。可是中央库里有站点的执行者根本不是 k8s：
+
+    - `zihan`（`VM-0-2-ubuntu-dispatch`）、`xinru-server2`（`VM-0-13-debian-dispatch`）、
+      `nbs-workers` —— 宿主 worker 自己 claim 自己跑，**不起 Job**；
+    - 2026-11-15 只读实测：`pending_runs` 三个 docker 站点合计 129 行，`crawl_runs`
+      里它们也有 success 记录 ⇒ 不是空站点。
+
+    于是站点收窄之后，这些站点的 running 行**没有任何回收器覆盖**：worker 崩了，
+    行就永久挂在 running（旧版会被随便哪个 dispatcher 收掉，代价是误杀在跑的）。
+    这笔账没法用一个租约判据补齐——`pending_runs.lease_until` 只在 claim 时设一次
+    （1800s）、**全程不续期**，所以「租约过期 / pending 不再 claimed」推不出「跑的人
+    死了」，按它回收会正好误杀超 30 分钟的正常爬取。
+
+    所以这里只做**可见性**：让每轮 sweep 把「别家站点还有几条 running」念出来。
+    少了那一行，「今天没有孤儿」与「这些站点的孤儿根本没人看」在日志里同形。
+    """
+    with conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT coalesce(p.site, s.site) AS site, count(*)::int
+            FROM crawl_runs r
+            LEFT JOIN crawl_sources s ON s.source = r.source
+            LEFT JOIN pending_runs p ON p.id = r.pending_run_id
+            WHERE r.status = 'running'
+            GROUP BY 1
+            """
+        )
+        return {row[0]: row[1] for row in cur.fetchall()}
 
 
 def reap_orphaned_run(conn, run_id: int, *, reason: str) -> bool:

@@ -1,0 +1,127 @@
+ticket_id: 20261115-jp-tdnet-694ed27c
+source: jp-tdnet
+unit: spiders/jp-tdnet/
+kind: repair
+created_at: '2026-11-15T23:23:45.280456+00:00'
+category: structure
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 核对条目键名或更新 data_period_field（当前声明 'trade_date'）
+evidence:
+  window:
+    from: '2026-11-09 16:15:17.126963+00'
+    to: '2026-11-15 14:20:09.542328+00'
+  failing_runs: []
+  last_success:
+    started_at: '2026-11-15 14:20:09.542328+00'
+    rows: 0
+  watermark:
+    latest: null
+    basis: unknown（遥测未提供数据期；最近成功时间见 evidence.last_success）
+  notes: declare:field-mismatch field='trade_date' states=['unavailable', 'unavailable',
+    'unavailable'] runs=3
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261115-jp-tdnet-694ed27c.yaml
+golden:
+- spiders/jp-tdnet/golden/expected.json
+lifecycle:
+- at: '2026-11-15T23:23:45.280456+00:00'
+  event: created
+- at: '2026-11-15T23:52:27.446648+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32041, "message": "turn exceeded 600s"}'
+- at: '2026-11-16T00:05:44.705241+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
+    plane is unreachable right now; retry shortly"}}'
+- at: '2026-11-16T06:22:00.094282+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32041, "message": "turn exceeded 600s"}'
+- at: '2026-11-16T08:20:14.283527+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T08:54:47.447756+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"TURN_IN_FLIGHT","message":"a turn for this caller and
+    agent is already running; retry after the hint"}}'
+- at: '2026-11-16T12:28:59.566151+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T15:23:00.108572+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T19:08:58.351698+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T19:09:46.885416+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-16T20:37:02.279088+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T22:21:44.769025+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T22:43:09.689496+00:00'
+  event: status
+  http_status: 200
+  state: queued
+  note: ''
+  pr_url: ''
+- at: '2026-11-17T02:40:34.686182+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-17T13:15:58.866374+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-18T01:48:52.564289+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-18T02:16:49.848375+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+terminal: null
+evidence_signature: 98c4b7d37a4c

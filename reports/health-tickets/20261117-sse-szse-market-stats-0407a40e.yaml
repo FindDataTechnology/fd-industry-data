@@ -1,0 +1,128 @@
+ticket_id: 20261117-sse-szse-market-stats-0407a40e
+source: sse-szse-market-stats
+unit: spiders/sse-szse-market-stats/
+kind: repair
+created_at: '2026-11-17T02:29:03.867170+00:00'
+category: network
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 出口切换/代理复测（不改代码）
+evidence:
+  window:
+    from: '2026-11-09 12:50:05.430621+00'
+    to: '2026-11-16 12:51:53.04002+00'
+  failing_runs:
+  - started_at: '2026-11-13 15:42:19.043311+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: sse-szse-market-stats: https://www.szse.cn/api/report/ShowReport/data?SHOWTYPE=JSON&CATALOGID=scsj_gprdgk_after&TABKEY=tab1&txtQueryDate=2026-11-13&PAGENO=1&tjzqlb=D&bkbz=GP%7CXZ%7CCY&cjbz=cjl%7Ccjje
+      取数失败 — RemoteDisconnected: Remote end closed connection without response'
+    http_status: null
+  - started_at: '2026-11-13 15:42:35.166886+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: sse-szse-market-stats: https://www.szse.cn/api/report/ShowReport/data?SHOWTYPE=JSON&CATALOGID=scsj_gprdgk_after&TABKEY=tab1&txtQueryDate=2026-11-13&PAGENO=1&tjzqlb=D&bkbz=GP%7CXZ%7CCY&cjbz=cjl%7Ccjje
+      取数失败 — RemoteDisconnected: Remote end closed connection without response'
+    http_status: null
+  - started_at: '2026-11-15 01:36:48.943472+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: sse-szse-market-stats: https://www.szse.cn/api/report/ShowReport/data?SHOWTYPE=JSON&CATALOGID=scsj_gprdgk_after&TABKEY=tab1&txtQueryDate=2026-11-15&PAGENO=1&tjzqlb=D&bkbz=GP%7CXZ%7CCY&cjbz=cjl%7Ccjje
+      取数失败 — URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred
+      in vi'
+    http_status: null
+  - started_at: '2026-11-15 01:37:14.469807+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: sse-szse-market-stats: https://www.szse.cn/api/report/ShowReport/data?SHOWTYPE=JSON&CATALOGID=scsj_gprdgk_after&TABKEY=tab1&txtQueryDate=2026-11-15&PAGENO=1&tjzqlb=D&bkbz=GP%7CXZ%7CCY&cjbz=cjl%7Ccjje
+      取数失败 — URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred
+      in vi'
+    http_status: null
+  - started_at: '2026-11-15 01:37:48.374379+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: sse-szse-market-stats: https://www.szse.cn/api/report/ShowReport/data?SHOWTYPE=JSON&CATALOGID=scsj_gprdgk_after&TABKEY=tab1&txtQueryDate=2026-11-15&PAGENO=1&tjzqlb=D&bkbz=GP%7CXZ%7CCY&cjbz=cjl%7Ccjje
+      取数失败 — URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred
+      in vi'
+    http_status: null
+  - started_at: '2026-11-15 01:38:45.317032+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: sse-szse-market-stats: https://www.szse.cn/api/report/ShowReport/data?SHOWTYPE=JSON&CATALOGID=scsj_gprdgk_after&TABKEY=tab1&txtQueryDate=2026-11-15&PAGENO=1&tjzqlb=D&bkbz=GP%7CXZ%7CCY&cjbz=cjl%7Ccjje
+      取数失败 — URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred
+      in vi'
+    http_status: null
+  - started_at: '2026-11-16 12:50:08.353006+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: sse-szse-market-stats: https://www.szse.cn/api/report/ShowReport/data?SHOWTYPE=JSON&CATALOGID=scsj_gprdgk_after&TABKEY=tab1&txtQueryDate=2026-11-16&PAGENO=1&tjzqlb=D&bkbz=GP%7CXZ%7CCY&cjbz=cjl%7Ccjje
+      直连与代理均失败 — direct RemoteDisconnected: Remote end closed connection without response；pr'
+    http_status: null
+  - started_at: '2026-11-16 12:50:32.627993+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: sse-szse-market-stats: https://www.szse.cn/api/report/ShowReport/data?SHOWTYPE=JSON&CATALOGID=scsj_gprdgk_after&TABKEY=tab1&txtQueryDate=2026-11-16&PAGENO=1&tjzqlb=D&bkbz=GP%7CXZ%7CCY&cjbz=cjl%7Ccjje
+      直连与代理均失败 — direct RemoteDisconnected: Remote end closed connection without response；pr'
+    http_status: null
+  - started_at: '2026-11-16 12:51:02.517898+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: sse-szse-market-stats: https://www.szse.cn/api/report/ShowReport/data?SHOWTYPE=JSON&CATALOGID=scsj_gprdgk_after&TABKEY=tab1&txtQueryDate=2026-11-16&PAGENO=1&tjzqlb=D&bkbz=GP%7CXZ%7CCY&cjbz=cjl%7Ccjje
+      直连与代理均失败 — direct RemoteDisconnected: Remote end closed connection without response；pr'
+    http_status: null
+  - started_at: '2026-11-16 12:51:53.04002+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: sse-szse-market-stats: https://www.szse.cn/api/report/ShowReport/data?SHOWTYPE=JSON&CATALOGID=scsj_gprdgk_after&TABKEY=tab1&txtQueryDate=2026-11-16&PAGENO=1&tjzqlb=D&bkbz=GP%7CXZ%7CCY&cjbz=cjl%7Ccjje
+      直连与代理均失败 — direct RemoteDisconnected: Remote end closed connection without response；pr'
+    http_status: null
+  last_success:
+    started_at: '2026-11-15 02:05:50.317888+00'
+    rows: 2
+  watermark:
+    latest: '2026-11-13'
+    basis: run telemetry watermark
+  notes: 'rule5:network votes=4/4 labels={''network'': 4}'
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261117-sse-szse-market-stats-0407a40e.yaml
+golden:
+- spiders/sse-szse-market-stats/golden/001-sse-szse-market-stats.json
+lifecycle:
+- at: '2026-11-17T02:29:03.867170+00:00'
+  event: created
+- at: '2026-11-17T02:42:09.173959+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32004, "message": "cold start failed after 4 attempts (inputRequestOwnerOf
+    is not defined)"}'
+- at: '2026-11-17T02:43:35.860569+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-17T13:27:27.377251+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: duplicate
+  response: '**已见过** `FindDataTechnology/fd-industry-data#20261117-sse-szse-market-stats-0407a40e`，状态：**终态
+    done**（12:25Z 落定，来源 fd-memory 快照 6050f2a8）。
+
+
+    一行依据：该单上一轮已按处方「出口切换/代理复测（不改代码）」完成验证，故本轮**不重复入队、不重复动手**，未改任何代码、未开 PR、未 push。
+
+
+    **但需提请注意（本轮唯一动作＝只读复测，未改状态）：**
+
+
+    | 探针 | 结果 |
+
+    |---|---|
+
+    | SZSE 目标接口（经代理，`txtQueryDate=2'
+terminal: null
+evidence_signature: 67c7fb3ee0d6

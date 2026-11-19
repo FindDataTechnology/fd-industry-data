@@ -13,6 +13,8 @@ import re
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -47,6 +49,23 @@ _SUBMIT_UNKNOWN_MAX = 3
 # 等不到就**本批停手**（继续捶剩余单只会各自 409），下一个巡检周期接手。
 _SUBMIT_TURN_POLL_S = 15.0     # 轮询间隔
 _SUBMIT_TURN_BUDGET_S = 90.0   # 单张单的等待预算（实测 agent 回合 20–150s）
+# 错误回执上限（fix-turn-fail-starvation，2026-11-15）：agent **真跑过回合**并以
+# JSON-RPC 错误收场的投递计满 N 次就停手转人工。不加它时一张处理不完的单会每轮
+# 占住唯一槽位跑满整个回合预算（实测 20261107-fred-cpi-ba279d6a-try20：600s 超时），
+# 同轮其余单全部 409 deferred、accepted=0——一张单饿死整条线。
+# **只数 JSON-RPC 错误回执**（`"code":-32xxx` 的 response）＝回合真的跑过：
+#   面层形态不计——`TURN_IN_FLIGHT` 409、`PLAN_EXHAUSTED` 402、裸 HTTP 502/308（这些
+#   response 里根本没有 `"code":-32xxx`），免得把通道故障误记成工单罪过。
+#   **但 `-32003` 会计**：它是「上游错误原文中继」，实测形态
+#   `{"code":-32003,"message":"502: …Upstream service temporarily unavailable"}` 与
+#   429 `rate_limit_error` —— 那一次回合确实被受理过、由上游收场，所以计入。
+#   这一侧是刻意选的：少计＝一张真卡的单饿死整条线；多计＝被限流挡住的单在 6 轮后
+#   判 exhausted 转人工，而判词里写着次数与末次原文，人一眼能看出是限流。
+#   **要改这一侧，改注释的同时要改 `test_relayed_upstream_errors_count_toward_cap`**
+#   ——别只把 `-32\d{3}` 放宽成白名单，那会把 `-32032 fetch failed`（传输层）也放走。
+#   也不设 terminal——工单照常巡检出单，只是 SUBMIT 停手，处置权交回人
+#   （判词必须写明停了几次，别让"没投"冒充"没单"）。
+_SUBMIT_TURN_FAIL_MAX = 6
 # 整批上限：不加这两条实测会撞 workflow 45 分钟超时（2026-11-10 首版修复
 # 18 张 × 120s ≈ 36min + 常规 9min = 49m30s，被超时掐成 cancelled，一张都没交成）。
 # 有界地做：每轮最多 N 张、批量等待总预算 ≤ B，剩下的下一轮接手。
@@ -1036,7 +1055,26 @@ def write_plan(plan: Plan, repo: Path, outdir: Path, config: HealthConfig, now: 
 
 # ── 接线：SUBMIT / STATUS（poster/fetcher 可注入） ─────────────────────────
 
-def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900) -> tuple[int, str]:
+def _unpack_reply(res) -> tuple[int | None, str, dict]:
+    """把 poster/fetcher 的回执统一成 `(status, text, trace)`。
+
+    **为什么要有这个函数**：`_default_poster` 自 2026-11-15（865e157）起回**三元组**
+    （多带一份跳转痕迹），而 `sync_status` 里写的是 `status, text = read(...)`。
+    注入的替身全都只回二元组，所以那一行在测试里永远走不到——真跑时每张单都在
+    STATUS 面炸 `ValueError: too many values to unpack (expected 2)`，判词里只剩
+    这一行，读起来像网络问题，其实是「通道改了口径、调用方没跟上」。
+    （同族：夹具能绕过的那条路径等于没验。）
+
+    宽度按实际长度取：注入的替身回 2 元组照样能跑，不逼所有假实现跟着升级。
+    """
+    st = res[0] if len(res) > 0 else None
+    tx = res[1] if len(res) > 1 else ""
+    raw = res[2] if len(res) > 2 else None
+    trace = raw if isinstance(raw, dict) else {}
+    return st, tx, trace
+
+
+def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900) -> tuple[int, str, dict]:
     """a2a 消息发送：JSON-RPC message/send 封装（文本指令在 parts[0].text）。
 
     首投可能触发整回合（实测 110s+），SUBMIT 超时放宽到 15 分钟；超时按未完成
@@ -1056,28 +1094,156 @@ def _default_poster(url: str, key: str, idem: str, body: str, timeout: int = 900
             }
         },
     }
-    req = urllib.request.Request(
-        url, data=json.dumps(payload).encode("utf-8"), method="POST",
-        headers={
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-            "Idempotency-Key": idem,
-        },
-    )
+    data = json.dumps(payload).encode("utf-8")
+    hdrs = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+        "Idempotency-Key": idem,
+    }
+    req = urllib.request.Request(url, data=data, method="POST", headers=hdrs)
     # 网络层失败重试：实测（2026-11-10）一轮 10 次 SUBMIT 里有 7 次直接
     # RemoteDisconnected / URLError，成功率被打到 30%——而每次失败都白占一个 turn 窗口。
     # 只对**连接层**异常重试（HTTPError 是有答复的，不重试）；idem 不变，安全。
+    #
+    # 3xx 例外（2026-11-15）：POST 撞上 301/302/303/307/308 时 CPython 的
+    # HTTPRedirectHandler 不跟随（它只跟 GET/HEAD 的 307/308），于是「前置要求跳转」
+    # 在回执里只剩一页 Tengine 的 308 HTML——既不像受理也不像拒收，verdict 落
+    # `unknown`，摘要里一个字都没有。实测 2026-11-14 那轮 8 张单有 3 张是这个形状
+    # （19:15:51Z / 23:14:05Z / 23:22:05Z），投递根本没到门面（门面同期只记了别的单
+    # 的 admitted/refused）。这里自己跟**一跳**，且**只跟同主机同协议**：
+    # 跨主机或跨协议的 Location 一律不跟——跨主机等于把 Bearer 凭据送给另一个主机，
+    # 跨协议（https→http）等于把同一个凭据明文发上线路，而跳转目标由前置决定、
+    # 不由我们决定。
     attempts = _POSTER_ATTEMPTS
-    for i in range(1, attempts + 1):
+    followed = False
+    cookies: list[str] = []   # 前置在同一调用内发的挑战 cookie（如 SafeLine sl-session）
+    # 跳转痕迹（2026-11-15）：判词此前无条件写「已按同主机跟一跳仍如此」，而**没带
+    # Location、或 Location 跨主机/跨协议时我们根本没跟**——那种情形下这句话是假的，
+    # 读判词的人会以为已经跟过、转头去查 WAF，而真相是「不知道 308 指向哪」。把实际
+    # 发生过的事带出去：跟了几跳、跳去哪、带没带挑战 cookie、为什么没跟。
+    trace: dict = {"followed": False, "hops": 0, "location": None, "cookies": 0,
+                   "final_url": url, "not_followed": None}
+    # 用 while 而不是 for+range：`range` 在循环开始那一刻就把上界算死，
+    # 而在里面给跟跳加预算（`attempts += 1`）**不会延长循环**——第一版就是这么写的，
+    # 结果「跟跳额外给一次预算」完全没生效，测试直接掉到 `unreachable` 的兜底 raise。
+    i = 0
+    while i < attempts:
+        i += 1
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return resp.status, resp.read(8000).decode("utf-8", "replace")
+                return resp.status, resp.read(8000).decode("utf-8", "replace"), trace
         except urllib.error.HTTPError as e:  # noqa: BLE001
-            return e.code, e.read(8000).decode("utf-8", "replace")
+            text = e.read(8000).decode("utf-8", "replace")
+            loc = e.headers.get("Location") if e.headers else None
+            cookies.extend(_challenge_cookies(e.headers))
+            trace["location"] = loc
+            trace["cookies"] = len(cookies)
+            if e.code in (301, 302, 303, 307, 308):
+                # 顺序即真相（2026-11-15 线上订正）：原来 `i >= attempts` 排在
+                # 「跨主机」之前，于是三次都没能跟（没 Location 或跨主机）时，
+                # **最后一跳把真实原因覆写成 `out-of-attempts`**——判词读起来像
+                # 「本来能跟、只是预算用完了」，而真相是「从来就没法跟」。
+                # 现在先判能否跟，最后才谈预算；确定性答复（没 Location / 跨主机 /
+                # 已跟一跳）当场返回，不再拿剩下的重试预算白打三次。
+                if not loc:
+                    trace["not_followed"] = "no-location"
+                elif followed:
+                    trace["not_followed"] = "already-followed-once"
+                elif not _same_host(url, loc):
+                    trace["not_followed"] = "cross-host-or-scheme"
+                elif i >= attempts:
+                    # 现在只有「连接层失败把预算吃光、最后才拿到 3xx」才走这里；
+                    # 而跟跳有独立预算，所以这一档实际已近乎不可达——留着是为了
+                    # 万一将来预算语义变了，它至少会说出来而不是静默。
+                    trace["not_followed"] = "out-of-attempts"
+            if (e.code in (301, 302, 303, 307, 308) and loc and not followed
+                    and _same_host(url, loc)):
+                followed = True
+                trace["followed"] = True
+                trace["hops"] += 1
+                hop_hdrs = dict(hdrs)
+                if cookies:
+                    # 2026-11-15 验收轮真跑实证：跟跳带了 Location 仍拿回同一页
+                    # 308（verdict_reason「已按同主机跟一跳仍如此」）——WAF 的 308
+                    # 是「发 Set-Cookie、让你带 cookie 再来」的挑战，而跟跳原先
+                    # 只带原 headers，挑战 cookie 被丢掉，于是必被同一道门挡回。
+                    # cookie 只随这一跳去 _same_host 已保证的同一个主机；只在
+                    # 本次调用的内存里存活，不跨调用、不跨工单，无会话状态。
+                    hop_hdrs["Cookie"] = "; ".join(cookies)
+                req = urllib.request.Request(
+                    urllib.parse.urljoin(url, loc), data=data, method="POST",
+                    headers=hop_hdrs)
+                trace["final_url"] = req.full_url
+                # 这一跳**额外给一次预算**，不占连接重试的次数（2026-11-15 线上
+                # 订正）：原先它和连接层失败共用同一份预算，于是「两跳
+                # RemoteDisconnected + 第 3 跳才拿到 308」这种真实形态下，
+                # 我们手里握着一个现成的 Location 却没有预算去跟，判词只能写
+                # `out-of-attempts`——把「本可以跟」说成了「跳转根本没法处理」。
+                # 跟跳最多一次（`followed` 守卫），所以预算上界仍是 +1，不会兜圈。
+                attempts += 1
+                continue  # 用这份额外预算跟这一跳
+            return e.code, text, trace
         except (urllib.error.URLError, ConnectionError, TimeoutError):
             if i >= attempts:
                 raise
             time.sleep(_POSTER_RETRY_BACKOFF_S * i)
+    raise RuntimeError("unreachable: poster retry loop exited without a reply")
+
+
+def _challenge_cookies(headers) -> list[str]:
+    """从响应头抽 Set-Cookie 的 name=value 对（挑战 cookie，如 SafeLine sl-session）。
+
+    只取 name=value；Path/Expires/HttpOnly 等属性丢弃——我们只在**同一次调用**
+    内原样带回去，不做任何跨调用的会话状态。没有 Set-Cookie 就是空列表。
+    """
+    out: list[str] = []
+    raws = None
+    if headers is not None:
+        get_all = getattr(headers, "get_all", None)
+        raws = get_all("Set-Cookie") if get_all else headers.get("Set-Cookie")
+    if isinstance(raws, str):     # dict 分支拿到的是单条字符串，别逐字符迭代
+        raws = [raws]
+    for raw in raws or []:
+        first = raw.split(";", 1)[0].strip()
+        if "=" in first:
+            out.append(first)
+    return out
+
+
+def _excerpt(text: str | None, limit: int = 160) -> str:
+    """回执体摘要：压掉空白、截断。给判词一个「当事的事实值」。
+
+    只进工单与摘要，不进任何对外通知的正文（见 §12 的展示纪律）。
+    """
+    flat = " ".join(str(text or "").split())
+    return flat[:limit]
+
+
+def _redact_url(url: str) -> str:
+    """跳转目标只留 scheme://host/path，丢掉 query 与 fragment。
+
+    判词要能点名「跳到哪」，但有些前置会把 token 塞进 query（`?ticket=…`），
+    那不该进工单与日志。取不到就原样截断到 120 字符。
+    """
+    try:
+        parts = urllib.parse.urlsplit(url)
+    except ValueError:
+        return (url or "")[:120]
+    if not parts.hostname:
+        return (url or "")[:120]
+    return f"{parts.scheme}://{parts.netloc}{parts.path}"[:160]
+
+
+def _same_host(url: str, location: str) -> bool:
+    """跳转目标是否与原请求同主机**同协议**（任一不同都不跟）。
+
+    同主机还不够：`https://…` 被跳到 `http://…同名主机` 时主机名相等，但那一跳会把
+    `Authorization: Bearer …` 明文送上线。协议必须一致（http→https 的升级也不跟，
+    因为那同样是换了一条链路，而跳转目标由前置决定、不由我们决定）。
+    """
+    a = urllib.parse.urlsplit(url)
+    b = urllib.parse.urlsplit(urllib.parse.urljoin(url, location))
+    return bool(a.hostname) and a.hostname == b.hostname and a.scheme == b.scheme
 
 
 def _part_texts(result: dict) -> list[str]:
@@ -1192,7 +1358,8 @@ def _http_error_detail(raw_text: str) -> str:
     return f" · {detail}"
 
 
-def parse_submit_verdict(status: int, raw_text: str, message: str) -> dict:
+def parse_submit_verdict(status: int, raw_text: str, message: str,
+                         trace: dict | None = None) -> dict:
     """把 SUBMIT 回执解析成**结构化裁决**（harden-crawl-delivery 2.11）。
 
     此前只判「是不是失败」并把回执全文当结论存下来。2026-11-09 实测
@@ -1224,6 +1391,43 @@ def parse_submit_verdict(status: int, raw_text: str, message: str) -> dict:
                 "state": None, "response_excerpt": (raw_text or "")[:300]}
     if status >= 400:
         verdict, reason = "error", f"HTTP {status}{_http_error_detail(raw_text)}"
+    elif 300 <= status < 400:
+        # POST 撞上前置跳转（实测 2026-11-14：Tengine 回 308，正文就是那一页 HTML）。
+        # 既不是受理也不是拒收，但**必须留下原因**：此前 reason 是空串，摘要里只剩一个
+        # `unknown`，看不出「投递根本没到 API」与「agent 回了看不懂的话」的区别。
+        #
+        # 2026-11-15：判词只许讲**真的发生过的事**。原先这句话无论跟没跟都写「已按同
+        # 主机跟一跳仍如此」，而 location 缺失／跨主机时我们根本没跟——读判词的人会被
+        # 引去查 WAF，真相却是「不知道这 308 指向哪」。现在按 trace 分档点名。
+        verdict = "unknown"
+        t = trace or {}
+        if not t:
+            reason = f"HTTP {status} 跳转未落到 API（调用方未提供跳转痕迹）"
+        elif t.get("followed"):
+            reason = (f"HTTP {status}：已按同主机跟 {t.get('hops') or 1} 跳"
+                      f"（带挑战 cookie {t.get('cookies') or 0} 个、以 POST 重放）"
+                      f"仍 3xx，最终 {_redact_url(t.get('final_url') or '')}")
+        elif t.get("not_followed") == "no-location":
+            reason = f"HTTP {status} 跳转未落到 API（响应没带 Location，无从跟）"
+        elif t.get("not_followed") == "cross-host-or-scheme":
+            reason = (f"HTTP {status} 跳转未落到 API（Location 指向 " 
+                      f"{_redact_url(t.get('location') or '')} —— 跨主机或跨协议，带 Bearer 不跟）")
+        elif t.get("not_followed") == "already-followed-once":
+            reason = (f"HTTP {status} 跳转未落到 API（已跟一跳后仍 3xx，"
+                      f"指向 {_redact_url(t.get('location') or '')}；只跟一跳）")
+        else:
+            # 2026-11-15 线上订正：这一档此前只说「未跟：out-of-attempts」，
+            # **一个字的 Location 都没有**——于是「308 到底指向哪」这个唯一有用的
+            # 事实追了三轮还拿不到（同一个形状反复出现，判词却每轮都只说"没跟"）。
+            # 现在凡有 Location 就印出来（脱敏：只留 scheme://host/path）。
+            why = t.get("not_followed") or "原因未记录"
+            loc = _redact_url(t.get("location") or "")
+            if loc:
+                reason = (f"HTTP {status} 跳转未落到 API（未跟：{why}；"
+                          f"Location {loc}）")
+            else:
+                reason = (f"HTTP {status} 跳转未落到 API（未跟：{why}；"
+                          f"响应没给 Location）")
     else:
         try:
             doc = json.loads(raw_text)
@@ -1337,22 +1541,31 @@ def _submit_recorded(doc: dict) -> bool:
 
     存量的 `ok: true` 记录也会按现行语义重判（fix-health-ticket-landing-race）：
     历史上有拒收回执被误记为成功，若只信 `ok` 字段，这些单永远不会被重投。
-    ``unknown``（读不懂的回执）不算受理，但重试有上限——见 ``_SUBMIT_UNKNOWN_MAX``。
+
+    ``unknown``（读不懂的回执，308 HTML 是实例）不算受理，且**重试有上限**
+    （``_SUBMIT_UNKNOWN_MAX``）——上限按 unknown 的**条数**数，不按总尝试数：
+    unknown 事件全带 `ok: false`，若沿用「遇 ok=False 就 continue」的旧循环，
+    上限检查永远走不到，实际形态是**无限重投**（2026-11-15 实测三张 308 单全部
+    `False`，docstring 承诺的停手不存在）。已受理/重复不算 unknown；达到上限
+    返回 True 即停手转人工。
     """
     attempts = 0
+    unknowns = 0
     for e in doc.get("lifecycle") or []:
         if e.get("event") not in ("submitted", "submit-failed"):
             continue
         attempts += 1
-        if e.get("event") == "submit-failed" or e.get("ok") is False:
+        if e.get("event") == "submit-failed":
             continue
         resp = str(e.get("response", ""))
-        verdict = parse_submit_verdict(200, resp, resp)["verdict"]
+        # 新事件自带 verdict 字段（写事件时已判过）；旧事件回退到重解析存档原文。
+        verdict = str(e.get("verdict") or "") or parse_submit_verdict(200, resp, resp)["verdict"]
         if verdict in ("accepted", "duplicate"):
             return True
-        # unknown：允许有限重试，超过上限就停手（别每轮都打门面）。
-        if attempts >= _SUBMIT_UNKNOWN_MAX:
-            return True
+        if verdict == "unknown":
+            unknowns += 1
+            if unknowns >= _SUBMIT_UNKNOWN_MAX:
+                return True
     return False
 
 
@@ -1418,13 +1631,34 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                 1 for e in doc.get("lifecycle") or []
                 if e.get("event") in ("submitted", "submit-failed")
             )
+            turn_fails = sum(
+                1 for e in doc.get("lifecycle") or []
+                if e.get("event") == "submitted" and not e.get("ok")
+                and re.search(r'"code"\s*:\s*-32\d{3}', str(e.get("response") or ""))
+            )
+            if turn_fails >= _SUBMIT_TURN_FAIL_MAX:
+                last = next((str(e.get("response") or "") for e in reversed(doc.get("lifecycle") or [])
+                             if e.get("event") == "submitted" and not e.get("ok")
+                             and re.search(r'"code"\s*:\s*-32\d{3}', str(e.get("response") or ""))), "")
+                entry.update({
+                    "submitted": False,
+                    "verdict": "exhausted",
+                    "verdict_reason": (f"agent 已真跑过回合并以错误收场 {turn_fails} 次（上限 "
+                                       f"{_SUBMIT_TURN_FAIL_MAX}），停止重投转人工；末次：{last[:120]}"),
+                })
+                ticket_mod.append_event(doc, "submit-exhausted", turn_fails=turn_fails,
+                                        limit=_SUBMIT_TURN_FAIL_MAX, last_response=last[:300])
+                p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
+                results.append(entry)
+                handled += 1
+                continue
             idem = f"{p.name[:-5]}-try{prior + 1}"
             entry["attempt"] = prior + 1
             try:
                 body = _submit_body(repo_slug, rel, p, inline=_SUBMIT_INLINE)
 
-                def _post(idem_key: str) -> tuple[int | None, str, float]:
-                    """投一次门面，返回 (status, text, 实际耗时秒)。
+                def _post(idem_key: str) -> tuple[int | None, str, float, dict]:
+                    """投一次门面，返回 (status, text, 实际耗时秒, 跳转痕迹)。
 
                     两件事必须一起做，否则预算只是装饰：
                     1) **计时**——实测单次 ~300s（agent 回合串行），只累计 sleep 会让
@@ -1432,18 +1666,22 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                     2) **收缩 timeout**——`_default_poster` 默认 900s 且连接层重试
                        3 次，固定超时下一次调用最坏 45 分钟，能独占整个作业墙。
                        按「剩余预算 / 重试次数」给，整批才真的封顶。
+
+                    痕迹是给判词用的（跟没跟、跳去哪）。注入的替身多半只回 2 元组，
+                    所以按长度取——**没有痕迹就老实说「未提供」，不假装跟过**。
                     """
                     remaining = max(0.0, _SUBMIT_BATCH_BUDGET_S - batch_waited)
                     t0 = time.monotonic()
                     if _POSTER_TAKES_TIMEOUT:
-                        st, tx = poster(url, key, idem_key, body,
-                                        timeout=min(_SUBMIT_CALL_TIMEOUT_S,
-                                                    remaining / _POSTER_ATTEMPTS))
+                        res = poster(url, key, idem_key, body,
+                                     timeout=min(_SUBMIT_CALL_TIMEOUT_S,
+                                                 remaining / _POSTER_ATTEMPTS))
                     else:
-                        st, tx = poster(url, key, idem_key, body)
-                    return st, tx, time.monotonic() - t0
+                        res = poster(url, key, idem_key, body)
+                    st, tx, trace = _unpack_reply(res)
+                    return st, tx, time.monotonic() - t0, trace
 
-                status, text, spent = _post(idem)
+                status, text, spent, hop_trace = _post(idem)
                 batch_waited += spent
                 # turn 被占：有界等待后重试同一张单；预算耗尽则本批停手
                 waited = 0.0
@@ -1453,7 +1691,7 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                     time.sleep(_SUBMIT_TURN_POLL_S)
                     waited += _SUBMIT_TURN_POLL_S
                     batch_waited += _SUBMIT_TURN_POLL_S
-                    status, text, spent = _post(f"{idem}-w{int(waited)}")
+                    status, text, spent, hop_trace = _post(f"{idem}-w{int(waited)}")
                     # 重试本身也是一次完整回合，计入单张等待与整批耗时
                     waited += spent
                     batch_waited += spent
@@ -1473,7 +1711,7 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
                     results.append(entry)
                     break  # 后面每张都会各自 409，继续只会白打门面
                 message = extract_message_text(text)
-                verdict = parse_submit_verdict(status, text, message)
+                verdict = parse_submit_verdict(status, text, message, trace=hop_trace)
                 ok = verdict["verdict"] in ("accepted", "duplicate")
                 entry.update({
                     "submitted": ok,
@@ -1496,6 +1734,38 @@ def submit_new_tickets(outdir: Path, repo_slug: str, url: str, key: str, config:
     return results
 
 
+# 这些异常算「通道没给出回执」：连不上、超时、TLS 断、HTTP 报文半截，
+# 以及 `_default_poster` 重试用尽时自己抛的 RuntimeError（它也是"没收到答复"）。
+# 其余异常（ValueError/TypeError/KeyError/AttributeError…）一律是**我们自己的代码**
+# 出问题——把它读成通道故障，读的人就会去查出口代理，方向完全反了。
+_NETWORK_ERROR_KINDS = frozenset({
+    "URLError", "HTTPError", "TimeoutError", "timeout", "socket.timeout",
+    "ConnectionResetError", "ConnectionError", "ConnectionRefusedError",
+    "ConnectionAbortedError", "BrokenPipeError", "OSError", "SSLError",
+    "RemoteDisconnected", "IncompleteRead", "RuntimeError",
+})
+
+
+def _status_failure_kind(row: dict) -> str:
+    """STATUS 回读的一行属于哪一档：channel（通道）/ client（我们自己的代码）。
+
+    2026-11-15 实历：`sync_status` 里 `status, text = read(...)` 撞上三元组回执，
+    每张单都抛 ValueError；旧判据「有 error 又没有 http_status ⇒ 连不上」把这批
+    读成通道整死，`delivery_lane.status` 报 `outage`、原因写「STATUS 回读连不上」。
+    一个本地异常伪装成网络故障，会把排查引向完全相反的方向。
+
+    没有 `error_kind` 的老行按通道处置（与旧行为一致，不悄悄放宽）。
+    """
+    if isinstance(row.get("http_status"), int):
+        return "channel" if row["http_status"] >= 500 else "other"
+    if not row.get("error"):
+        return "other"
+    kind = row.get("error_kind")
+    if kind is None:
+        return "channel"
+    return "channel" if str(kind) in _NETWORK_ERROR_KINDS else "client"
+
+
 def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = None) -> dict:
     """投递通道体检：**每一次**尝试都栽在服务侧错误 ⇒ 通道断了，不是工单的问题。
 
@@ -1509,25 +1779,70 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
     判据刻意保守，宁可漏判也不误判：只有「每一次尝试都是服务侧错误」才算 outage。
     只要有一张被受理、被拒（`refused`：工单内容问题）或回执看不懂，就只报
     degraded——否则一张内容有问题的单会把整条通道判死。
+
+    `status` 那一半（STATUS 回读）只收**通道级**失败：5xx 与连不上；402/409/429
+    是语义拒收，计进去会得到常年红的闸（实测历史分布见函数体）。它参与 degraded
+    与 `reasons`，但**不参与 outage**——红线的口径保持原样。
     """
     attempts = [
         r for r in (submit or [])
         if r.get("ticket") != "__batch_limit__" and r.get("http_status") is not None
     ]
     errors = [r for r in attempts if r.get("verdict") == "error"]
+    # 「回执看不懂」不能算健康（2026-11-15 实测自伤）：此前这里只收 verdict=="error"，
+    # 于是**全部 unknown 的一轮报 status=ok、accepted=0、reasons=[]**——与本文档
+    # 头写的「回执看不懂 ⇒ 只报 degraded」正好相反，而且正是最该被看见的一轮
+    # （实测 2026-11-14 那轮 8 张单有 3 张撞前置 308，verdict 全落 unknown）。
+    # 现在 unknowns 只降级到 degraded、**不进 service_errors**（那个数讲的是"服务侧
+    # 报错"，308 是前置跳转不是服务错误），也不判 outage（outage 仍要求全是 error）。
+    unknowns = [r for r in attempts if r.get("verdict") == "unknown"]
+    # STATUS 回读这一半此前是**死参数**（`status` 收进签名、函数体一次都没读过）：
+    # 2026-11-14 那轮实测 16 个 502 / 19 个 409 / 16 个 402 / 13 个 200 —— 三分之一
+    # 的回读死在通道层，而体检一个字都没提。但**不能按 `>=400` 收**：实测历史里
+    # 主体是 409 `TURN_IN_FLIGHT`（75）、402 计划耗尽（53）、429 限流（31），那些是
+    # **语义拒收**，计进去就是一道常年红的闸。通道级的只有两类：5xx，以及
+    # `_default_poster` 抛异常（连不上，行里有 `error`、没有 `http_status`）。
+    # dry_run 行（`http_status=None` 但一次请求都没发）与 `__status_budget__` 哨兵
+    # 必须排除——否则一次校准轮就会报成通道坏了。
+    status_rows = [
+        r for r in (status or [])
+        if not r.get("dry_run") and r.get("ticket") != "__status_budget__"
+    ]
+    # 「通道坏了」与「我们自己代码坏了」必须分档（2026-11-15 实历）：`sync_status`
+    # 里 `status, text = read(...)` 撞上三元组回执，**每张单**都抛 ValueError，
+    # 而旧判据「有 error 又没有 http_status ⇒ 连不上」把它整批读成通道故障，
+    # delivery_lane 直接报 `outage`、原因写「STATUS 回读连不上」。两个方向的处置
+    # 完全相反：通道坏了去查出口/门面，代码坏了回仓里看——混成一档的那天，
+    # 差一步就去查出口代理了。所以客户端异常单列，判词点名异常类。
+    status_channel = [r for r in status_rows if _status_failure_kind(r) == "channel"]
+    status_client = [r for r in status_rows if _status_failure_kind(r) == "client"]
+    status_dead = status_channel
     # 同一原因只留一条，避免七行同样的 502 把摘要冲爆
     reasons: list[str] = []
-    for r in errors:
-        why = str(r.get("verdict_reason") or "error")
+    for r in errors + unknowns:
+        why = str(r.get("verdict_reason") or r.get("verdict") or "error")
         code = r.get("http_status")
         label = f"{why} (HTTP {code})" if code is not None else why
         if label not in reasons:
             reasons.append(label)
-    if not attempts:
+    for r in status_dead:
+        code = r.get("http_status")
+        body = str(r.get("response") or "")[:80]
+        base = f"STATUS 回读失败 (HTTP {code})" if code is not None else "STATUS 回读连不上"
+        # 有回执体就带上：`HTTP 503` 与 `HTTP 503 {"error":{"code":"AGENT_NOT_FOUND"}}`
+        # 的处置方向完全不同（一个查通道、一个改路由）——2026-11-15 实历。
+        label = f"{base}: {body}" if body else base
+        if label not in reasons:
+            reasons.append(label)
+    for r in status_client:
+        label = f"STATUS 回读在自己代码里失败 ({r.get('error_kind') or 'unknown'})"
+        if label not in reasons:
+            reasons.append(label)
+    if not attempts and not status_dead and not status_client:
         verdict = "idle"            # 没东西可投 ≠ 通道坏了
-    elif len(errors) == len(attempts):
+    elif len(errors) == len(attempts) and attempts:
         verdict = "outage"
-    elif errors:
+    elif errors or unknowns or status_dead or status_client:
         verdict = "degraded"
     else:
         verdict = "ok"
@@ -1536,6 +1851,13 @@ def delivery_lane_health(submit: list[dict] | None, status: list[dict] | None = 
         "attempted": len(attempts),
         "service_errors": len(errors),
         "accepted": sum(1 for r in attempts if r.get("submitted")),
+        # 回读这一半只报事实 + 参与 degraded，**不改 outage 口径**（红线仍由 SUBMIT
+        # 全灭触发）：先把「回读通道坏了一半」变成可见，再谈它该不该判红。
+        "status_reads": len(status_rows),
+        "status_channel_errors": len(status_dead),
+        # 客户端异常单列一档：它不是通道故障的证据，红绿都不该按它判，
+        # 但**必须可见**——否则「代码坏了」会伪装成「网络坏了」继续骗三天。
+        "status_client_errors": len(status_client),
         "reasons": reasons[:3],
     }
 
@@ -1657,20 +1979,33 @@ def sync_status(outdir: Path, url: str, key: str, fetcher=None,
         else:
             read = fetcher
         try:
-            status, text = read(url, key, _status_idem_key(doc, p.name[:-5]),
-                                f"STATUS reports/health-tickets/{p.name}")
+            status, text, trace = _unpack_reply(
+                read(url, key, _status_idem_key(doc, p.name[:-5]),
+                     f"STATUS reports/health-tickets/{p.name}"))
         except Exception as e:  # noqa: BLE001 — 回读失败留痕不炸
             ticket_mod.append_event(doc, "status-failed", error=str(e)[:300])
             p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
-            results.append({"ticket": p.name, "state": None, "error": str(e)[:200]})
+            # error_kind 让体检分得出「通道坏了」与「我们自己代码坏了」——
+            # 见 `_status_failure_kind`：两个方向的处置相反。
+            results.append({"ticket": p.name, "state": None, "error": str(e)[:200],
+                            "error_kind": type(e).__name__})
             continue
         parsed = parse_status(extract_message_text(text))
+        # 痕迹只在真发生过跳转时才落账：每张单都写一份空 trace 会把生命周期刷成噪音。
+        extra = {"trace": trace} if trace.get("followed") or trace.get("location") else {}
+        # 4xx/5xx 的**回执体**是判因的唯一线索（2026-11-15 实历）：STATUS 面 8 次全 503，
+        # 而只看状态码时「目标 agent 路由不存在」与「通道坏了」长得一模一样——真相是
+        # connector-identity 那次滚版把 slug 派生改了，老 slug `packs-…-spider-heal`
+        # 在 `/api/wanxing/v1/agents`（18 个）里根本没有，而巡检只写了「HTTP 503」。
+        # 判词带不上当事的事实值，读的人就会朝错的层修（同族：308 不印 Location）。
+        if isinstance(status, int) and status >= 400:
+            extra["response"] = _excerpt(text)
         ticket_mod.append_event(doc, "status", http_status=status, state=parsed["state"],
-                                note=parsed["note"], pr_url=parsed["pr_url"])
+                                note=parsed["note"], pr_url=parsed["pr_url"], **extra)
         if parsed["state"] in TERMINAL_MAP:
             # STATUS 回读的 "merged" 对应人工合并，故走人工路径（closed 是人工门）。
             ticket_mod.set_terminal(doc, TERMINAL_MAP[parsed["state"]], note=parsed["note"],
                                     human=(parsed["state"] == "merged"))
         p.write_text(ticket_mod.dump_ticket(doc), encoding="utf-8")
-        results.append({"ticket": p.name, "http_status": status, **parsed})
+        results.append({"ticket": p.name, "http_status": status, **parsed, **extra})
     return results

@@ -109,3 +109,75 @@ class TestCliExitCode:
         rows = [_row(f"t{i}.yaml", verdict="error") for i in range(3)]
         assert self._run(tmp_path, monkeypatch, rows, dry_run=True) == 0, \
             "干跑不投递，不该因为通道体检把校准轮判红"
+
+
+def test_lane_unknown_receipts_are_degraded_not_ok():
+    """全部回执看不懂（如 8/8 撞前置 308）不许报 ok —— 那是「一张都没投进去」。
+
+    2026-11-15 实测自伤：`delivery_lane_health` 只把 verdict=="error" 计进 errors，
+    于是全 unknown 的一轮返回 status=ok、accepted=0、reasons=[]，与本文档头承诺的
+    「回执看不懂 ⇒ 只报 degraded」相反；而 2026-11-14 那轮 8 张单恰好有 3 张撞
+    Tengine 的 308（verdict 全落 unknown）。降级到 degraded、但**不**进
+    service_errors（那个数讲的是服务侧报错）、也不判 outage（outage 仍要求全 error）。
+    """
+    all_unknown = [{"ticket": f"t{i}", "http_status": 308, "verdict": "unknown",
+                    "submitted": False, "verdict_reason": "HTTP 308 跳转未落到 API"}
+                   for i in range(3)]
+    lane = ins.delivery_lane_health(all_unknown)
+    assert lane["status"] == "degraded", lane
+    assert lane["service_errors"] == 0, lane
+    assert lane["accepted"] == 0, lane
+    assert lane["reasons"] and "308" in lane["reasons"][0], lane
+
+    mixed = [{"ticket": "a", "http_status": 200, "verdict": "accepted", "submitted": True,
+              "verdict_reason": ""},
+             {"ticket": "b", "http_status": 308, "verdict": "unknown", "submitted": False,
+              "verdict_reason": "HTTP 308 跳转"}]
+    assert ins.delivery_lane_health(mixed)["status"] == "degraded"
+
+    # 反向：全 error 仍是 outage，空跑仍是 idle —— 不许把这两档一起挪走
+    all_err = [{"ticket": "x", "http_status": 502, "verdict": "error", "submitted": False,
+                "verdict_reason": "HTTP 502"}] * 2
+    assert ins.delivery_lane_health(all_err)["status"] == "outage"
+    assert ins.delivery_lane_health([])["status"] == "idle"
+
+
+def test_status_reads_reach_the_lane_but_only_channel_level_failures_count():
+    """STATUS 回读这一半此前是**死参数**：`status` 收进签名，函数体一次都没读过。
+
+    2026-11-14 那轮实测：13×200 / 16×402 / 19×409 / 16×502 —— 三分之一回读死在
+    通道层，而体检一个字都没提。但**不能按 `>=400` 收**：历史分布主体是语义拒收
+    （409 TURN_IN_FLIGHT 75 次、402 计划耗尽 53 次、429 限流 31 次），收进去就是
+    一道常年红的闸。通道级只有 5xx 与「连不上」（异常行有 error、无 http_status）。
+    """
+    # ① 回读全是 502、没有 SUBMIT ⇒ 是 degraded，不是 idle（「没东西可投」不成立）
+    dead = [{"ticket": f"t{i}", "http_status": 502, "state": None} for i in range(3)]
+    lane = ins.delivery_lane_health([], dead)
+    assert lane["status"] == "degraded", lane
+    assert lane["status_reads"] == 3 and lane["status_channel_errors"] == 3, lane
+    assert any("STATUS" in r and "502" in r for r in lane["reasons"]), lane
+
+    # ② 语义拒收不许降级（这一臂防的就是「按 >=400 收」那种写法）
+    semantic = [{"ticket": "a", "http_status": 409, "state": None},
+                {"ticket": "b", "http_status": 402, "state": None},
+                {"ticket": "c", "http_status": 429, "state": None},
+                {"ticket": "d", "http_status": 200, "state": "queued"}]
+    assert ins.delivery_lane_health([], semantic)["status"] == "idle", ins.delivery_lane_health([], semantic)
+    ok_submit = [{"ticket": "s", "http_status": 200, "verdict": "accepted", "submitted": True}]
+    assert ins.delivery_lane_health(ok_submit, semantic)["status"] == "ok"
+
+    # ③ 连不上（异常行：有 error、无 http_status）算通道级
+    conn = [{"ticket": "x", "state": None, "error": "URLError: [Errno 111] refused"}]
+    lane = ins.delivery_lane_health([], conn)
+    assert lane["status"] == "degraded" and lane["status_channel_errors"] == 1, lane
+
+    # ④ dry_run 行与预算哨兵必须排除 —— 否则一次校准轮就报「通道坏了」
+    dry = [{"ticket": "d", "state": None, "http_status": None, "dry_run": True}]
+    sentinel = [{"ticket": "__status_budget__", "state": None,
+                 "error": "本批已达 STATUS 时间预算（120s）"}]
+    assert ins.delivery_lane_health([], dry)["status"] == "idle", "干跑行不许算通道错误"
+    assert ins.delivery_lane_health([], sentinel)["status"] == "idle", "预算哨兵不是失败"
+
+    # ⑤ outage 口径不变：SUBMIT 全灭仍是 outage，回读的 5xx 不改变它
+    all_err = [{"ticket": "x", "http_status": 502, "verdict": "error", "submitted": False}] * 2
+    assert ins.delivery_lane_health(all_err, dead)["status"] == "outage"

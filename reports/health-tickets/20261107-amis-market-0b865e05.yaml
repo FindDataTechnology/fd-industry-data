@@ -165,4 +165,90 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-14T11:59:42.304023+00:00'
+  event: status
+  http_status: 402
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T13:13:54.631687+00:00'
+  event: status
+  http_status: 402
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T14:14:33.000382+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T19:18:03.093922+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T06:38:28.695366+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T07:30:36.017279+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T08:43:19.792804+00:00'
+  event: status-failed
+  error: too many values to unpack (expected 2)
+- at: '2026-11-15T12:46:22.620846+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+  trace:
+    followed: true
+    hops: 1
+    location: https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal
+    cookies: 0
+    final_url: https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal
+    not_followed: out-of-attempts
+- at: '2026-11-16T00:05:46.453061+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
+    plane is unreachable right now; retry shortly"}}'
+- at: '2026-11-16T08:54:49.848066+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"TURN_IN_FLIGHT","message":"a turn for this caller and
+    agent is already running; retry after the hint"}}'
+- at: '2026-11-16T19:09:49.590676+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-16T22:49:20.409373+00:00'
+  event: status
+  http_status: 200
+  state: pr-open
+  note: ''
+  pr_url: https://amis-9189b.appspot.com/fetch`
+- at: '2026-11-18T02:18:33.463150+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null

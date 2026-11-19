@@ -80,5 +80,107 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
-terminal: null
+- at: '2026-11-14T11:59:27.456543+00:00'
+  event: submitted
+  http_status: 402
+  ok: false
+  verdict: error
+  response: '{"code": "PLAN_EXHAUSTED", "message": "the caller''s serving plan has
+    no minutes left — ask the operator to adjust the plan"}'
+- at: '2026-11-14T11:59:49.501732+00:00'
+  event: status
+  http_status: 402
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T13:13:31.361737+00:00'
+  event: submitted
+  http_status: 402
+  ok: false
+  verdict: error
+  response: '{"code": "PLAN_EXHAUSTED", "message": "the caller''s serving plan has
+    no minutes left — ask the operator to adjust the plan"}'
+- at: '2026-11-14T13:14:04.562593+00:00'
+  event: status
+  http_status: 402
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T13:57:11.562187+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-14T14:16:50.610060+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T23:22:05.402876+00:00'
+  event: submitted
+  http_status: 308
+  ok: false
+  verdict: unknown
+  response: "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n<html>\r\n<head><title>308\
+    \ Permanent Redirect</title></head>\r\n<body>\r\n<center><h1>308 Permanent Redirect</h1></center>\r\
+    \n<hr><center>tengine</center>\r\n</body>\r\n</html>"
+- at: '2026-11-14T23:24:00.770811+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T06:29:23.258535+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T06:38:39.192150+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T07:21:38.098333+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T07:30:47.425710+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T08:20:53.781269+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T11:24:11.262635+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T11:44:50.744788+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T12:18:55.772624+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T14:54:52.286774+00:00'
+  event: terminal
+  terminal: recovered
+  previous: null
+  note: 连续 3 次成功（阈值 3，自 2026-11-13T00:19:47.419531+00:00 起算）
+terminal: recovered
 evidence_signature: 98c4b7d37a4c

@@ -188,6 +188,200 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-14T11:59:17.565587+00:00'
+  event: submitted
+  http_status: 402
+  ok: false
+  verdict: error
+  response: '{"code": "PLAN_EXHAUSTED", "message": "the caller''s serving plan has
+    no minutes left — ask the operator to adjust the plan"}'
+- at: '2026-11-14T11:59:55.679970+00:00'
+  event: status
+  http_status: 402
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T13:13:20.404129+00:00'
+  event: submitted
+  http_status: 402
+  ok: false
+  verdict: error
+  response: '{"code": "PLAN_EXHAUSTED", "message": "the caller''s serving plan has
+    no minutes left — ask the operator to adjust the plan"}'
+- at: '2026-11-14T13:14:11.017303+00:00'
+  event: status
+  http_status: 402
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T13:46:57.696580+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-14T19:15:51.147389+00:00'
+  event: submitted
+  http_status: 308
+  ok: false
+  verdict: unknown
+  response: "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n<html>\r\n<head><title>308\
+    \ Permanent Redirect</title></head>\r\n<body>\r\n<center><h1>308 Permanent Redirect</h1></center>\r\
+    \n<hr><center>tengine</center>\r\n</body>\r\n</html>"
+- at: '2026-11-14T19:17:53.681698+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T23:06:31.073278+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-14T23:24:04.369271+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T06:28:40.562804+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-15T06:38:45.194164+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T07:10:27.874646+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-15T07:30:52.065846+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T08:20:39.769658+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-15T11:24:05.264396+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-15T11:51:51.641504+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T12:18:49.577665+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-15T15:00:08.069312+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-15T15:01:03.611764+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T23:32:15.372365+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-16T00:05:53.773093+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
+    plane is unreachable right now; retry shortly"}}'
+- at: '2026-11-16T06:01:47.369007+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-16T08:16:57.472994+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-16T08:54:57.912864+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"TURN_IN_FLIGHT","message":"a turn for this caller and
+    agent is already running; retry after the hint"}}'
+- at: '2026-11-16T12:14:07.686750+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-16T15:22:38.976206+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-16T19:08:32.777376+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-16T19:10:01.631357+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-16T20:36:55.169372+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-16T22:21:37.769385+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-17T02:40:27.669281+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-17T02:43:45.049253+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-17T13:15:51.769807+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-18T01:48:45.583335+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
 terminal: null
 brief:
   source_urls:

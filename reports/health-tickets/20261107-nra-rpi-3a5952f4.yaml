@@ -131,6 +131,77 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-14T13:13:47.366940+00:00'
+  event: status
+  http_status: 402
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T14:09:15.829443+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T19:17:59.494259+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T23:24:09.760499+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T07:30:31.640851+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T08:36:37.826254+00:00'
+  event: status-failed
+  error: too many values to unpack (expected 2)
+- at: '2026-11-15T12:39:01.029617+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T15:01:44.607487+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-16T06:25:35.861685+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
+    plane is unreachable right now; retry shortly"}}'
+- at: '2026-11-16T16:06:21.115263+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-16T21:02:15.808839+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-17T13:37:45.968451+00:00'
+  event: status
+  http_status: 200
+  state: pr-open
+  note: ''
+  pr_url: https://github.com/FindDataTechnology/fd-industry-data/pull/70)（gen/nra-rpi
 terminal: null
 brief:
   source_urls:

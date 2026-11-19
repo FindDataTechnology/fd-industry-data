@@ -87,5 +87,203 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-14T11:59:25.034709+00:00'
+  event: submitted
+  http_status: 402
+  ok: false
+  verdict: error
+  response: '{"code": "PLAN_EXHAUSTED", "message": "the caller''s serving plan has
+    no minutes left — ask the operator to adjust the plan"}'
+- at: '2026-11-14T11:59:47.192732+00:00'
+  event: status
+  http_status: 402
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T13:13:28.044718+00:00'
+  event: submitted
+  http_status: 402
+  ok: false
+  verdict: error
+  response: '{"code": "PLAN_EXHAUSTED", "message": "the caller''s serving plan has
+    no minutes left — ask the operator to adjust the plan"}'
+- at: '2026-11-14T13:14:01.825841+00:00'
+  event: status
+  http_status: 402
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T13:52:07.466018+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-14T14:15:39.193538+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-14T19:17:42.936011+00:00'
+  event: submit-deferred
+  reason: turn in flight (409)
+  waited_s: 103
+- at: '2026-11-14T23:14:05.051015+00:00'
+  event: submitted
+  http_status: 308
+  ok: false
+  verdict: unknown
+  response: "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n<html>\r\n<head><title>308\
+    \ Permanent Redirect</title></head>\r\n<body>\r\n<center><h1>308 Permanent Redirect</h1></center>\r\
+    \n<hr><center>tengine</center>\r\n</body>\r\n</html>"
+- at: '2026-11-14T23:23:58.758091+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T06:29:08.800769+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T06:38:35.780790+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T07:18:41.470274+00:00'
+  event: submitted
+  http_status: 308
+  ok: false
+  verdict: unknown
+  response: "<!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n<html>\r\n<head><title>308\
+    \ Permanent Redirect</title></head>\r\n<body>\r\n<center><h1>308 Permanent Redirect</h1></center>\r\
+    \n<hr><center>tengine</center>\r\n</body>\r\n</html>"
+- at: '2026-11-15T07:30:43.394844+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T08:20:53.596307+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T11:24:10.976938+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T11:41:18.603206+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T12:18:55.474664+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T15:00:14.075402+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-15T15:00:42.012206+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-15T23:32:21.267938+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T00:05:50.076896+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
+    plane is unreachable right now; retry shortly"}}'
+- at: '2026-11-16T06:01:53.171730+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T08:17:03.381522+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T08:54:53.521820+00:00'
+  event: status
+  http_status: 409
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"TURN_IN_FLIGHT","message":"a turn for this caller and
+    agent is already running; retry after the hint"}}'
+- at: '2026-11-16T12:14:13.576941+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T15:22:44.876256+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T19:08:38.774643+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T19:09:55.558947+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-16T20:37:01.160928+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-16T22:21:43.672610+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-17T02:40:33.682428+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-17T02:43:39.686304+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
+- at: '2026-11-17T13:15:57.772061+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-18T01:48:51.576727+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
 terminal: null
 evidence_signature: d5ab5a94aea5

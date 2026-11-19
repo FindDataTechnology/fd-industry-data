@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pathlib
 import sys
+import urllib.error
 
 import pytest
 
@@ -177,7 +178,7 @@ def test_poster_retries_connection_errors(monkeypatch):
 
     monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
     try:
-        status, text = ins._default_poster("http://x", "k", "idem-1", "SUBMIT x y")
+        status, text, _t = ins._default_poster("http://x", "k", "idem-1", "SUBMIT x y")
     finally:
         monkeypatch.setattr(ins.urllib.request, "urlopen", real_urlopen)
     assert status == 200
@@ -198,7 +199,7 @@ def test_poster_does_not_retry_http_error(monkeypatch):
                                      io.BytesIO(b'{"code":"TURN_IN_FLIGHT"}'))
 
     monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
-    status, text = ins._default_poster("http://x", "k", "idem-2", "SUBMIT x y")
+    status, text, _t = ins._default_poster("http://x", "k", "idem-2", "SUBMIT x y")
     assert status == 409
     assert "TURN_IN_FLIGHT" in text
     assert len(calls) == 1, "HTTPError 不得重试"
@@ -423,3 +424,587 @@ def test_dry_run_still_prioritises_oldest_unread(tmp_path):
     res = ins.sync_status(d, "http://x", "k", max_reads=2, dry_run=True)
     names = [r["ticket"] for r in res]
     assert "20261110-t-c.yaml" not in names, f"最久未读优先应排除刚读过的 t-c，实际 {names}"
+
+
+def test_jsonrpc_error_receipts_cap_retirement(tmp_path, cfg, monkeypatch):
+    """agent 真跑过回合并以 JSON-RPC 错误收场的投递计满上限 → 停手转人工。
+
+    实测（2026-11-15）：20261107-fred-cpi-ba279d6a 被 -32032/-32002 反复收走，
+    每轮占住唯一槽位跑满整个回合预算（末次 600s 超时），同轮 8 张全 409 deferred、
+    accepted=0 —— 一张永远处理不完的单饿死整条线。错误类此前无上限（try20）。
+    """
+    monkeypatch.setattr(ins, "_SUBMIT_TURN_FAIL_MAX", 2)
+    d = _mk(tmp_path, slugs=("t-cap", "t-other"))
+    name = "20261110-t-cap.yaml"
+    doc = tm.load_ticket(d / name)
+    for code in (-32032, -32002):
+        tm.append_event(doc, "submitted", http_status=200, ok=False, verdict="error",
+                        response=f'{{"code": {code}, "message": "x"}}')
+    (d / name).write_text(tm.dump_ticket(doc), encoding="utf-8")
+
+    calls: list[str] = []
+
+    def poster(url, key, idem, body):
+        calls.append(idem)
+        return 200, "已入队"
+
+    res = ins.submit_new_tickets(d, "org/repo", "http://x", "k", cfg, poster=poster)
+    capped = [r for r in res if r.get("ticket") == name]
+    assert capped and capped[0]["verdict"] == "exhausted", capped
+    assert "上限 2" in capped[0]["verdict_reason"], capped[0]["verdict_reason"]
+    assert calls == ["20261110-t-other-try1"], (
+        f"耗尽的工单不得再打门面，其余工单照常投；实际 calls={calls}"
+    )
+    doc2 = tm.load_ticket(d / name)
+    kinds = [e.get("event") for e in doc2["lifecycle"]]
+    assert "submit-exhausted" in kinds, kinds
+    assert kinds.count("submitted") == 2, "停手不得再追加 submitted 事件"
+
+
+def test_deferred_and_transport_failures_do_not_count_toward_cap(tmp_path, cfg):
+    """409 deferred / HTTP 402 / 空响应 这些「回合没开始」的形态不计入上限。
+
+    方向二：把通道故障误记成工单罪过，会提前退役其实有救的单——上限只数
+    JSON-RPC 错误回执（-32xxx），其余 submitted(ok=false) 不计数。
+    """
+    d = _mk(tmp_path, slugs=("t-only",))
+    name = "20261110-t-only.yaml"
+    doc = tm.load_ticket(d / name)
+    shapes = [
+        {"http_status": 200, "ok": False, "verdict": "error", "response": "PLAN_EXHAUSTED text"},
+        {"http_status": 502, "ok": False, "verdict": "error", "response": "<html>502</html>"},
+        {"http_status": 409, "ok": False, "verdict": "deferred", "response": "turn in flight"},
+        {"http_status": 200, "ok": False, "verdict": "unknown", "response": '{"code": "X"}'},
+    ]
+    for e in shapes:
+        tm.append_event(doc, "submitted", **e)
+    (d / name).write_text(tm.dump_ticket(doc), encoding="utf-8")
+
+    def poster(url, key, idem, body):
+        return 200, "已入队"
+
+    res = ins.submit_new_tickets(d, "org/repo", "http://x", "k", cfg, poster=poster)
+    assert res[0]["verdict"] in ("accepted", "duplicate"), res[0]
+    assert res[0]["attempt"] == 5, "非 JSON-RPC 错误回执不计入上限，照常递增重投"
+
+
+def test_relayed_upstream_errors_count_toward_cap(tmp_path, cfg, monkeypatch):
+    """-32003 是「上游错误原文中继」（实测含 502 与 429 rate_limit_error）⇒ **计入**上限。
+
+    这条边界刻意放在另一侧，也很容易读错：面层的 409/402/裸 502 不计（见上一条用例），
+    但**包成 JSON-RPC 错误的同一件事会计**——那一次回合确实被受理过、由上游收场。
+    选这一侧的理由：少计＝一张真卡的单把整条线饿死；多计＝被限流挡住的单在 6 轮后
+    判 exhausted 转人工，而判词里写着次数与末次原文，人一眼能看出是限流。
+    **要翻转这条，必须同时改 `inspector.py` 里那段注释**——别只把 `-32\\d{3}` 放宽成
+    白名单，那会把 `-32032 fetch failed`（传输层）一起放走。
+    """
+    monkeypatch.setattr(ins, "_SUBMIT_TURN_FAIL_MAX", 2)
+    d = _mk(tmp_path, slugs=("t-relay",))
+    name = "20261110-t-relay.yaml"
+    doc = tm.load_ticket(d / name)
+    for msg in ('502: {"message":"Upstream service temporarily unavailable"}',
+                "429 Upstream account queue full (rate_limit_error)"):
+        tm.append_event(doc, "submitted", http_status=200, ok=False, verdict="error",
+                        response='{"code": -32003, "message": "%s"}' % msg.replace('"', "'"))
+    (d / name).write_text(tm.dump_ticket(doc), encoding="utf-8")
+
+    calls: list[str] = []
+
+    def poster(url, key, idem, body):
+        calls.append(idem)
+        return 200, "已入队"
+
+    res = ins.submit_new_tickets(d, "org/repo", "http://x", "k", cfg, poster=poster)
+    capped = [r for r in res if r.get("ticket") == name]
+    assert capped and capped[0]["verdict"] == "exhausted", capped
+    assert calls == [], f"被判耗尽后不得再打门面；实际 calls={calls}"
+
+
+def test_poster_follows_one_same_host_redirect(tmp_path, monkeypatch):
+    """POST 撞上前置的 308 时自己跟一跳（CPython 不跟 POST 的 307/308）。
+
+    实测（2026-11-14）：一轮 8 次 SUBMIT 有 3 次拿到 Tengine 的 308 HTML 页
+    （19:15:51Z / 23:14:05Z / 23:22:05Z），urllib 对 POST+308 直接抛 HTTPError，
+    于是那几次投递既没到 API、也没被记成任何一类失败（verdict=unknown，reason 空）。
+    这里用假 urlopen 复刻四段：① 308+Location 同主机同协议 → 跟过去拿到 200；
+    ② 308+跨主机 Location → **不跟**（不能把 Bearer 送给别的主机）；
+    ③ 308 无 Location → 原样返回 308，不无限跳；
+    ④ 同主机但 https→http → **不跟**（协议降级＝凭据明文出门）。
+    """
+    calls: list[str] = []
+
+    class _Resp:
+        status = 200
+
+        def read(self, _n=None):
+            return b'{"result": {"ok": true}}'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout=None):
+        calls.append(req.full_url)
+        if len(calls) == 1:
+            hdrs = {"Location": "/api/wanxing/v1/a2a/other"}
+            raise urllib.error.HTTPError(req.full_url, 308, "Permanent Redirect", hdrs, None)
+        return _Resp()
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
+    st, tx, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem1", "body")
+    assert st == 200, (st, tx)
+    assert calls == ["https://wanxing.example/api/wanxing/v1/a2a/x",
+                     "https://wanxing.example/api/wanxing/v1/a2a/other"], calls
+
+    # ② 跨主机：不跟，凭据不出门
+    calls.clear()
+
+    def cross_host(req, timeout=None):
+        calls.append(req.full_url)
+        raise urllib.error.HTTPError(req.full_url, 308, "Permanent Redirect",
+                                     {"Location": "https://evil.example/x"}, None)
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", cross_host)
+    st, _, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem2", "body")
+    assert st == 308, st
+    assert len(calls) == 1, f"跨主机不得跟随，实际打了 {calls}"
+
+    # ③ 无 Location：原样返回
+    calls.clear()
+
+    def no_loc(req, timeout=None):
+        calls.append(req.full_url)
+        raise urllib.error.HTTPError(req.full_url, 308, "Permanent Redirect", {}, None)
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", no_loc)
+    st, _, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem3", "body")
+    assert st == 308 and len(calls) == 1, (st, calls)
+
+    # ④ 同主机但**降级协议**（https → http）：主机名相等也不许跟——跟过去等于把
+    #    `Authorization: Bearer …` 明文发上线。这条只有断言协议才抓得到：只比
+    #    hostname 的实现会在这里跟过去，而其它三条臂全绿。
+    calls.clear()
+
+    def downgrade(req, timeout=None):
+        calls.append(req.full_url)
+        raise urllib.error.HTTPError(req.full_url, 308, "Permanent Redirect",
+                                     {"Location": "http://wanxing.example/api/wanxing/v1/a2a/x"}, None)
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", downgrade)
+    st, _, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x", "k", "idem4", "body")
+    assert st == 308, st
+    assert len(calls) == 1, f"跨协议不得跟随（会把 Bearer 明文发出），实际打了 {calls}"
+
+
+def test_redirect_verdict_names_the_hop_not_silence():
+    """3xx 的裁决必须是 `unknown` + **写明跳转**，不能是空 reason。
+
+    之前 `status < 400` 落到 else 分支、HTML 解析失败 ⇒ verdict=unknown、reason=""，
+    摘要里读不出「投递根本没到 API」与「agent 回了看不懂的话」的区别。
+    """
+    html = ('<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">\r\n<html>\r\n'
+            '<head><title>308 Permanent Redirect</title></head>\r\n<body>\r\n'
+            '<center><h1>308 Permanent Redirect</h1></center>\r\n<hr><center>tengine</center>\r\n'
+            '</body>\r\n</html>')
+    v = ins.parse_submit_verdict(308, html, "")
+    assert v["verdict"] == "unknown", v
+    assert "308" in v["reason"] and "跳转" in v["reason"], v["reason"]
+
+
+def test_redirect_verdict_says_not_followed_when_no_location():
+    """没带 Location 的 3xx 判词必须说「没跟」，不许说「已跟一跳仍如此」。
+
+    旧判词是固定串：「`_default_poster` 已按同主机跟一跳仍如此」。而没 Location
+    时我们根本没跟——那句话把读判词的人引去查 WAF，真相是「这 308 指向哪都不知道」。
+    """
+    v = ins.parse_submit_verdict(308, "308 Permanent Redirect", "",
+                                 trace={"followed": False, "not_followed": "no-location"})
+    assert "没带 Location" in v["reason"], v["reason"]
+    assert "已按同主机跟" not in v["reason"], v["reason"]
+
+
+def test_redirect_verdict_names_cross_host_location_it_refused_to_follow():
+    """跨主机的 Location 判词要点名目标主机，并说明「带 Bearer 不跟」。"""
+    v = ins.parse_submit_verdict(
+        308, "308", "",
+        trace={"followed": False, "not_followed": "cross-host-or-scheme",
+               "location": "https://elsewhere.example/api/x?a=1"})
+    assert "elsewhere.example" in v["reason"], v["reason"]
+    assert "跨主机" in v["reason"] and "Bearer" in v["reason"], v["reason"]
+    assert "?a=1" not in v["reason"], "query 不该进判词（可能带 token）"
+
+
+def test_redirect_verdict_counts_the_hop_and_cookies_when_it_did_follow():
+    """真跟过才说「已跟」：判词要带跳数、cookie 数与最终 URL。"""
+    v = ins.parse_submit_verdict(
+        308, "308", "",
+        trace={"followed": True, "hops": 1, "cookies": 1,
+               "final_url": "https://h.example/api/other?t=secret"})
+    assert "跟 1 跳" in v["reason"] and "cookie 1 个" in v["reason"], v["reason"]
+    assert "https://h.example/api/other" in v["reason"], v["reason"]
+    assert "secret" not in v["reason"], "query 里的凭据不该落进工单"
+
+
+def test_redirect_verdict_without_trace_says_so_instead_of_claiming_a_hop():
+    """注入的 poster 只回 2 元组时，判词说「未提供痕迹」，不冒充跟过。"""
+    v = ins.parse_submit_verdict(308, "308", "", trace={})
+    assert "未提供跳转痕迹" in v["reason"], v["reason"]
+
+
+def test_poster_retry_hop_reports_trace_of_what_really_happened(monkeypatch):
+    """跟跳成立的调用要把 followed/hops/cookies/final_url 如实带出来。"""
+    class _Resp:
+        status = 200
+
+        def read(self, _n=None):
+            return b'{"result": {}}'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    calls = []
+
+    def fake_urlopen(req, timeout=None):
+        calls.append(req.full_url)
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(
+                req.full_url, 308, "Permanent Redirect",
+                {"Location": "/api/v2/x",
+                 "Set-Cookie": "sl-session=zz; Path=/; HttpOnly"}, None)
+        return _Resp()
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
+    st, _tx, trace = ins._default_poster("https://h.example/api/v1/x", "k", "i1", "b")
+    assert st == 200
+    assert trace["followed"] is True and trace["hops"] == 1, trace
+    assert trace["cookies"] == 1, trace
+    assert trace["final_url"] == "https://h.example/api/v2/x", trace
+    assert trace["not_followed"] is None, trace
+
+
+def test_poster_carries_waf_challenge_cookie_on_the_follow_hop(monkeypatch):
+    """WAF 的 308 是「发 Set-Cookie、让你带 cookie 再来」的挑战。
+
+    2026-11-15 验收轮真跑实证：跟跳带了 Location 仍拿回同一页 308（reason
+    「已按同主机跟一跳仍如此」）——旧跟跳只带原 headers，挑战 cookie 被丢掉。
+    本用例复刻雷池的形状：第一跳 308 + `Set-Cookie: sl-session=…`，第二跳
+    **只有**带 `Cookie` 才放行（不带就还是 308）。cookie 只在本次调用内存活，
+    不跨调用、不跨工单。
+    """
+    calls: list[tuple[str, str | None]] = []
+
+    class _Resp:
+        status = 200
+
+        def read(self, _n=None):
+            return b'{"result": {"ok": true}}'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def fake_urlopen(req, timeout=None):
+        calls.append((req.full_url, req.get_header("Cookie")))
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(
+                req.full_url, 308, "Permanent Redirect",
+                {"Location": "/api/wanxing/v1/a2a/other",
+                 "Set-Cookie": "sl-session=abc123; Path=/; HttpOnly"}, None)
+        if req.get_header("Cookie") != "sl-session=abc123":
+            # 不带 cookie 就还是同一道门——这正是「跟一跳仍如此」的成因
+            raise urllib.error.HTTPError(
+                req.full_url, 308, "Permanent Redirect",
+                {"Location": "/api/wanxing/v1/a2a/other"}, None)
+        return _Resp()
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", fake_urlopen)
+    st, tx, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x",
+                                 "k", "idem-cookie", "body")
+    assert st == 200, (st, tx)
+    assert calls[1][0] == "https://wanxing.example/api/wanxing/v1/a2a/other"
+    assert calls[1][1] == "sl-session=abc123", calls[1]
+    # 无 Set-Cookie 的普通 308（既有 ①③④ 臂）不受影响：不产生 Cookie 头
+    calls.clear()
+
+    def plain_308(req, timeout=None):
+        calls.append((req.full_url, req.get_header("Cookie")))
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(req.full_url, 308, "Permanent Redirect",
+                                         {"Location": "/api/wanxing/v1/a2a/other"}, None)
+        return _Resp()
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", plain_308)
+    st, _, _t = ins._default_poster("https://wanxing.example/api/wanxing/v1/a2a/x",
+                                "k", "idem-nocookie", "body")
+    assert st == 200 and calls[1][1] is None, (st, calls)
+
+
+# ── STATUS 面：回执形状变了，调用方必须跟上（2026-11-15 线上回归） ────────────
+#
+# 实历：`_default_poster` 为带跳转痕迹改成回三元组，`sync_status` 里仍是
+# `status, text = read(...)` ⇒ 每张单在 STATUS 面炸
+# `ValueError: too many values to unpack (expected 2)`，验收轮 43693266748 的
+# 判词里只剩这一行。**它躲过了全部自证**——注入的 fetcher 全都只回二元组，
+# 测试走的从来不是默认 poster 那条路（同族：夹具绕过的那条路径等于没验）。
+
+def test_status_lane_survives_the_three_tuple_default_poster(tmp_path, monkeypatch):
+    """不注入 fetcher 时才走 `_default_poster`——这是线上真正跑的那条路。"""
+    d = _mk(tmp_path, slugs=("t-a",))
+    seen: list[str] = []
+
+    def poster(url, key, idem, body, timeout=900):
+        seen.append(body)
+        return 200, '{"state": "working"}', {"followed": False, "hops": 0, "cookies": 0}
+
+    monkeypatch.setattr(ins, "_default_poster", poster)
+    res = ins.sync_status(d, "http://x", "k", max_reads=1, budget_s=100.0)
+    assert seen == ["STATUS reports/health-tickets/20261110-t-a.yaml"]
+    assert res[0].get("error") is None, f"STATUS 面不该报错：{res[0]}"
+    assert res[0]["http_status"] == 200 and res[0]["state"] == "working", res[0]
+
+
+def test_status_lane_keeps_working_with_two_tuple_fetchers(tmp_path):
+    """注入的替身回二元组也照样能跑：不逼所有假实现跟着升级。"""
+    d = _mk(tmp_path, slugs=("t-a",))
+
+    def fetcher(url, key, idem, body):
+        return 200, '{"state": "working"}'
+
+    res = ins.sync_status(d, "http://x", "k", fetcher=fetcher, max_reads=1)
+    assert res[0]["state"] == "working" and res[0].get("error") is None, res[0]
+    # 没有痕迹就不落空 trace（每张单一份空 trace 会把生命周期刷成噪音）
+    assert "trace" not in res[0], res[0]
+
+
+def test_status_lane_records_the_location_when_it_had_to_hop(tmp_path, monkeypatch):
+    """STATUS 面同样要留跳转痕迹：3xx 时判词得说得出跳到哪。"""
+    d = _mk(tmp_path, slugs=("t-a",))
+
+    def poster(url, key, idem, body, timeout=900):
+        return 308, "", {"followed": True, "hops": 1, "location": "/api/wanxing/v1/a2a/af",
+                         "cookies": 0, "final_url": "https://x/api/wanxing/v1/a2a/af",
+                         "not_followed": None}
+
+    monkeypatch.setattr(ins, "_default_poster", poster)
+    res = ins.sync_status(d, "http://x", "k", max_reads=1, budget_s=100.0)
+    assert res[0]["http_status"] == 308, res[0]
+    assert res[0]["trace"]["location"] == "/api/wanxing/v1/a2a/af", res[0]
+
+
+def test_unpack_reply_tolerates_short_and_odd_replies():
+    """宽度按实际长度取；第三位不是 dict 时当作「没有痕迹」而不是崩掉。"""
+    assert ins._unpack_reply((200, "ok")) == (200, "ok", {})
+    assert ins._unpack_reply((302, "moved", {"location": "/a"}))[2]["location"] == "/a"
+    assert ins._unpack_reply((302, "moved", "not-a-dict"))[2] == {}
+    assert ins._unpack_reply(()) == (None, "", {})
+
+
+# ── 体检要分得清「通道坏了」与「我们自己代码坏了」 ────────────────────────────
+#
+# 2026-11-15 实历第二轮伤害：STATUS 面撞 ValueError 之后，旧的
+# `delivery_lane_health` 判据是「有 error 且没有 http_status ⇒ 连不上」，
+# 于是本地异常被报成 `status: "outage"`、原因写「STATUS 回读连不上」。
+# 两个方向的处置完全相反（一个查出口/门面，一个回仓里看代码），
+# 混成一档迟早把人引错方向。
+
+def test_client_side_status_error_is_not_reported_as_a_channel_outage():
+    lane = ins.delivery_lane_health(
+        submit=[],
+        status=[{"ticket": "t.yaml", "state": None,
+                 "error": "too many values to unpack (expected 2)",
+                 "error_kind": "ValueError"}] * 5,
+    )
+    assert lane["status_channel_errors"] == 0, lane
+    assert lane["status_client_errors"] == 5, lane
+    assert any("自己代码里失败" in r and "ValueError" in r for r in lane["reasons"]), lane
+    assert not any("连不上" in r for r in lane["reasons"]), lane
+    assert lane["status"] == "degraded", f"代码坏不该判通道 outage：{lane}"
+
+
+def test_real_network_status_error_still_reads_as_channel_failure():
+    lane = ins.delivery_lane_health(
+        submit=[],
+        status=[{"ticket": "t.yaml", "state": None, "error": "<urlopen error timed out>",
+                 "error_kind": "URLError"}],
+    )
+    assert lane["status_channel_errors"] == 1, lane
+    assert lane["status_client_errors"] == 0, lane
+    assert any("连不上" in r for r in lane["reasons"]), lane
+
+
+def test_legacy_status_rows_without_error_kind_keep_the_old_reading():
+    """没有 error_kind 的老行按通道处置——不悄悄放宽既有口径。"""
+    lane = ins.delivery_lane_health(
+        submit=[], status=[{"ticket": "t.yaml", "state": None, "error": "boom"}])
+    assert lane["status_channel_errors"] == 1 and lane["status_client_errors"] == 0, lane
+
+
+def test_http_5xx_status_is_channel_and_4xx_is_neither():
+    lane = ins.delivery_lane_health(
+        submit=[],
+        status=[{"ticket": "a", "http_status": 503},
+                {"ticket": "b", "http_status": 409, "state": None}])
+    assert lane["status_channel_errors"] == 1, lane   # 只有 5xx 算通道
+    assert lane["status_client_errors"] == 0, lane
+    assert lane["status_reads"] == 2, lane
+
+
+def test_status_failed_rows_carry_the_exception_type(tmp_path):
+    """`sync_status` 的 except 分支要把异常类记进行里，否则上面的分档无从谈起。"""
+    d = _mk(tmp_path, slugs=("t-a",))
+
+    def boom(url, key, idem, body):
+        raise ValueError("too many values to unpack (expected 2)")
+
+    res = ins.sync_status(d, "http://x", "k", fetcher=boom, max_reads=1)
+    assert res[0]["error_kind"] == "ValueError", res[0]
+
+
+# ── 判词必须说出 308 指向哪（2026-11-15 线上实历） ───────────────────────────
+#
+# 验收轮 43707971044 里第一次拿到真的 308 痕迹，判词是
+#   「HTTP 308 跳转未落到 API（未跟：out-of-attempts）」
+# —— 一个字的 Location 都没有。而「308 指向哪」正是唯一有用的那条事实，
+# 追了三轮还是拿不到。同时 `out-of-attempts` 本身是个**覆写**：
+# 那三次都没能跟（没 Location 或跨主机），最后一跳把真实原因盖成了「预算用完」。
+
+def test_unfollowable_redirect_keeps_its_real_reason_on_the_last_attempt(monkeypatch):
+    """三次都跨主机 ⇒ 说「跨主机」，不许被 `out-of-attempts` 盖掉。"""
+    calls: list[str] = []
+
+    def always_cross(req, timeout=None):
+        calls.append(req.full_url)
+        raise urllib.error.HTTPError(
+            req.full_url, 308, "Permanent Redirect",
+            {"Location": "https://elsewhere.example/landing"}, None)
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", always_cross)
+    st, _tx, trace = ins._default_poster("https://wanxing.example/api/x", "k", "i", "b")
+    assert st == 308
+    assert trace["not_followed"] == "cross-host-or-scheme", trace
+    assert trace["location"] == "https://elsewhere.example/landing", trace
+    assert trace["followed"] is False
+
+
+def test_redirect_verdict_names_the_location_it_refused_to_follow():
+    v = ins.parse_submit_verdict(
+        308, "tengine html", "",
+        trace={"followed": False, "not_followed": "cross-host-or-scheme",
+               "location": "https://elsewhere.example/landing"})
+    assert "elsewhere.example/landing" in v["reason"], v
+    assert v["verdict"] == "unknown", v
+
+
+def test_redirect_verdict_names_the_location_even_for_a_bare_reason():
+    """没有专门分支的原因（如 out-of-attempts）也要印出 Location。"""
+    v = ins.parse_submit_verdict(
+        308, "", "", trace={"followed": False, "not_followed": "out-of-attempts",
+                            "location": "https://waf.example/challenge?token=SECRET"})
+    assert "waf.example/challenge" in v["reason"], v
+    assert "SECRET" not in v["reason"], f"Location 的 query 必须脱敏：{v['reason']}"
+
+
+def test_redirect_verdict_says_so_when_no_location_was_given():
+    v = ins.parse_submit_verdict(
+        308, "", "", trace={"followed": False, "not_followed": "out-of-attempts"})
+    assert "没给 Location" in v["reason"], v
+
+
+def test_a_redirect_still_gets_followed_after_connection_retries_ate_the_budget(monkeypatch):
+    """连接层失败把重试次数吃光、最后一跳才拿到 308 —— 手里有 Location 就要跟。
+
+    2026-11-15 线上形态：判词里出现 `out-of-attempts`，读起来像「跳转没法处理」，
+    真相是两跳 RemoteDisconnected 之后第 3 跳才见到 308，而跟跳当时与连接重试
+    **共用**同一份预算 ⇒ 明明能跟却跟不了。跟跳现在有独立的一次预算。
+    """
+    monkeypatch.setattr(ins, "_POSTER_RETRY_BACKOFF_S", 0.0)
+    calls: list[str] = []
+
+    class _Resp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self, _n=None):
+            return b'{"result": {}}'
+
+    def fake(req, timeout=None):
+        calls.append(req.full_url)
+        if len(calls) == 1:
+            raise urllib.error.URLError("conn refused")
+        if len(calls) == 2:
+            raise urllib.error.URLError("conn refused")
+        if len(calls) == 3:
+            raise urllib.error.HTTPError(
+                req.full_url, 308, "Permanent Redirect",
+                {"Location": "/api/wanxing/v1/a2a/af"}, None)
+        return _Resp()
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", fake)
+    st, _tx, trace = ins._default_poster("https://wanxing.example/api/x", "k", "i", "b")
+    assert st == 200, (st, trace, calls)
+    assert trace["followed"] is True and trace["hops"] == 1, trace
+    assert trace["final_url"].endswith("/api/wanxing/v1/a2a/af"), trace
+    assert len(calls) == 4, calls
+
+
+def test_the_hop_budget_is_still_bounded_to_one(monkeypatch):
+    """额外预算只给一跳：跟完之后再撞 308 就停手，不兜圈。"""
+    monkeypatch.setattr(ins, "_POSTER_RETRY_BACKOFF_S", 0.0)
+    calls: list[str] = []
+
+    def always_308(req, timeout=None):
+        calls.append(req.full_url)
+        raise urllib.error.HTTPError(
+            req.full_url, 308, "Permanent Redirect",
+            {"Location": "/api/wanxing/v1/a2a/af"}, None)
+
+    monkeypatch.setattr(ins.urllib.request, "urlopen", always_308)
+    st, _tx, trace = ins._default_poster("https://wanxing.example/api/x", "k", "i", "b")
+    assert st == 308
+    assert trace["hops"] == 1 and trace["not_followed"] == "already-followed-once", trace
+    assert len(calls) == 2, f"只该打两次（原地址 + 一跳），实际 {len(calls)}"
+
+
+# ── 5xx 的判词必须带上回执体（2026-11-15 实历） ──────────────────────────────
+#
+# 验收轮 43726486898 的 STATUS 面 8 次全 503，而判词只写 `HTTP 503`。
+# 真相是目标 agent 的路由不存在：connector-identity 那次滚版把 slug 派生改了，
+# 巡检盯的 `packs-…-spider-heal` 在 `/api/wanxing/v1/agents`（18 个）里没有。
+# 只看状态码时「路由不存在」与「通道坏了」同形，两个处置方向相反。
+
+def test_status_lane_keeps_the_error_body_so_the_cause_is_named(tmp_path):
+    d = _mk(tmp_path, slugs=("t-a",))
+
+    def fetcher(url, key, idem, body):
+        return 503, '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment source unreachable"}}'
+
+    res = ins.sync_status(d, "http://x", "k", fetcher=fetcher, max_reads=1)
+    assert res[0]["http_status"] == 503, res[0]
+    assert "DEPLOYMENT_SOURCE_UNAVAILABLE" in res[0]["response"], res[0]
+
+
+def test_channel_reason_carries_the_body_when_there_is_one():
+    lane = ins.delivery_lane_health(
+        submit=[],
+        status=[{"ticket": "t.yaml", "http_status": 503, "state": None,
+                 "response": '{"error":{"code":"AGENT_NOT_FOUND"}}'}])
+    assert lane["status_channel_errors"] == 1, lane
+    assert any("AGENT_NOT_FOUND" in r for r in lane["reasons"]), lane
+
+
+def test_channel_reason_stays_short_without_a_body():
+    lane = ins.delivery_lane_health(
+        submit=[], status=[{"ticket": "t.yaml", "http_status": 502, "state": None}])
+    assert lane["reasons"] == ["STATUS 回读失败 (HTTP 502)"], lane

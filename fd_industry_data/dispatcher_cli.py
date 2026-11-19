@@ -533,15 +533,24 @@ def reap_orphaned_runs(conn, site: str) -> int:
     active Job for its source, so a genuinely live run (long budget, slow
     Job startup) is never touched. FD_ORPHAN_GRACE_SECONDS=0 disables it.
 
-    Only runs where the k8s API is reachable (the same in-cluster path the
-    dispatch branch uses) — a site whose executor is subprocess-based has no
-    Job to check against, so it is skipped rather than guessed at.
+    Only runs whose Jobs this process could actually see — i.e. **this site's**
+    rows. The central DB is shared by every site's dispatcher (tencent in
+    `fd-industry`, xinru in `scraw` via `k8s/xinru-dispatcher.yaml`), and
+    `list_jobs()` only answers for the local cluster/namespace, so judging
+    another site's row means "no active Job" is always true: a genuinely
+    running run there would be reaped as an orphan. Scope comes from `site`
+    (2026-11-15); a dispatcher that cannot name its own site sweeps nothing
+    rather than guessing "all sites".
     """
     try:
         grace = int(os.environ.get("FD_ORPHAN_GRACE_SECONDS", "1800"))
     except ValueError:
         grace = 1800
     if grace <= 0:
+        return 0
+    if not site:
+        # 判不出自己站点 ⇒ 这一轮什么都不判，也**不查任何东西**：诊断面若照跑，
+        # 就会在「本轮没判」的同时打出一行看似正常的统计，读的人会以为判过了。
         return 0
     try:
         default_timeout = int(os.environ.get("FD_ORPHAN_DEFAULT_TIMEOUT",
@@ -550,15 +559,28 @@ def reap_orphaned_runs(conn, site: str) -> int:
         default_timeout = 28800
 
     reaped = 0
+    candidates = []
+    elsewhere = {}
+    elsewhere_known = True
     try:
         ns = os.environ.get("FD_DISPATCH_NAMESPACE") or _in_cluster_ns()
         candidates = dispatch.orphaned_run_candidates(
             conn, grace_seconds=grace,
-            default_timeout_seconds=default_timeout)
-        if not candidates:
-            print("fd-dispatcher: orphan sweep: 0 candidate(s)")
-            return 0
-        jobs = list_jobs(ns)
+            default_timeout_seconds=default_timeout, site=site)
+        # 诊断面：别家站点还有几条 running。本回收器判不了它们（看不见它们的 Job），
+        # 而 docker 站点（zihan/xinru-server2/nbs-workers）连 Job 都没有 ⇒ 那一档
+        # **没有任何回收器**。不念出来，「今天没有孤儿」与「这些站点的孤儿没人看」
+        # 就是同一行日志。查询本身坏了不能拖垮回收，但必须点名（判不出 ≠ 没有）。
+        try:
+            counts = dispatch.running_counts_by_site(conn)
+        except Exception as e:  # noqa: BLE001
+            elsewhere_known = False
+            print(f"fd-dispatcher: orphan sweep: site={site}: 别家站点的 running "
+                  f"行数**没数出来**（{type(e).__name__}）", file=sys.stderr)
+        else:
+            elsewhere = {s: n for s, n in counts.items()
+                         if s and s != site and n > 0}
+        jobs = list_jobs(ns) if candidates else []
         for cand in candidates:
             src = cand["source"]
             if active_job_for(jobs, src) is not None:
@@ -571,13 +593,30 @@ def reap_orphaned_runs(conn, site: str) -> int:
                 print(f"fd-dispatcher: orphan-reaped crawl_runs #{cand['id']} "
                       f"{src} (no active job)")
     except Exception as e:  # noqa: BLE001 - a sweep bug must not break the tick
-        print(f"fd-dispatcher: orphan sweep skipped: {e}", file=sys.stderr)
+        # 2026-11-15: 这行必须与「0 candidate(s)」**长得不一样**。判据写错（SQL 报错、
+        # 列名不存在、权限不足）与「今天确实没有孤儿」在旧版里都是「回收器没动静」，
+        # 而回收器停摆不产生 backlog、不产生错误行 —— 同族于 federation-observer
+        # 卡 DeadlineExceeded 那次。所以：点名站点、点名异常类型，且**不打印 e 本身**
+        # （psycopg2 的连接错误会把 DSN 带出来，bin/ 里有先例）。
+        print(f"fd-dispatcher: orphan sweep FAILED for site={site}: "
+              f"{type(e).__name__}（本轮一个都没判；不是「没有孤儿」）",
+              file=sys.stderr)
         return 0
-    if reaped:
-        print(f"fd-dispatcher: orphan sweep: reaped {reaped} run(s)")
+    if not candidates:
+        print(f"fd-dispatcher: orphan sweep: site={site}, 0 candidate(s)")
+    elif reaped:
+        print(f"fd-dispatcher: orphan sweep: site={site}, reaped {reaped} run(s)")
     else:
-        print(f"fd-dispatcher: orphan sweep: {len(candidates)} candidate(s), "
-              f"0 reaped (all still active)")
+        print(f"fd-dispatcher: orphan sweep: site={site}, "
+              f"{len(candidates)} candidate(s), 0 reaped (all still active)")
+    if elsewhere:
+        # 「没人收」是字面意思：本进程只看得见自己的 Job；docker 站点没有 Job。
+        # 这一行只报警不做动作 —— 按租约回收会误杀超过 30 分钟的正常爬取
+        # （`pending_runs.lease_until` 全程不续期），所以处置在人。
+        listed = ", ".join(f"{s}={n}" for s, n in sorted(elsewhere.items()))
+        print(f"fd-dispatcher: orphan sweep: site={site}: 别家站点还有 running 行 "
+              f"{listed} —— 它们的执行者不是本集群的 Job，**这一档没有回收器**"
+              f"（宿主 worker 崩了就会一直挂着）")
     return reaped
 
 
