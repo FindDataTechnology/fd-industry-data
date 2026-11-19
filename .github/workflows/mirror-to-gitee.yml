@@ -1,0 +1,134 @@
+# github → gitee 单向镜像（2026-11-19 立）
+#
+# **为什么需要它**：本仓有**两个远端，各自承担一半职责**，而两者之间没有任何同步。
+#
+#   | 角色 | gitee | github |
+#   |---|---|---|
+#   | 集群读内容（ArgoCD `repoURL`） | ✅ 部署真源 | ❌ 不读 |
+#   | CI（告警/巡检/出片） | ❌ 无 Actions | ✅ 13 个工作流 |
+#   | 告警/巡检回写 | ❌ | ✅ `git push origin HEAD:main` |
+#
+# 后果是分叉会**结构性**地重长：人工往 gitee 推的代码 github 不知道，CI 往 github
+# 推的状态文件 gitee 不知道。2026-11-19 实测两侧差了 36 / 33 个提交（含一批只存在于
+# github 的健康巡检改造与只存在于 gitee 的波抽取排期），手工 merge 才收口一次。
+#
+# **方向为什么是 github → gitee 单向**：
+#   * gitee 不能被放弃 —— ArgoCD 从它读，这是国内集群的硬约束；
+#   * github 不能被放弃 —— `runs-on: [self-hosted, fd-health]` 的 runner 只在 github；
+#   * 所以让 github 当**唯一的写入口**，gitee 作它的镜像。人工改代码请推 github
+#     （`git push origin main`），本工作流会在几分钟内带过去。
+#
+# **不做双向**：双向同步在两边同时有提交时必然产生冲突，而冲突发生在 CI 里没人看着，
+# 症状是「某一侧的提交静默消失」。单向 + 单一写入口不会。
+#
+# 凭据：`GITEE_SSH_KEY`（GitHub Actions secret）。**缺失时本工作流明确失败**，不静默
+# 跳过——一个「配了但没生效」的镜像闸比没有更糟（会让人以为 github 的提交已经过去了）。
+name: mirror-to-gitee
+
+on:
+  push:
+    branches: [main]
+  # 允许手工补推（镜像漏了一轮时）
+  workflow_dispatch:
+
+# 与 push 无关的并发：同分支只保留最新一轮，旧轮次取消。
+# **必须 cancel-in-progress**：告警工作流每 5 分钟就可能推一次，排队等前一轮
+# 会把镜像延迟累积成小时级。
+concurrency:
+  group: mirror-to-gitee-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    # 用 GitHub 托管 runner（不占 fd-health 那台自建机的槽位——它要跑巡检）。
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check credential is configured
+        env:
+          GITEE_SSH_KEY: ${{ secrets.GITEE_SSH_KEY }}
+        run: |
+          if [ -z "$GITEE_SSH_KEY" ]; then
+            cat >&2 <<'EOF'
+          镜像失败：GITEE_SSH_KEY 未配置。
+
+          这不是「跳过」，是「镜像没发生」——请到
+          Settings → Secrets and variables → Actions 添加 GITEE_SSH_KEY
+          （有权限推 gitee.com/FindDataTechnology/fd-industry-data.git 的私钥）。
+          配好之前，gitee 不会自动跟上 github。
+          EOF
+            exit 1
+          fi
+
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          # gitee 侧需要完整历史：force push 一个浅克隆会让 gitee 的 history 变浅。
+          fetch-depth: 0
+
+      - name: Configure SSH
+        env:
+          GITEE_SSH_KEY: ${{ secrets.GITEE_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$GITEE_SSH_KEY" > ~/.ssh/gitee_mirror
+          chmod 600 ~/.ssh/gitee_mirror
+          ssh-keyscan -t rsa,ecdsa,ed25519 gitee.com >> ~/.ssh/known_hosts 2>/dev/null
+          cat >> ~/.ssh/config <<'EOF'
+          Host gitee.com
+            IdentityFile ~/.ssh/gitee_mirror
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Probe gitee auth
+        run: |
+          # 先在推送前验一次凭据：否则失败信息会是 `git push` 的一大段
+          # （而且 exit code 常在 128 里吞掉真实原因）。
+          if ! ssh -o BatchMode=yes -o ConnectTimeout=10 -T git@gitee.com 2>&1 | grep -q "successfully authenticated"; then
+            echo "镜像失败：GITEE_SSH_KEY 无法认证 gitee（key 失效 / 不属于 FindDataTechnology）" >&2
+            exit 1
+          fi
+
+      - name: Push to gitee (fast-forward only)
+        run: |
+          set -euo pipefail
+          # gitee 上的 main 必须是本提交的祖先才允许推。
+          # 若 gitee 有 github 没有的提交 ⇒ **停下并报出来**，绝不 force：
+          # 那些提交可能是别人只在 gitee 上做过的工作，覆盖即丢失。
+          git remote add gitee git@gitee.com:FindDataTechnology/fd-industry-data.git
+          git fetch --no-tags gitee main || {
+            echo "镜像失败：gitee 侧还看不到 main（新仓或权限不足）" >&2; exit 1; }
+
+          ahead=$(git rev-list --count gitee/main..HEAD)
+          behind=$(git rev-list --count HEAD..gitee/main)
+          echo "本提交相对 gitee/main：领先 $ahead 个、落后 $behind 个"
+
+          if [ "$behind" -ne 0 ]; then
+            cat >&2 <<EOF
+          镜像中止：gitee/main 上有 $behind 个 github 没有的提交。
+
+          这正是本工作流要防的形态——但它**不能自动决定**谁对：
+          gitee 是部署真源（ArgoCD 读它），那些提交可能已经在生产生效。
+          请人工在本地 merge 两侧后推 github，本工作流会把合并结果带过去。
+
+          以下是 gitee 独有的提交：
+          详见 job log 的 `git log HEAD..gitee/main` 一节。
+          EOF
+            git log --oneline HEAD..gitee/main | head -30 >&2
+            exit 1
+          fi
+
+          if [ "$ahead" -eq 0 ]; then
+            echo "gitee 已是最新，无需推送"
+            exit 0
+          fi
+
+          # 到这里：gitee 是 HEAD 的祖先 ⇒ 普通 fast-forward 推送。
+          # 不带 --force：先把「绝不覆盖」写成默认行为，而不是靠人记得不加。
+          git push gitee HEAD:refs/heads/main
+          echo "已镜像 $ahead 个提交到 gitee/main"
