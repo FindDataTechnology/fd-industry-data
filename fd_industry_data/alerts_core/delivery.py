@@ -23,8 +23,17 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping
 
-# 出口渠道标识。relay = 平台 bot relay（POST /api/bots/relay/send），
-# smtp = 邮件（既有 FD_ALERT_SMTP_*），webhook = 同型 ServerChan 类端点。
+# 出口渠道标识。
+#   smtp    = 邮件（既有 FD_ALERT_SMTP_*）
+#   webhook = 同型 HTTP 端点（Mattermost incoming webhook / 群机器人 / ServerChan），
+#             接收端由 FD_ALERT_WEBHOOK_URL 给
+#   relay   = 平台 bot relay（POST /api/bots/relay/send）
+#
+# **实现状态**（add-mattermost-infrastructure 组 4）：smtp 与 webhook 已实现；
+# **relay 只在白名单里、没有实现**——`notify.dispatch_any` 遇到它会抛
+# `DeliveryNotConfigured` 并点名，刻意不回退到别的通道。
+# 声明一个本实现不具备的通道必须响亮失败：静默改道会让「改了配置」与
+# 「改了配置且生效」在产物里长得一样（这正是本 change 修的那个缺陷）。
 CHANNELS = ("relay", "smtp", "webhook")
 
 STRICT_ENV = "FD_ALERT_DELIVERY_STRICT"

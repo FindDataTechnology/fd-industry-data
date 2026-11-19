@@ -102,3 +102,126 @@ def dispatch(messages: list[dict], cfg: SmtpConfig | None, *, smtp_factory=None)
         except Exception as exc:  # noqa: BLE001 — 单条失败必须不阻塞同批
             failures.append({"rule_id": m.get("rule_id"), "error": str(exc)[:200]})
     return {"sent": sent, "failed": len(failures), "failures": failures, "skipped": False}
+
+
+# ── webhook 通道（add-mattermost-infrastructure 组 4）────────────────────────
+#
+# `delivery.CHANNELS` 一直把 `webhook` 列为合法出口，但**这里从来没有实现**，
+# 而七条在产告警线全都直接调 `smtp_from_env(...)`、零处读 `target.channel`。
+# 结果是：把某线配置改成 `channel: "webhook"`，它照样发一封邮件、回执记 `sent`、
+# 判绿——声明被静默忽略，等于没有声明。
+#
+# 本函数补齐实现。投递形态是 Mattermost 的 incoming webhook：
+# `POST <url>` body `{"text": "**<subject>**\n\n<body>"}`。它同时也是
+# 企业微信群机器人 / ServerChan 一类的同型端点，所以这里只认 URL、不认厂商。
+#
+# 用 stdlib 的 urllib 而不是引入 requests：本包没有 HTTP 依赖，为一个 POST
+# 加一条依赖不值得，且 urllib 足够表达「超时 + 非 2xx 即失败」。
+
+WEBHOOK_TIMEOUT_SEC = 10
+
+
+def send_webhook(url: str, subject: str, body: str, *, opener=None) -> None:
+    """发一条 webhook 消息；失败抛异常，由 ``dispatch_webhook`` 逐条兜住。
+
+    ``opener`` 是单测注入点（不联网也能验证失败隔离），与 ``smtp_factory`` 同形。
+    """
+    import json
+    import urllib.error
+    import urllib.request
+
+    if not url or not url.strip():
+        raise ValueError("empty webhook url")
+    payload = json.dumps({"text": f"**{subject}**\n\n{body}"}).encode("utf-8")
+    req = urllib.request.Request(
+        url.strip(),
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    # 非 2xx 必须当失败：Mattermost 对未知 webhook 回 404，对吊销的回 403，
+    # 两者都不该被记成"已送达"。
+    open_fn = opener or urllib.request.urlopen
+    with open_fn(req, timeout=WEBHOOK_TIMEOUT_SEC) as resp:
+        code = getattr(resp, "status", None) or resp.getcode()
+        if code and int(code) >= 400:
+            raise RuntimeError(f"webhook returned {code}")
+
+
+def dispatch_webhook(messages: list[dict], url: str | None, *, opener=None) -> dict:
+    """批量发 webhook，逐条兜住失败；返回形状与 ``dispatch`` 逐字段同形。"""
+    if not url or not str(url).strip():
+        return {"sent": 0, "failed": 0, "failures": [], "skipped": True,
+                "reason": "no-webhook-url", "channel": "webhook"}
+    sent = 0
+    failures: list[dict] = []
+    for m in messages:
+        try:
+            send_webhook(url, m.get("subject", ""), m.get("body", ""), opener=opener)
+            sent += 1
+        except Exception as exc:  # noqa: BLE001 — 单条失败必须不阻塞同批
+            failures.append({"rule_id": m.get("rule_id"), "error": str(exc)[:200]})
+    return {"sent": sent, "failed": len(failures), "failures": failures,
+            "skipped": False, "channel": "webhook"}
+
+
+# ── 按声明的通道分派（add-mattermost-infrastructure 组 4）───────────────────
+#
+# 这一步把「声明的出口」变成真的。三条规则：
+#
+#   1. 声明了哪个通道就走哪个通道 —— MUST NOT 忽略声明、固定走某一种。
+#   2. 声明了本实现不具备的通道（当前是 `relay`）→ 抛 DeliveryNotConfigured
+#      并点名，MUST NOT 改用别的通道投递再把结局记成成功。
+#   3. 实际用过的通道记进产物 —— 读者读到的必须是事实，不是配置里的愿望。
+
+WEBHOOK_URL_ENV = "FD_ALERT_WEBHOOK_URL"
+
+
+def webhook_url_from_env(env=None) -> str | None:
+    """webhook 通道的接收端；未配置返回 None（调用方据此判 not_configured）。"""
+    e = os.environ if env is None else env
+    url = (e.get(WEBHOOK_URL_ENV) or "").strip()
+    return url or None
+
+
+def dispatch_any(messages: list[dict], target, env=None, *, smtp_factory=None,
+                 opener=None) -> dict:
+    """按 ``target.channel`` 分派。
+
+    ``target`` 是 ``delivery.DeliveryTarget``。未实现的通道抛
+    ``delivery.DeliveryNotConfigured``——各线的 ``judge()`` 已经把它当
+    「配置错误 → 判红」处理，所以这里不需要发明新的错误路径。
+    """
+    from .delivery import DeliveryNotConfigured  # noqa: PLC0415 — 避免循环导入
+
+    e = os.environ if env is None else env
+    channel = getattr(target, "channel", "")
+
+    if channel == "smtp":
+        cfg = smtp_config_from_env(e)
+        out = dispatch(messages, cfg, smtp_factory=smtp_factory)
+        out["channel"] = "smtp"
+        return out
+
+    if channel == "webhook":
+        url = webhook_url_from_env(e)
+        if url is None:
+            # 配置里声明了 webhook 但环境没给接收端 —— 这是配置错误，
+            # 不是"本轮无告警"。抛出去让 judge() 判红。
+            raise DeliveryNotConfigured(
+                f"channel=webhook 但环境缺 {WEBHOOK_URL_ENV}；"
+                "要么补上接收端，要么把该线的 channel 改回 smtp"
+            )
+        return dispatch_webhook(messages, url, opener=opener)
+
+    if channel == "relay":
+        raise DeliveryNotConfigured(
+            "channel=relay 已声明但未实现（本期只实现 smtp 与 webhook）；"
+            "改用 channel=webhook 指向一个真实的接收端，或改回 smtp。"
+            "本实现刻意不回退到别的通道——那会让「改了配置」与「改了配置且生效」"
+            "在产物里长得一样。"
+        )
+
+    raise DeliveryNotConfigured(
+        f"channel={channel!r} 未知；合法值见 delivery.CHANNELS"
+    )
