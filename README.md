@@ -91,6 +91,34 @@ Each spider has its own `manifest.yaml` with:
 - Output schema
 - Rate limiting settings
 - Feature flags
+- `schedule` / `schedule_tz` — when it runs in production
+
+### 为什么这些 manifest 留在这里，而不在部署仓
+
+判据：**它描述的是代码行为还是集群编排**（openspec: `document-appset-boundary`）。
+
+```
+spiders/*/manifest.yaml   「这个源几点跑、传什么参数」 -> 代码属性 -> 跟代码走
+部署仓的 ApplicationSet    「集群怎么把它渲染成 CronJob」 -> 集群编排 -> 跟集群走
+```
+
+搬走的后果不是「文件放错地方」：新增一个数据源要改两个仓，且两仓提交顺序错了会
+渲染出大量失败的 CronJob——CronJob 的 initContainer 从 Gitee 取 `spiders/<name>/`
+代码，manifest 与代码必须同版本。
+
+**接入新数据源的完整改动面（只在本仓）**：
+
+```
+spiders/<name>/spider.py        爬取逻辑
+spiders/<name>/manifest.yaml    排期与参数
+developers/registry 等登记处     按 docs/onboarding.md
+```
+
+部署仓不需要任何改动——`fd-infra-deploy/argocd/industry-appset/applicationset.yaml`
+的 git generator 会自动读到新的 `spiders/*/manifest.yaml`。
+
+**例外**：`manifest.yaml` 里的 `image` 字段不生效，CronJob 用哪个 runner 版本由
+`fd-infra-deploy` 的 ApplicationSet 模板统一指定（升级全部行业 runner = 改那一处）。
 
 ### Remote Browser (Playwright via CDP)
 
