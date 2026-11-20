@@ -83,6 +83,15 @@ RUN PIP_FLAGS=""; [ -n "$PIP_INDEX_URL" ] && PIP_FLAGS="-i $PIP_INDEX_URL"; \
         . psycopg2-binary pyyaml cryptography minio playwright xlrd \
     && PW_HOST=""; [ -n "$PLAYWRIGHT_DOWNLOAD_HOST" ] && PW_HOST="PLAYWRIGHT_DOWNLOAD_HOST=$PLAYWRIGHT_DOWNLOAD_HOST"; \
        env $PW_HOST python3 -m playwright install --with-deps chromium
+# `pip install .` 产出的 site-packages 副本在 sys.path 更前，会盖过上面
+# COPY 进来的 /app 那份 —— 而它缺 package-data 里的 json。实测（2026-11-20）：
+#   /app/fd_industry_data/alerts_core/          有 caas-forms.json
+#   /usr/local/lib/.../alerts_core/             没有
+# 于是 resolve_target() 抛 FileNotFoundError，七条告警线真 firing 时全崩。
+# 显式补齐，不依赖 setuptools 的 package-data 通配（改它不一定改变镜像内容）。
+RUN cp -f /app/fd_industry_data/alerts_core/*.json \
+       /usr/local/lib/python3.12/site-packages/fd_industry_data/alerts_core/
+
 ENTRYPOINT ["fd-runner"]
 
 FROM runner AS scan
