@@ -158,3 +158,60 @@ MIT
 **加源三步**：① `spiders/<src>/`（manifest.yaml + spider.py，入口 `run_<src>(limit)`）→ ② push 过 CI 准入门 → ③ manifest 补 `schedule`（如 `"23 3 * * *"`，可选 `memory_limit`/`cpu_limit`）即点亮；清空 schedule 或 `enabled: false` 即停用（prune）。无 schedule 的源静默，不产生任何运行。19 个存量坏源见 `scripts/quarantine.txt`（修复后从清单移除即受门禁约束）。
 
 **遥测**：每次运行写中央表 `fd_open_data.crawl_runs`（source/kind/status/rows/commit/image_tag，成败皆报，报到失败本地兜底不伤主流程）；健康度卡片 `dashboards/crawl-health.html`（`python3 dashboards/crawl_health.py` 重生成）。特殊源 Job 用 `scripts/report_special_run.sh` 一行报到。
+
+## 文档地图
+
+`docs/` 下 44 篇 md 按主题分六组。先看这张表，再进具体文件。
+
+**接入与流程**
+
+| 文档 | 一句话 |
+|---|---|
+| `docs/onboarding.md` | 新数据源的完整接入流程（从侦察到上产） |
+| `docs/onboarding-funnel.md` | 接入漏斗：每一档卡住多少源、为什么 |
+| `docs/wave-extraction-cadence-2026-11-19.md` | 波抽取的节奏安排 |
+
+**健康与巡检**
+
+| 文档 | 一句话 |
+|---|---|
+| `docs/health-loop.md` | 健康巡检的完整设计（46K，最全的一份） |
+| `docs/alert-sample-inventory-2026-11-08.md` | 告警样本清点 |
+| `docs/silence-discipline-drift-2026-11-11.md` | 静默纪律的漂移复盘 |
+
+**垂域口径**（每域一套：universe / series-curation / debt-ledger）
+
+| 文档 | 一句话 |
+|---|---|
+| `docs/agriculture-universe.yaml` `docs/agriculture-universe-ratification.md` `docs/agriculture-series-curation.md` | 农业：口径、序列取舍 |
+| `docs/hotel-kpi-caliber.md` `hotel-series-curation.md` `hotel-debt-ledger.md` | 酒店：KPI 口径与序列 |
+| `docs/restaurant-segment-metrics.md` `restaurant-series-curation.md` `restaurant-debt-ledger.md` `restaurant-lane-mapping.md` | 餐饮 |
+| `docs/flower-series-curation.md` `flower-debt-ledger.md` `flower-alerts-runbook.md` | 花卉 |
+| `docs/hkex-results-headline-caliber.md` `hkex-segment-kpi-caliber.md` `samr-restaurant-caliber.md` `sec-edgar-tag-map.md` | 单一源的字段口径 |
+
+**数据质量**（min-rows 系列，12 篇）
+
+| 文档 | 一句话 |
+|---|---|
+| `docs/min-rows-acceptance-checklist.md` | 最少行数验收清单（先看这份） |
+| `docs/min-rows-coverage-baseline.md` `min-rows-observation-baseline.md` | 各源基线 |
+| `docs/min-rows-declaration-status.md` | 声明状态总表 |
+| `docs/min-rows-withdrawn-states-plan.md` | 撤下状态的处置计划 |
+| `docs/min-rows-calibration-analysis.md` `min-rows-observation-log.md` `min-rows-handoff.md` `min-rows-d-bucket-pending.md` | 标定、观察日志、交接 |
+
+**运维与事故**
+
+| 文档 | 一句话 |
+|---|---|
+| `docs/rollback/` | 回滚取证 |
+| `docs/verification/` | 验证记录（按日期） |
+| `docs/adr/` | 架构决策（自愈执行器归平台） |
+| `docs/dual-remote-topology.md` | 双远端拓扑（GitHub 写、Gitee 镜像） |
+| `docs/blocked-sources.md` | 被封/不可达的源清单 |
+| `docs/limit-truncation-sweep-2026-11-11.md` `docs/pharma-scheduling-and-truncation-2026-11-11.md` | 截断问题的两次清扫 |
+| `docs/writer-batch-insert-2026-11-11.md` | writer 批量写入改造 |
+| `docs/zero-row-by-line.md` `docs/law-loader-zero-row-handoff.md` | 零行排查与交接 |
+| `docs/release-drill-20261106.md` | 发布演练 |
+| `docs/usaspending-awards-window-decision.md` `docs/agri-segment-caliber-notes.md` `docs/agri-pipeline-operations.md` `docs/agri-pilot-disclosure-rate.md` | 单一源的决策与数据 |
+
+新增文档请同时更新本表——`fd-infra-deploy/tools/check_doc_map.py` 会核一致性。
