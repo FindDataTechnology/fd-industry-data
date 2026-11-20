@@ -35,12 +35,20 @@ class SmtpConfig:
     use_ssl: bool = False
 
 
-def smtp_config_from_env(env=None) -> SmtpConfig | None:
-    """从环境读 SMTP 配置；缺关键项返回 None（调用方据此判断「无通道」）。"""
+def smtp_config_from_env(env=None, *, recipients=None) -> SmtpConfig | None:
+    """从环境读 SMTP 配置；缺关键项返回 None（调用方据此判断「无通道」）。
+
+    ``recipients`` 给定时**替代** env 里的 ``FD_ALERT_SMTP_TO``——接收人属于线路
+    声明（版本化配置），env 只作覆盖。混用两者会让「配置里明明写了收件人却因 env
+    没设而被判无通道」，2026-11-20 就是这么让十条线一起失声的。
+    """
     e = os.environ if env is None else env
     host = (e.get("FD_ALERT_SMTP_HOST") or "").strip()
     sender = (e.get("FD_ALERT_SMTP_FROM") or "").strip()
-    to = [x.strip() for x in (e.get("FD_ALERT_SMTP_TO") or "").split(",") if x.strip()]
+    if recipients:
+        to = [str(x).strip() for x in recipients if str(x).strip()]
+    else:
+        to = [x.strip() for x in (e.get("FD_ALERT_SMTP_TO") or "").split(",") if x.strip()]
     if not host or not sender or not to:
         return None
     return SmtpConfig(
@@ -198,7 +206,22 @@ def dispatch_any(messages: list[dict], target, env=None, *, smtp_factory=None,
     channel = getattr(target, "channel", "")
 
     if channel == "smtp":
-        cfg = smtp_config_from_env(e)
+        # 接收人来自**线路声明**（target.to），env 只作覆盖 —— 这是 alert-delivery
+        # spec 的要求，也是 2026-11-20 十条告警线同时失声的根因：dispatch 走的是
+        # smtp_config_from_env()，它额外要求 FD_ALERT_SMTP_TO，而十个在产 cronjob
+        # 一个都没注入它。于是 resolve_target 校验通过、这里返回 None、
+        # dispatch() 记 skipped —— 回执里 {"sent":0,"skipped":true}，判据全对、
+        # 出口全断。
+        declared = tuple(getattr(target, "to", ()) or ())
+        cfg = smtp_config_from_env(e, recipients=declared) if declared else smtp_config_from_env(e)
+        if cfg is None:
+            # 声明了 smtp 却没有可用配置：接收人要么来自 target（上面已覆盖），
+            # 要么来自 env。两处都空就是配置错误，不是「本轮无告警」。
+            raise DeliveryNotConfigured(
+                "channel=smtp 但既无线路声明的接收人、环境也缺连接要素"
+                "（FD_ALERT_SMTP_HOST / FD_ALERT_SMTP_FROM）；"
+                "要么在 delivery.to 里写接收人，要么补齐 env"
+            )
         out = dispatch(messages, cfg, smtp_factory=smtp_factory)
         out["channel"] = "smtp"
         return out
