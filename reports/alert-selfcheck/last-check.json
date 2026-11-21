@@ -1,11 +1,18 @@
 {
-  "at": "2026-11-18T21:38:31.375678+00:00",
+  "at": "2026-11-21T20:04:02.480401+00:00",
   "silent": [
     {
       "line": "flower",
       "kind": "stale",
       "last": "2026-11-08",
-      "days": 10,
+      "days": 13,
+      "max_days": 2
+    },
+    {
+      "line": "restaurant",
+      "kind": "stale",
+      "last": "2026-11-18",
+      "days": 3,
       "max_days": 2
     }
   ],
@@ -18,12 +25,13 @@
   },
   "findings": [
     "silent:flower",
+    "silent:restaurant",
     "ticket_auth:route_moved"
   ],
   "notify": {
-    "sent": 0,
+    "sent": 1,
     "failed": 0,
     "skipped": 0,
-    "reason": "无变化"
+    "reason": null
   }
 }
