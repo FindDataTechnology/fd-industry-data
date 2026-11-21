@@ -49,6 +49,16 @@ source_url: https://www.kifa.net
 #   只接受**真实桌面浏览器会话**产出的数据（人工导出 / 浏览器扩展 / 半自动点击），
 #   或放弃该源。**不要再用 playwright 硬闯**——那是检测规避，违反本项目「不逆向反爬」红线，
 #   而且已经证明无效。
+# ── 2026-11-22 第三次实测：TLS 层另有一道独立障碍（cluster pod，sha-b1d4088）──
+# 证书链不完整，与 WAF 无关、换出口也不解决：
+#   openssl s_client -connect www.kifa.net:443 -servername www.kifa.net
+#   subject=CN=*.kifa.net
+#   issuer =C=CN, O=Beijing Xinchacha Credit Management Co., Ltd., CN=Xcc Trust DV SSL CA
+#   服务器只发 1 张证书（无中间），Verify return code: 21 (unable to verify the first certificate)
+#   该 CA 不在 certifi 的 185 张里，也不在 macOS 钥匙串（curl 报 "unable to get local issuer"）。
+# 绕开校验后仍全线 468（含 /、/kIFAPriceIndex.do、/breedQuotation.do 三条真实入口，逐条测过），
+# 故 TLS 只是第一层，JS 挑战仍是决定性闸门。**不要为了这一层去关校验或塞私有 CA**——
+# 那是在给一个已经拒绝我们的 WAF 铺路，且 468 一点没解决。
 # 状态：parked: true，`schedule` 故意不写——复活前不得被调度。
 scanner_mode: upstream-curated
 ranking_seed:
