@@ -204,7 +204,10 @@ def check_ack_projection(report: Report, impls: dict[str, Path] | None = None) -
     values = ("delivered", "consumed", "failed")
     for name, path in impls.items():
         if not path.exists():
-            report.add("ack-three-values", False, f"{name}: 实现缺失")
+            # 与 check_authority 同一口径：独立 clone 时兄弟仓的实现不在本检出，
+            # 这是「未覆盖」而非「不合规」。判红只用于「文件在、内容不对」。
+            report.uncovered.append(f"ack-three-values:{name}")
+            report.add("ack-three-values", True, f"{name}: 未覆盖（不在本检出）")
             continue
         src = path.read_text(encoding="utf-8")
         literal = [v for v in values if re.search(rf"[\"']{v}[\"']", src)]
