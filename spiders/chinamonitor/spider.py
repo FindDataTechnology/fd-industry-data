@@ -1,5 +1,5 @@
 from scrapling.spiders import Spider, Response, Request
-from scrapling.fetchers import FetcherSession, AsyncStealthySession, Fetcher
+from scrapling.fetchers import FetcherSession, Fetcher
 import sqlite3
 import json
 import os
@@ -28,7 +28,6 @@ class ChinamonitorSpider(Spider):
 
     def configure_sessions(self, manager):
         manager.add("http", FetcherSession(impersonate="chrome120"))
-        manager.add("stealth", AsyncStealthySession(headless=True, solve_cloudflare=False), lazy=True)
 
     async def parse(self, response: Response):
         self.logger.info(f"Parsing: {response.url}")

@@ -29,8 +29,11 @@ RUN if [ -n "$APT_MIRROR" ]; then \
     fi; \
     apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
-       xvfb x11vnc websockify novnc fonts-noto-cjk fonts-liberation \
+       fonts-noto-cjk fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
+# 浏览器显示栈（xvfb/x11vnc/websockify/novnc）已移除：164 个 spider 里**零个**
+# 真的用浏览器（2026-11-22 逐个核过，见 scripts/check_dead_session_declarations.py）。
+# fonts 两个留着——PDF/图表文本渲染仍要用。
 
 FROM base AS gate
 WORKDIR /w
@@ -67,22 +70,25 @@ COPY universes/ ./universes/
 # NFRA 批量公示表 / 上清所月报表四表五 / CBA 理财指数 2026 PDF / 银登不良转让公告).
 # Consumed through fd_industry_data.pdftext (single subprocess wrapper), never
 # hand-rolled per unit. Runtime release decision per gitops-crawl-runtime D3.
-# libatomic1 — playwright 自带的 node 链接了 libatomic，缺它则
-# `playwright install` 直接 exit 127（`node: error while loading shared libraries:
-# libatomic.so.1`）。实测 2026-11-11：main 上连续三次 image 构建都因这一条失败，
-# 即所有出片被卡住；`--with-deps` 救不了它——那是先要 node 能跑起来才轮得到装依赖。
+# libatomic1 已随 playwright 一并移除（它只为 playwright 的 node 存在）。
+# 历史：2026-11-11 main 上连续三次 image 构建因缺它失败——留此注记，恢复本地
+# 渲染时要连它一起加回来。
 RUN if [ -n "$APT_MIRROR" ]; then \
         sed -i "s|deb.debian.org|$APT_MIRROR|g" /etc/apt/sources.list.d/debian.sources 2>/dev/null; \
         sed -i "s|deb.debian.org|$APT_MIRROR|g" /etc/apt/sources.list 2>/dev/null; \
     fi; \
     apt-get update \
-    && apt-get install -y --no-install-recommends poppler-utils libatomic1 \
+    && apt-get install -y --no-install-recommends poppler-utils \
     && rm -rf /var/lib/apt/lists/*
+# playwright + chromium 不再装进本镜像：Chromium 在镜像里占 700MB，而为零个实际
+# spider 服务（2026-11-22 实测）。需要渲染的腿走 BROWSER_CDP_URL 指向独立浏览器
+# 服务——fd_industry_data/browser.py 早就支持这条路（一个 env 就切远程）。
+#
+# 若要恢复本地渲染：把 playwright 加回下面这行，并补回上面那段
+# `playwright install --with-deps chromium` 与 libatomic1。
 RUN PIP_FLAGS=""; [ -n "$PIP_INDEX_URL" ] && PIP_FLAGS="-i $PIP_INDEX_URL"; \
     pip install --no-cache-dir $PIP_FLAGS \
-        . psycopg2-binary pyyaml cryptography minio playwright xlrd \
-    && PW_HOST=""; [ -n "$PLAYWRIGHT_DOWNLOAD_HOST" ] && PW_HOST="PLAYWRIGHT_DOWNLOAD_HOST=$PLAYWRIGHT_DOWNLOAD_HOST"; \
-       env $PW_HOST python3 -m playwright install --with-deps chromium
+        . psycopg2-binary pyyaml cryptography minio xlrd
 # `pip install .` 产出的 site-packages 副本在 sys.path 更前，会盖过上面
 # COPY 进来的 /app 那份 —— 而它缺 package-data 里的 json。实测（2026-11-20）：
 #   /app/fd_industry_data/alerts_core/          有 caas-forms.json

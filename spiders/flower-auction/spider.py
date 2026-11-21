@@ -1,6 +1,5 @@
 from scrapling.spiders import Spider, Response, Request
 from scrapling.fetchers import FetcherSession
-from fd_industry_data.browser import get_browser_session
 import sqlite3
 import json
 import os
@@ -23,8 +22,11 @@ class FlowerAuctionSpider(Spider):
     robots_txt_obey = True
 
     def configure_sessions(self, manager):
-        manager.add("http", FetcherSession(impersonate="chrome"))
-        manager.add("browser", get_browser_session(), lazy=True)
+        # 显式叫 default：这个 spider 之前声明了 "http" 与 "browser" 两条，但 parse
+        # 从不指定 session —— 两条都是死声明（2026-11-22 实测）。
+        # 写 default 而不是依赖「第一个 add 自动成为 default」的隐式规则：
+        # 后者会让下一个加 session 的人改掉默认而不自知。
+        manager.add("default", FetcherSession(impersonate="chrome"))
 
     async def parse(self, response: Response):
         page_type = self._detect_page_type(response.url)
