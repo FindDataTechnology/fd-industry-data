@@ -1,6 +1,7 @@
 version: "2"
 limit_kind: full_set   # CATALOG: 星级酒店月度册（2023Q2–2024Q3，源停更）
 name: mct-star-hotel         # = spiders/mct-star-hotel/ 目录名，运行时标识符，合入后不可改名
+same_source_as: mct-tourism-demand   # 同一上游 URL（事实标注，不参与调度）
 label: 文化和旅游部 全国星级旅游饭店统计调查报告（季度 · 分省 / 按星级 / 50 城市）
 source_url: https://zwgk.mct.gov.cn/zfxxgkml/447/465/index_3081.html
 # site: 缺省 tencent —— 2026-11-08 实测本机直连 zwgk.mct.gov.cn 与 xlsx 附件全部 200，

@@ -1,0 +1,70 @@
+# 语义覆盖三联账（change measure-semantic-coverage-gap）
+#
+# 每日跑一次 scripts/semantic_coverage.py --check-baseline：
+#   - frozen  基线（config/frozen-baseline.txt）新增源 ⇒ 红
+#   - unwired 基线（config/unwired-baseline.txt）新增源 ⇒ 红
+#   - 从基线消失的源 ⇒ 提示（请按实际更新基线）
+#
+# 为什么这条闸要单独存在：health-inspect 量「源活不活」（crawl_runs 成功与否），
+# 它对「抓到了但永远不会变成可读指标」的源全绿。2026-11-21 实测：125 个亮着
+# 的源里 88 个不在这条「有抽取器且跟得上」的档位上（28 frozen + 60 unwired），
+# 而既有闸对它们一个都不报。
+#
+# 只读：只 SELECT crawl_runs / semantic_observations / executions，不写任何表。
+# DSN 用 fd-mcp-env 的 FD_OPEN_DATA_MCP_DATABASE_URL（与 wave 抽取作业同源）。
+name: semantic-coverage
+
+on:
+  schedule:
+    - cron: "47 19 * * *" # 每日 03:47 CST
+  workflow_dispatch:
+
+concurrency:
+  group: semantic-coverage
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ledger:
+    runs-on: [self-hosted, fd-health]
+    timeout-minutes: 15
+    env:
+      # 与 crawl-reconciler / wave-observation-extract 同一 secret，不加新凭据。
+      FD_OPEN_DATA_DSN: ${{ secrets.FD_CENTRAL_PG_DSN }}
+    steps:
+      - name: 检出
+        run: |
+          # 自包含：不用 actions/checkout（runner 经代理下载 action 偶发 TLS 失败，
+          # 与 health-inspect 同一取舍）。每次全新浅克隆，免疫工作区残留。
+          rm -rf "$RUNNER_TEMP/sc" && mkdir -p "$RUNNER_TEMP/sc"
+          git clone --depth 1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$RUNNER_TEMP/sc"
+          cd "$RUNNER_TEMP/sc"
+
+      - name: 依赖
+        run: |
+          cd "$RUNNER_TEMP/sc"
+          python3 -m pip install --quiet --disable-pip-version-check pyyaml psycopg2-binary
+
+      - name: 三联账 + 基线 diff
+        run: |
+          cd "$RUNNER_TEMP/sc"
+          # 判不出（退出 2）与「有新增」（退出 1）都必须红：
+          # 「没查成」不许长得像「查了没事」。
+          python3 scripts/semantic_coverage.py --check-baseline
+          rc=$?
+          if [ $rc -eq 2 ]; then
+            echo "::error::三联账判不出（缺 DSN 或库不可达）——不是绿，是没查成"
+            exit 2
+          fi
+          exit $rc
+
+      - name: 落产物（失败也留，供人看现场）
+        if: always()
+        run: |
+          cd "$RUNNER_TEMP/sc"
+          python3 scripts/semantic_coverage.py --write-reports || true
+          ls -l reports/semantic-coverage/ || true
+          # 产物留在这里供人工下载查看；不往仓里提交（避免每日噪音 PR）。
+          # 需要归档时人工从 artifacts 取，或本地跑 --write-reports 提交。

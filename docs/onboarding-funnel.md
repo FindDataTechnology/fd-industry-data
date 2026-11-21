@@ -7,30 +7,43 @@
 
 | 段 | 来源 | 当前值 |
 |---|---|---|
-| candidates | **无结构化来源** | `unknown` |
-| landed | `spiders/*/manifest.yaml` 存在 | 162 |
-| lit | landed 且有非空 `schedule`，且未 `parked`/`enabled: false` | 122 |
+| candidates | `data-source-scouting/candidates.json`（`source-candidates/v1`，由 `scripts/extract_candidates.py` 从侦察簿派生） | 202（accepted 146 / rejected 22 / unknown 34） |
+| landed | `spiders/*/manifest.yaml` 存在 | 165 |
+| lit | landed 且有非空 `schedule`，且未 `parked`/`enabled: false` | 125 |
 | fresh | lit 且 `cycles_since_last_good == 0` | 75（lit 的 61.5%） |
 
 ```
-landed 162 ──┬─ stopped 31（parked / enabled:false）
-             └─ lit   122 ──┬─ fresh     75
+landed 165 ──┬─ stopped 40（parked / enabled:false）
+             └─ lit   125 ──┬─ fresh     75
                             ├─ at-risk   40   ← 只欠一期
                             └─ stale      7
+
+candidates 202 ──┬─ accepted  146 ──┬─ 已接（landed_slug 有值）95
+                 │                 └─ 无落地出处          51
+                 ├─ rejected   22
+                 └─ unknown    34
+（另有 93 条 needs_review：解析歧义，与上面三档并行，不叠加）
 ```
 
 `at-risk` 单列，是因为判据层（D2）把「欠 1 期」当 trace 不出单；漏斗里既不能算
 「新鲜」，也不该混进「陈旧」。**75 + 40 + 7 = 122**，三段互斥且穷尽。
 
-## 为什么 candidates 是 unknown
+## candidates 段的来源
 
-候选只存在于 `data-source-scouting/INDUSTRY-DATA-SOURCES.md` 的手写表格里（300 行、
-多张表、状态列格式不一）。硬解析会得到一个**没人能复算**的数字 —— 那正是这份
-change 一直在反的那种「判据看着绿、实际不可核」。
+**已接通**（commit 127a7b5，2026-11-10）：`candidates_stage()` 读
+`data-source-scouting/candidates.json`（schema `source-candidates/v1`），
+由 `data-source-scouting/scripts/extract_candidates.py` 从
+`INDUSTRY-DATA-SOURCES.md` 派生。清单缺失/不可解析/schema 不符时**如实报
+`unknown` + 原因**，绝不退化成 0。
 
-要让它变成可计量，需要一次性人工把 scouting 表转成结构化清单
-（如 `data-source-scouting/candidates.json`），之后漏斗才能补上第一段。
-在那之前，**"还有多少候选没落仓"这个问题没有可信答案**，只能人工读文档。
+「已接但无落地出处」（`accepted_without_landing`，当前 51 条）单列——它让侦察簿
+不记落地出处的结构性缺口可见，而不是替它圆。这 51 条的逐条归因是
+openspec change `structure-scout-candidates` 的范围。
+
+> **本文曾经写过「candidates 是 unknown，因为只有手写表格」**——那是 2026-11-09
+> 的状态，11-10 就接通了。这段留在原处是另一种假信号：判据看着缺少、实际已可用。
+> 现在由 `python3 scripts/onboarding_funnel.py --check-doc` 机械核对本页的三个计数
+> 与脚本实际输出，文档再落后就会报红。
 
 ## 复算
 
@@ -57,6 +70,29 @@ python3 scripts/onboarding_funnel.py            # 只看仓库侧三段，fresh 
 - 「fresh」是严格口径（0 个应跑周期未成功），不是「最近跑过」。
 - 漏斗不产出工单，它只回答「落仓的东西有多少真在出数」。
 
+## 与「语义覆盖三联账」的分工（2026-11-21 新增）
+
+本漏斗量的是**爬取层**（落仓 → 点亮 → 新鲜）。它不回答「抓到的这些东西能不能
+按概念读到」——那是另一个问题、另一条闸：
+
+| 闸 | 量什么 | 判据 | 出口 |
+|---|---|---|---|
+| `health_inspect.py`（`health-inspect.yml`） | 源活不活 | `crawl_runs` 连续失败、水位冻结 | 工单 → 自愈 agent |
+| `onboarding_funnel.py`（本文件） | 落仓→点亮→新鲜的漏斗 | 每段计数 | 运维视图 |
+| `check_observation_lag.py` | 已有抽取器活着吗 | 观测水位 vs 爬取水位 | 门禁（lagging 才红） |
+| `semantic_coverage.py`（`semantic-coverage.yml`） | **哪些源根本没接进观测层** | `frozen` / `unwired` 基线 diff | 每日红/绿 |
+
+`semantic_coverage.py` 的实测（2026-11-21，真库）：125 个亮着的源里
+**served 34 / frozen 28 / unwired 60 / unknown 3**。也就是说另外 91 个源在
+本漏斗里可能是「fresh」的，但它们的数据永远不会变成可检索指标。
+**两个数不可互换引用**：漏斗的 fresh 不等于语义层可用。
+
+`frozen` 与 `unwired` 是两种病：
+- `frozen` = 观测层有行、当前没有可跑的抽取器（历史抽过，静止变旧）→ 找回旧抽取器
+- `unwired` = 观测层零行、没有抽取器 → 新建一个
+
+两档各有一份基线（`config/frozen-baseline.txt` / `config/unwired-baseline.txt`），
+基线外新增报红。**不许把两档合并成一个数**：合并后一档修好、另一档新增会互相抵消。
 
 ## 欠账复测队列（2026-11-10 起）
 
