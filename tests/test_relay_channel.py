@@ -218,3 +218,18 @@ def test_judge_reads_relay_receipts_identically():
     )
     assert judge(_receipt_from(partial), firing=2).code == "partial_failure"
     assert judge(_receipt_from({"sent": 1, "failed": 0}), firing=1).code == "ok"
+
+def test_receipt_records_the_channel_actually_used():
+    """alert-delivery 原文：「读者读到的必须是事实，不是配置里的愿望」。
+
+    分派落地前 receipt 只记计数，于是「channel 写 relay、实际发了邮件」在产物里
+    看不出来——4.3 的回滚演练正是这样验不出来的（2026-11-21）。
+    """
+    out = notify.dispatch_relay(
+        [{"subject": "s", "body": "b"}], target(), CELL_ENV,
+        opener=opener_returning({"ok": True}),
+    )
+    r = DeliveryReceipt(sent=out["sent"], failed=out["failed"], channel=str(out.get("channel") or ""))
+    assert r.as_dict()["channel"] == "relay"
+    # 未声明通道时键不出现：老产物逐字节不变。
+    assert "channel" not in DeliveryReceipt(sent=1).as_dict()

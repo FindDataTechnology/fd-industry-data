@@ -615,6 +615,8 @@ def deliver(messages: list[dict], config: dict) -> tuple[DeliveryReceipt, object
         sent=int(sent.get("sent", 0)), failed=int(sent.get("failed", 0)),
         skipped=1 if sent.get("skipped") else 0,
         reasons=[str(f) for f in sent.get("failures") or []],
+        # 实际走过的通道，来自 dispatch_any 的事实回报——不是配置里的愿望。
+        channel=str(sent.get("channel") or ""),
     )
     verdict = judge(receipt, firing=len(messages), strict=strict_enabled(os.environ))
     return receipt, verdict

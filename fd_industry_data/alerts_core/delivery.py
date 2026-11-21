@@ -176,6 +176,10 @@ class DeliveryReceipt:
     reasons: list[str] = field(default_factory=list)
     ack_actual: str = ""
     downgraded: bool = False
+    # 实际用过的通道（alert-delivery：「读者读到的必须是事实，不是配置里的愿望」）。
+    # 分派落地之前，receipt 只记计数——于是「channel 写 relay 但实际发了邮件」
+    # 这件事在产物里看不出来。relay 上线后这个字段才真的可能有两个值。
+    channel: str = ""
 
     @property
     def total(self) -> int:
@@ -190,6 +194,8 @@ class DeliveryReceipt:
             out["ack_actual"] = self.ack_actual
         if self.downgraded:
             out["downgraded"] = True
+        if self.channel:
+            out["channel"] = self.channel
         return out
 
     def projection(self, ack_declared: str = "") -> Any:
