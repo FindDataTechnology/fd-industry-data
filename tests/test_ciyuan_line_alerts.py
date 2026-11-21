@@ -214,12 +214,16 @@ def test_firing_hands_one_message_to_delivery_and_records_receipt(tmp_path, monk
 
     sent: list[dict] = []
 
-    def fake_dispatch(messages, _cfg, **_kw):
+    # 该线早已从固定调 smtp_from_env 改成按声明通道分派（dispatch_any）；
+    # mock 停在旧名字上 ⇒ AttributeError：不是产品坏了，是测试没跟上实现
+    # （fix-industry-data-red-tests 2.1）。返回值要带 channel——relay-alert-channel
+    # 之后回执记录实际通道，少了它测不到那件事。
+    def fake_dispatch_any(messages, target, env=None, **kw):
         sent.extend(messages)
-        return {"sent": len(messages), "failed": 0, "failures": [], "skipped": False}
+        return {"sent": len(messages), "failed": 0, "failures": [],
+                "skipped": False, "channel": "smtp"}
 
-    monkeypatch.setattr(mod, "dispatch", fake_dispatch)
-    monkeypatch.setattr(mod, "smtp_from_env", lambda _env, recipients=None: ("stub", tuple(recipients or ())))
+    monkeypatch.setattr(mod, "dispatch_any", fake_dispatch_any)
     monkeypatch.setattr(mod, "STATE", tmp_path / "state.json")
     monkeypatch.setattr(mod, "EVENTS", tmp_path / "events.jsonl")
 

@@ -207,9 +207,19 @@ def test_manual_success_does_not_clear_a_stall():
 
 def test_manual_success_alone_makes_stall_undecidable_not_green():
     """只剩「手工成功」一条记录（排期成功 Job 已被 GC）⇒ 停滞**判不出**，不许读成通过。"""
+    # 夹具三处必须互相自洽，否则产品会（正确地）报 unverifiable：
+    #   · cronjob 名 wanxing-backup
+    #   · 那个 tick 的排期对象要在（名字 `<cronjob>-<tick 的 epoch 分钟>`）
+    #   · 手工件另起一个名，才落进 manual 分支
+    # 原夹具只有第三条对，于是 `_tick_object_absent` 成立、又有一个更新的对象，
+    # 产品按 ①②③ 判成「这一轮不可核」——测试却断言 findings == []。
+    # （fix-industry-data-red-tests 1.2；不是时间腐烂）
     findings, facts, rows = run(
         [cronjob(last_success=12, last_schedule=4000)],
-        [job(name="fedobs-repro-1", complete=True, created=12, completed=12)],
+        [
+            job("wanxing-backup", name="wanxing-backup-29908400", complete=False, created=4000),
+            job(name="fedobs-repro-1", complete=True, created=12, completed=12),
+        ],
     )
     assert findings == [], "判不出就不许报 stall（会变成天天假红），也不许报绿"
     assert [f["kind"] for f in facts] == ["manual-job", "success-time-untrusted"]

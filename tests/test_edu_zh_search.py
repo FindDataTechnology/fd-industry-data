@@ -97,7 +97,18 @@ def test_zh_query_hits_english_material_with_translation_visible():
     assert qt["via"] == "zh-lexicon"  # add-multilang-mainstream 起对照带 via
 
 
-def test_zh_query_no_coverage_is_honest_no_match():
+def test_zh_query_no_coverage_is_honest_no_match(monkeypatch):
+    """未翻译时不许伪造对照。
+
+    **不能依赖外网**：`resolve_query` 对词表未命中的 CJK 会走维基 API，
+    "鲁迅" 在 CI 上查得到（于是出现 query_translated → 红）、在本机被挡
+    （于是绿）。那测的不是「诚实性」，是「维基今天是否可达」。
+    这里注入一个确定翻译不出的桩——测的仍是同一件事，但不再掷骰子
+    （fix-industry-data-red-tests 3.1）。
+    """
+    from edu_catalog import multilang
+
+    monkeypatch.setattr(multilang, "resolve_query", lambda q: None)
     search = _svc()
     out = search(query="鲁迅")
     assert out["status"] == "no_match"

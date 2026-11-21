@@ -179,8 +179,13 @@ def test_parse_ts_accepts_kubernetes_shapes():
 
 
 def test_main_dry_run_lists_without_deleting(tmp_path, capsys):
+    # 走 `main()` 的用例用的是**真实时钟**（`datetime.now()`），而 pod()/job()
+    # 的默认时间戳是以模块常量 NOW=2026-11-15 算的。到 2026-11-21，那个 Pod
+    # 已经是 144 小时前——越过 forensic_h=72 的封存窗，于是「该封存」变成「该删」。
+    # 测试随时间腐烂（fix-industry-data-red-tests 4.1）。
+    fresh = (datetime.now(timezone.utc) - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%SZ")
     snap = tmp_path / "snap.json"
-    snap.write_text(json.dumps({"items": [pod("old", "Succeeded")]}), encoding="utf-8")
+    snap.write_text(json.dumps({"items": [pod("old", "Succeeded", start=fresh)]}), encoding="utf-8")
     jobs = tmp_path / "jobs.json"
     jobs.write_text(json.dumps({"items": [job("old", True)]}), encoding="utf-8")
     assert main(["--from-json", str(snap), "--jobs-from-json", str(jobs),
