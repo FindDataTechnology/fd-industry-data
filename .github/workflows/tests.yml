@@ -15,6 +15,12 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  schedule:
+    # 每日 21:17 CST 跑一次 online 组。默认 push/PR 不跑它们（见下方 -m 过滤），
+    # 但「声明了 run explicitly」不等于「永远不跑」——真要没人跑，那 6 个用例
+    # 就是死代码，上游契约变了也没人知道。2026-11-21 欧洲 PMC 一次 503 让整轮
+    # 2111 个用例判红，这条排程就是把它挪到单独的信号里。
+    - cron: "17 13 * * *"
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -44,8 +50,18 @@ jobs:
           pip install -e .
           pip install pytest fd-open-data-mcp
 
-      - name: 跑 tests/
-        run: python -m pytest tests/ -q
+      # online 组打真实第三方 API（europepmc / arXiv / MIT OCW / Apple），
+      # marker 自己写着「run explicitly」。2026-11-21 之前这里是无条件
+      # `pytest tests/ -q`，等于让 6 个外部依赖的用例替整轮 2111 个用例背书：
+      # 欧洲 PMC 回一次 503，全绿的代码也判红。默认排除，靠上面的每日排程单跑。
+      - name: 跑 tests/（离线组）
+        run: python -m pytest tests/ -q -m "not online"
+
+      - name: 跑 tests/（online 组）
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        # online 组失败不掩盖离线组结果：两条是分开的 step，红在哪一步看得见。
+        # 上游临时 503 仍然会让这一步红——那正是「外部依赖今天不健康」该有的信号。
+        run: python -m pytest tests/ -q -m online
 
       - name: CaaS 权威表一致性（跨面合规闸）
         run: |
