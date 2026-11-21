@@ -177,10 +177,22 @@ def _snap(tmp_path: Path, *, catalog_text: str = MINIFIED, catalog_status: int =
     return p
 
 
+def _catalog_at(days_ago: float) -> str:
+    """造一份「导出于 N 天前」的 catalog 文本。
+
+    这两条走 `main()` 的用例用的是**真实时钟**（不是上面那些注入 NOW 的），
+    所以快照日期必须相对今天算。写死 `2026-11-14` 的写法在写测试那天是「8 小时前」，
+    到 2026-11-21 就成了「162 小时前」，跨过 36h 阈值——测试随时间腐烂
+    （fix-industry-data-red-tests 1.1）。
+    """
+    stamp = (datetime.now(timezone.utc) - timedelta(days=days_ago)).strftime("%Y-%m-%d")
+    return PRETTY.replace("2026-11-14", stamp)
+
+
 def test_main_firing_on_stale_snapshot(tmp_path, monkeypatch):
     monkeypatch.setenv("FD_PLAZA_ALERT_REPORTS", str(tmp_path / "reports"))
     cfg = _cfg(tmp_path)
-    snap = _snap(tmp_path, catalog_text=PRETTY.replace("2026-11-14", "2026-11-10"))
+    snap = _snap(tmp_path, catalog_text=_catalog_at(4))
     assert main(["--config", str(cfg), "--from-json", str(snap), "--dry-run"]) == EXIT_FIRING
 
 
@@ -195,7 +207,7 @@ def test_main_blind_when_catalog_unreachable(tmp_path, monkeypatch):
 def test_main_green_on_fresh_snapshot(tmp_path, monkeypatch):
     monkeypatch.setenv("FD_PLAZA_ALERT_REPORTS", str(tmp_path / "reports"))
     cfg = _cfg(tmp_path)
-    snap = _snap(tmp_path, catalog_text=MINIFIED)  # 2026-11-14，距 NOW=8h
+    snap = _snap(tmp_path, catalog_text=_catalog_at(8 / 24))  # 8 小时前
     assert main(["--config", str(cfg), "--from-json", str(snap), "--dry-run"]) == 0
 
 
