@@ -1,0 +1,24 @@
+# 告警判定专用的轻镜像（relay-alert-channel 发现的问题）。
+#
+# 与 image.yml 的 runner 镜像分开：那个含 Chromium + xvfb + scrapling[fetchers]，
+# 构建 25–40 分钟；这个只装 stdlib，构建 10 秒级。
+# 分开的理由写在 Dockerfile.alerts 头部：alerts_core 的第三方依赖是零。
+name: alerts-image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "fd_industry_data/alerts_core/**"
+      - "Dockerfile.alerts"
+      - ".github/workflows/alerts-image.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: FindDataTechnology/fd-ci/.github/workflows/image-build.yml@main
+    secrets: inherit
+    with:
+      image: fd-industry-alerts
+      namespace: finddata
+      dockerfile: Dockerfile.alerts

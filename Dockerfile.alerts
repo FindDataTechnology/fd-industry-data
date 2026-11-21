@@ -1,0 +1,37 @@
+# fd-industry-alerts — 只跑告警判定的轻镜像（relay-alert-channel 发现的问题）。
+#
+# 为什么单独一个镜像：告警 CronJob 原来用 fd-industry-runner，那里面装着
+# Chromium + xvfb + novnc + scrapling[fetchers] 整个浏览器栈——而 alerts_core
+# 的外部依赖是**零**（实测 AST：全部是 stdlib 的 dataclasses/datetime/email/
+# json/os/pathlib/smtplib/typing/urllib）。
+#
+# 代价是实测出来的：改一行 notify.py 要重建 25–40 分钟的浏览器栈；
+# 告警 pod 每次拉几百 MB 的 Chromium 只为判定「定时作业是否停滞」。
+#
+# 这个镜像只装 stdlib 需要的东西。它不 import fd_industry_data 的浏览器成员
+# （__init__.py 用 PEP 562 懒加载，不会拖 scrapling 进来）。
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# 不装任何 pip 依赖：alerts_core 只用 stdlib。
+# 未来若要加，务必先复核依赖面（ast 扫一遍 alerts_core/*.py），
+# 别把「某个脚本可能用得上」当成理由——那正是 runner 镜像变成 25 分钟的原因。
+COPY fd_industry_data/alerts_core/ /app/fd_industry_data/alerts_core/
+COPY fd_industry_data/__init__.py /app/fd_industry_data/__init__.py
+
+# 告警脚本与配置由各 CronJob 的 ConfigMap 挂进来（与 runner 镜像一致的做法）：
+# 脚本不烘进镜像，改判定逻辑不需要出片。
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
+
+# 自检三条：包能 import、relay 通道在、权威表 json 真的随包进来了
+# （最后一条抓的是 2026-11-20 那类「package-data 没打进 wheel」的静默失败）。
+RUN python3 -c "import fd_industry_data.alerts_core.notify as n; \
+    assert hasattr(n, 'dispatch_any'); \
+    assert hasattr(n, 'dispatch_relay'), 'relay 通道必须在本镜像里'; \
+    import fd_industry_data.alerts_core.caas as c; \
+    assert c.load()['channels']['relay']['forms'] == ['text'], '权威表必须随包进来'; \
+    print('alerts_core ok')"
+
+CMD ["python3", "-c", "print('fd-industry-alerts: provide a script via ConfigMap')"]
