@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: steam-ccu              # = spiders/steam-ccu/ 目录名，运行时标识符，合入后不可改名
 label: Steam concurrent players (CCU) + review aggregates for seed titles
 source_url: "https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/ (reviews: https://store.steampowered.com/appreviews/)"

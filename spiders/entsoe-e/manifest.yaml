@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: entsoe-e                # = spiders/entsoe-e/ 目录名，运行时标识符，合入后不可改名
 label: ENTSO-E Transparency Platform Electricity Series (actual generation / load)
 source_url: https://web-api.tp.entsoe.eu/api

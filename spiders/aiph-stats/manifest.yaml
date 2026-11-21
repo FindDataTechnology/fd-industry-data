@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # YEAR: 花卉统计年鉴，limit 300
 name: aiph-stats            # = spiders/aiph-stats/ 目录名，运行时标识符，合入后不可改名
 label: AIPH 国际花卉统计年鉴·分品种分国别种植面积（AIPH / Union Fleurs）
 source_url: https://aiph.org/giic/international-statistical-yearbook/

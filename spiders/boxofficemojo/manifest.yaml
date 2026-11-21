@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # SWEEP: 全集 600（固定历史年）
 name: boxofficemojo           # = spiders/boxofficemojo/ 目录名，运行时标识符，合入后不可改名
 label: Box Office Mojo Yearly Rankings
 source_url: https://www.boxofficemojo.com/year/2024/

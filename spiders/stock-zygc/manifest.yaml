@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: stock-zygc                   # = spiders/stock-zygc/ 目录名，运行时标识符，合入后不可改名
 label: A-share Main Business Composition (by industry/product/region, Eastmoney F10)
 source_url: https://emweb.securities.eastmoney.com/PC_HSF10/BusinessAnalysis/PageAjax

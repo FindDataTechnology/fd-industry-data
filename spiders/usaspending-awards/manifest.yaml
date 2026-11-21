@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # SWEEP: 13 个月窗口固定回看，limit 8000
 name: usaspending-awards    # = spiders/usaspending-awards/ 目录名，运行时标识符，合入后不可改名
 label: USAspending Federal Contract Awards (monthly NAICS x agency aggregates)
 source_url: "https://api.usaspending.gov/api/v2/search/spending_by_award/ (portal: https://www.usaspending.gov/)"

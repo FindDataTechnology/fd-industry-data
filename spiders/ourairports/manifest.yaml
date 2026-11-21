@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # SNAPSHOT: 机场目录（固定集）
 name: ourairports                # = spiders/ourairports/ 目录名，运行时标识符，合入后不可改名
 label: OurAirports Airport Dimension Type-Count Snapshot
 source_url: https://davidmegginson.github.io/ourairports-data/airports.csv

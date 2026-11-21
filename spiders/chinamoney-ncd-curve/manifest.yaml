@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: chinamoney-ncd-curve        # = spiders/chinamoney-ncd-curve/ 目录名，运行时标识符，合入后不可改名
 label: ChinaMoney NCD (AAA) closing yield curve — daily points
 source_url: https://www.chinamoney.com.cn/chinese/bkcurvclosedy/

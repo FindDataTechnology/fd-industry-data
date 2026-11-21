@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # YEAR: EDGAR 年度册（一次性发布）
 name: edgar-emissions        # = spiders/edgar-emissions/ 目录名，运行时标识符，合入后不可改名
 label: EDGAR Global Emissions (JRC, by Country and IPCC Sector)
 source_url: https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/EDGAR/

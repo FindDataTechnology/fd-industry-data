@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # CATALOG: OCW + Open edX 编目，固定课程集
 name: education_cc_courses
 label: CC course layer (MIT OCW sitemap catalog + Open edX public instance catalogs)
 source_url: https://ocw.mit.edu/ + https://openlearninglibrary.mit.edu/

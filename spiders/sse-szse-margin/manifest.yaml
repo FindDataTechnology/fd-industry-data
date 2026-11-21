@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: sse-szse-margin            # = spiders/sse-szse-margin/ 目录名，运行时标识符，合入后不可改名
 label: 沪深交易所两融余额（融资融券交易总量）
 source_url: https://www.sse.com.cn/market/othersdata/margin/sum/   # SSE 落地页；SZSE 落地页 https://www.szse.cn/disclosure/margin/margin/index.html，两所 JSON 通道与鉴权头见 README

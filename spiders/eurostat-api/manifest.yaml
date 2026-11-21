@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: eurostat-api
 label: Eurostat Dissemination API
 source_url: https://ec.europa.eu/eurostat/

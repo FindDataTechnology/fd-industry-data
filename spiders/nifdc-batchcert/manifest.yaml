@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: nifdc-batchcert
 label: 中检院生物制品批签发公示 (NIFDC Biological Product Batch Release)
 source_url: https://bio.nidc.org.cn/pqf/search.do?formAction=pqfXxpt

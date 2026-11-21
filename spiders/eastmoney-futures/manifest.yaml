@@ -1,3 +1,4 @@
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 schedule: "39 4 * * *"
 data_period: day
 site: xinru-server1

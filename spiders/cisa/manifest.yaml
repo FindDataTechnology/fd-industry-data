@@ -1,4 +1,5 @@
 version: "1"
+limit_kind: full_set   # SWEEP: 全集 200
 name: cisa
 label: "中国钢铁工业协会 (China Iron and Steel Association)"
 source_url: https://www.cisa.org.cn/

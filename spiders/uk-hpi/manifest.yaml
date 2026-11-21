@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # UNMEASURED: 1995 起的月度区域序列，按区域×月=固定历史集
 name: uk-hpi               # = spiders/uk-hpi/ 目录名，运行时标识符，合入后不可改名
 label: UK House Price Index
 source_url: https://publicdata.landregistry.gov.uk/market-trend-data/house-price-index-data/

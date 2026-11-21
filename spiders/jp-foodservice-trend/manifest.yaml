@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: jp-foodservice-trend    # = spiders/jp-foodservice-trend/ 目录名，运行时标识符，合入后不可改名
 label: 日本フードサービス協会 外食産業市場動向調査 (JF Foodservice Market Trend Survey, 全店 monthly)
 source_url: https://www.jfnet.or.jp/industry_report/

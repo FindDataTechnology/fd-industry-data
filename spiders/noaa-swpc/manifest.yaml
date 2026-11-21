@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: noaa-swpc                  # = spiders/noaa-swpc/ 目录名，运行时标识符，合入后不可改名
 label: NOAA SWPC Planetary K-Index Daily Stats
 source_url: https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json

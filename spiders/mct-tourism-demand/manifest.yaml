@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # CATALOG: 旅游需求册（同上）
 name: mct-tourism-demand     # = spiders/mct-tourism-demand/ 目录名，运行时标识符，合入后不可改名
 label: 文化和旅游部 国内居民出游数据（季度稿 · 人次/花费/城镇农村）+ 年度统计公报（入境/出境/旅行社/星级饭店）
 source_url: https://zwgk.mct.gov.cn/zfxxgkml/447/465/index_3081.html

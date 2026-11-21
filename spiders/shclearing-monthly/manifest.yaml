@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: shclearing-monthly      # = spiders/shclearing-monthly/ 目录名，运行时标识符，合入后不可改名
 label: Shanghai Clearing House monthly bond statistics (Table 4 custody, Table 5 investor holdings, 2014-12-present)
 source_url: https://www.shclearing.com.cn/cpyyw/ywsj/tjyb/

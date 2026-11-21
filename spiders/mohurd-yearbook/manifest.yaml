@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # YEAR: 住建统计年鉴（SWEEP 已定性未测量，limit 6500）
 name: mohurd-yearbook       # = spiders/mohurd-yearbook/ 目录名，运行时标识符，合入后不可改名
 label: MOHURD Urban/Rural Construction Yearbook (住建部城市建设与城乡建设统计年鉴)
 source_url: https://www.mohurd.gov.cn/gongkai/fdzdgknr/sjfb/index.html

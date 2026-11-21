@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # YEAR: IEA EV 历史册
 name: iea-ev               # = spiders/iea-ev/ 目录名，运行时标识符，合入后不可改名
 label: IEA Global EV Data
 source_url: https://api.iea.org/evs/

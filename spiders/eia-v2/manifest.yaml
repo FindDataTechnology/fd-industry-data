@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: eia-v2                  # = spiders/eia-v2/ 目录名，运行时标识符，合入后不可改名
 label: EIA Hourly Electric Grid (RTO region-data)
 source_url: https://api.eia.gov/v2/electricity/rto/region-data/data/

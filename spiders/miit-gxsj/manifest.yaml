@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: miit-gxsj
 label: 工信部软件业/通信业月度运行数据 (MIIT Software & Telecom Monthly)
 source_url: https://www.miit.gov.cn/gxsj/tjfx/
