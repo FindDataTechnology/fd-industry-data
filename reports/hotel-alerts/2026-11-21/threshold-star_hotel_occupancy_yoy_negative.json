@@ -3,7 +3,7 @@
   "description": "星级饭店平均出租率同比转负（< 0%）",
   "asof": "2026-11-21",
   "replay_from": "2024-11-01",
-  "generated_at": "2026-11-21T20:02:37.421210+00:00",
+  "generated_at": "2026-11-21T20:07:22.204273+00:00",
   "config": "config/restaurant-alerts.json",
   "evidence": [
     {

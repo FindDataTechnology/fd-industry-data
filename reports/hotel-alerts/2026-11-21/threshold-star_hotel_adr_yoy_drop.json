@@ -3,7 +3,7 @@
   "description": "星级饭店平均房价同比下降超过 3%（用上游已发布的同比字段，不自算环比）",
   "asof": "2026-11-21",
   "replay_from": "2024-11-01",
-  "generated_at": "2026-11-21T20:02:37.902946+00:00",
+  "generated_at": "2026-11-21T20:07:22.697720+00:00",
   "config": "config/restaurant-alerts.json",
   "evidence": [
     {
