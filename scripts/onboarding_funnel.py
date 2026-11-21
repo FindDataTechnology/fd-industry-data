@@ -169,11 +169,57 @@ def fresh_split(lit: list[dict], goods: dict[str, str], now: datetime) -> tuple[
     return fresh, at_risk, stale
 
 
+def doc_counts(path: Path | None = None) -> dict[str, int]:
+    """从 ``docs/onboarding-funnel.md`` 抽它写的漏斗计数（candidates/landed/lit）。
+
+    只认「键名 数字」这种形态；不试图理解整段文字——那是一份人读的文档，
+    不是数据文件。抽不到就给空 dict（= 文档没声称数字，不算不一致）。
+    """
+    p = path or (Path(__file__).resolve().parents[1] / "docs" / "onboarding-funnel.md")
+    if not p.is_file():
+        return {}
+    out: dict[str, int] = {}
+    for line in p.read_text(encoding="utf-8").splitlines():
+        # 只认漏斗表形态：`| candidates | … | 202（…） |` —— 首列是段名，
+        # 末列以数字开头。宽松匹配会把 `source-candidates/v1` 里的 1 读成计数。
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 2 or cells[0] not in ("candidates", "landed", "lit"):
+            continue
+        m = re.match(r"(\d{1,7})(?![\d.])", cells[-1])
+        if m and cells[0] not in out:
+            out[cells[0]] = int(m.group(1))
+    return out
+
+
+def check_doc(report: dict, path: Path | None = None) -> tuple[int, list[str]]:
+    """文档里的计数 vs 本次实际输出。返 (rc, 差异说明)。
+
+    **只核三个数**：candidates / landed / lit —— `fresh` 依赖 DSN，离线读不到；
+    `needs_review` 不是漏斗阶段。核一个读不到的数会制造假红。
+    """
+    got = {"candidates": (report["candidates"].get("count")
+                          if report["candidates"].get("state") == "ok" else None),
+           "landed": report["landed"], "lit": report["lit"]}
+    doc = doc_counts(path)
+    diffs: list[str] = []
+    for key, actual in got.items():
+        if key not in doc:
+            continue
+        if actual is not None and doc[key] != actual:
+            diffs.append(f"  ✗ {key}：文档写 {doc[key]}，实际 {actual}")
+    if diffs:
+        return 1, diffs
+    uncited = [k for k in got if k not in doc]
+    return 0, [f"  · 文档未写 {k}（不判）" for k in uncited]
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dsn", default=os.environ.get("FD_CRAWL_DB_URL", ""))
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--check-doc", action="store_true",
+                    help="核对 docs/onboarding-funnel.md 的计数与本脚本输出（CI 用）")
     args = ap.parse_args(argv[1:])
 
     stages = repo_stages()
@@ -200,6 +246,14 @@ def main(argv: list[str]) -> int:
         "stale_sources": stale if measured else [],
     }
     cands = report["candidates"]
+    if args.check_doc:
+        rc, notes = check_doc(report)
+        print("文档-代码一致性（docs/onboarding-funnel.md）")
+        for n in notes:
+            print(n)
+        print("结论：" + ("一致" if rc == 0 else "文档落后于代码"))
+        return rc
+
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
         return 0

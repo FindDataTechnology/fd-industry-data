@@ -7,30 +7,43 @@
 
 | 段 | 来源 | 当前值 |
 |---|---|---|
-| candidates | **无结构化来源** | `unknown` |
-| landed | `spiders/*/manifest.yaml` 存在 | 162 |
-| lit | landed 且有非空 `schedule`，且未 `parked`/`enabled: false` | 122 |
+| candidates | `data-source-scouting/candidates.json`（`source-candidates/v1`，由 `scripts/extract_candidates.py` 从侦察簿派生） | 202（accepted 146 / rejected 22 / unknown 34） |
+| landed | `spiders/*/manifest.yaml` 存在 | 165 |
+| lit | landed 且有非空 `schedule`，且未 `parked`/`enabled: false` | 125 |
 | fresh | lit 且 `cycles_since_last_good == 0` | 75（lit 的 61.5%） |
 
 ```
-landed 162 ──┬─ stopped 31（parked / enabled:false）
-             └─ lit   122 ──┬─ fresh     75
+landed 165 ──┬─ stopped 40（parked / enabled:false）
+             └─ lit   125 ──┬─ fresh     75
                             ├─ at-risk   40   ← 只欠一期
                             └─ stale      7
+
+candidates 202 ──┬─ accepted  146 ──┬─ 已接（landed_slug 有值）95
+                 │                 └─ 无落地出处          51
+                 ├─ rejected   22
+                 └─ unknown    34
+（另有 93 条 needs_review：解析歧义，与上面三档并行，不叠加）
 ```
 
 `at-risk` 单列，是因为判据层（D2）把「欠 1 期」当 trace 不出单；漏斗里既不能算
 「新鲜」，也不该混进「陈旧」。**75 + 40 + 7 = 122**，三段互斥且穷尽。
 
-## 为什么 candidates 是 unknown
+## candidates 段的来源
 
-候选只存在于 `data-source-scouting/INDUSTRY-DATA-SOURCES.md` 的手写表格里（300 行、
-多张表、状态列格式不一）。硬解析会得到一个**没人能复算**的数字 —— 那正是这份
-change 一直在反的那种「判据看着绿、实际不可核」。
+**已接通**（commit 127a7b5，2026-11-10）：`candidates_stage()` 读
+`data-source-scouting/candidates.json`（schema `source-candidates/v1`），
+由 `data-source-scouting/scripts/extract_candidates.py` 从
+`INDUSTRY-DATA-SOURCES.md` 派生。清单缺失/不可解析/schema 不符时**如实报
+`unknown` + 原因**，绝不退化成 0。
 
-要让它变成可计量，需要一次性人工把 scouting 表转成结构化清单
-（如 `data-source-scouting/candidates.json`），之后漏斗才能补上第一段。
-在那之前，**"还有多少候选没落仓"这个问题没有可信答案**，只能人工读文档。
+「已接但无落地出处」（`accepted_without_landing`，当前 51 条）单列——它让侦察簿
+不记落地出处的结构性缺口可见，而不是替它圆。这 51 条的逐条归因是
+openspec change `structure-scout-candidates` 的范围。
+
+> **本文曾经写过「candidates 是 unknown，因为只有手写表格」**——那是 2026-11-09
+> 的状态，11-10 就接通了。这段留在原处是另一种假信号：判据看着缺少、实际已可用。
+> 现在由 `python3 scripts/onboarding_funnel.py --check-doc` 机械核对本页的三个计数
+> 与脚本实际输出，文档再落后就会报红。
 
 ## 复算
 
