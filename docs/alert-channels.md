@@ -105,6 +105,12 @@ VALUES ('alerts-slack', '<slack-bot-id>', 'C038JKMAG1H', datetime('now'));
 整个浏览器栈——那是爬虫需要的，告警不需要。混用会让「改一行告警代码」变成
 「重建 25–40 分钟的浏览器镜像」。
 
+**实测构成**（2026-11-21，集群内 du）：runner 镜像 860 MB 里
+`/root/.cache/ms-playwright` 占 700 MB、site-packages 占 440 MB。
+注意 `command -v chromium` 在 runner 里返回 **NO**——浏览器在 playwright 的
+cache 目录下，不在 PATH 上。「没有这个命令名」不等于「没有浏览器」，
+别用命令名判定这件事。
+
 出片：`.github/workflows/alerts-image.yml`（47 秒）。改 `alerts_core/` 会自动触发。
 
 ## 已知边界
