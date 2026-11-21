@@ -155,22 +155,91 @@ def _parse_dsn_or_fail() -> str | None:
     return None
 
 
+def _rows_via_psql(dsn: str) -> list[tuple]:
+    """两个后端之一：``psql`` 子进程（README / health 线同路径）。
+
+    **为什么必须留这条路**：GHA 的 self-hosted runner 上只有 `python3` + yaml，
+    **没有 pip、没有 psycopg2**（2026-11-22 实测：`/usr/bin/python3: No module
+    named pip`，第一次 dispatch 就红在这里）。health 线早就走 `psql` 子进程绕开
+    驱动依赖；三联账要连库，必须有同一条路。
+
+    输出契约：``-At -F '\t'`` 下 NULL 是空串，datetime 是 ISO 文本，
+    ``avg(interval)`` 是形如 ``1 day 00:00:00`` 的文本——这里统一还原成
+    psycopg2 那侧的 Python 形状，让两种后端喂给 build_rows 的数据同形。
+    """
+    import subprocess
+
+    proc = subprocess.run([os.environ.get("FD_PSQL_BIN", "psql"), dsn,
+                           "-At", "-F", "\t", "-c", SQL],
+                          capture_output=True, text=True, timeout=120)
+    if proc.returncode != 0:
+        raise RuntimeError(f"psql 失败（rc={proc.returncode}）：{proc.stderr.strip()[:200]}")
+
+    def _ts(v: str):
+        v = v.strip()
+        return v or None
+
+    rows: list[tuple] = []
+    for line in proc.stdout.splitlines():
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        if len(parts) != 7:
+            continue
+        source, crawl_ts, cycle, data_latest, n_obs, last_run, last_status = parts
+        rows.append((source, _ts(crawl_ts), _interval_to_days(cycle), _ts(data_latest),
+                     int(n_obs) if n_obs.strip().isdigit() else None,
+                     _ts(last_run), _ts(last_status) or None))
+    return rows
+
+
+def _interval_to_days(v: str) -> float | None:
+    """``avg(interval)`` 的文本形态 → 天数。``psql`` 给 ``1 day 12:00:00``。"""
+    v = (v or "").strip()
+    if not v:
+        return None
+    m = re.match(r"(?:(\d+)\s+days?\s*)?(\d+):(\d+):(\d+)", v)
+    if not m:
+        return None
+    d, h, mi, s = (int(x or 0) for x in m.groups())
+    return d + (h * 3600 + mi * 60 + s) / 86400.0
+
+
 def fetch_facts() -> dict[str, dict]:
     dsn = _parse_dsn_or_fail()
     if not dsn:
         raise RuntimeError("缺 DSN（FD_OPEN_DATA_DSN / FD_OPEN_DATA_MCP_DATABASE_URL）")
-    import psycopg2
 
-    conn = psycopg2.connect(dsn)
+    # 有 psycopg2 就用它（本地/分析机），没有就退回 psql 子进程（GHA runner）。
     try:
-        with conn.cursor() as cur:
-            cur.execute(SQL)
-            raw = cur.fetchall()
-    finally:
-        conn.close()
-    facts: dict[str, dict] = {}
-    for source, crawl_ts, cycle, data_latest, n_obs, last_run, last_status in raw:
-        cycle_days = (cycle.total_seconds() / 86400.0) if cycle is not None else None
+        import psycopg2  # noqa: F401
+        have_driver = True
+    except ImportError:
+        have_driver = False
+
+    if have_driver:
+        import psycopg2
+
+        conn = psycopg2.connect(dsn)
+        try:
+            with conn.cursor() as cur:
+                cur.execute(SQL)
+                raw = cur.fetchall()
+        finally:
+            conn.close()
+        facts: dict[str, dict] = {}
+        for source, crawl_ts, cycle, data_latest, n_obs, last_run, last_status in raw:
+            cycle_days = (cycle.total_seconds() / 86400.0) if cycle is not None else None
+            facts[source] = {
+                "crawl_ts": crawl_ts, "cycle_days": cycle_days,
+                "data_latest": data_latest, "obs_rows": n_obs,
+                "last_run": last_run, "last_status": last_status,
+            }
+        return facts
+
+    # psql 后端：cycle 已经换算成天数
+    facts = {}
+    for source, crawl_ts, cycle_days, data_latest, n_obs, last_run, last_status in _rows_via_psql(dsn):
         facts[source] = {
             "crawl_ts": crawl_ts, "cycle_days": cycle_days,
             "data_latest": data_latest, "obs_rows": n_obs,
