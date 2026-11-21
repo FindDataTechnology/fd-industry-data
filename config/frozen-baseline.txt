@@ -1,0 +1,31 @@
+# frozen 基线（首次落地 2026-11-21，来自 semantic_coverage.py 真库一轮）。
+# 判据：观测层有行，但仓内没有当前可跑的抽取器（历史抽过、现在静止变旧）。
+# 每行一个源名；补上抽取器后从此文件删除（闸会报「已离开基线」）。
+afdc
+agri-casde
+amis-market
+boxofficemojo
+carbon-monitor
+clinicaltrials
+clinicaltrials-cn
+edgar-emissions
+ember
+entsoe-e
+mct-star-hotel
+mct-tourism-demand
+mem-disaster
+moa-fishery
+mohurd-yearbook
+nifdc-batchcert
+nrdl-national-catalog
+oecd-cli
+openalex-works
+openfda
+portwatch-imf
+socrata-chicago
+socrata-ny
+spb-express
+tpex-monthly-revenue
+un-comtrade
+wto-eping
+zgdypf-boxoffice

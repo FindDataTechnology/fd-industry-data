@@ -172,16 +172,19 @@ KNOWN_GAPS: dict[str, str] = {
 
 
 def tracked_sources(cur) -> list[str]:
-    """判据的**范围**：台账里出现过的源 ∪ 本仓有 crawl_items 型抽取器的源。
+    """判据的**范围**：亮着的源全集 ∪ 台账源 ∪ 本仓抽取器源。
 
-    两处来源缺一不可：
+    三处来源缺一不可：
+    * **亮着的源**（``spiders/*/manifest.yaml`` 的 ``schedule`` 非空）—— 2026-11-21
+      补的（change measure-semantic-coverage-gap）：没有它会漏掉 109 个「亮着但
+      根本没有抽取器」的源，它们永远不红。
     * **台账**（``executions`` 里 ``wave src=<源>``）—— pod 里跑的时候只有这条路
       可用：挂载卷只带脚本、不带四个抽取器包，扫包会得到 0 个源（2026-11-19 实测，
       判据在集群里「通过」了但一个源都没判，比红更糟）。
     * **本仓包**—— 本地跑的时候能在台账还没写之前就知道该有哪些源（新加的
       抽取器不会因为「还没跑过」而漏判）。
 
-    两者的并集才是完整范围；只有其中一处可用时就用那一处。
+    三者的并集才是完整范围；读不到的一路在 stderr 说明，不许因此静默缩范围。
     """
     import sys
     from pathlib import Path
@@ -191,8 +194,18 @@ def tracked_sources(cur) -> list[str]:
                 " FROM executions WHERE detail LIKE 'wave src=%'")
     names |= {r[0] for r in cur.fetchall() if r[0]}
 
-    # 包扫描是**可选**增强：挂载环境里没有包目录，扫不到就跳过（不是错误）
     scripts_dir = Path(os.path.abspath(__file__)).parent
+
+    # 亮着的源全集：判据范围的**第一来源**（change measure-semantic-coverage-gap）。
+    # 没有抽取器的源只有这一路能看见；缺它 = 109 个源永远不红。
+    lit = lit_source_names(scripts_dir)
+    if lit is None:
+        print("WARN: 清单目录不可用，「亮着的源」这一路未纳入范围（判据范围缩水）",
+              file=sys.stderr)
+    else:
+        names |= lit
+
+    # 包扫描是**可选**增强：挂载环境里没有包目录，扫不到就跳过（不是错误）
     if (scripts_dir / "wave_extract_split.py").exists():
         if str(scripts_dir) not in sys.path:
             sys.path.insert(0, str(scripts_dir))
@@ -215,6 +228,104 @@ def dsn() -> str | None:
             import re
             return re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", v.strip())
     return None
+
+
+def lit_source_names(scripts_dir=None) -> set[str] | None:
+    """亮着的源：``spiders/*/manifest.yaml`` 的 ``schedule`` 非空。
+
+    这是判据范围的**第一来源**（change measure-semantic-coverage-gap）：没有
+    抽取器的源只有这一路能看见。与 `onboarding_funnel` 的 `lit` 同口径。
+    读不到清单（缺 yaml 或无目录）时返回 ``None`` ——「判不出」不等于「没有源」，
+    调用方必须把 ``None`` 与空集分开处理。
+    """
+    from pathlib import Path
+
+    repo = Path(scripts_dir).parent if scripts_dir else Path(__file__).resolve().parents[1]
+    spiders = repo / "spiders"
+    if not spiders.is_dir():
+        return None
+    try:
+        import yaml
+    except ImportError:
+        return None
+    out: set[str] = set()
+    for p in spiders.glob("*/manifest.yaml"):
+        try:
+            m = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        except Exception:  # noqa: BLE001 - 单个坏清单不拖垮范围，但会少一个源
+            continue
+        if (m.get("schedule") or "").strip():
+            out.add(m.get("name") or p.parent.name)
+    return out
+
+
+def extractor_source_names(scripts_dir=None) -> set[str]:
+    """仓内**有常驻调用方**的抽取器源。
+
+    两处来源：
+    * 四个波包（``wave_extract_split`` 的 AST 判据，只认 ``crawl_items`` 型——
+      它们在 pod 里跑，读库不打上游）；
+    * 独立的 ``scripts/extract_*.py``（``SOURCE = ...`` / ``SOURCES = {...}`` /
+      ``_SOURCE_OF = {...}``）。2026-11-21 实测：漏掉这一路会把 ``uk-hpi``
+      （18,906 行观测）这类源误判成 unwired。
+
+    只读 ``extract_*.py``、不做 AST 深判：这七个脚本各自在 CI 作业里显式调用
+    （见各 workflow），比 wave 包更容易确认「有人跑」。
+    """
+    import re
+    import sys
+    from pathlib import Path
+
+    scripts = Path(scripts_dir) if scripts_dir else Path(os.path.abspath(__file__)).parent
+    out: set[str] = set()
+    if (scripts / "wave_extract_split.py").is_file():
+        if str(scripts) not in sys.path:
+            sys.path.insert(0, str(scripts))
+        import wave_extract_split as wes
+
+        report = wes.scan_scripts_dir(scripts)
+        out |= {m["source"] for mods in report.values() for m in mods
+                if m["kind"] == wes.SCHEDULED}
+
+    for p in sorted(scripts.glob("extract_*.py")):
+        try:
+            text = p.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for m in re.finditer(r'^SOURCE\s*=\s*["\']([a-z0-9_.-]+)["\']', text, re.M):
+            out.add(m.group(1))
+        for m in re.finditer(r'^(?:SOURCES|_SOURCE_OF)\s*=\s*\{', text, re.M):
+            end = text.find("\n}", m.start())
+            block = text[m.start():end if end > 0 else m.start() + 6000]
+            out |= set(re.findall(r'["\']([a-z0-9_.-]+)["\']\s*:', block))
+            out |= set(re.findall(r':\s*["\']([a-z0-9_.-]+)["\']', block))
+    return out
+
+
+def classify(*, has_extractor: bool, crawl_ts, data_latest, last_run, last_status,
+             cycle_days, obs_rows=None) -> tuple[str, str]:
+    """五档判定（spec semantic-coverage-ledger）。
+
+    ``served``    有抽取器，跟随
+    ``lagging``   有抽取器，但台账显示已死 / 末次失败
+    ``frozen``    观测层有行，但**当前没有抽取器** —— 历史上抽过，今天没人刷新
+    ``unwired``   观测层零行且没有抽取器 —— 从未进过观测层
+    ``unknown``   无成功爬取记录（判不出是否在产）
+
+    ``unknown`` 优先级最高：读不到就不许猜。``frozen`` 与 ``unwired`` 分开的理由：
+    前者已有数据（会在原值上静止变旧），后者从来没有过——处置动作不同（找旧抽取器
+    vs 新建一个）。2026-11-21 实测这两档各 28 / 63 个源。
+    """
+    if crawl_ts is None:
+        return "unknown", "该源没有成功爬取记录（判不出是否在产）"
+    if not has_extractor:
+        if obs_rows:
+            return "frozen", (
+                f"观测层有 {obs_rows} 行，但仓内没有当前可跑的抽取器"
+                "（历史上抽过，现在没人刷新）")
+        return "unwired", "亮着，但仓内没有把其产物归一进观测层的抽取器"
+    level, msg = verdict(crawl_ts, data_latest, last_run, last_status, cycle_days)
+    return ("served", msg) if level == "ok" else ("lagging", msg)
 
 
 def run(scope: str = "wave") -> tuple[int, list[dict]]:
@@ -243,14 +354,25 @@ def run(scope: str = "wave") -> tuple[int, list[dict]]:
     if allowed_sources is not None:
         rows = [r for r in rows if r[0] in allowed_sources]
 
+    scripts_dir = os.path.dirname(os.path.abspath(__file__))
+    extractors = extractor_source_names(scripts_dir)
+
     out = []
     bad = 0
+    seen: set[str] = set()
     for source, crawl_ts, cycle, data_latest, n_obs, last_run, last_status in rows:
         # psycopg2 把 `avg(interval)` 作为 timedelta 返回
         cycle_days = (cycle.total_seconds() / 86400.0) if cycle is not None else None
-        level, msg = verdict(crawl_ts, data_latest, last_run, last_status, cycle_days)
+        level, msg = classify(
+            has_extractor=source in extractors,
+            crawl_ts=crawl_ts, data_latest=data_latest,
+            last_run=last_run, last_status=last_status, cycle_days=cycle_days,
+            obs_rows=n_obs)
+        seen.add(source)
         exempt = KNOWN_GAPS.get(source)
-        if level in ("lag", "never") and not exempt:
+        # unwired / frozen 不计入退出码：63+28 个存量会让这条闸永久红
+        # （基线 diff 在 semantic_coverage.py --check-baseline 里做）。
+        if level == "lagging" and not exempt:
             bad += 1
         out.append({"source": source, "level": level,
                     "message": msg, "known_gap": exempt,
@@ -259,6 +381,18 @@ def run(scope: str = "wave") -> tuple[int, list[dict]]:
                     "last_status": last_status,
                     "data_latest": str(data_latest) if data_latest else None,
                     "obs_rows": n_obs})
+
+    # 亮着但库里没有一条成功爬取的源：判 unknown，不许因为「SQL 里没有它」而消失。
+    # 这一档正是「抓取从未成功过」，与 unwired（抓到了但没抽取器）不同。
+    if allowed_sources is not None:
+        for source in sorted(allowed_sources - seen):
+            level, msg = classify(has_extractor=source in extractors, crawl_ts=None,
+                                  data_latest=None, last_run=None, last_status=None,
+                                  cycle_days=None)
+            out.append({"source": source, "level": level, "message": msg,
+                        "known_gap": KNOWN_GAPS.get(source), "crawl_ts": None,
+                        "last_run": None, "last_status": None,
+                        "data_latest": None, "obs_rows": None})
     return (1 if bad else 0), out
 
 
@@ -298,7 +432,28 @@ def self_test() -> int:
     if failures:
         print("selftest FAILED:\n" + "\n".join(failures), file=sys.stderr)
         return 1
-    print(f"selftest OK（{len(cases)} 例：died/ok/lag/never 四档 + fert-cn 假阳性回归）")
+
+    # 五档分类的边界（change measure-semantic-coverage-gap）：
+    # 抓取成功 + 无抽取器 + 观测零行 = unwired；观测有行 = frozen（历史抽过）；
+    # 无成功爬取 = unknown（不是 unwired）。
+    cls_cases = [
+        (True, now, None, now - timedelta(hours=1), "success", None, "served"),
+        (False, now, None, None, None, None, "unwired"),
+        (False, now, None, None, None, 1234, "frozen"),
+        (True, now, None, now - timedelta(days=9), "success", 5, "lagging"),
+        (False, None, None, None, None, None, "unknown"),
+    ]
+    for has_ext, crawl, latest, run, status, obs, want in cls_cases:
+        got, msg = classify(has_extractor=has_ext, crawl_ts=crawl, data_latest=latest,
+                            last_run=run, last_status=status, cycle_days=1.0, obs_rows=obs)
+        if got != want:
+            failures.append(f"  classify(has_extractor={has_ext}, obs={obs}) → {got}"
+                            f"（期望 {want}）：{msg}")
+    if failures:
+        print("selftest FAILED:\n" + "\n".join(failures), file=sys.stderr)
+        return 1
+    print(f"selftest OK（{len(cases)} 例 verdict 四档 + fert-cn 假阳性回归"
+          f"；{len(cls_cases)} 例 classify served/unwired/frozen/lagging/unknown）")
     return 0
 
 
@@ -308,8 +463,8 @@ def main() -> int:
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--quiet-ok", action="store_true", help="只打印滞后/从未抽取的源")
     ap.add_argument("--scope", choices=("wave", "all"), default="wave",
-                    help="wave=只判本仓四个波包里有抽取器的源（门禁用）；"
-                         "all=全表盘点（不做门禁，会有大量「从未抽取」）")
+                    help="wave=只判亮着 / 台账 / 抽取器并集里的源（门禁用，含 109 个"
+                         "无抽取器的 unwired）；all=全表盘点")
     args = ap.parse_args()
 
     if args.self_test:
@@ -320,18 +475,19 @@ def main() -> int:
         print(json.dumps({"exit": rc, "sources": rows}, ensure_ascii=False, indent=2))
         return rc
 
-    shown = [r for r in rows if not (args.quiet_ok and r["level"] == "ok")]
+    shown = [r for r in rows if not (args.quiet_ok and r["level"] == "served")]
     for r in shown:
-        mark = {"ok": "  ", "lag": "✗ ", "never": "? "}[r["level"]]
-        suffix = "（存量豁免，不计失败）" if r.get("known_gap") and r["level"] != "ok" else ""
+        mark = {"served": "  ", "lagging": "✗ ", "unwired": "! ", "unknown": "? "}[r["level"]]
+        suffix = "（存量豁免，不计失败）" if r.get("known_gap") and r["level"] != "served" else ""
         print(f"{mark}{r['source']:<26} {r['message']}{suffix}")
-    n_lag = sum(1 for r in rows if r["level"] == "lag" and not r.get("known_gap"))
-    n_never = sum(1 for r in rows if r["level"] == "never" and not r.get("known_gap"))
-    n_exempt = sum(1 for r in rows if r["level"] != "ok" and r.get("known_gap"))
-    print(f"\n{len(rows)} 个源：滞后 {n_lag} / 从未抽取 {n_never} / 存量豁免 {n_exempt} / 正常 "
-          f"{len(rows) - n_lag - n_never - n_exempt}")
+    counts = {}
     for r in rows:
-        if r["level"] != "ok" and r.get("known_gap"):
+        counts[r["level"]] = counts.get(r["level"], 0) + 1
+    print(f"\n{len(rows)} 个源：served {counts.get('served', 0)}"
+          f" / lagging {counts.get('lagging', 0)} / unwired {counts.get('unwired', 0)}"
+          f" / unknown {counts.get('unknown', 0)}")
+    for r in rows:
+        if r["level"] != "served" and r.get("known_gap"):
             print(f"  豁免 {r['source']}: {r['known_gap']}")
     return rc
 

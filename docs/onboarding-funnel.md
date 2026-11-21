@@ -57,6 +57,29 @@ python3 scripts/onboarding_funnel.py            # 只看仓库侧三段，fresh 
 - 「fresh」是严格口径（0 个应跑周期未成功），不是「最近跑过」。
 - 漏斗不产出工单，它只回答「落仓的东西有多少真在出数」。
 
+## 与「语义覆盖三联账」的分工（2026-11-21 新增）
+
+本漏斗量的是**爬取层**（落仓 → 点亮 → 新鲜）。它不回答「抓到的这些东西能不能
+按概念读到」——那是另一个问题、另一条闸：
+
+| 闸 | 量什么 | 判据 | 出口 |
+|---|---|---|---|
+| `health_inspect.py`（`health-inspect.yml`） | 源活不活 | `crawl_runs` 连续失败、水位冻结 | 工单 → 自愈 agent |
+| `onboarding_funnel.py`（本文件） | 落仓→点亮→新鲜的漏斗 | 每段计数 | 运维视图 |
+| `check_observation_lag.py` | 已有抽取器活着吗 | 观测水位 vs 爬取水位 | 门禁（lagging 才红） |
+| `semantic_coverage.py`（`semantic-coverage.yml`） | **哪些源根本没接进观测层** | `frozen` / `unwired` 基线 diff | 每日红/绿 |
+
+`semantic_coverage.py` 的实测（2026-11-21，真库）：125 个亮着的源里
+**served 34 / frozen 28 / unwired 60 / unknown 3**。也就是说另外 91 个源在
+本漏斗里可能是「fresh」的，但它们的数据永远不会变成可检索指标。
+**两个数不可互换引用**：漏斗的 fresh 不等于语义层可用。
+
+`frozen` 与 `unwired` 是两种病：
+- `frozen` = 观测层有行、当前没有可跑的抽取器（历史抽过，静止变旧）→ 找回旧抽取器
+- `unwired` = 观测层零行、没有抽取器 → 新建一个
+
+两档各有一份基线（`config/frozen-baseline.txt` / `config/unwired-baseline.txt`），
+基线外新增报红。**不许把两档合并成一个数**：合并后一档修好、另一档新增会互相抵消。
 
 ## 欠账复测队列（2026-11-10 起）
 
