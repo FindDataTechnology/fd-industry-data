@@ -1,5 +1,6 @@
 version: "2"
 name: openalex-works             # = spiders/openalex-works/ 目录名，运行时标识符，合入后不可改名
+same_source_as: education_openalex   # 同一上游 URL（事实标注，不参与调度）
 label: OpenAlex Monthly Research Output
 source_url: https://openalex.org/
 # site: tencent              # 缺省 tencent；本单元只访问 api.openalex.org 公开 REST，无需换执行位

@@ -52,3 +52,12 @@ jobs:
           # 闸本身在 fd-industry-data/scripts/；独立 clone 时根 openspec/ 不存在，
           # 它会如实报 UNCOVERED 而不是假绿。
           python scripts/check_caas_conformance.py
+
+      # 源登记表漂移闸（change derive-source-registries）。只读源码与盘面：
+      # L3 可达性表 2026-09-12 生成，95 条里 59 条指向的单元目录已不在仓里，
+      # 却仍被当 unreachable 引用。本闸把「已归档」与「打不通」分开，并要求
+      # same_source_as 双向一致。红只在同源声明坏 / 新单元未登记。
+      - name: 源登记表漂移闸
+        run: |
+          python scripts/check_registry_drift.py --self-test
+          python scripts/check_registry_drift.py

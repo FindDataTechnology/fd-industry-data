@@ -1,5 +1,6 @@
 version: "2"
 name: education_openalex
+same_source_as: openalex-works   # 同一上游 URL（事实标注，不参与调度）
 label: OpenAlex Education Subset (works, authors, topics in Education subfield)
 source_url: https://openalex.org/
 # site: tencent

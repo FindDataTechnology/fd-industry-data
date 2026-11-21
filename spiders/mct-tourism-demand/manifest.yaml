@@ -1,5 +1,6 @@
 version: "2"
 name: mct-tourism-demand     # = spiders/mct-tourism-demand/ 目录名，运行时标识符，合入后不可改名
+same_source_as: mct-star-hotel   # 同一上游 URL（事实标注，不参与调度）
 label: 文化和旅游部 国内居民出游数据（季度稿 · 人次/花费/城镇农村）+ 年度统计公报（入境/出境/旅行社/星级饭店）
 source_url: https://zwgk.mct.gov.cn/zfxxgkml/447/465/index_3081.html
 # site: 缺省 tencent —— 2026-11-08 实测直连 200，无验证码/无 Cookie/无频率限制（与 mct-star-hotel 同栏目）。

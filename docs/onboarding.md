@@ -60,6 +60,16 @@ git push  ->  Jenkins gate  ->  Console 待点亮可见
 要点：落仓用工作区既有 git 凭据（平台组件保持只读）；落仓永远不点亮
 （schedule 会被剥除并提示）；spider 必须带 `run_<src>(limit)` 入口（缺即拒，
 模板见 `templates/new-source/`）。契约由内容仓单方裁决，harness 只是适配。
+
+### `same_source_as`（同源多单元的事实标注）
+
+两个单元抓同一个上游 URL 时（如央行同一栏目下的信贷收支与货币统计），在两者
+manifest 里各写一行 `same_source_as: <对方单元名>`。
+
+**它只是事实标注，不参与调度**：不改变单飞约束、不联坐失败、不改任何运行行为。
+写它是为了让「这几个单元其实是同一份上游」这件事可被机械检出，而不是散在人的
+记忆里。`scripts/check_registry_drift.py` 校验：目标单元必须存在、且双向回指。
+
 ## 认证源（登录态爬取，session-pool）
 
 需要登录的源走身份池：manifest 加 `auth_profile: <名>`，然后为每个账号建身份并登录：
