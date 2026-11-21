@@ -43,6 +43,7 @@
 | F17a | ~~P2~~ → **已修（调度）** | 预警引擎没有调度 | 新增 `.github/workflows/flower-alerts.yml`：每日 **01:05 UTC**（斗南 00:15 UTC 跑完后 50 分钟）；状态机与报告 commit 回 main（cooldown/episode 必须跨运行持久）；退出码 **0/1/2/3 分段**：0=未越阈、1=有越阈（预期）、2=脚本自身失败（判红）、3=环境不满足（warning，不判红）。**已真实触发 3 次验证**，其中第 2 次抓出假绿（见 F17b） | 验收：已完成 |
 
 | F17b | ~~P1~~ → **已修（授权 + 端到端实证）** | 定时任务读不到业务表 | 已授予只读账号 `fd_health_ro` 的 SELECT：`semantic_observations` / `concepts` / `entities` / `crawl_items`（另有既有的 `crawl_runs` / `health_config`），共 **6 张表**；用 `fd`（表 owner）执行，可 `REVOKE` 回滚。**CI 端到端实证**（不是本地模拟）：工作日流第 4 次运行 → `success`，日志里四条规则全部执行——斗南日价 `window_learning`、周环比 quiet `4.3675%`、邻接利润率 crossed `−89.493%`（EDBL）、Comtrade 花卉出口 quiet `+147.93%`、EU 花卉面积 crossed `−2.263%`、事件台账 `28 条已入账 0 新增`，`flower_alerts exit=1`（有越阈，预期）。**踩坑记录**：授予是一张表一张表暴露的（观测表→concepts→crawl_items），每补一张重跑一次 CI 才算确认——本地凭据是 `fd` 超级用户，看不出这种缺口 | 验收：已完成 |
+| F17c | ~~P1~~ → **已修（授权 + 端到端实证）** | 语义覆盖三联账读不到 `executions` | F17b 的第七张表：`fd_health_ro` 对 `executions` 无 SELECT，2026-11-22 首次 dispatch `semantic-coverage.yml` 就红在 `permission denied for table executions`。已用 owner `fd` 执行 `GRANT SELECT ON public.executions TO fd_health_ro`（可 REVOKE 回滚）。**与 F17b 同一个坑**：本地凭据是 `fd`，看不出这种缺口；必须靠 CI 真跑暴露。**CI 端到端实证**：run 44947936774 `success`，日志 `frozen 基线：28 条仍存在，新增 0` / `unwired 基线：60 条仍存在，新增 0`，125 个亮着源 → served 34 / frozen 28 / unwired 60 / unknown 3 | 验收：已完成 |
 
 
 
