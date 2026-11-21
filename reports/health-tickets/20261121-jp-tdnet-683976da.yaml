@@ -1,0 +1,32 @@
+ticket_id: 20261121-jp-tdnet-683976da
+source: jp-tdnet
+unit: spiders/jp-tdnet/
+kind: repair
+created_at: '2026-11-21T23:48:47.474497+00:00'
+category: structure
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 核对条目键名或更新 data_period_field（当前声明 'trade_date'）
+evidence:
+  window:
+    from: '2026-11-09 16:15:17.126963+00'
+    to: '2026-11-21 14:20:05.974966+00'
+  failing_runs: []
+  last_success:
+    started_at: '2026-11-21 14:20:05.974966+00'
+    rows: 0
+  watermark:
+    latest: null
+    basis: unknown（遥测未提供数据期；最近成功时间见 evidence.last_success）
+  notes: declare:field-mismatch field='trade_date' states=['unavailable', 'unavailable',
+    'unavailable'] runs=3
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261121-jp-tdnet-683976da.yaml
+golden:
+- spiders/jp-tdnet/golden/expected.json
+lifecycle:
+- at: '2026-11-21T23:48:47.474497+00:00'
+  event: created
+terminal: null
+evidence_signature: 98c4b7d37a4c

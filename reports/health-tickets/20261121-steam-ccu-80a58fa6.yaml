@@ -1,0 +1,111 @@
+ticket_id: 20261121-steam-ccu-80a58fa6
+source: steam-ccu
+unit: spiders/steam-ccu/
+kind: repair
+created_at: '2026-11-21T23:48:47.474497+00:00'
+category: network
+needs_human: false
+suspected_anti_bot: false
+suggested_action: 出口切换/代理复测（不改代码）
+evidence:
+  window:
+    from: '2026-10-22 23:56:04.654082+00'
+    to: '2026-11-20 23:57:25.208262+00'
+  failing_runs:
+  - started_at: '2026-11-07 23:56:04.524115+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app 取数失败 — 730: ValueError: response
+      is not JSON (JSONDecodeError); 570: ValueError: response is not JSON (JSONDecodeError);
+      578080: ValueError: response is not JSON (JSONDecodeError); 271590: ValueError:
+      response is not JSON (JSONDecodeError); 1172470: ValueError: resp'
+    http_status: null
+  - started_at: '2026-11-07 23:56:56.771895+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app 取数失败 — 730: ValueError: response
+      is not JSON (JSONDecodeError); 570: ValueError: response is not JSON (JSONDecodeError);
+      578080: ValueError: response is not JSON (JSONDecodeError); 271590: ValueError:
+      response is not JSON (JSONDecodeError); 1172470: ValueError: resp'
+    http_status: null
+  - started_at: '2026-11-08 23:56:05.551679+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app 取数失败 — 730: ValueError: response
+      is not JSON (JSONDecodeError); 570: ValueError: response is not JSON (JSONDecodeError);
+      578080: ValueError: response is not JSON (JSONDecodeError); 271590: ValueError:
+      response is not JSON (JSONDecodeError); 1172470: ValueError: resp'
+    http_status: null
+  - started_at: '2026-11-08 23:56:59.918572+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app 取数失败 — 730: ValueError: response
+      is not JSON (JSONDecodeError); 570: ValueError: response is not JSON (JSONDecodeError);
+      578080: ValueError: response is not JSON (JSONDecodeError); 271590: ValueError:
+      response is not JSON (JSONDecodeError); 1172470: ValueError: resp'
+    http_status: null
+  - started_at: '2026-11-11 23:56:05.156818+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app CCU 取数失败 — 730: URLError: <urlopen
+      error timed out>; 570: URLError: <urlopen error timed out>; 578080: URLError:
+      <urlopen error timed out>; 271590: URLError: <urlopen error timed out>; 1172470:
+      URLError: <urlopen error timed out>; 252490: URLError: <urlopen error ti'
+    http_status: null
+  - started_at: '2026-11-12 00:02:23.156207+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app CCU 取数失败 — 730: URLError: <urlopen
+      error timed out>; 570: URLError: <urlopen error timed out>; 578080: URLError:
+      <urlopen error timed out>; 271590: URLError: <urlopen error timed out>; 1172470:
+      URLError: <urlopen error timed out>; 252490: URLError: <urlopen error ti'
+    http_status: null
+  - started_at: '2026-11-19 23:56:07.195499+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app CCU 取数失败 — 730: URLError: <urlopen
+      error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol
+      (_ssl.c:1011)>; 570: URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING]
+      EOF occurred in violation of protocol (_ssl.c:1011)>; 578080: URLErro'
+    http_status: null
+  - started_at: '2026-11-19 23:57:28.29074+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app CCU 取数失败 — 730: URLError: <urlopen
+      error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol
+      (_ssl.c:1011)>; 570: URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING]
+      EOF occurred in violation of protocol (_ssl.c:1011)>; 578080: URLErro'
+    http_status: null
+  - started_at: '2026-11-20 23:56:05.789099+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app CCU 取数失败 — 730: URLError: <urlopen
+      error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol
+      (_ssl.c:1011)>; 570: URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING]
+      EOF occurred in violation of protocol (_ssl.c:1011)>; 578080: URLErro'
+    http_status: null
+  - started_at: '2026-11-20 23:57:25.208262+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: steam-ccu: 全部种子 app CCU 取数失败 — 730: URLError: <urlopen
+      error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol
+      (_ssl.c:1011)>; 570: URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING]
+      EOF occurred in violation of protocol (_ssl.c:1011)>; 578080: URLErro'
+    http_status: null
+  last_success:
+    started_at: '2026-11-18 23:56:05.821473+00'
+    rows: 12
+  watermark:
+    latest: null
+    basis: unknown（遥测未提供数据期；最近成功时间见 evidence.last_success）
+  notes: 'rule5:network votes=4/4 labels={''network'': 4}'
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261121-steam-ccu-80a58fa6.yaml
+golden:
+- spiders/steam-ccu/golden/001-steam-ccu.json
+lifecycle:
+- at: '2026-11-21T23:48:47.474497+00:00'
+  event: created
+terminal: null
+evidence_signature: 5d624037edc4
