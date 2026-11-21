@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # SWEEP: 全集 732（1984 全年）
 name: nasa-power               # = spiders/nasa-power/ 目录名，运行时标识符，合入后不可改名
 label: NASA POWER Daily Point Meteorology (T2M / PRECTOTCORR)
 source_url: https://power.larc.nasa.gov/api/temporal/daily/point

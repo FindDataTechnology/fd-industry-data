@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: chinabond-yield-curve      # = spiders/chinabond-yield-curve/ 目录名，运行时标识符，合入后不可改名
 label: ChinaBond bank capital-instrument yield curves (Tier-2 / TLAC non-capital)
 source_url: https://yield.chinabond.com.cn/

@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: dagong-ratings        # = spiders/dagong-ratings/ 目录名，运行时标识符，合入后不可改名
 label: Dagong Global — bank regular-tracking rating notices
 source_url: https://www.dagongcredit.com/dggj/ratingNotice/regularTracking/A009003002index_1.htm

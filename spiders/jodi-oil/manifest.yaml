@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # SWEEP: 全集 114,610（limit 130000）
 name: jodi-oil              # = spiders/jodi-oil/ 目录名，运行时标识符，合入后不可改名
 label: JODI-Oil Monthly Oil Supply-Demand
 source_url: https://www.jodidata.org/oil/database/data-downloads.aspx

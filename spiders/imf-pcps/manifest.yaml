@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # SWEEP: 全集 1,254（3 key × 418 期）
 name: imf-pcps                 # = spiders/imf-pcps/ 目录名，运行时标识符，合入后不可改名
 label: IMF Primary Commodity Price System (PCPS)
 source_url: https://data.imf.org/en/datasets/imf-res:pcps

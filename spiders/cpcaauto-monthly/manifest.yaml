@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: cpcaauto-monthly       # = spiders/cpcaauto-monthly/ 目录名，运行时标识符，合入后不可改名
 label: CPCA Passenger-Vehicle Market Monthly Reports (乘联会乘用车市场月度分析)
 source_url: https://www.cpcaauto.com/news.php?types=csjd

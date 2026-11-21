@@ -1,3 +1,4 @@
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: nbs-stats
 schedule: "11 4 4,14,24 * *"
 # 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。

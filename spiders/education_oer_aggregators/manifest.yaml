@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # CATALOG: OER 机构聚合器（固定书/页集）
 name: education_oer_aggregators
 label: OER aggregator catalogs (Gutenberg/Gutendex, Wikibooks, DOAB OAI-PMH) — partner channel, metadata+link only
 source_url: https://gutendex.com/ / https://en.wikibooks.org/ / https://directory.doabooks.org/

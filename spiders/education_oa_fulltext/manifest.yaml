@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: education_oa_fulltext
 label: Education OA Fulltext (arXiv new listings + Europe PMC OA → markdown extraction)
 source_url: https://arxiv.org/ + https://europepmc.org/

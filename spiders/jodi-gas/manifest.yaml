@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # SWEEP: 全集 16,556（固定 CSV）
 name: jodi-gas                   # = spiders/jodi-gas/ 目录名，运行时标识符，合入后不可改名
 label: JODI-Gas Monthly Natural Gas Supply-Demand
 source_url: https://www.jodidata.org/gas/database/data-downloads.aspx

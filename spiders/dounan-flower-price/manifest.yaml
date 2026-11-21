@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: dounan-flower-price   # = spiders/dounan-flower-price/ 目录名，运行时标识符，合入后不可改名
 label: 昆明斗南花卉市场日价（昆明市农业农村局·价格行情）
 source_url: https://nyncj.km.gov.cn/nygz/jgxq/

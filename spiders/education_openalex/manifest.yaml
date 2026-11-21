@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # SNAPSHOT: OpenAlex 季度全量分区
 name: education_openalex
 label: OpenAlex Education Subset (works, authors, topics in Education subfield)
 source_url: https://openalex.org/

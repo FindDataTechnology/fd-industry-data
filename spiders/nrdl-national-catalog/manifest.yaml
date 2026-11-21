@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # YEAR: 国家目录（固定集），limit 5000
 name: nrdl-national-catalog
 label: 国家医保药品目录条目 (NRDL national drug catalog, annual edition)
 source_url: http://www.nhsa.gov.cn/art/2025/12/7/art_104_18970.html

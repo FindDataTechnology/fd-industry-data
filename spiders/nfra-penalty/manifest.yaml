@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: nfra-penalty            # = spiders/nfra-penalty/ 目录名，运行时标识符，合入后不可改名
 label: NFRA Administrative Penalties (bureau/branch public disclosure tables)
 source_url: https://www.nfra.gov.cn/cbircweb/DocInfo/SelectDocByItemIdAndChild?itemId=4113

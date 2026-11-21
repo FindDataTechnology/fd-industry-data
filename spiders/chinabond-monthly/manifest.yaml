@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: chinabond-monthly      # = spiders/chinabond-monthly/ 目录名，运行时标识符，合入后不可改名
 label: ChinaBond monthly market statistics bulletin (8 tables, 1997-present)
 source_url: https://www.chinabond.com.cn/zzsj/zzsj_tjsj/tjsj_tjyb/

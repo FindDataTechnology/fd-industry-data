@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: moa-hog-price
 label: 农业农村部生猪和猪肉价格周报 (MOA Hog & Pork Weekly Price)
 source_url: https://www.moa.gov.cn/ztzl/szcpxx/scxxfb/

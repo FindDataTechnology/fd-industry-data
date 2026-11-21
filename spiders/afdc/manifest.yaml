@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # SWEEP: 全集 225（站点目录）
 name: afdc                       # = spiders/afdc/ 目录名，运行时标识符，合入后不可改名
 label: US DOE AFDC Alternative Fueling Station Counts
 source_url: https://afdc.energy.gov/data/10332

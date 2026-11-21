@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: moa-fishery
 label: 农业农村部渔业渔政管理局水产品产量（月度累计 + 年度公报）
 source_url: https://yyj.moa.gov.cn/gzdt/

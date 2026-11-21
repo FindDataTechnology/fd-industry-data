@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # SWEEP: 全集 366，切片方向 [:limit]
 name: usgs-nwis                # = spiders/usgs-nwis/ 目录名，运行时标识符，合入后不可改名
 label: USGS NWIS Daily Streamflow (site 01646500, 2020)
 source_url: https://waterservices.usgs.gov/nwis/dv/

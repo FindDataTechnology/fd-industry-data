@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # UNMEASURED: 国标分页翻库，全集未测（240s 未跑完）
 name: gb-standards               # = spiders/gb-standards/ 目录名，运行时标识符，合入后不可改名
 label: China National Standards (GB) Search
 source_url: https://std.samr.gov.cn/

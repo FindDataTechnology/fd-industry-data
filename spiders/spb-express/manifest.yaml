@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: spb-express
 label: 国家邮政局快递月报
 source_url: https://www.spb.gov.cn/

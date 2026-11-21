@@ -60,6 +60,42 @@ git push  ->  Jenkins gate  ->  Console 待点亮可见
 要点：落仓用工作区既有 git 凭据（平台组件保持只读）；落仓永远不点亮
 （schedule 会被剥除并提示）；spider 必须带 `run_<src>(limit)` 入口（缺即拒，
 模板见 `templates/new-source/`）。契约由内容仓单方裁决，harness 只是适配。
+
+### 两个必填的 manifest 字段（change fix-crawl-reliability-floor）
+
+| 字段 | 取值 | 缺了会怎样 |
+|---|---|---|
+| `limit_kind` | `rolling` / `full_set` | 判为 `unassigned` 并单列（**不默认成任一取值**） |
+| `requires_env` | 运行时读的 env 键列表 | 缺 key 时 runner 不预检，会记成普通失败而不是 `blocked-config` |
+
+`limit_kind` 怎么判（口诀：**问「下一轮会不会取到这次被切掉的行」**）：
+
+- **会** → `rolling`。日频行情、月度序列、新公告、新记录——历史靠逐轮累积，
+  默认 `limit: 100` 就是它的历史契约，**不用声明 `limit`**。
+- **不会** → `full_set`。年鉴、年报、目录、快照、固定历史集——每轮重新取回同一批、
+  切掉同一批，被切的行永远不会进库。**必须声明覆盖全集的 `limit`**，否则被默认
+  100 截断而运行仍显示「成功」。
+
+两档由 `scripts/check_limit_semantics.py` 守：
+
+```bash
+python3 scripts/check_limit_semantics.py            # CI 每天跑
+python3 scripts/check_limit_semantics.py --json
+```
+
+- `full_set` 缺 `limit` ⇒ 红（正在截断）
+- `rolling` 缺 `limit` ⇒ 不报（行为不变）
+- `unassigned`（缺字段）⇒ 单列不判
+- 确实量不了全集的 `full_set`：写进 `config/limit-kind-exempt.txt`（带理由与日期），
+  它不是「不需要」而是「等着量」——理由过期就删掉那行
+- 已知存量违规写进 `config/limit-kind-baseline.txt`：只报新增，不改变退出码；
+  修好后删行
+
+`requires_env` 由 `scripts/check_credential_declarations.py` 双向对账（声明面 ↔
+登记面 ↔ 值面）。**覆盖边界**：它只查已声明 `requires_env` 的单元，产物里会给出
+`declared_units / lit_units`——未声明的单元不在此闸范围内，它们的缺 key 只能在
+运行记录里看见。
+
 ## 认证源（登录态爬取，session-pool）
 
 需要登录的源走身份池：manifest 加 `auth_profile: <名>`，然后为每个账号建身份并登录：

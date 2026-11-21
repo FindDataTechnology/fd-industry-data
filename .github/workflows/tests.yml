@@ -52,3 +52,15 @@ jobs:
           # 闸本身在 fd-industry-data/scripts/；独立 clone 时根 openspec/ 不存在，
           # 它会如实报 UNCOVERED 而不是假绿。
           python scripts/check_caas_conformance.py
+
+      # 两条纯静态可靠性闸（change fix-crawl-reliability-floor）。都不连库、不联网：
+      # 凭据对账读清单+值面镜像，limit 语义读清单+豁免/基线。值面在仓外，CI
+      # 里没有 secrets/fd-industry-source-keys.env ⇒ 该闸会退出 2（判不出），
+      # 所以 CI 只跑它的 --self-test（纯函数，不读盘）。
+      - name: 可靠性闸自证
+        run: |
+          python scripts/check_credential_declarations.py --self-test
+          python scripts/check_limit_semantics.py --self-test
+
+      - name: limit_kind 语义闸（真盘面）
+        run: python scripts/check_limit_semantics.py

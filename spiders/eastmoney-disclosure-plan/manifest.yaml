@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: eastmoney-disclosure-plan    # = spiders/eastmoney-disclosure-plan/ 目录名，运行时标识符，合入后不可改名
 label: 东财定期报告预约披露日历（注册表驱动宇宙 universes/cn-a.yaml，默认 verticals=[bank]）
 source_url: https://data.eastmoney.com/bbsj/   # 东财「年报季报」落地页；JSON 通道 datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_PUBLIC_BS_APPOIN（见 README）

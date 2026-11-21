@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: rolling   # 日频/月度序列，逐轮累积历史
 name: nbs-housing            # = spiders/nbs-housing/ 目录名，运行时标识符，合入后不可改名
 label: 国家统计局房地产口径 (NBS Housing & Real-Estate, HTML tables)
 source_url: https://www.stats.gov.cn/sj/zxfb/

@@ -1,4 +1,5 @@
 version: "2"
+limit_kind: full_set   # YEAR: 农机统计年报
 name: moa-machinery          # = spiders/moa-machinery/ 目录名，运行时标识符，合入后不可改名
 label: 农业农村部全国农业机械化发展统计公报 (MOA Agricultural Mechanization Bulletin)
 source_url: https://njhs.moa.gov.cn/nyjxhqk/
