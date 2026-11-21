@@ -34,11 +34,15 @@ jobs:
       - name: 装依赖
         run: |
           python -m pip install --upgrade pip
-          # 自身依赖装，但不带 extras：pyproject 钉的是 `scrapling[fetchers]`，
-          # 而 extras 里是 curl_cffi 这类浏览器栈——单测用不到它，装了只是拖慢并
-          # 引入平台相关失败。裸 scrapling 仍是 lxml/cssselect 这几样，测试真正需要的。
-          pip install -e . --no-deps
-          pip install "scrapling>=0.4,<0.5" xlrd pytest fd-open-data-mcp
+          # 按 pyproject 的真实依赖装（带 extras）。裸 scrapling 试过，不够：
+          # test_eurostat_hotel_series 动态加载 spiders/*/spider.py，那些模块在
+          # import 期就拉 scrapling 的 fetcher 栈（curl_cffi）。测的是「spider 能否
+          # 装配」，所以依赖面必须与生产一致，而不是裁剪到「单测看起来不需要」。
+          #
+          # fd_open_data_mcp 装 PyPI 正式版：拉兄弟仓会让 CI 依赖两个仓的相对路径，
+          # 独立 clone 时那条路径不存在。
+          pip install -e .
+          pip install pytest fd-open-data-mcp
 
       - name: 跑 tests/
         run: python -m pytest tests/ -q
