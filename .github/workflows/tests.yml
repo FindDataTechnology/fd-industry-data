@@ -34,10 +34,11 @@ jobs:
       - name: 装依赖
         run: |
           python -m pip install --upgrade pip
-          # 本包自身不装依赖：scrapling 的浏览器栈对单测无用，装了只是拖慢并引入
-          # 平台相关失败。测试实际用到的是 stdlib + pytest + 极少数轻量包。
+          # 自身依赖装，但不带 extras：pyproject 钉的是 `scrapling[fetchers]`，
+          # 而 extras 里是 curl_cffi 这类浏览器栈——单测用不到它，装了只是拖慢并
+          # 引入平台相关失败。裸 scrapling 仍是 lxml/cssselect 这几样，测试真正需要的。
           pip install -e . --no-deps
-          pip install pytest fd-open-data-mcp
+          pip install "scrapling>=0.4,<0.5" xlrd pytest fd-open-data-mcp
 
       - name: 跑 tests/
         run: python -m pytest tests/ -q
