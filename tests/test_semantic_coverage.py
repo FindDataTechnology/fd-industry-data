@@ -122,6 +122,38 @@ def test_baseline_diff_shapes():
     assert "b" not in new_unwired and "a" not in new_frozen
 
 
+def test_pod_environment_degrades_not_greens(tmp_path):
+    """生产 pod 只挂 check_observation_lag.py + wave_extract_split.py。
+
+    在那个环境里抽取器清单读不到。**不许**因此把每个源判成「无抽取器」——
+    那会让 frozen/unwired 全是、`lagging` 永不出现，闸变成永久绿。正确行为：
+    降级（served/lagging 两档）并在 stderr 明说少判了什么。
+    """
+    import shutil
+    import subprocess
+
+    d = tmp_path / "check" / "scripts"
+    d.mkdir(parents=True)
+    for f in ("check_observation_lag.py", "wave_extract_split.py"):
+        shutil.copy(SCRIPTS / f, d / f)
+    r = subprocess.run([sys.executable, str(d / "check_observation_lag.py"), "--self-test"],
+                       capture_output=True, text=True, timeout=120)
+    assert r.returncode == 0, r.stderr
+
+    # 直接验 helper：pod 形态下抽取器集为空 ⇒ 调用方必须走降级分支
+    sys.path.insert(0, str(d))
+    import check_observation_lag as pod_mod
+    assert pod_mod.extractor_source_names(d) == set(), "pod 里不该扫出抽取器"
+    assert pod_mod.lit_source_names(d) is None, "pod 里没有 spiders/ ⇒ 判不出亮着的源"
+
+
+def test_full_repo_has_extractors():
+    """全仓 checkout 时才做五档判定——这是 frozen/unwired 的前提。"""
+    sys.path.insert(0, str(SCRIPTS))
+    import check_observation_lag as m
+    assert len(m.extractor_source_names(SCRIPTS)) > 10, "全仓应扫出两位数抽取器"
+
+
 def test_no_dsn_exits_2(tmp_path, monkeypatch):
     """判不出必须退出 2：退出 0 会让「没查」与「查了没事」同形。"""
     for k in ("FD_OPEN_DATA_DSN", "FD_OPEN_DATA_MCP_DATABASE_URL", "FD_CRAWL_DB_URL"):

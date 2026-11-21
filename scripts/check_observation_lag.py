@@ -356,6 +356,19 @@ def run(scope: str = "wave") -> tuple[int, list[dict]]:
 
     scripts_dir = os.path.dirname(os.path.abspath(__file__))
     extractors = extractor_source_names(scripts_dir)
+    # 抽取器清单读不到（生产 pod 只挂了 check_observation_lag.py +
+    # wave_extract_split.py，没有 extract_*.py）⇒ 每个源都会被判成「无抽取器」，
+    # `lagging` 永远不出现，闸变成**永久绿**——比红更糟。
+    #
+    # 降级而不是失效：范围退回 pod 里本来就有的那两路（台账 ∪ 波包），只用
+    # served/lagging/unknown 三档判，并在 stderr 明说少判了什么。这与改动前的
+    # 行为等价，不会让上产引入回归；五档（frozen/unwired）只在能读到清单的
+    # 环境跑（semantic_coverage.py 的每日作业，它 checkout 全仓）。
+    degraded = not extractors
+    if degraded:
+        print("WARN: 抽取器清单不可用（无 extract_*.py）——本次只判 served/lagging/"
+              "unknown，不判 frozen/unwired（五档判据需全仓 checkout）",
+              file=sys.stderr)
 
     out = []
     bad = 0
@@ -364,7 +377,9 @@ def run(scope: str = "wave") -> tuple[int, list[dict]]:
         # psycopg2 把 `avg(interval)` 作为 timedelta 返回
         cycle_days = (cycle.total_seconds() / 86400.0) if cycle is not None else None
         level, msg = classify(
-            has_extractor=source in extractors,
+            # 降级模式下不把「清单读不到」当成「无抽取器」：判据退回改动前的
+            # served/lagging 两档（见上方 degraded 注释）。
+            has_extractor=True if degraded else (source in extractors),
             crawl_ts=crawl_ts, data_latest=data_latest,
             last_run=last_run, last_status=last_status, cycle_days=cycle_days,
             obs_rows=n_obs)
