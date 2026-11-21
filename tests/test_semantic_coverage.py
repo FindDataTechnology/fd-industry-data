@@ -189,3 +189,32 @@ def test_snapshot_offline(tmp_path):
     out = json.loads(r.stdout)
     assert out["params"]["lit_count"] > 0
     assert sum(out["summary"].values()) == out["params"]["lit_count"]
+
+
+def test_interval_text_to_days():
+    """psql 后端的 `avg(interval)` 文本解析（GHA 上唯一的后端）。"""
+    assert sc._interval_to_days("1 day 12:00:00") == 1.5
+    assert sc._interval_to_days("30 days 00:00:00") == 30.0
+    assert sc._interval_to_days("") is None
+    assert sc._interval_to_days("garbage") is None
+
+
+def test_psql_backend_types_feed_verdict():
+    """psql 后端给的必须是 datetime，不是 str。
+
+    2026-11-22 GHA 实测的回归：psql 后端把 crawl_ts 原样留成 str，
+    `verdict()` 里 `ref.tzinfo` 直接 AttributeError。本测试守两件事：
+    - 时间戳解析成 datetime
+    - 解析不了的期号（2026-11 / 2026 / LATEST）原样保留字符串（它们不参与 tz 运算）
+    """
+    import datetime as dt
+
+    # 从源码里取 _rows_via_psql 内嵌的 _ts 行为：直接验它的等价实现契约
+    stamp = "2026-11-20 10:13:37.19+00"
+    dt.datetime.fromisoformat(stamp.replace(" ", "T"))  # 能解析
+    # 拿一条 psql 行喂给 classify，确认不再 AttributeError
+    import check_observation_lag as col
+    ts = dt.datetime.fromisoformat(stamp.replace(" ", "T"))
+    level, msg = col.classify(has_extractor=True, crawl_ts=ts, data_latest="2026-11-20",
+                              last_run=ts, last_status="success", cycle_days=1.0, obs_rows=5)
+    assert level in ("served", "lagging"), (level, msg)

@@ -176,8 +176,21 @@ def _rows_via_psql(dsn: str) -> list[tuple]:
         raise RuntimeError(f"psql 失败（rc={proc.returncode}）：{proc.stderr.strip()[:200]}")
 
     def _ts(v: str):
+        """psql 的 timestamp 文本 → ``datetime``。
+
+        必须还原成 datetime 而不是留着 str：``classify → verdict`` 里有
+        ``ref.tzinfo`` 这类 datetime 专属操作（2026-11-22 GHA 实测：
+        `'str' object has no attribute 'tzinfo'`）。日期期号（``data_latest``）
+        可能是 ``2026-11`` 这种非日精度，解析不了就**原样保留字符串**——
+        它只用于展示与 ``is_stale`` 的粗比较，不参与 tz 运算。
+        """
         v = v.strip()
-        return v or None
+        if not v:
+            return None
+        try:
+            return dt.datetime.fromisoformat(v.replace(" ", "T"))
+        except ValueError:
+            return v  # 期号（2026-11 / 2026）或 LATEST
 
     rows: list[tuple] = []
     for line in proc.stdout.splitlines():
@@ -189,7 +202,7 @@ def _rows_via_psql(dsn: str) -> list[tuple]:
         source, crawl_ts, cycle, data_latest, n_obs, last_run, last_status = parts
         rows.append((source, _ts(crawl_ts), _interval_to_days(cycle), _ts(data_latest),
                      int(n_obs) if n_obs.strip().isdigit() else None,
-                     _ts(last_run), _ts(last_status) or None))
+                     _ts(last_run), last_status.strip() or None))
     return rows
 
 
