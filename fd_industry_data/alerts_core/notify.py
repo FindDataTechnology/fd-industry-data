@@ -182,6 +182,138 @@ def dispatch_webhook(messages: list[dict], url: str | None, *, opener=None) -> d
 #      并点名，MUST NOT 改用别的通道投递再把结局记成成功。
 #   3. 实际用过的通道记进产物 —— 读者读到的必须是事实，不是配置里的愿望。
 
+# ── relay 通道（relay-alert-channel）─────────────────────────────────────────
+#
+# `relay` 一直是「配置里写得出、运行时必抛」的通道。这里把它实现掉。
+#
+# 一个通道、两个后端：**由 URL 的路径决定协议**，不是第二个开关。路径本身已经
+# 携带了这个信息，多加一个 FD_ALERT_RELAY_KIND 只会多出一个能与 URL 矛盾的输入，
+# 而矛盾的后果是「发到一个后端、按另一个的协议序列化」。
+#
+#   .../v1/send               → fd-bot   {bindingId, chatKey, text}
+#   .../api/bots/relay/send   → cell     {channel, text} + Bearer
+#
+# 目标名（delivery.to[0]）是不透明的：运维写人类可读的名字，翻译在后端或 env。
+# fd-bot 要两个内部标识（bindingId/chatKey），它们进 env 而不是进配置——
+# 配置里出现内部 id 就等于把内部寻址泄漏给了写告警规则的人。
+
+RELAY_URL_ENV = "FD_ALERT_RELAY_URL"
+RELAY_TOKEN_ENV = "FD_ALERT_RELAY_TOKEN"
+FD_BOT_BINDING_ENV = "FD_ALERT_FD_BOT_BINDING"
+FD_BOT_CHAT_ENV = "FD_ALERT_FD_BOT_CHAT"
+
+RELAY_TIMEOUT_SEC = 15  # 比 webhook 长：跨集群 + 平台侧排队
+
+
+def _relay_kind(url: str) -> str:
+    """由 URL 路径判定后端。未知路径即配置错误——不猜。"""
+    path = url.split("?", 1)[0].rstrip("/")
+    if path.endswith("/v1/send"):
+        return "fd-bot"
+    if path.endswith("/api/bots/relay/send"):
+        return "cell"
+    raise ValueError(f"无法从路径判定 relay 后端：{url}")
+
+
+def send_relay(url, payload: dict, env=None, *, opener=None) -> None:
+    """发一条 relay 消息；失败抛异常，由 ``dispatch_relay`` 逐条兜住。
+
+    ``payload`` 是 dict 而非字符串：正文里以 ``{`` 开头的告警会被「先试 JSON」
+    那类猜测误判成 payload，而告警正文恰好经常是 JSON 摘要。
+    """
+    import json
+    import urllib.request
+
+    e = os.environ if env is None else env
+    if not url or not str(url).strip():
+        raise ValueError("empty relay url")
+    url = str(url).strip()
+    kind = _relay_kind(url)
+
+    headers = {"Content-Type": "application/json"}
+    if kind == "cell":
+        token = (e.get(RELAY_TOKEN_ENV) or "").strip()
+        if not token:
+            raise ValueError(f"cell relay 缺 {RELAY_TOKEN_ENV}")
+        headers["Authorization"] = f"Bearer {token}"
+
+    req = urllib.request.Request(
+        url, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST"
+    )
+    open_fn = opener or urllib.request.urlopen
+    with open_fn(req, timeout=RELAY_TIMEOUT_SEC) as resp:
+        code = getattr(resp, "status", None) or resp.getcode()
+        raw = resp.read() or b""
+        if code and int(code) >= 400:
+            raise RuntimeError(f"relay returned {code}: {raw[:200]!r}")
+        # 两个后端的响应体不同，但都用 ok 表达成败：只有 ok === true 算送达。
+        try:
+            body = json.loads(raw) if raw else {}
+        except ValueError:
+            body = {}
+        if body.get("ok") is not True:
+            reason = body.get("reason") or body.get("failure") or body.get("detail") or body
+            raise RuntimeError(f"relay refused: {reason}")
+
+
+def dispatch_relay(messages: list[dict], target, env=None, *, opener=None) -> dict:
+    """批量发 relay，逐条兜住失败；返回形状与 ``dispatch`` / ``dispatch_webhook`` 同形。"""
+    from .delivery import DeliveryNotConfigured  # noqa: PLC0415 — 避免循环导入
+
+    e = os.environ if env is None else env
+    url = (e.get(RELAY_URL_ENV) or "").strip()
+    if not url:
+        raise DeliveryNotConfigured(
+            f"channel=relay 但环境缺 {RELAY_URL_ENV}；"
+            "要么指向 fd-bot 的 /v1/send，要么指向 cell 的 /api/bots/relay/send"
+        )
+
+    try:
+        kind = _relay_kind(url)
+    except ValueError as exc:
+        raise DeliveryNotConfigured(str(exc)) from exc
+
+    destination = ""
+    if kind == "cell":
+        to = tuple(getattr(target, "to", ()) or ())
+        if not to:
+            raise DeliveryNotConfigured("channel=relay(cell) 需要 delivery.to 给出 channel 名")
+        destination = str(to[0])
+        if not (e.get(RELAY_TOKEN_ENV) or "").strip():
+            raise DeliveryNotConfigured(
+                f"channel=relay(cell) 但环境缺 {RELAY_TOKEN_ENV}（bearer）"
+            )
+    else:
+        missing = [k for k in (FD_BOT_BINDING_ENV, FD_BOT_CHAT_ENV) if not (e.get(k) or "").strip()]
+        if missing:
+            raise DeliveryNotConfigured(
+                f"channel=relay(fd-bot) 但环境缺 {' / '.join(missing)}；"
+                "两个内部标识必须由 env 给出，不得写进线路配置"
+            )
+
+    sent = 0
+    failures: list[dict] = []
+    for m in messages:
+        try:
+            subject, body = m.get("subject", ""), m.get("body", "")
+            # 与 webhook 通道同一种渲染：强调标题 + 正文。告警群是靠扫读的。
+            text = f"**{subject}**\n\n{body}" if subject else body
+            if kind == "cell":
+                payload = {"channel": destination, "text": text}
+            else:
+                payload = {
+                    "bindingId": (e.get(FD_BOT_BINDING_ENV) or "").strip(),
+                    "chatKey": (e.get(FD_BOT_CHAT_ENV) or "").strip(),
+                    "text": text,
+                }
+            send_relay(url, payload, e, opener=opener)
+            sent += 1
+        except Exception as exc:  # noqa: BLE001 — 单条失败必须不阻塞同批
+            failures.append({"rule_id": m.get("rule_id"), "error": str(exc)[:200]})
+    return {"sent": sent, "failed": len(failures), "failures": failures,
+            "skipped": False, "channel": "relay"}
+
+
 WEBHOOK_URL_ENV = "FD_ALERT_WEBHOOK_URL"
 
 
@@ -238,12 +370,7 @@ def dispatch_any(messages: list[dict], target, env=None, *, smtp_factory=None,
         return dispatch_webhook(messages, url, opener=opener)
 
     if channel == "relay":
-        raise DeliveryNotConfigured(
-            "channel=relay 已声明但未实现（本期只实现 smtp 与 webhook）；"
-            "改用 channel=webhook 指向一个真实的接收端，或改回 smtp。"
-            "本实现刻意不回退到别的通道——那会让「改了配置」与「改了配置且生效」"
-            "在产物里长得一样。"
-        )
+        return dispatch_relay(messages, target, e, opener=opener)
 
     raise DeliveryNotConfigured(
         f"channel={channel!r} 未知；合法值见 delivery.CHANNELS"

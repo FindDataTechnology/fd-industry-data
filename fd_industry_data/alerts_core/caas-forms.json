@@ -70,13 +70,14 @@
   },
   "channels": {
     "relay": {
-      "label_zh": "平台 bot relay",
-      "forms": ["text", "link", "file"],
-      "max_ack": "delivered"
+      "label_zh": "交给一个 bot 去说",
+      "forms": ["text"],
+      "max_ack": "delivered",
+      "addressing": "delivery.to[0] 是一个不透明目标名；由部署决定投到哪个后端——fd-bot 的 /v1/send（bindingId/chatKey 由 env 映射）或 cell 的 /api/bots/relay/send（目标名即 channel 名）。名称不再指向某一个具体后端：同一个通道名在两种部署下各自可用。"
     },
     "smtp": {
       "label_zh": "邮件",
-      "forms": ["text", "link", "chart", "file"],
+      "forms": ["text", "link"],
       "max_ack": "delivered"
     },
     "webhook": {

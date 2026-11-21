@@ -18,7 +18,7 @@ import pytest
 from fd_industry_data.alerts_core import caas
 
 REPO = Path(__file__).resolve().parents[1]
-AUTHORITY = REPO.parent / "openspec" / "changes" / "add-caas-delivery-contract" / "caas-forms.json"
+AUTHORITY = REPO.parent / "openspec" / "specs" / "caas-delivery" / "caas-forms.json"
 COPY = Path(caas.__file__).with_name("caas-forms.json")
 
 

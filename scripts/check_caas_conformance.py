@@ -38,7 +38,7 @@ WORKSPACE = REPO.parent
 # 判绿（没人消费的副本 = 没有副本）。
 VAAS_ROOT = Path.home() / "VAAS"
 
-AUTHORITY = WORKSPACE / "openspec" / "changes" / "add-caas-delivery-contract" / "caas-forms.json"
+AUTHORITY = WORKSPACE / "openspec" / "specs" / "caas-delivery" / "caas-forms.json"
 
 # 每个消费方仓内的权威表副本（镜像独立构建，不能跨仓读文件）
 COPIES = {
@@ -116,8 +116,20 @@ def check_authority(report: Report, authority: Path = AUTHORITY, copies: dict[st
     """
     copies = COPIES if copies is None else copies
     if not authority.exists():
-        report.uncovered.append("authority")
-        report.add("authority", True, f"未覆盖：权威文件不在本检出（{authority}）")
+        # 区分两件不同的事：
+        #   · 本仓被单独 clone（根 openspec/ 整个不存在）→ 合法未覆盖，判绿
+        #   · 工作区在、根 openspec/ 也在，唯独权威文件没了 → 真缺失，判红。
+        # 第一版把两者都当「未覆盖」，于是 2026-11-18 权威文件随 change 归档之后，
+        # 这道闸连续三天对权威表零约束却一直报绿（ci-gate-never-ran-looks-green）。
+        if (WORKSPACE / "openspec").is_dir():
+            report.add(
+                "authority",
+                False,
+                f"权威文件缺失：{authority}（根 openspec/ 存在，说明是本工作区而非独立 clone）",
+            )
+        else:
+            report.uncovered.append("authority")
+            report.add("authority", True, f"未覆盖：权威文件不在本检出（{authority}）")
         return
     want = _sha(authority)
     report.add("authority", True, f"权威 {authority.name} sha={want[:12]}")
@@ -192,7 +204,10 @@ def check_ack_projection(report: Report, impls: dict[str, Path] | None = None) -
     values = ("delivered", "consumed", "failed")
     for name, path in impls.items():
         if not path.exists():
-            report.add("ack-three-values", False, f"{name}: 实现缺失")
+            # 与 check_authority 同一口径：独立 clone 时兄弟仓的实现不在本检出，
+            # 这是「未覆盖」而非「不合规」。判红只用于「文件在、内容不对」。
+            report.uncovered.append(f"ack-three-values:{name}")
+            report.add("ack-three-values", True, f"{name}: 未覆盖（不在本检出）")
             continue
         src = path.read_text(encoding="utf-8")
         literal = [v for v in values if re.search(rf"[\"']{v}[\"']", src)]

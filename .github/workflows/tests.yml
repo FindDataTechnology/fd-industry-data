@@ -1,0 +1,54 @@
+# 全量单元测试（openspec: relay-alert-channel 组 1 前置）。
+#
+# 为什么这条 CI 之前不存在：本仓有 14 条 workflow，全是告警 cron / 出片这类
+# 「跑起来才有意义」的作业，没有一条跑 tests/。于是 2071 个用例只在开发者本机跑过
+# ——「本机绿」既不是证据，也保不住下一次改动。
+#
+# 两个取舍：
+#  · scrapling 是重依赖（浏览器栈），测试不需要它。装包用 `--no-deps`，
+#    只有确实要跑的模块才装。缺模块的用例会 collect error，那正是要看见的信号。
+#  · fd_open_data_mcp 在 PyPI 上（0.5.64），装正式版而不是拉兄弟仓——
+#    拉兄弟仓会让 CI 依赖两个仓的相对路径，而独立 clone 时那条路径不存在。
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: 装依赖
+        run: |
+          python -m pip install --upgrade pip
+          # 按 pyproject 的真实依赖装（带 extras）。裸 scrapling 试过，不够：
+          # test_eurostat_hotel_series 动态加载 spiders/*/spider.py，那些模块在
+          # import 期就拉 scrapling 的 fetcher 栈（curl_cffi）。测的是「spider 能否
+          # 装配」，所以依赖面必须与生产一致，而不是裁剪到「单测看起来不需要」。
+          #
+          # fd_open_data_mcp 装 PyPI 正式版：拉兄弟仓会让 CI 依赖两个仓的相对路径，
+          # 独立 clone 时那条路径不存在。
+          pip install -e .
+          pip install pytest fd-open-data-mcp
+
+      - name: 跑 tests/
+        run: python -m pytest tests/ -q
+
+      - name: CaaS 权威表一致性（跨面合规闸）
+        run: |
+          # 闸本身在 fd-industry-data/scripts/；独立 clone 时根 openspec/ 不存在，
+          # 它会如实报 UNCOVERED 而不是假绿。
+          python scripts/check_caas_conformance.py
