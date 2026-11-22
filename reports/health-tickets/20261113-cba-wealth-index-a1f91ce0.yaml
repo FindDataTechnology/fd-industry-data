@@ -285,5 +285,18 @@ lifecycle:
   turn_fails: 6
   limit: 6
   last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-22T00:00:05.066522+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
+- at: '2026-11-22T00:00:44.451405+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
+    source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
 terminal: null
 evidence_signature: d5ab5a94aea5

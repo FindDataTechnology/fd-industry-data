@@ -59,5 +59,20 @@ golden:
 lifecycle:
 - at: '2026-11-19T01:13:09.474578+00:00'
   event: created
+- at: '2026-11-22T00:00:11.161457+00:00'
+  event: submitted
+  http_status: 503
+  ok: false
+  verdict: error
+  response: '{"code": "DEPLOYMENT_SOURCE_UNAVAILABLE", "message": "deployment source
+    unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}'
+- at: '2026-11-22T00:00:30.157150+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
+    source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
 terminal: null
 evidence_signature: b278c0ce91ae

@@ -124,5 +124,13 @@ lifecycle:
     |---|---|
 
     | SZSE 目标接口（经代理，`txtQueryDate=2'
+- at: '2026-11-22T00:00:40.355976+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
+    source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
 terminal: null
 evidence_signature: 67c7fb3ee0d6

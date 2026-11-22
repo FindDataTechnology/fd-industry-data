@@ -54,5 +54,13 @@ lifecycle:
     依据：inbox 已录该单（at=2026-11-17T12:25:00Z，retry=0，prUrl 空）——实探上游 UK-HPI-full-file-2026-11/10/09
     均 404，最新在架即 2026-08，符合工单 suggested_action 的"上游确实停发"分支：非单元缺陷、非抓取窗口问题，无可修点，转人工做退役评估。未改码、未开
     PR，终态已落，无新事件故'
+- at: '2026-11-22T00:00:42.407999+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
+    source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
 terminal: null
 evidence_signature: 98c4b7d37a4c
