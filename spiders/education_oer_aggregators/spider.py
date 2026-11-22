@@ -43,9 +43,17 @@ DOAB_OAI = "https://directory.doabooks.org/oai/request"  # /oai 是 HTML 壳；O
 
 
 def _fetch(url: str) -> bytes:
-    """单次 GET（EDU_OER_PROXY 在场经代理出海；异常上抛由 run* 归一）。"""
+    """单次 GET（出海代理在场则经代理；异常上抛由 run* 归一）。
+
+    代理取自 ``EDU_OER_PROXY``（专用），缺则回落标准 ``HTTPS_PROXY``/``HTTP_PROXY``
+    （集群 egress secret `fd-industry-egress-fx01` 注入的就是后者，manifest 声明
+    `egress_secret` 后 envFrom 自动带入）。直连被墙的三源（Gutendex/Wikibooks/DOAB）
+    因此无需专用 secret 也能出海；两处皆空则直连（本地/测试）。
+    """
     handlers = []
-    proxy = os.environ.get("EDU_OER_PROXY", "").strip()
+    proxy = (os.environ.get("EDU_OER_PROXY", "").strip()
+             or os.environ.get("HTTPS_PROXY", "").strip()
+             or os.environ.get("HTTP_PROXY", "").strip())
     if proxy:
         handlers.append(urllib.request.ProxyHandler({"http": proxy, "https": proxy}))
     opener = urllib.request.build_opener(*handlers)

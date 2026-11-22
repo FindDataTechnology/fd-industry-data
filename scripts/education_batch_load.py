@@ -21,27 +21,19 @@ from psycopg.types.json import Json
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from edu_catalog.normalize import UPSERT, norm as _norm  # noqa: E402  单一真源（驱动无关）
+
 DSN = os.environ.get("FD_OPEN_DATA_DSN")
 if not DSN:
     raise SystemExit("FD_OPEN_DATA_DSN missing — source ~/.config/finddata/dashboards.env first")
 
-UPSERT = """
-INSERT INTO education_catalog.catalog_items
-  (resource_id, work_id, title, platform, license, license_layer, commercial_ok,
-   body_state, education_source, source, source_url, scraped_at, status, merged_into, doc)
-VALUES
-  (%(resource_id)s, %(work_id)s, %(title)s, %(platform)s, %(license)s, %(license_layer)s,
-   %(commercial_ok)s, %(body_state)s, %(education_source)s, %(source)s, %(source_url)s,
-   %(scraped_at)s, %(status)s, %(merged_into)s, %(doc)s)
-ON CONFLICT (resource_id) DO UPDATE SET
-  work_id=EXCLUDED.work_id, title=EXCLUDED.title, platform=EXCLUDED.platform,
-  license=EXCLUDED.license, license_layer=EXCLUDED.license_layer,
-  commercial_ok=EXCLUDED.commercial_ok, body_state=EXCLUDED.body_state,
-  education_source=EXCLUDED.education_source, source=EXCLUDED.source,
-  source_url=EXCLUDED.source_url, scraped_at=EXCLUDED.scraped_at,
-  status=EXCLUDED.status, merged_into=EXCLUDED.merged_into,
-  doc=EXCLUDED.doc, ingested_at=now()
-"""
+
+def norm(row: dict) -> dict:
+    """共享 norm() 的 doc 是纯 dict；本脚本用 psycopg3，须裹 Json 才适配 jsonb 列。"""
+    n = _norm(row)
+    if n:
+        n["doc"] = Json(n["doc"])
+    return n
 
 
 def collect_rows() -> list[dict]:
@@ -66,45 +58,6 @@ def collect_rows() -> list[dict]:
         countries=["us", "cn"], limit=30)
     print(f"collected {len(rows)} rows from channels")
     return rows
-
-
-def norm(row: dict) -> dict:
-    """落库行归一：resource_id 回落、status 分离、doc 全量保留。
-
-    license_layer 归一口径与 pod 读路径一致（tools._visible_rows 同回落）：
-    spide 行自带优先；缺则从 license 推（cc0→cc0_pd / *by-nc*→cc-by-nc / cc by*→oa_cc_by）。
-    推导结果必须同时写进 doc——pod rows() 只读 doc，漏写会在 overview 造出原始许可串桶。
-    """
-    r = dict(row)
-    rid = r.get("resource_id") or r.get("work_id") or r.get("episode_guid") \
-        or r.get("show_id") or r.get("source_url")
-    if not rid:
-        return {}
-    status = r.get("status")
-    layer = r.get("license_layer") or (
-        "cc0_pd" if r.get("license") in ("cc0", "CC0", "public domain") else
-        "cc-by-nc" if isinstance(r.get("license"), str) and "by-nc" in r["license"].lower() else
-        "oa_cc_by" if isinstance(r.get("license"), str) and r["license"].lower().startswith("cc by") else
-        None)
-    if layer:
-        r.setdefault("license_layer", layer)
-    return {
-        "resource_id": str(rid),
-        "work_id": r.get("work_id"),
-        "title": r.get("title") or r.get("display_name") or r.get("name"),
-        "platform": r.get("platform"),
-        "license": r.get("license"),
-        "license_layer": layer,
-        "commercial_ok": r.get("commercial_ok"),
-        "body_state": r.get("body_state") or r.get("episode_status"),
-        "education_source": r.get("education_source") or r.get("source"),
-        "source": r.get("source"),
-        "source_url": r.get("source_url") or r.get("feed_url"),
-        "scraped_at": r.get("scraped_at"),
-        "status": status if status in ("withdrawn", "merged") else "active",
-        "merged_into": r.get("merged_into"),
-        "doc": Json(r),
-    }
 
 
 def main():

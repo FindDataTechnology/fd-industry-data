@@ -3,7 +3,9 @@ limit_kind: full_set   # CATALOG: OER 机构聚合器（固定书/页集）
 name: education_oer_aggregators
 label: OER aggregator catalogs (Gutenberg/Gutendex, Wikibooks, DOAB OAI-PMH) — partner channel, metadata+link only
 source_url: https://gutendex.com/ / https://en.wikibooks.org/ / https://directory.doabooks.org/
-# 出海依赖 EDU_OER_PROXY（CN 出口被墙：gutendex/wikibooks/doab 实测）；无代理=海外部署直连
+# 出海依赖代理（CN 出口被墙：gutendex/wikibooks/doab 实测）。生产出口经 egress secret
+# 注入的 HTTPS_PROXY（spider 回落标准变量）；也可显式给 EDU_OER_PROXY。无代理=海外部署直连。
+egress_secret: fd-industry-egress-fx01
 schedule: "0 4 * * 1"  # 每周一 04:00（聚合器目录级变更慢，周粒度足够）
 # 低频源：一次抖动就是整窗空档（月/季/年），故给 3 次重试。
 backoff_limit: 3

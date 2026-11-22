@@ -1,0 +1,407 @@
+# GENERATED — 不要手改。由 `scripts/render_extract_education_configmap.py` 从仓内脚本渲染；
+# `--check` 在校验不一致时退出非零。
+#
+# 部署（与 CronJob 一起 apply）：
+#   scp k8s/extract-education-configmap.yaml k8s/extract-education.yaml fd-deploy:/tmp/
+#   ssh fd-deploy "sudo k3s kubectl apply \
+#     -f /tmp/extract-education-configmap.yaml -f /tmp/extract-education.yaml"
+#
+# **改脚本后必须重跑渲染并 apply**，否则集群里跑的还是旧版本。
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fd-education-ingest-src
+  namespace: mcp
+  labels:
+    fd-industry/component: education-catalog-ingest
+data:
+  extract_education.py: |
+    #!/usr/bin/env python3
+    """教育采集产出 → 对外目录传导桥（change automate-education-catalog-ingest）。
+
+    五个 education 源的 CronJob 把行落进 `crawl_items`，但对外目录
+    `education_catalog.catalog_items` 此前只有两个手工脚本写入——采集天天跑、
+    目录停在 11-04。本脚本按排期读 `crawl_items` 的五个源最新行，经共享 `norm()`
+    归一后幂等 upsert 进目录，使目录新鲜度跟上采集。
+
+    驱动：runner 镜像只有 `psycopg2-binary`（见 Dockerfile），故本脚本用 psycopg2，
+    `doc` 用 `psycopg2.extras.Json` 适配 jsonb；归一逻辑在 `edu_catalog/normalize.py`
+    （驱动无关，doc 为纯 dict）。
+
+    新鲜度口径：条目的 `scraped_at` 取**行自身的采集时间**，不是传导时刻——
+    「目录新鲜」以条目采集时间为准（spec education-content-catalog R「采集产出按
+    排期自动传导到对外目录」）。重复传导幂等：同一批行再跑一次不产生重复条目、不改恒等字段。
+
+    shortcut: 每轮重读五个源的全部成功 run 之 items 再幂等 upsert（约 6k 行、毫秒级），
+    不做 run_id 水位表；目录过十万行或源增至数十个时再上增量水位。
+
+    用法：
+      python3 scripts/extract_education.py --dsn "$FD_OPEN_DATA_DSN" --dry-run
+      python3 scripts/extract_education.py --dsn "$FD_OPEN_DATA_DSN" --apply
+    """
+    from __future__ import annotations
+
+    import argparse
+    import os
+    import sys
+    import time
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    import psycopg2
+    from psycopg2.extras import Json
+
+    ROOT = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(ROOT))
+
+    from edu_catalog.normalize import UPSERT, norm  # noqa: E402  单一真源（驱动无关）
+
+    SOURCES = [
+        "education_oa_fulltext",
+        "education_podcast",
+        "education_oer_aggregators",
+        "education_cc_courses",
+        "education_openalex",
+    ]
+    INGEST_SOURCE = "education_catalog_ingest"
+
+
+    def _dsn(raw: str) -> str:
+        """生产 Secret 的 DSN 可能带 SQLAlchemy 方言前缀（postgresql+psycopg2://），psycopg2 不认。"""
+        raw = (raw or "").strip()
+        try:
+            from _semextract import parse_dsn
+            return parse_dsn(raw)
+        except Exception:  # noqa: BLE001
+            import re as _re
+            return _re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", raw)
+
+
+    def _items_of_success_runs(cur, source: str) -> list[dict]:
+        """跨该源全部 success run 取 items（增量源逐期累积，全量快照源重读亦幂等）。"""
+        cur.execute(
+            "SELECT ci.payload FROM crawl_runs r"
+            " JOIN crawl_items ci ON ci.run_id = r.id"
+            " WHERE r.source=%s AND r.status='success' ORDER BY r.id, ci.idx",
+            (source,),
+        )
+        return [r[0] for r in cur.fetchall()]
+
+
+    def _existing_ids(cur) -> set[str]:
+        cur.execute("SELECT resource_id FROM education_catalog.catalog_items")
+        return {r[0] for r in cur.fetchall()}
+
+
+    def collect(cur) -> tuple[list[dict], dict]:
+        """逐源读行 → norm 去重。返回 (rows, per_source_counts)。"""
+        existing = _existing_ids(cur)
+        per_source: dict[str, dict] = {}
+        seen: dict[str, dict] = {}
+        for src in SOURCES:
+            raw = _items_of_success_runs(cur, src)
+            distinct = 0
+            for item in raw:
+                n = norm(item)
+                if not n:
+                    continue
+                n["doc"] = Json(n["doc"])
+                rid = n["resource_id"]
+                if rid in seen:
+                    continue  # 源内跨 run 同 id，取首见（较新 run 在前序）
+                seen[rid] = n
+                distinct += 1
+            per_source[src] = {"crawled_items": len(raw), "distinct": distinct}
+        rows = list(seen.values())
+        # 「新增 vs 更新」按最终去重集与既有集算
+        new_ids = [r["resource_id"] for r in rows if r["resource_id"] not in existing]
+        meta = {
+            "per_source": per_source,
+            "deduped_total": len(rows),
+            "new": len(new_ids),
+            "updated": len(rows) - len(new_ids),
+        }
+        return rows, meta
+
+
+    def write_run_record(cur, status: str, started_at: float, rows_written: int, metrics: dict,
+                         error_head: str | None = None) -> None:
+        finished = time.time()
+        cur.execute(
+            """INSERT INTO crawl_runs
+               (source, kind, status, started_at, finished_at, rows_written, error_head,
+                commit_sha, image_tag, metrics, outcome)
+               VALUES (%s,%s,%s,to_timestamp(%s),to_timestamp(%s),%s,%s,%s,%s,%s,%s)""",
+            (INGEST_SOURCE, "special-job", status, started_at, finished, rows_written,
+             (error_head or None),
+             os.environ.get("FD_CONTENT_COMMIT", ""), os.environ.get("FD_IMAGE_TAG", "unknown"),
+             Json(metrics),
+             "ok" if (status == "success" and rows_written > 0) else
+             ("ok_empty" if status == "success" else "failed")),
+        )
+
+
+    def main() -> int:
+        ap = argparse.ArgumentParser()
+        ap.add_argument("--dsn", default=os.environ.get("FD_OPEN_DATA_DSN"))
+        g = ap.add_mutually_exclusive_group(required=True)
+        g.add_argument("--dry-run", action="store_true")
+        g.add_argument("--apply", action="store_true")
+        args = ap.parse_args()
+        if not args.dsn:
+            raise SystemExit("FATAL: $FD_OPEN_DATA_DSN 未设置")
+
+        started = time.time()
+        conn = psycopg2.connect(_dsn(args.dsn))
+        conn.autocommit = False
+        cur = conn.cursor()
+        try:
+            rows, meta = collect(cur)
+            print("== per-source ==")
+            for src, c in meta["per_source"].items():
+                print(f"  {src}: crawled_items={c['crawled_items']} distinct={c['distinct']}")
+            print(f"\ndeduped_total={meta['deduped_total']} new={meta['new']} updated={meta['updated']}")
+            if args.dry_run:
+                print("\n[dry-run] 不写库")
+                conn.rollback()
+                return 0
+            if rows:
+                cur.executemany(UPSERT, rows)
+            write_run_record(cur, "success", started, len(rows), meta)
+            conn.commit()
+            print(f"\n[apply] upserted {len(rows)} rows + run record '{INGEST_SOURCE}'")
+            return 0
+        except Exception as e:  # noqa: BLE001
+            conn.rollback()
+            try:
+                write_run_record(cur, "failed", started, 0, {"error": f"{type(e).__name__}: {e}"[:400]},
+                                 error_head=f"{type(e).__name__}: {e}")
+                conn.commit()
+            except Exception:  # noqa: BLE001
+                conn.rollback()
+            print(f"FATAL: {type(e).__name__}: {e}", file=sys.stderr)
+            return 3
+        finally:
+            cur.close()
+            conn.close()
+
+
+    if __name__ == "__main__":
+        sys.exit(main())
+  _semextract.py: |
+    #!/usr/bin/env python3
+    """语义回填的公共件 —— 被 `extract_rates.py`／`extract_ncd.py`／`extract_lpr.py`／
+    `extract_usgs_nwis.py`／`extract_nasa_power.py` 共用（2026-11-14 抽出）。
+
+    **为什么值得抽**：这五个脚本原本各自复制了 ~120 行一模一样的辅助件（`num`/`fmt`/
+    `obs_month_of`/`gap_note`/`latest_run_items`/`ensure_concepts`/写库），第五份之后
+    任何一处契约变更（比如单位绑定参数那个 `%` 的坑）都要改五遍，而漏改一处只有一个源
+    在轮次里报错——那种错在「其它四个都绿」的背景里几乎看不出来。
+
+    **契约（与 `extract_batch1/2` 逐条相同，改动要全体一起动）**：
+    - additive：`ON CONFLICT ON CONSTRAINT uq_sem_obs DO NOTHING`；不插值不补零；
+      同 (series, period) 取 `scraped_at` 最新；写 `obs_month` 治理桶。
+    - **单位/常量一律走绑定参数**：SQL 字面量里的裸 `'%'` 会被 psycopg2 当占位符解析，
+      参数元组少一位 ⇒ `IndexError: tuple index out of range`，而单测里 psycopg2 是替身
+      模块、永远测不出这一层（2026-11-14 上产即崩过）。
+    - **snapshot 形状的源只读最近一次成功运行**（`latest_run_items`）：历史并集里可能留着
+      早期窗口不一致造成的洞，洞不会自己长回来 ⇒ 按并集判连续会把序列永久按住。
+    """
+
+    from __future__ import annotations
+
+    import re
+    from datetime import date
+
+    _DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+    def parse_dsn(s: str) -> str:
+        """剥掉 SQLAlchemy 风格的 `+psycopg2` 后缀（libpq 不认）。"""
+        return re.sub(r"^(postgres(?:ql)?)\+[a-z0-9_]+://", r"\1://", (s or "").strip())
+
+
+    def num(v):
+        if v is None or isinstance(v, bool):
+            return None
+        if isinstance(v, (int, float)):
+            return float(v)
+        s = str(v).strip().replace(",", "").replace("%", "")
+        if not s:
+            return None
+        try:
+            return float(s)
+        except ValueError:
+            return None
+
+
+    def fmt(v: float) -> str:
+        s = f"{v:.6f}".rstrip("0").rstrip(".")
+        return s or "0"
+
+
+    def obs_month_of(d: str | None) -> str | None:
+        """日频源只认完整日期；`2026-11` 这种月值不给桶（granularity 是 day）。"""
+        if not d or not _DAY.match(d):
+            return None
+        return d[:7]
+
+
+    def gap_note(dates: list[str], max_days: int) -> str | None:
+        """相邻两期不得超过 `max_days` 天。
+
+        **必须取最大间隔，不是最后一个**：洞通常出现在中间。日频源给 5（周末 + 调休）；
+        月频/混合节奏给 45（实测月频报价遇周末顺延最大 35 天）。
+        """
+        worst, where = 0, None
+        for a, b in zip(dates, dates[1:]):
+            try:
+                span = (date.fromisoformat(b) - date.fromisoformat(a)).days
+            except ValueError:
+                return f"期值不是 YYYY-MM-DD：{a!r}/{b!r}"
+            if span > worst:
+                worst, where = span, (a, b)
+        if worst > max_days:
+            return f"{where[0]} 与 {where[1]} 相隔 {worst} 天（>{max_days}）"
+        return None
+
+
+    def latest_run_items(cur, source: str) -> tuple[int | None, list[dict]]:
+        """**只取最近一次成功运行**的 payload，不取历史并集（见模块 docstring）。"""
+        cur.execute("SELECT id FROM crawl_runs WHERE source = %s AND status = 'success'"
+                    " ORDER BY started_at DESC LIMIT 1", (source,))
+        row = cur.fetchone()
+        if not row:
+            return None, []
+        rid = row[0]
+        cur.execute("SELECT payload FROM crawl_items WHERE run_id = %s ORDER BY idx", (rid,))
+        return rid, [r[0] for r in cur.fetchall()]
+
+
+    def ensure_concepts(cur, series: dict, *, source: str, category: str = "利率",
+                        unit: str = "%", measure: str = "value", frequency: str = "daily",
+                        entity_type: str = "country") -> dict[str, int]:
+        """按 (code, name_zh, name_en) 建概念并返回 code -> id。
+
+        `series` 的 value 可以是 `(code, zh, en)` 或带更多尾巴的元组（取前三个）。
+        册内同 code 多行 ⇒ FATAL（`setdefault` 取任意一行会让错配静默通过）。
+        """
+        codes = []
+        for v in series.values():
+            code, zh, en = v[0], v[1], v[2]
+            codes.append(code)
+            cur.execute(
+                "INSERT INTO concepts (code, name_en, name_zh, category, unit, measure, frequency,"
+                " entity_type, source, verified, deprecated, concept_code)"
+                " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,false,false,NULL)"
+                " ON CONFLICT ON CONSTRAINT uq_concept_identity DO NOTHING",
+                (code, en, zh, category, unit, measure, frequency, entity_type, source))
+        ids: dict[str, int] = {}
+        cur.execute("SELECT id, code FROM concepts WHERE deprecated = false AND code = ANY(%s)",
+                    (codes,))
+        for cid, code in cur.fetchall():
+            if code in ids:
+                raise SystemExit(f"FATAL: concept {code} 册内多行，拒绝猜")
+            ids[code] = cid
+        missing = sorted(set(codes) - set(ids))
+        if missing:
+            raise SystemExit(f"FATAL: 解析不到 concept: {missing}")
+        return ids
+
+
+    def write_rows(conn, rows: list[tuple], *, ids: dict[str, int], source: str,
+                   unit: str, granularity: str = "day",
+                   entity_type: str = "country", batch: int = 1000) -> tuple[int, int]:
+        """把 `(code, entity_id, date, value)` 写成观测，返回 (before, after)。
+
+        **entity_id 每行自带**，不是全局一个：`usgs-nwis` 是站点、`nasa-power` 是点位、
+        `shibor` 是国家 —— 三种粒度，硬塞一个全局 entity 会把后两种写成 entity_id=0。
+
+        **entity_type / unit / granularity 全是绑定参数**，不进 SQL 字面量（见模块 docstring）。
+        行数上万时必须批量：逐条 `execute()` 的往返会把作业的 `activeDeadlineSeconds` 顶爆
+        （uk-hpi 实测 1.9 万行 6 分钟还没提交）。
+        """
+        from psycopg2.extras import execute_values
+        with conn:
+            with conn.cursor() as c2:
+                c2.execute("SELECT count(*) FROM semantic_observations")
+                before = c2.fetchone()[0]
+                payload = [(ids[c], entity_type, eid, d, granularity, v, unit, source,
+                            obs_month_of(d) if granularity == "day" else None)
+                           for (c, eid, d, v) in rows]
+                for i in range(0, len(payload), batch):
+                    execute_values(
+                        c2,
+                        "INSERT INTO semantic_observations"
+                        " (concept_id, entity_type, entity_id, date, granularity,"
+                        "  value, unit, source_used, fetched_at, obs_month) VALUES %s"
+                        " ON CONFLICT ON CONSTRAINT uq_sem_obs DO NOTHING",
+                        payload[i:i + batch],
+                        template="(%s,%s,%s,%s,%s,%s,%s,%s,now(),%s)")
+                c2.execute("SELECT count(*) FROM semantic_observations")
+                return before, c2.fetchone()[0]
+  normalize.py: |
+    """教育目录入库归一与幂等 UPSERT（单一真源，驱动无关）。
+
+    `norm()` 与 `UPSERT` 原在 `scripts/education_batch_load.py`（psycopg v3）。抽取桥
+    `scripts/extract_education.py` 跑在 runner 镜像里（只有 `psycopg2-binary`），import 那份
+    会 `ModuleNotFoundError: psycopg`。故把两者下沉到本模块，**doc 以纯 dict 返回**，
+    由各调用方用自己的驱动适配（psycopg3 `Json` / psycopg2.extras `Json`）。
+
+    license_layer 归一口径与 pod 读路径一致（edu_catalog.tools._visible_rows 同回落）：
+    行自带优先；缺则从 license 推（cc0→cc0_pd / *by-nc*→cc-by-nc / cc by*→oa_cc_by）。
+    推导结果同时写进 doc——pod rows() 只读 doc，漏写会在 overview 造出原始许可串桶。
+    """
+    from __future__ import annotations
+
+    UPSERT = """
+    INSERT INTO education_catalog.catalog_items
+      (resource_id, work_id, title, platform, license, license_layer, commercial_ok,
+       body_state, education_source, source, source_url, scraped_at, status, merged_into, doc)
+    VALUES
+      (%(resource_id)s, %(work_id)s, %(title)s, %(platform)s, %(license)s, %(license_layer)s,
+       %(commercial_ok)s, %(body_state)s, %(education_source)s, %(source)s, %(source_url)s,
+       %(scraped_at)s, %(status)s, %(merged_into)s, %(doc)s)
+    ON CONFLICT (resource_id) DO UPDATE SET
+      work_id=EXCLUDED.work_id, title=EXCLUDED.title, platform=EXCLUDED.platform,
+      license=EXCLUDED.license, license_layer=EXCLUDED.license_layer,
+      commercial_ok=EXCLUDED.commercial_ok, body_state=EXCLUDED.body_state,
+      education_source=EXCLUDED.education_source, source=EXCLUDED.source,
+      source_url=EXCLUDED.source_url, scraped_at=EXCLUDED.scraped_at,
+      status=EXCLUDED.status, merged_into=EXCLUDED.merged_into,
+      doc=EXCLUDED.doc, ingested_at=now()
+    """
+
+
+    def norm(row: dict) -> dict:
+        """落库行归一：resource_id 回落、status 分离、doc 全量保留（纯 dict，交调用方 Json 适配）。"""
+        r = dict(row)
+        rid = r.get("resource_id") or r.get("work_id") or r.get("episode_guid") \
+            or r.get("show_id") or r.get("source_url")
+        if not rid:
+            return {}
+        status = r.get("status")
+        layer = r.get("license_layer") or (
+            "cc0_pd" if r.get("license") in ("cc0", "CC0", "public domain") else
+            "cc-by-nc" if isinstance(r.get("license"), str) and "by-nc" in r["license"].lower() else
+            "oa_cc_by" if isinstance(r.get("license"), str) and r["license"].lower().startswith("cc by") else
+            None)
+        if layer:
+            r.setdefault("license_layer", layer)
+        return {
+            "resource_id": str(rid),
+            "work_id": r.get("work_id"),
+            "title": r.get("title") or r.get("display_name") or r.get("name"),
+            "platform": r.get("platform"),
+            "license": r.get("license"),
+            "license_layer": layer,
+            "commercial_ok": r.get("commercial_ok"),
+            "body_state": r.get("body_state") or r.get("episode_status"),
+            "education_source": r.get("education_source") or r.get("source"),
+            "source": r.get("source"),
+            "source_url": r.get("source_url") or r.get("feed_url"),
+            "scraped_at": r.get("scraped_at"),
+            "status": status if status in ("withdrawn", "merged") else "active",
+            "merged_into": r.get("merged_into"),
+            "doc": r,
+        }
