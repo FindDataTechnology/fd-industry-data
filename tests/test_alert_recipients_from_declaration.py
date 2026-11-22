@@ -88,3 +88,20 @@ def test_no_recipient_anywhere_is_a_config_error_not_a_skip():
     target = DeliveryTarget(channel="smtp", to=())
     with pytest.raises(DeliveryNotConfigured):
         dispatch_any(MSGS, target, {}, smtp_factory=lambda h, p: _FakeSMTP([]))
+
+
+def test_cell_relay_truncates_instead_of_losing_the_alert():
+    """4000 字上限：超了要截断并说出来，不能整条投递失败。
+
+    2026-11-23 实撞：27 项作业同时坏，正文远超 cell 的 MAX_RELAY_CHARS，
+    relay 答 400，于是**一条告警都没发出去**，而失败只落在 Job 日志里——
+    21 个备份连续失败 3 天没人知道，一半原因是告警根本发不出去。
+    """
+    from fd_industry_data.alerts_core.notify import CELL_MAX_TEXT, _fit_relay_text
+
+    assert _fit_relay_text("short") == "short"
+    long_text = "x" * (CELL_MAX_TEXT * 3)
+    out = _fit_relay_text(long_text)
+    assert len(out) <= CELL_MAX_TEXT, f"仍超上限：{len(out)}"
+    assert "省略" in out, "截断必须说明省略了多少，否则读的人以为那就是全部"
+    assert out.startswith("x"), "前几项是最严重的，必须保住"

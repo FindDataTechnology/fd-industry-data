@@ -204,6 +204,26 @@ FD_BOT_CHAT_ENV = "FD_ALERT_FD_BOT_CHAT"
 
 RELAY_TIMEOUT_SEC = 15  # 比 webhook 长：跨集群 + 平台侧排队
 
+#: cell 的 relay 对 `text` 有硬上限（`server/bots.js` 的 MAX_RELAY_CHARS），超了答
+#: **400 "Text must be 1-4000 characters"**。2026-11-23 实撞：27 项作业同时坏的时候
+#: 正文远超 4000，于是**整条告警投递失败**，而失败只落在 Job 自己的日志里——
+#: 备份连续失败 3 天没人知道，一半原因是告警发不出去。
+#:
+#: 截断而不是「拆成多段」：这个通道没有排序保证，多段会被群里看成几条无关消息；
+#: 而告警的价值在前几项（compose() 把最严重的排在前面）。截断处**明写省略了多少**，
+#: 别让人以为那就是全部。
+CELL_MAX_TEXT = 4000
+_RELAY_TRUNC_NOTE = "\n\n…（正文超出通道上限，以下省略 {n} 字；完整清单看 job 日志）"
+
+
+def _fit_relay_text(text: str, limit: int = CELL_MAX_TEXT) -> str:
+    """把 text 压进 limit；超了就在末尾标出省略了多少。"""
+    if len(text) <= limit:
+        return text
+    note = _RELAY_TRUNC_NOTE.format(n=len(text) - limit)
+    keep = max(0, limit - len(note))
+    return text[:keep].rstrip() + note
+
 
 def _relay_kind(url: str) -> str:
     """由 URL 路径判定后端。未知路径即配置错误——不猜。"""
@@ -299,6 +319,7 @@ def dispatch_relay(messages: list[dict], target, env=None, *, opener=None) -> di
             # 与 webhook 通道同一种渲染：强调标题 + 正文。告警群是靠扫读的。
             text = f"**{subject}**\n\n{body}" if subject else body
             if kind == "cell":
+                text = _fit_relay_text(text, CELL_MAX_TEXT)
                 payload = {"channel": destination, "text": text}
             else:
                 payload = {
