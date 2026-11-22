@@ -1,0 +1,33 @@
+{
+  "schema": "mcp-tool-surface/v1",
+  "server": "edu-catalog",
+  "entry_path": "/edu-catalog",
+  "product_line": "wire",
+  "hosting": ["shared-instance"],
+  "visibility": "public",
+  "description": "启材线（教育）目录查询/订阅 MCP：三只读（搜索/条目详情/总览）+ 两订阅写（订阅/退订，只碰 subscriptions 表）。只读面可匿名（教育官网双译本右栏取真响应），写面需 bearer。库契约 fd_open_data.education_catalog：只读 catalog_items、只写 subscriptions。",
+  "naming_convention": {
+    "order": "verb_noun",
+    "applies_to": "new_tools",
+    "note": "`edu_` 前缀 + verb_noun（edu_search/edu_item_detail/edu_overview/edu_subscribe/edu_unsubscribe）。"
+  },
+  "tool_groups": [
+    {
+      "group": "read",
+      "level": "commercial",
+      "tools": ["edu_search", "edu_item_detail", "edu_overview"],
+      "notes": "三只读工具，匿名可调（教育官网公开读层）。"
+    },
+    {
+      "group": "subscribe",
+      "level": "internal",
+      "tools": ["edu_subscribe", "edu_unsubscribe"],
+      "notes": "仅有的写面，只碰 subscriptions 表；需 bearer，不进商业供给面的可引用集。"
+    }
+  ],
+  "rules": {
+    "commercial_tools": ["edu_search", "edu_item_detail", "edu_overview"],
+    "internal_tools": ["edu_subscribe", "edu_unsubscribe"],
+    "note": "写面（订阅）不进 commercial 集：它是数据写操作，不应被任意 pack 白名单引用。"
+  }
+}
