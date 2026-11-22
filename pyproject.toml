@@ -7,7 +7,7 @@ name = "fd-industry-data"
 dynamic = ["version"]
 description = "Industry data sources crawler collection using Scrapling"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "FindDataOfficial" }]
 dependencies = [
@@ -27,7 +27,7 @@ dependencies = [
 dev = ["pytest>=8.0"]
 # infra-telemetry 独立镜像线（add-infra-factory-fleet 组1）：fastmcp+uvicorn 只进
 # 此 extra，不动 runner 依赖面（gitops-crawl-runtime D3：加依赖=运行时装版决策）。
-telemetry = ["fastmcp>=3", "uvicorn>=0.30"]
+telemetry = ["fastmcp>=4.2.4,<5", "uvicorn>=0.30"]
 
 [tool.setuptools.dynamic]
 version = { attr = "fd_industry_data.__version__" }

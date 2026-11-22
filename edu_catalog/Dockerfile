@@ -16,7 +16,7 @@ WORKDIR /app
 COPY edu_catalog/ /app/edu_catalog/
 COPY spiders/__init__.py /app/spiders/__init__.py
 COPY spiders/education_catalog_core/ /app/spiders/education_catalog_core/
-RUN pip install --no-cache-dir "fastmcp>=3" "uvicorn>=0.30" "psycopg[binary]>=3"
+RUN pip install --no-cache-dir "fastmcp>=4.2.4,<5" "uvicorn>=0.30" "psycopg[binary]>=3"
 
 ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \

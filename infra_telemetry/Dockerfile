@@ -27,7 +27,7 @@ RUN curl -fsSL -o /usr/local/bin/kubectl \
 
 WORKDIR /app
 COPY infra_telemetry/ /app/infra_telemetry/
-RUN pip install --no-cache-dir "fastmcp>=3" "uvicorn>=0.30"
+RUN pip install --no-cache-dir "fastmcp>=4.2.4,<5" "uvicorn>=0.30"
 
 ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1 \
