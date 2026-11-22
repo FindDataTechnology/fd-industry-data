@@ -213,9 +213,71 @@ def _api_call(path: str, method: str = "GET", token: str = "", ctx=None):
         return json.loads(body)
 
 
+def run_namespace(namespace: str, args, now: datetime) -> dict:
+    """清一个命名空间；返回该命名空间的一行结果（形状与旧版输出同）。"""
+    if args.from_json:
+        with open(args.from_json, encoding="utf-8") as fh:
+            pods = (json.load(fh) or {}).get("items") or []
+        token, ctx = "", None
+        if args.jobs_from_json:
+            with open(args.jobs_from_json, encoding="utf-8") as fh:
+                failed_jobs = failed_job_names((json.load(fh) or {}).get("items") or [])
+            jobs_map = "fixture"
+        else:
+            failed_jobs, jobs_map = None, "unavailable"
+    else:
+        token = open(f"{SA_DIR}/token", encoding="utf-8").read().strip()
+        ctx = ssl.create_default_context(cafile=f"{SA_DIR}/ca.crt")
+        pods = _api_call(f"/api/v1/namespaces/{namespace}/pods", token=token, ctx=ctx).get("items") or []
+        try:
+            jobs = _api_call(f"/apis/batch/v1/namespaces/{namespace}/jobs",
+                             token=token, ctx=ctx).get("items") or []
+            failed_jobs, jobs_map = failed_job_names(jobs), "ok"
+        except Exception as exc:  # noqa: BLE001 - 取不到 Job 表不该让整轮不清理
+            failed_jobs, jobs_map = None, unavailable_note(exc)
+
+    dead, skipped, unparsed, held = select_pods(
+        pods, now, args.min_age_hours, failed_jobs, args.forensic_hours, args.forensic_max)
+
+    deleted, failed = 0, []
+    if not args.dry_run:
+        for name in dead:
+            try:
+                _api_call(f"/api/v1/namespaces/{namespace}/pods/{name}",
+                          method="DELETE", token=token, ctx=ctx)
+                deleted += 1
+            except Exception as exc:  # noqa: BLE001 - 单条失败不该中断整批
+                failed.append(f"{name}: {type(exc).__name__} {exc}")
+    else:
+        deleted = len(dead)
+
+    return {
+        "namespace": namespace,
+        "min_age_hours": args.min_age_hours,
+        "forensic_hours": args.forensic_hours,
+        "forensic_max": args.forensic_max,
+        "jobs_map": jobs_map,
+        "candidates": len(dead),
+        "deleted": deleted,
+        "dry_run": bool(args.dry_run),
+        "held_for_forensics": held,
+        "skipped_finished_but_kept": skipped,
+        "unparsed_timestamps": unparsed,
+        "failed": failed[:5],
+        "sample_deleted": dead[:5],
+        "_checked_any": bool(pods or args.from_json),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="清理完成态 Pod（完成态仍占镜像层与配额）")
-    ap.add_argument("--namespace", default=os.environ.get("POD_GC_NAMESPACE") or DEFAULT_NS)
+    # 可重复：`--namespace a --namespace b`。2026-11-22 之前只能清一个，
+    # 于是 sub2api 攒了 1894 个 Evicted Pod 无人清（pod-gc 只扫 fd-prod），
+    # 而那批残骸正是节点 DiskPressure 的放大器。
+    ap.add_argument("--namespace", action="append", dest="namespaces",
+                    metavar="NS",
+                    default=None,
+                    help="可重复；缺省取 POD_GC_NAMESPACE，再缺省 DEFAULT_NS")
     ap.add_argument("--min-age-hours", type=float,
                     default=float(os.environ.get("POD_GC_MIN_AGE_H") or DEFAULT_MIN_AGE_H))
     ap.add_argument("--forensic-hours", type=float,
@@ -231,59 +293,19 @@ def main(argv: list[str] | None = None) -> int:
 
     now = datetime.now(timezone.utc)
 
-    if args.from_json:
-        with open(args.from_json, encoding="utf-8") as fh:
-            pods = (json.load(fh) or {}).get("items") or []
-        token, ctx = "", None
-        if args.jobs_from_json:
-            with open(args.jobs_from_json, encoding="utf-8") as fh:
-                failed_jobs = failed_job_names((json.load(fh) or {}).get("items") or [])
-            jobs_map = "fixture"
-        else:
-            failed_jobs, jobs_map = None, "unavailable"
+    if args.namespaces:
+        namespaces = [n for n in args.namespaces if n and n.strip()]
     else:
-        token = open(f"{SA_DIR}/token", encoding="utf-8").read().strip()
-        ctx = ssl.create_default_context(cafile=f"{SA_DIR}/ca.crt")
-        pods = _api_call(f"/api/v1/namespaces/{args.namespace}/pods", token=token, ctx=ctx).get("items") or []
-        try:
-            jobs = _api_call(f"/apis/batch/v1/namespaces/{args.namespace}/jobs",
-                             token=token, ctx=ctx).get("items") or []
-            failed_jobs, jobs_map = failed_job_names(jobs), "ok"
-        except Exception as exc:  # noqa: BLE001 - 取不到 Job 表不该让整轮不清理
-            failed_jobs, jobs_map = None, unavailable_note(exc)
+        env_ns = (os.environ.get("POD_GC_NAMESPACE") or "").strip()
+        namespaces = [env_ns] if env_ns else [DEFAULT_NS]
 
-    dead, skipped, unparsed, held = select_pods(
-        pods, now, args.min_age_hours, failed_jobs, args.forensic_hours, args.forensic_max)
-
-    deleted, failed = 0, []
-    if not args.dry_run:
-        for name in dead:
-            try:
-                _api_call(f"/api/v1/namespaces/{args.namespace}/pods/{name}",
-                          method="DELETE", token=token, ctx=ctx)
-                deleted += 1
-            except Exception as exc:  # noqa: BLE001 - 单条失败不该中断整批
-                failed.append(f"{name}: {type(exc).__name__} {exc}")
-    else:
-        deleted = len(dead)
-
-    print(json.dumps({
-        "namespace": args.namespace,
-        "min_age_hours": args.min_age_hours,
-        "forensic_hours": args.forensic_hours,
-        "forensic_max": args.forensic_max,
-        "jobs_map": jobs_map,
-        "candidates": len(dead),
-        "deleted": deleted,
-        "dry_run": bool(args.dry_run),
-        "held_for_forensics": held,
-        "skipped_finished_but_kept": skipped,
-        "unparsed_timestamps": unparsed,
-        "failed": failed[:5],
-        "sample_deleted": dead[:5],
-    }, ensure_ascii=False))
-    # 有删除目标就 0（清理是常态）；只有「一条都没检查成」才非 0。
-    return 0 if (pods or args.from_json) else 2
+    results = [run_namespace(ns, args, now) for ns in namespaces]
+    for r in results:
+        checked = r.pop("_checked_any")
+        print(json.dumps(r, ensure_ascii=False))
+        r["_checked_any"] = checked
+    # 多命名空间时全 0 也必须是 0；只有「每个都一条没检查成」才 2。
+    return 0 if any(r["_checked_any"] for r in results) else 2
 
 
 if __name__ == "__main__":

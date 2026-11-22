@@ -246,3 +246,55 @@ def test_main_surfaces_job_table_status_code(tmp_path, monkeypatch, capsys):
     assert out["jobs_map"] == "unavailable: HTTPError:403"
     assert out["held_for_forensics"] == 0
     assert out["deleted"] == 1, "dry-run 只计数不删；取不到 Job 表不该让整轮不清理"
+
+
+def test_main_cleans_every_given_namespace(tmp_path, monkeypatch, capsys):
+    """`--namespace` 可重复：每个命名空间各清各的，各打一行。
+
+    2026-11-22 实历：这条作业原先只能清一个命名空间，而清单里写的是 fd-prod
+    ⇒ sub2api 攒了 1894 个 Evicted Pod 无人清，反过来放大节点 DiskPressure。
+    判据必须是「两个 ns 都真的被访问到」，不是「跑完退出码是 0」——后者在不改
+    一行代码的旧版本上也成立。
+    """
+    import scripts.pod_gc as pg
+
+    (tmp_path / "token").write_text("dummy-token\n", encoding="utf-8")
+    (tmp_path / "ca.crt").write_text("", encoding="utf-8")
+    monkeypatch.setattr(pg, "SA_DIR", str(tmp_path))
+    monkeypatch.setattr(pg.ssl, "create_default_context", lambda **_kw: None)
+
+    hits: list[str] = []
+
+    def fake_api(path, *_args, **_kwargs):
+        hits.append(path)
+        return {"items": []}
+
+    monkeypatch.setattr(pg, "_api_call", fake_api)
+    assert main(["--namespace", "fd-prod", "--namespace", "sub2api", "--dry-run"]) == 0
+
+    lines = [l for l in capsys.readouterr().out.strip().splitlines() if l]
+    assert len(lines) == 2, f"每个命名空间各一行，实际 {len(lines)} 行"
+    seen = [json.loads(l)["namespace"] for l in lines]
+    assert seen == ["fd-prod", "sub2api"]
+    assert any("/namespaces/fd-prod/pods" in h for h in hits)
+    assert any("/namespaces/sub2api/pods" in h for h in hits)
+
+
+def test_main_defaults_to_single_namespace(tmp_path, monkeypatch, capsys):
+    """不给 --namespace 时行为与旧版一致（仍是一个命名空间，不是凭空扫全集群）。"""
+    import scripts.pod_gc as pg
+
+    (tmp_path / "token").write_text("dummy-token\n", encoding="utf-8")
+    (tmp_path / "ca.crt").write_text("", encoding="utf-8")
+    monkeypatch.setattr(pg, "SA_DIR", str(tmp_path))
+    monkeypatch.setattr(pg.ssl, "create_default_context", lambda **_kw: None)
+    monkeypatch.delenv("POD_GC_NAMESPACE", raising=False)
+
+    hits: list[str] = []
+    monkeypatch.setattr(pg, "_api_call",
+                        lambda path, *_a, **_k: (hits.append(path), {"items": []})[1])
+
+    assert main(["--dry-run"]) == 0
+    lines = [l for l in capsys.readouterr().out.strip().splitlines() if l]
+    assert len(lines) == 1
+    assert json.loads(lines[0])["namespace"] == pg.DEFAULT_NS
