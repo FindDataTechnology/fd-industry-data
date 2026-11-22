@@ -1,18 +1,18 @@
 {
-  "at": "2026-11-21T20:17:01.164812+00:00",
+  "at": "2026-11-22T20:30:09.066988+00:00",
   "silent": [
     {
       "line": "flower",
       "kind": "stale",
       "last": "2026-11-08",
-      "days": 13,
+      "days": 14,
       "max_days": 2
     }
   ],
   "ticket": {
     "checked": true,
-    "at": "2026-11-18T02:11:05.650109+00:00",
-    "total": 4,
+    "at": "2026-11-22T00:00:18.605437+00:00",
+    "total": 5,
     "auth_failed": 0,
     "broken": false
   },
@@ -21,9 +21,9 @@
     "ticket_auth:route_moved"
   ],
   "notify": {
-    "sent": 1,
+    "sent": 0,
     "failed": 0,
     "skipped": 0,
-    "reason": null
+    "reason": "无变化"
   }
 }

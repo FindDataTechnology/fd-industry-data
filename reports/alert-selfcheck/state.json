@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-21T20:17:01.164812+00:00",
+  "at": "2026-11-22T20:30:09.066988+00:00",
   "findings": [
     "silent:flower",
     "ticket_auth:route_moved"
