@@ -267,7 +267,9 @@ def test_main_cleans_every_given_namespace(tmp_path, monkeypatch, capsys):
 
     def fake_api(path, *_args, **_kwargs):
         hits.append(path)
-        return {"items": []}
+        # 必须真有一个 Pod：退出码 2 的语义是「一条都没检查成」，
+        # 空列表在旧版里也退 2，拿它当夹具就分不出「扫到了」与「没扫到」。
+        return {"items": [pod("old", "Succeeded")]}
 
     monkeypatch.setattr(pg, "_api_call", fake_api)
     assert main(["--namespace", "fd-prod", "--namespace", "sub2api", "--dry-run"]) == 0
@@ -292,7 +294,8 @@ def test_main_defaults_to_single_namespace(tmp_path, monkeypatch, capsys):
 
     hits: list[str] = []
     monkeypatch.setattr(pg, "_api_call",
-                        lambda path, *_a, **_k: (hits.append(path), {"items": []})[1])
+                        lambda path, *_a, **_k: (hits.append(path),
+                                                 {"items": [pod("old", "Succeeded")]})[1])
 
     assert main(["--dry-run"]) == 0
     lines = [l for l in capsys.readouterr().out.strip().splitlines() if l]
