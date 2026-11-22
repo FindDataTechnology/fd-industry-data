@@ -96,7 +96,7 @@ def _parse_arxiv_atom(atom_xml: bytes) -> list[dict]:
     return out
 
 
-def run_education_arxiv_new(limit: int = 10, fetch_bodies: bool = False) -> list[dict]:
+def run_education_arxiv_new(limit: int = 10, fetch_bodies: bool = True) -> list[dict]:
     """arXiv 教育类目新提交列表（天然增量：按 submittedDate 倒序）。"""
     # 空格连接（urlencode 会把空格编成 +，arXiv 按 OR 解析）；切勿手写 '+OR+'——
     # urlencode 会把 + 编成 %2B（字面加号），查询变零命中（2026-11-04 实测踩坑）。
@@ -173,7 +173,7 @@ def _jats_to_markdown(xml_bytes: bytes) -> str | None:
     return "\n\n".join(parts) if parts else None
 
 
-def run_education_epmc_oa(limit: int = 10, fetch_bodies: bool = False) -> list[dict]:
+def run_education_epmc_oa(limit: int = 10, fetch_bodies: bool = True) -> list[dict]:
     """Europe PMC 教育 OA 检索（元数据 CC0；全文 XML 仅 OA 标记者）。"""
     params = urllib.parse.urlencode({
         "query": f"{EPMC_EDU_QUERY} AND OPEN_ACCESS:Y",
@@ -222,7 +222,7 @@ def run_education_epmc_oa(limit: int = 10, fetch_bodies: bool = False) -> list[d
 
 # ── 兼容 OpenAlex OA 层的统一入口（provider 挂载用）─────────────────────────
 
-def run_education_oa_fulltext(limit: int = 10, source: str = "epmc", fetch_bodies: bool = False) -> list[dict]:
+def run_education_oa_fulltext(limit: int = 10, source: str = "epmc", fetch_bodies: bool = True) -> list[dict]:
     """OA 正文层统一入口。source: 'epmc' | 'arxiv'。"""
     if source == "arxiv":
         return run_education_arxiv_new(limit=limit, fetch_bodies=fetch_bodies)

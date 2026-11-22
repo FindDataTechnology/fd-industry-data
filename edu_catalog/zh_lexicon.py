@@ -35,6 +35,9 @@ ZH_EN_TERMS: dict[str, str] = {
     "偏微分方程": "partial differential equations", "方程": "equations",
     "抽象代数": "abstract algebra", "实分析": "real analysis", "复分析": "complex analysis",
     "泛函分析": "functional analysis", "数学分析": "mathematical analysis",
+    # 带限定词的复合词（最长前匹配会命中整词而非丢掉「高等/线性」等限定）：
+    "高等数学": "advanced mathematics", "高等代数": "advanced algebra",
+    "高等微积分": "advanced calculus", "高等几何": "advanced geometry",
     # ── 计算机课程 ──
     "算法": "algorithms", "数据结构": "data structures", "机器学习": "machine learning",
     "深度学习": "deep learning", "人工智能": "artificial intelligence",

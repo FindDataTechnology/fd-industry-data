@@ -116,12 +116,18 @@ def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable
             qq_norm = qq.replace("-", " ")
             hits = []
             for r in rows:
-                if resource_type and (r.get("resource_type") or _infer_type(r)) != resource_type:
-                    continue
+                rt = r.get("resource_type") or _infer_type(r)
+                if resource_type:
+                    accepted = _TYPE_ALIASES.get(resource_type, (resource_type,))
+                    if rt not in accepted:
+                        continue
                 if subject and subject.lower() not in json.dumps(r.get("primary_topic_display_name") or r.get("title") or "", ensure_ascii=False).lower():
                     continue
-                if platform and platform.lower() not in str(r.get("platform") or "").lower():
-                    continue
+                if platform:
+                    plat = platform.lower()
+                    hay_plat = (str(r.get("platform") or "") + " " + _display_platform(r)).lower()
+                    if plat not in hay_plat:
+                        continue
                 if creator and creator.lower() not in json.dumps(r.get("creators") or r.get("authors") or "", ensure_ascii=False).lower():
                     continue
                 if qq:
@@ -132,8 +138,9 @@ def register(mcp, *, catalog: Callable[[], "object"], subs, error_hook: Callable
                 item = {
                     "resource_id": r.get("resource_id"),
                     "title": r.get("title") or r.get("display_name"),
-                    "resource_type": _infer_type(r),
-                    "platform": r.get("platform") or _row_channel(r),
+                    "resource_type": rt,
+                    "platform": _display_platform(r),
+                    "platform_host": r.get("platform"),  # 原主机值保留供回查
                     "license": r.get("license"),
                     "license_layer": r.get("license_layer") or r.get("license"),
                     "commercial_ok": r.get("commercial_ok", True),
@@ -298,10 +305,10 @@ def _infer_type(row: dict) -> str:
     es = str(row.get("education_source") or "")
     if ".paper." in rid or es in ("arxiv_new", "epmc_oa") or rid.startswith("https://openalex.org/"):
         return "paper"
-    if es == "podcast_rss" or rid.startswith("edu.episode"):
-        return "podcast_episode"
-    if es == "apple_seed":
-        return "podcast_show"
+    # 播客：节目卡片与单集统一归「podcast」对外类别（内部分 show/episode 不复作为过滤词，
+    # 否则 resource_type="podcast" 精确匹配不上任何一个变体而恒 no_match）。
+    if es in ("podcast_rss", "apple_seed") or rid.startswith("edu.episode"):
+        return "podcast"
     if es in ("ocw_sitemap", "openedx_catalog"):
         return "course"
     if es in ("gutenberg_catalog", "wikibooks_search", "doab_oai"):
@@ -311,3 +318,22 @@ def _infer_type(row: dict) -> str:
     if es in ("subfield_3304", "topic_T13106", "topic_T11875", "topic_T12171", "openalex"):
         return "paper"
     return "resource"
+
+
+# 资源类型过滤的别名组：调用方按对外类别过滤时，接受其内部细分形态。
+_TYPE_ALIASES = {
+    "podcast": ("podcast", "podcast_show", "podcast_episode"),
+    "paper": ("paper",),
+    "course": ("course",),
+    "book": ("book",),
+    "card": ("card",),
+}
+
+
+def _display_platform(row: dict) -> str:
+    """对外展示的平台名。播客条目 platform 存的是 feed 主机（feeds.megaphone.fm 等），
+    展示名应从来源判：apple_seed → 'Apple Podcasts'；其余沿用 platform。"""
+    es = str(row.get("education_source") or "")
+    if es == "apple_seed":
+        return "Apple Podcasts"
+    return str(row.get("platform") or _row_channel(row) or "")
