@@ -12,8 +12,8 @@ pipeline {
     environment {
         REPO = "${params.REPO_URL}"
         BR = "${params.BRANCH}"
-        HARBOR = '100.64.0.8:30880'
-        IMAGE_BASE = '100.64.0.8:30880/finddata/fd-industry-runner'
+        HARBOR = env.FD_INTERNAL_REGISTRY ?: 'registry.example.internal:30880'
+        IMAGE_BASE = "${HARBOR}/finddata/fd-industry-runner"
         PYIMG = 'docker.m.daocloud.io/library/python:3.12-slim'
         TSINGHUA = 'https://pypi.tuna.tsinghua.edu.cn/simple'
     }
@@ -85,7 +85,7 @@ pipeline {
     post {
         always {
             sh '''#!/bin/bash
-                imgs=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep '^100.64.0.8:30880/' || true)
+                imgs=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep "^${HARBOR:-registry.example.internal}/" || true)
                 if [ -n "$imgs" ]; then
                     echo "post-build cleanup: removing local build images:"
                     echo "$imgs"
