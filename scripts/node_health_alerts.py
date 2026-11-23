@@ -48,6 +48,7 @@ import json
 import os
 import ssl
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -138,8 +139,21 @@ def fetch_nodes(timeout: float = 10.0) -> list[dict] | None:
             f"https://{host}:{port}/api/v1/nodes",
             headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
+        # GET 重试（2026-11-23 实撞，本仓第三处同一形态）：原来只发一次、10s 超时、
+        # 异常即 None ⇒ 一次抖动就判「失明」（`blind: true, nodes: 0`，exit 4），
+        # 而失明的意思是**节点告警整轮空白**——恰恰在最需要它说话的时刻闭嘴。
+        # 判据不变（拿不到仍是 None＝失明），只是不再让一次超时冒充拿不到。
+        payload = None
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+                    payload = json.loads(resp.read().decode("utf-8"))
+                break
+            except Exception:  # noqa: BLE001 — 逐次重试，最后一次才算数
+                if attempt < 2:
+                    time.sleep(0.5 * (attempt + 1))
+        if payload is None:
+            return None
     except Exception:  # noqa: BLE001 — 任何异常都意味着"这次看不见"，不是"没节点"
         return None
     items = payload.get("items")
