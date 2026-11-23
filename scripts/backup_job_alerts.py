@@ -61,6 +61,7 @@ import os
 import re
 import ssl
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -541,11 +542,20 @@ def fetch_api(namespace: str, *, timeout: float = 20.0) -> tuple[list[dict], lis
             f"https://kubernetes.default.svc{path}",
             headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
         )
-        try:
-            with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
-                return json.loads(resp.read().decode())
-        except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError) as exc:
-            raise Blind(f"读 {path} 失败：{exc}") from exc
+        # GET 重试（2026-11-23，本仓第四处同一形态）：这个函数读 cronjobs + jobs
+        # 两份列表，响应比单份大；一次 apiserver 抖动就 `Blind` ⇒ **告警链整轮空白**，
+        # 而它是「备份停了没人知道」的唯一出口（2026-11-23 早上正是靠它才发现
+        # origin PG 两天没备份）。判据不变：3 次都失败仍然 Blind。
+        last: Exception | None = None
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
+                    return json.loads(resp.read().decode())
+            except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError) as exc:
+                last = exc
+                if attempt < 2:
+                    time.sleep(0.5 * (attempt + 1))
+        raise Blind(f"读 {path} 失败（3 次尝试）：{last}") from last
 
     cj = get(f"/apis/batch/v1/namespaces/{namespace}/cronjobs")
     jb = get(f"/apis/batch/v1/namespaces/{namespace}/jobs")
