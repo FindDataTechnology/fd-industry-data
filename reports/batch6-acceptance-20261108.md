@@ -6,8 +6,8 @@
 
 | # | 单元 | golden 参数 | rows | 时长 | 结果 |
 |---|---|---|---|---|---|
-| 1 | `nfra-stats-xls` | `{"limit": 800}` | 800 | —（异地） | PASS（异地出口 cheap1 核验） |
-| 2 | `nfra-penalty` | `{"limit": 60}` | 60 | —（异地） | PASS（异地出口 cheap1 核验） |
+| 1 | `nfra-stats-xls` | `{"limit": 800}` | 800 | —（异地） | PASS（异地出口 一台构建节点 核验） |
+| 2 | `nfra-penalty` | `{"limit": 60}` | 60 | —（异地） | PASS（异地出口 一台构建节点 核验） |
 | 3 | `pboc-credit-funds` | `{"limit": 4000}` | 2997 | 6.8s | PASS |
 | 4 | `pboc-loan-usage` | `{"limit": 40}` | 24 | 1.0s | PASS |
 | 5 | `chinamoney-shibor` | `{"limit": 20, "days": 0}` | 30 | 156.9s | PASS |
@@ -43,10 +43,10 @@
 
 ## 4. 本期已知状态与交付后修正
 
-**NFRA 两单元：本机出口被封，改用异地出口（cheap1）核验通过。**
+**NFRA 两单元：本机出口被封，改用异地出口（一台构建节点）核验通过。**
 本机（Mac）打 `www.nfra.gov.cn/cbircweb/*` 全部 `HTTP 403`（单元同款头与 curl 默认头双测均 403，
-首页 200 → 出口 IP 级 WAF 拦截，非源结构变化）；同在 cheap1 上同一请求 200。
-故把单元目录 + `fd_industry_data` 同步到 cheap1（临时 `pip install --target pylibs lxml xlrd`）
+首页 200 → 出口 IP 级 WAF 拦截，非源结构变化）；同在 一台构建节点 上同一请求 200。
+故把单元目录 + `fd_industry_data` 同步到 一台构建节点（临时 `pip install --target pylibs lxml xlrd`）
 跑同一份 golden 重放：`nfra-stats-xls` → **`ok=True rows=800 diffs=[]`**，
 `nfra-penalty` → **`ok=True rows=60 diffs=[]`**。明细与出处见
 `reports/batch6-external-verify-20261108.json`（含 `_provenance`）。

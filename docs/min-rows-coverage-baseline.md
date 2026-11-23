@@ -199,7 +199,7 @@ select source, n, zero, p10::int, p50::int,
 from a order by bucket, n desc;
 ```
 
-入口：`dashboards/sql/fd_open_data.sh`（只读，走 mesh `100.64.0.3:30432`）。
+入口：`dashboards/sql/fd_open_data.sh`（只读，走 canonical PG（mesh 地址见部署 env））。
 
 ## 6. C 桶判定：`akshare` 到底该怎么看（2026-11-08 补）
 

@@ -32,7 +32,7 @@
 | 出口 | 结果 |
 |---|---|
 | 本机直连 | ❌ `TimeoutError`（30s read timeout，两序列都超） |
-| fx 出口 `fdproxy@100.64.0.4:30080`（`curl_cffi`） | ✅ 2.2s / 200 |
+| fx 出口 `fdproxy@<proxy-endpoint>:30080`（`curl_cffi`） | ✅ 2.2s / 200 |
 | fx 出口同址（`urllib`） | ❌ 61s 超时——**标准库不给 CONNECT 隧道补 `Proxy-Authorization`** |
 
 所以：**直连用 stdlib，代理腿用 `curl_cffi`**；配了 `HTTPS_PROXY`（生产恒由
@@ -61,7 +61,7 @@ FRED 的缺测有两种形态，都必须**跳过而不是补零**：
 ```bash
 # 全量回补（默认 limit=100 会截断历史）
 FD_CRAWL_DB_URL="$FD_OPEN_DATA_DSN" FD_WRITER_MAX_ITEMS=50000 \
-HTTPS_PROXY="http://fdproxy:***@100.64.0.4:30080" \
+HTTPS_PROXY="http://fdproxy:***@<proxy-endpoint>:30080" \
   ./.venv/bin/python -m fd_industry_data.runner_cli fred-cpi --limit 3000
 
 # 换序列（NSA 是另一口径，需另立概念，不要塞进这对）

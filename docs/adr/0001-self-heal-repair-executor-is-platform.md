@@ -4,7 +4,7 @@ spider-self-heal-l2 的修复执行体不做一次性脚本：按萬星 agents �
 
 最终接口（2026-10-03 v2 实跑验收后回传固化，契约全文=paas `docs/spider-heal-pack.md`）：
 
-- pack `KkCie7NlrHluo4LiKPnn0w` · agent `spider-heal` · fd-prod（runner cheap1）
+- pack `KkCie7NlrHluo4LiKPnn0w` · agent `spider-heal` · fd-prod（runner 一台构建节点）
 - 调用：`POST https://wanxing.finddatatech.cloud/api/wanxing/v1/a2a/packs-kkcie7nlrhluo4likpnn0w-spider-heal`，Bearer 调用键（允许清单制）
   - ⚠ 主机名是**独立门面** `wanxing.finddatatech.cloud`（unify-wanxing-a2a-face 4.x 起）。旧的
     `platform.finddatatech.cloud/api/wanxing/...` 挂载已摘除，打到那里只会被平台 auth 闸拦成
@@ -14,7 +14,7 @@ spider-self-heal-l2 的修复执行体不做一次性脚本：按萬星 agents �
 - 节奏：30 分钟自巡检队列 + 外部 SUBMIT 立即入队
 - 工单契约：category 枚举 network/source-revision/structure/contract/source-dead/fallback + verify 验证链命令声明 + golden 路径
 - 凭据：git PAT 已绑定（secret `git_pat`，仅推分支；平台存 ws_ 引用，日志尾四位）
-- 已验证：真回合 110s、重放幂等单笔计费、STATUS 跨回合读盘、GitHub 出海（cheap1）
+- 已验证：真回合 110s、重放幂等单笔计费、STATUS 跨回合读盘、GitHub 出海（一台构建节点）
 
 ## Considered Options
 

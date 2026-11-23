@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """农业通用财报：从 GTA 面板取数并登记观测库（awaken-agriculture-report-ingest W5 的 GTA 通道）。
 
-链路：windows-admin ``gta_panel``（只读 ``fdbiz_ro``，值单位**元**）
+链路：windows 管理员机 ``gta_panel``（只读 ``fdbiz_ro``，值单位**元**）
       → 本文件的指标→变量映射（口径钉死）
       → ``semantic_observations``（``source_used='gta-panel'``、粒度 ``year``）
 

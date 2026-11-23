@@ -4,7 +4,7 @@
 **为什么走 cnstats 而不是直连 NBS**（2026-11-08 实测）：
 `data.stats.gov.cn/easyquery.htm` 对本机出口无条件返回
 `403 reason:UrlACL`（IPv6 `2408:8256:…`、IPv4 `163.125.162.244`、强制 IPv4、
-scrapling chrome 指纹、ego 真浏览器 —— 全部 403）。而 windows-admin 的
+scrapling chrome 指纹、ego 真浏览器 —— 全部 403）。而 windows 管理员机 的
 `cnstats` 库就是那条「专门获取 NBS 的项目」的落地：
 `nbs_indicator` 79,525 条 + `nbs_observation` 2,047 万条。
 **不绕 WAF、不搬 Cookie**，直接从落地库取。
@@ -223,7 +223,7 @@ def main(argv: list[str]) -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     series_doc = {
         "generated_for": "add-agriculture-industry-sources 2.7（NBS 农业年度序列）",
-        "source_of_truth": "windows-admin cnstats（nbs_indicator / nbs_observation）",
+        "source_of_truth": "windows 管理员机 cnstats（nbs_indicator / nbs_observation）",
         "why_not_api": "data.stats.gov.cn 对本机出口 403 reason:UrlACL"
                        "（IPv4/IPv6/指纹/真浏览器全部实测被拦）",
         "caliber": "全国口径（region_id IS NULL）；空值不写行、不补 0",

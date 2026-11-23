@@ -3,7 +3,7 @@
 **要回答的问题**：`agent.finddatatech.cloud` 上那四个机器面（`llms.txt` /
 `llms-full.txt` / `catalog.json` / `robots.txt`），今天还是今天的吗？
 
-为什么需要它：这四个文件由 cheap1 主机 cron（`/opt/fd/plaza-refresh.sh`，
+为什么需要它：这四个文件由 一台构建节点 主机 cron（`/opt/fd/plaza-refresh.sh`，
 `17 4 * * *`）每天重导一次，不是 CI 产出。**那条 cron 死了不会有任何东西报警**：
 它的日志落在主机 `/tmp`（重启即丢），出口只有一句 `exit 1`，而这台机上没有 mail。
 于是它就退化成 2026-11-05→11-09 那次的形态——快照挂在线上、市场从 82 涨到 114、
@@ -248,14 +248,14 @@ def compose_messages(events: list[dict], verdict: dict, stale_hours: float) -> l
                 f"catalog.json 的 generatedAt = {verdict.get('generated')}，距今 {age} 小时。",
                 f"判定依据：{basis}。",
                 "",
-                "每日刷新由 cheap1 主机 cron 驱动（/opt/fd/plaza-refresh.sh，17 4 * * *），",
+                "每日刷新由 一台构建节点 主机 cron 驱动（/opt/fd/plaza-refresh.sh，17 4 * * *），",
                 "它失败时不会有人被通知（日志在主机 /tmp，机器重启即丢）。",
                 "",
                 "排查顺序：",
-                "1) ssh root@cheap1 'tail -50 /tmp/plaza-refresh.log' —— 看导出自检那一行；",
+                "1) ssh root@一台构建节点 'tail -50 /tmp/plaza-refresh.log' —— 看导出自检那一行；",
                 "2) python3 fd-infra-deploy/tools/check_plaza_export_copy.py —— 主机跑的导出器",
                 "   还是不是仓里那份（2026-11-14 实测冻过 4 天，没有任何东西会红）；",
-                "3) 手工跑一轮：ssh root@cheap1 'env -i /bin/bash /opt/fd/plaza-refresh.sh'。",
+                "3) 手工跑一轮：ssh root@一台构建节点 'env -i /bin/bash /opt/fd/plaza-refresh.sh'。",
             ])
         else:
             down = "、".join(verdict.get("root_down") or []) or "(未知)"
@@ -263,7 +263,7 @@ def compose_messages(events: list[dict], verdict: dict, stale_hours: float) -> l
             body = "\n".join([
                 f"以下根路径没有回 200：{down}",
                 "",
-                "这属于站点面本身的问题（不是陈旧）：先看 cheap1 的 Caddy 与站点根是否存在，",
+                "这属于站点面本身的问题（不是陈旧）：先看 一台构建节点 的 Caddy 与站点根是否存在，",
                 "再确认 /srv/agent-plaza-site 有没有被上一次原子落位留在半途。",
             ])
         out.append({"rule_id": e["rule_id"], "subject": subject, "body": body})

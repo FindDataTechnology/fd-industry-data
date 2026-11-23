@@ -143,8 +143,8 @@ github 远端。这次实测：第一次只推 gitee，CI 毫无反应；补推 
 | `pharma_gap_attribution` | 无可归因缺口行（gaps=0 的自然结果） |
 | `pharma_readiness` | live=2（golden 一致 ✓） degraded=3（各带三视角状态码） |
 
-周巡检的真实位置是 **100.64.0.3（guangzhou-xinru，master）**，不是我能先摸到的
-100.64.0.6——`.6` 是 NBS worker 机（跑 `fd-nbs-worker-4`），按安装脚本 design
+周巡检的真实位置是 **canonical PG 所在主节点**，不是我能先摸到的
+一台 worker 节点——`.6` 是 NBS worker 机（跑 `fd-nbs-worker-4`），按安装脚本 design
 worker 机 `FD_NBS_CRON=0`，本来就不写巡检 cron。已在 master 上完成：
 
 1. `/opt/fd-data-quality` 不是 git 检出、基线停在 5 份（Sep 21）。用

@@ -86,7 +86,7 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
 
 **当天的事故**：给三条脚本加了 `from fd_industry_data.alerts_core import state_health`，
 本地全绿（venv 里有新包），而镜像里没有这个符号（进镜像 `hasattr` → False）⇒ 下一轮
-三条线会全部 `ImportError`、一封告警都不发——正好在 `cheap-5` 掉线当天把告警关掉。
+三条线会全部 `ImportError`、一封告警都不发——正好在 `一台工作节点` 掉线当天把告警关掉。
 处置与防线：读改写成脚本内的 `_state_info()`（只用镜像确有的 `load_state`），
 并落 `tests/test_alert_script_image_contract.py`——把「脚本能 import 哪些名字」
 变成一张**按模块分表的实测快照**，新增符号必须先过它。
@@ -99,13 +99,13 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
 1. **self-hosted runner（k8s/ArgoCD 标准通道）**：清单事实源
    `fd-infra-deploy/all-services/prod/fd-health-runner.yaml`（cheap 集群 fd-prod，
    ArgoCD 自动同步）→ Pod `fd-health-runner`（镜像 `ccr.ccs.tencentyun.com/finddata/fd-health-runner:sha-*`，
-   构建=fd-industry-data 仓 `health-runner-image` workflow → hkccr → cheap-3 tcr-relay 回灌 ccr）。
+   构建=fd-industry-data 仓 `health-runner-image` workflow → hkccr → relay 节点 tcr-relay 回灌 ccr）。
    名称 `cheap-health-runner`，labels `fd-health`。注册状态在 PVC `fd-health-runner-data`（`/data`），
    重建免 token；换注册 = 删 PVC + 更新 `fd-health-runner-token` secret + rollout restart。
 2. **secrets（GHA）**：`FD_CENTRAL_PG_DSN`（中央库**只读**账号 fd_health_ro，经 tailscale mesh
-   100.64.0.3:30432）、`WANXING_SPIDER_HEAL_KEY`（finddata 调用键，已在萬星允许清单）。
+   canonical PG）、`WANXING_SPIDER_HEAL_KEY`（finddata 调用键，已在萬星允许清单）。
 3. **集群内 secret（不进 git）**：`tcr-ccr`（ccr 拉取凭据）、`fd-health-proxy`（mihomo 出口
-   `100.64.0.7:30081`，cheap 节点无 GitHub 直连；NO_PROXY 含 mesh 与 finddatatech 域）、
+   `一个工作节点的探针口`，cheap 节点无 GitHub 直连；NO_PROXY 含 mesh 与 finddatatech 域）、
    `fd-health-runner-token`（一次性注册 token）。
 4. **通知通道（✅ 2026-10-04 完成，萬星侧）**：正式通道 `fd-ops` 已绑定并随 spider-heal v4
    重部署生效（NOTIFY_CHANNEL=fd-ops，runner drain 热切换）；验证消息 relay 实录 `fd-ops | sent`
@@ -114,8 +114,8 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
    （appId wx655b…，实际在用）；平台里另有一只名为 qinfa 的 bot（wx2983…）从未使用。
 5. **限流/总闸 MCP（✅ 2026-10-04 双向闭环）**：
    - **坐标**：中央库 `fd_open_data.public.health_config`（key/value jsonb 6 键 +
-     updated_at；只读账号 `fd_health_ro`，mesh `100.64.0.3:30432`，DSN 经安全渠道、不进 git）。
-   - **萬星侧落地**：只读 MCP shim（cheap1 容器 `fd-health-mcp`，tailnet `:8090`，
+     updated_at；只读账号 `fd_health_ro`，mesh `canonical PG`，DSN 经安全渠道、不进 git）。
+   - **萬星侧落地**：只读 MCP shim（一台构建节点 容器 `fd-health-mcp`，tailnet `:8090`，
      registry 条目 `fd-health-config`，pack v3 `mcpServers: ["fd-health-config"]`；
      运维配方与三坑见 paas `servers/fd-health-mcp/README.md`）。
    - **技能行为**：spider-heal-notify 每巡检调 `health_config_get` 对比本地
@@ -551,7 +551,7 @@ dispatcher 侧避免因一次数据不足就判任务失败、连带罚掉共享
 
 同日追根因到两处**平台侧**（都不在本仓，记录在此以免下次重推）：
 
-1. **11-14 的 502 是节点掉线**：`cheap-5`（100.64.0.9）在 `12:00:17 CST` 停止上报
+1. **11-14 的 502 是节点掉线**：`一台工作节点`（一台工作节点）在 `12:00:17 CST` 停止上报
    （`Kubelet stopped posting node status`），`wanxing-facade` 的 PVC 钉在那台机的
    local-path 上 ⇒ pod 永久 Pending（`0/7 nodes … didn't match PersistentVolume's
    node affinity`）⇒ wanxing-web 的 nginx `proxy_pass http://wanxing-facade:3080`
@@ -560,11 +560,11 @@ dispatcher 侧避免因一次数据不足就判任务失败、连带罚掉共享
    也不是缺放行。同一台机还压着 7 个 PV ⇒ `fd-cn-report`、`fd-daas-mcp`、
    `fd-daas-mcp-cust1`、`fleet-observer` 与 `law-rag/qdrant` 同时 0 ready。
    **别迁卷、别删 PVC**（local-path 迁卷只会得到空卷，且多为 `reclaimPolicy: Delete`）。
-2. **`-32032 fetch failed` 指向平台出网**：platform pod（cheap-7，manifest 里**没有**任何
+2. **`-32032 fetch failed` 指向平台出网**：platform pod（一台 platform 节点，manifest 里**没有**任何
    代理注入）实测 `api.github.com` 200 / 0.47s，而 `raw.githubusercontent.com` **000 / 8s
    超时**（v4/v6 都不通）；同一 pod 的日志在刷 `[catalog] AGENTS_CONFIG_URL fetch failed
    (keeping last-good)`，而那个 URL 就是 `raw.githubusercontent.com/…/agents.json`。
-   对照：`agent-runner-serving`（cheap-4，同无直连 GitHub 路由）**有** `fd-health-proxy`
+   对照：`agent-runner-serving`（一台工作节点，同无直连 GitHub 路由）**有** `fd-health-proxy`
    注入（`HTTP(S)_PROXY` + Node 版后缀 `NO_PROXY`），同一 URL 200。
    即投递要读的工单文件在 raw 上，而 platform 取不到它。
 

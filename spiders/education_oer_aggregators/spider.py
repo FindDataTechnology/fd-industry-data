@@ -1,7 +1,7 @@
 """spiders/education_oer_aggregators —— OER 聚合器层（2026-11-04 晚改道：WorldMap 停服
 后不降纯人工——机构聚合 API 实测有活的）。
 
-三通道（2026-11-04 cheap-1 经 mihomo 池 100.64.0.10:7890 探活定稿，直连被墙）：
+三通道（2026-11-04 一台构建节点 经 mihomo 池 <proxy-host>:7890 探活定稿，直连被墙）：
 - **Gutendex/Project Gutenberg**：``GET https://gutendex.com/books/?search=<q>``
   → 公版书 7 万+本；``copyright=false`` → cc0_pd 可商用；True 跳过；None（美国口径
   不明）→ 宁限不放 metadata_only。
@@ -11,7 +11,7 @@
   resumptionToken 分页；REST /rest 路径拒机房 IP 不用）；dc:rights 逐书许可归层，
   未知 → metadata_only。
 
-出海代理：环境变量 ``EDU_OER_PROXY``（如 http://100.64.0.10:7890）在场时经其出海；
+出海代理：环境变量 ``EDU_OER_PROXY``（如 http://<proxy-host>:7890）在场时经其出海；
 不在场直连（海外部署形态）。三源均零凭据（OER Commons token 制另挂申请）。
 
 纪律（spec cap1 新 R「OER 聚合器经 partner 通道接入」）：

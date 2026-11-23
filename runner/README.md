@@ -20,9 +20,9 @@ kubectl -n fd-prod create secret generic fd-health-runner-token \
   彻底换注册 = 删 PVC + 更新 secret + rollout restart。
 - 升级 runner 版本/依赖：改 `fd-industry-data/runner/Dockerfile` → 推 main 触发
   `health-runner-image` 构建 → 将清单里的 `sha-*` 标签改为新构建 sha（不可变标签纪律）。
-- 镜像链路：GHA 推 **hkccr**（海外快推）→ cheap-3 `tcr-relay-sync.sh` 自动回灌 **ccr**（repos.conf 已登记本镜像）→
+- 镜像链路：GHA 推 **hkccr**（海外快推）→ relay 节点 `tcr-relay-sync.sh` 自动回灌 **ccr**（repos.conf 已登记本镜像）→
   集群清单用 `ccr.ccs.tencentyun.com/...` + `tcr-ccr` pull secret（hkccr 的香港 COS blob 国内节点拉不动）。
-- 出网要求：GitHub（注册/接活）+ 中央库 PG 走 tailscale mesh（100.64.0.3:30432，只读角色）。
+- 出网要求：GitHub（注册/接活）+ 中央库 PG 走 tailscale mesh（canonical PG，只读角色）。
 
 ## 本地调试（不用于服务器部署）
 

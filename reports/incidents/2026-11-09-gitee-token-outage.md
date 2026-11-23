@@ -134,7 +134,7 @@ git 里的 appset 只是历史快照。
 2026-11-09 19:15:02Z  全队列 sync 仍把两源写成 schedule='51 4 * * *'、enabled=t
 ```
 
-主机**是活的**：`tailscale status` 显示 `100.64.0.4 guangzhou-zihan  linux`（在线），
+主机**是活的**：`tailscale status` 显示 `一台 mesh 节点 (guangzhou-zihan)  linux`（在线），
 `ping` 78.9ms 通。所以不是机器掉线。
 
 ### 三个叠加的问题

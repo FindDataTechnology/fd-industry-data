@@ -1,6 +1,6 @@
 {
   "generated_for": "add-agriculture-industry-sources 2.7（NBS 农业年度序列）",
-  "source_of_truth": "windows-admin cnstats（nbs_indicator / nbs_observation）",
+  "source_of_truth": "windows 管理员机的 cnstats（nbs_indicator / nbs_observation）",
   "why_not_api": "data.stats.gov.cn 对本机出口 403 reason:UrlACL（IPv4/IPv6/指纹/真浏览器全部实测被拦）",
   "caliber": "全国口径（region_id IS NULL）；空值不写行、不补 0",
   "identity_note": "稻谷+小麦+玉米 之和应 ≤ 粮食产量（其余为其他谷物/豆类/薯类）",

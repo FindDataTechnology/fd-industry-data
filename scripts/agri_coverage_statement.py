@@ -224,7 +224,7 @@ def main(argv: list[str]) -> int:
         f"（命名门放行，读面可见）。",
         f"- `nbs-stats` 源合计 {obs.get('nbs_rows', 0)} 条 / {obs.get('nbs_concepts', 0)} 条概念——"
         "其余是该源早前已有的 gdp/cpi 等序列，不是本线新增，**不并入农业口径统计**。",
-        "- 来源=windows-admin `cnstats` 落地库，**不直连 NBS 官网**"
+        "- 来源=windows 管理员机 `cnstats` 落地库，**不直连 NBS 官网**"
         "（`data.stats.gov.cn` 对本机出口 403 `reason:UrlACL`，IPv4/IPv6/指纹/真浏览器均实测被拦）。",
         "- 口径：全国（`region_id IS NULL`）、年度、空值不写行不补 0；"
         "期数门 ≥24 正式、12–23 `short_window`。",

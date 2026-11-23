@@ -134,7 +134,7 @@ usda-wasde/moa-machinery/moa-variety-approval 仍 items-only；cncotton 上游�
 ## 2026-11-08 · NBS 农业年度（2.7）：数据在 cnstats，不在官网 API
 
 **结论先行**：NBS 农业年度序列**已经拿到**（15 条 / 847 个年度点），来源不是官网，而是
-windows-admin（100.64.0.5）的 **`cnstats`** 库——那才是「专门获取 NBS 的项目」的落地：
+windows 管理员机（地址见部署）的 **`cnstats`** 库——那才是「专门获取 NBS 的项目」的落地：
 
 | 表 | 量级 |
 |---|---|
@@ -172,7 +172,7 @@ windows-admin（100.64.0.5）的 **`cnstats`** 库——那才是「专门获取
   （`password authentication failed`，重试与换 mcp 仓 `.env.local` 口令均失败）。
 * 活库凭据在集群 secret **`fd-prod/fd-mcp-env` 的 `FD_OPEN_DATA_MCP_DATABASE_URL`**
   （SQLAlchemy 形态，需把 `+psycopg2` 去掉）。脚本已加回落：先试 env，失败自动读 secret。
-* 旁路 `100.64.0.5/fd_open_data` 是**旧库**（停更 2026-08-06、`max(id)` 1.54B、
+* 旁路 `fd_open_data`（另一实例） 是**旧库**（停更 2026-08-06、`max(id)` 1.54B、
   有同名但 `created_at=NULL` 的残留概念），**不能往那写**。
 * ⚠ 事故记录：排查时我把 secret 里的 DSN 原样喂给 psycopg2，报错信息里带出了口令前缀。
   口令已暴露在会话日志中，**建议轮换**；后续一律先 `urlparse` 取结构、绝不整串打印。

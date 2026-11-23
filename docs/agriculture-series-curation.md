@@ -1,7 +1,7 @@
 # 农业行业垂直线（申万农林牧渔）— W1 精选序列清单
 
 > change：`add-agriculture-industry-sources` · 任务 5.1 · 定稿日期 2026-11-08
-> 数据面：生产观测库 `fd_open_data`（mesh `100.64.0.3:30432`），长形表 `semantic_observations`
+> 数据面：生产观测库 `fd_open_data`（canonical PG（mesh 地址见部署 env）），长形表 `semantic_observations`
 > 口径契约：`industry-observation-supply`（自然键 `(concept_id, entity_type, entity_id, date, granularity, source_used)`，
 > `INSERT ... ON CONFLICT DO NOTHING` 只增不改，缺测不插值不补零）
 

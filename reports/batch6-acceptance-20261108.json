@@ -11,7 +11,7 @@
         "limit": 800
       },
       "sample": "001-nfra-stats-xls",
-      "external": "cheap1",
+      "external": "一台构建节点",
       "local_error": "entry raised RuntimeError: nfra-stats-xls: 全部统计表取数失败 — list p1: HTTPError: HTTP Error 403: Forbidden; list p2: HTTPError: HTTP Error 403: Forbidden; list p3: HTTPError: HTTP Error 403: Forbidden; list"
     },
     {
@@ -24,7 +24,7 @@
         "limit": 60
       },
       "sample": "001-nfra-penalty",
-      "external": "cheap1",
+      "external": "一台构建节点",
       "local_error": "entry raised RuntimeError: nfra-penalty: every leaf returned zero penalty rows"
     },
     {

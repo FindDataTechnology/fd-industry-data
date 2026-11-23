@@ -48,21 +48,21 @@
 
 教训：**「代码写了、测过、验收过」不等于「上产」**——它可能只是躺在工作树里没提交。
 
-## 2.5 处罚源：为什么本机跑不了，cheap1 跑得通
+## 2.5 处罚源：为什么本机跑不了，一台构建节点 跑得通
 
 - 本机（Mac）：`https://www.nfra.gov.cn/cbircweb/DocInfo/SelectDocByItemIdAndChild` → **403**（IP 级 WAF）
-- cheap1（`103.236.89.212`）：同 URL → **200**
+- 一台构建节点（`<public-ip>`）：同 URL → **200**
 - 结论：不是源坏、不是判死源，是**本机出口被封**（与 `overseas-proxy-for-crawling` 同一类判断）。
 
-cheap1 上落地步骤（可复用）：
+一台构建节点 上落地步骤（可复用）：
 
 ```bash
 # 1) 只传所需子集（gitee 私有仓无法匿名 clone）
 tar czf /tmp/nfra-pack2.tgz --exclude="__pycache__" \
   fd_industry_data/tabular fd_industry_data/__init__.py \
   fd_industry_data/http.py fd_industry_data/sites.py spiders/nfra-penalty
-scp /tmp/nfra-pack2.tgz root@103.236.89.212:/root/
-# 2) cheap1 缺 lxml（tabular/htmltable 依赖）
+scp /tmp/nfra-pack2.tgz root@<public-ip>:/root/
+# 2) 一台构建节点 缺 lxml（tabular/htmltable 依赖）
 python3 -m pip install --break-system-packages lxml
 # 3) 跑（importlib 按路径加载，因目录名带连字符）
 python3 /root/nfra_run.py
@@ -118,7 +118,7 @@ python3 /root/nfra_run.py
 
 ```bash
 cd fd-industry-data
-export FD_CENTRAL_PG_DSN="postgresql://fd:<pwd>@100.64.0.3:30432/fd_open_data"
+export FD_CENTRAL_PG_DSN="postgresql://fd:<pwd>@canonical PG/fd_open_data"
 .venv/bin/python scripts/banking_alerts.py --dry-run --today 2026-11-08
 .venv/bin/python scripts/banking_alerts.py --dry-run --today 2026-11-08 \
   --penalty-json /tmp/nfra_sample.json      # 用真实处罚样本验触发路径
@@ -190,7 +190,7 @@ export FD_CENTRAL_PG_DSN="postgresql://fd:<pwd>@100.64.0.3:30432/fd_open_data"
 
 **排查（三步都排除了）**：
 1. 不是没出片——`image.yml` 每次推 main 都构建，当天连续成功；
-2. 不是没中继——cheap-3 的 `tcr-relay` 日志显示 `finddata/fd-industry-runner`
+2. 不是没中继——relay 节点 的 `tcr-relay` 日志显示 `finddata/fd-industry-runner`
    `copied=5 skipped=49 failed=0`，`sha-01c5ffb` / `sha-668e945` 早已在 ccr；
 3. 不是镜像本身坏——用 `sha-01c5ffb` 起只读探针，
    `universes.py` / `pg_fallback.py` / `alerts_core/state.py` **三个都在**。
