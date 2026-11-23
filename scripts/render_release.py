@@ -33,12 +33,20 @@ runs this on the bare agent, where PyYAML cannot be assumed.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MANIFEST = REPO_ROOT / "k8s" / "release.yaml"
+# 2026-11-24：发布声明与全部消费面都已迁入部署仓（restore-industry-render-plane 1.4 / 3.1）。
+# 判据不变——「镜像引用 SHALL 单一来源且机械校验一致」——只是这份声明和它渲染的文件
+# 现在同属一个仓（fd-infra-deploy），本脚本跨仓读它们。用 sibling 目录做缺省，
+# 环境变量可覆盖（CI / 别的检出位置）。
+DEPLOY_ROOT_DEFAULT = Path(
+    os.environ.get("FD_INFRA_DEPLOY_ROOT") or (REPO_ROOT.parent / "fd-infra-deploy")
+)
+DEFAULT_MANIFEST = DEPLOY_ROOT_DEFAULT / "all-services" / "xinru" / "fd-industry-release.yaml"
 
 PH_RE = re.compile(r"__RELEASE_IMAGE:([A-Za-z0-9_-]+)__")
 TAG_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$")
@@ -245,12 +253,14 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--check", action="store_true",
                     help="validate only, write nothing (CI gate mode)")
-    ap.add_argument("--root", type=Path, default=REPO_ROOT,
-                    help="repo root for resolving consumption paths (default: script's parent dir)")
+    ap.add_argument("--root", type=Path, default=DEPLOY_ROOT_DEFAULT,
+                    help="repo root for resolving consumption paths "
+                         "(default: sibling fd-infra-deploy, or $FD_INFRA_DEPLOY_ROOT)")
     ap.add_argument("--manifest", type=Path, default=None,
                     help=f"release manifest path (default: {DEFAULT_MANIFEST})")
     args = ap.parse_args(argv)
-    manifest_path = args.manifest if args.manifest is not None else args.root / "k8s" / "release.yaml"
+    manifest_path = (args.manifest if args.manifest is not None
+                     else args.root / "all-services" / "xinru" / "fd-industry-release.yaml")
     try:
         return run(args.root, manifest_path, check=args.check)
     except SetupError as exc:

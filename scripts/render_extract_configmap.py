@@ -19,21 +19,28 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 SOURCE = REPO / "scripts" / "extract_pharma.py"
-TARGET = REPO / "k8s" / "extract-pharma-configmap.yaml"
+# 2026-11-24（restore-industry-render-plane 5.2）：渲染产物随其余机队绑定清单迁进部署仓。
+# 它此前在 k8s/，2026-11-23 按目录删除后**目标文件消失而闸仍在跑**——闸恒报
+# 「不存在，先跑一次渲染」。而集群里那个 ConfigMap 还在每天 05:30 执行，
+# 且**内容是旧版**（缺 _dsn 修复，实测 live 22540 字符 vs 仓库 23146）。
+# 这就是「闸守着一个已经不存在的路径」的完整形态：真东西活着，守着它的闸死了。
+DEPLOY = Path(
+    os.environ.get("FD_INFRA_DEPLOY_ROOT") or (REPO.parent / "fd-infra-deploy")
+)
+TARGET = DEPLOY / "all-services" / "xinru" / "fd-pharma-extract-configmap.yaml"
 
 HEADER = """\
 # GENERATED — 不要手改。由 `scripts/render_extract_configmap.py` 从
 # `scripts/extract_pharma.py` 渲染；`--check` 在校验不一致时退出非零。
 #
-# 部署（与 CronJob 一起 apply）：
-#   scp k8s/extract-pharma-configmap.yaml k8s/extract-pharma.yaml fd-deploy:/tmp/
-#   ssh fd-deploy "sudo k3s kubectl apply \\
-#     -f /tmp/extract-pharma-configmap.yaml -f /tmp/extract-pharma.yaml"
+# 部署（out-of-band apply，与 fd-industry-dispatcher / federation-observer 同目录）：
+#   kubectl --context tencent apply -f all-services/xinru/fd-pharma-extract-configmap.yaml
 #
 # **改脚本后必须重跑渲染并 apply**，否则集群里跑的还是旧版本。
 apiVersion: v1
@@ -59,7 +66,7 @@ def render() -> str:
 def check() -> str:
     """返回空串表示一致，否则返回人读的差异摘要。"""
     if not TARGET.exists():
-        return f"FATAL: {TARGET.relative_to(REPO)} 不存在，先跑一次渲染"
+        return f"FATAL: {TARGET} 不存在，先跑一次渲染"
     actual = TARGET.read_text(encoding="utf-8")
     try:
         import yaml
@@ -84,10 +91,10 @@ def main() -> int:
         if problem:
             print(problem)
             return 1
-        print(f"OK EXTRACT_CONFIGMAP_CONSISTENT {TARGET.relative_to(REPO)}")
+        print(f"OK EXTRACT_CONFIGMAP_CONSISTENT {TARGET}")
         return 0
     TARGET.write_text(render(), encoding="utf-8")
-    print(f"WROTE {TARGET.relative_to(REPO)}")
+    print(f"WROTE {TARGET}")
     return 0
 
 

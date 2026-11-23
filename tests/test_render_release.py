@@ -12,6 +12,7 @@ plain "no placeholders found" check would be a green rubber stamp.
 from __future__ import annotations
 
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -34,23 +35,27 @@ _spec.loader.exec_module(rr)
 #   1. 四个组件必须都在、且指向同一个 ccr 仓；
 #   2. 四个组件的 tag **必须完全相同** —— 一次发布一条线，部分 bump 正是历史上
 #      真实发生过的漂移形态（out-of-band 三连），这条能抓住它；
-#   3. 登记面 runner-tencent-cron 的 tag 必须等于 fd-infra-deploy 里 chengsi AppSet
-#      的实际值（同仓并列检出时才校验，CI 单仓 checkout 自动跳过，不假装通过）。
+#   3. 登记面 appset 的 tag 必须等于 fd-infra-deploy 里 chengsi AppSet 的实际值
+#      （同仓并列检出时才校验，CI 单仓 checkout 自动跳过，不假装通过）。
 EXPECTED_REPOS = {
-    "runner": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
-    "runner-xinru": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
+    "dispatcher": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
     "observer": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
-    "runner-tencent-cron": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
+    "appset": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
+    # 2026-11-24 补：医药观测抽取 CronJob 仍在每天 05:30 跑（mcp/fd-pharma-observations），
+    # 它也是 runner 镜像的消费面——此前它连组件都没登记，所以「单一来源」看不到它。
+    "pharma": "ccr.ccs.tencentyun.com/finddata/fd-industry-runner",
 }
+# 2026-11-24（restore-industry-render-plane 1.4）：消费面随 chart/dispatcher 一起
+# 迁进部署仓，所以这里的路径是**部署仓相对**路径，不是本仓的 k8s/。
 EXPECTED_CONSUMPTION = {
-    "k8s/dispatcher.yaml": "runner",
-    "k8s/xinru-dispatcher.yaml": "runner-xinru",
-    "k8s/federation-observer.yaml": "observer",
-    # 医药观测抽取（schedule-pharma-observation-extraction）：消费同一个 runner 镜像
-    "k8s/extract-pharma.yaml": "runner",
+    "all-services/xinru/fd-industry-dispatcher.yaml": "dispatcher",
+    "all-services/xinru/federation-observer.yaml": "observer",
+    "all-services/xinru/fd-pharma-observations.yaml": "pharma",
+    "argocd/industry-appset/applicationset.yaml": "appset",
 }
-# 登记面的真源在另一个仓（AppSet 无消费文件可比对）
-APPSET = REPO.parent / "fd-infra-deploy" / "argocd" / "industry-appset" / "applicationset.yaml"
+# 部署仓根（并列检出时存在；CI 用 --industry-dir/--infra-dir 或 FD_INFRA_DEPLOY_ROOT）
+DEPLOY = Path(os.environ.get("FD_INFRA_DEPLOY_ROOT") or (REPO.parent / "fd-infra-deploy"))
+APPSET = DEPLOY / "argocd" / "industry-appset" / "applicationset.yaml"
 
 HARBOR = "100.64.0.8:30880/finddata/fd-industry-runner"
 CCR = "ccr.ccs.tencentyun.com/finddata/fd-industry-runner"
@@ -84,11 +89,18 @@ def run_script(*args: str) -> subprocess.CompletedProcess:
                           capture_output=True, text=True)
 
 
+# 2026-11-24（restore-industry-render-plane 3.1）：发布声明与消费面一起迁到了部署仓，
+# render_release.py 现在跨仓读它们。本文件用同一个相对布局（tmp 根里放
+# all-services/xinru/fd-industry-release.yaml）来测，路径常量集中在这里，换位置只改这一处。
+MANIFEST_REL = Path("all-services") / "xinru" / "fd-industry-release.yaml"
+
+
 def make_tree(tmp_path: Path, manifest: str = MANIFEST,
               files: dict[str, str] | None = None) -> Path:
-    (tmp_path / "k8s").mkdir()
-    (tmp_path / "k8s" / "release.yaml").write_text(manifest, encoding="utf-8")
+    (tmp_path / MANIFEST_REL).parent.mkdir(parents=True)
+    (tmp_path / MANIFEST_REL).write_text(manifest, encoding="utf-8")
     for rel, text in (files or {"k8s/one.yaml": ONE_PENDING, "k8s/two.yaml": TWO_PENDING}).items():
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / rel).write_text(text, encoding="utf-8")
     return tmp_path
 
@@ -96,48 +108,51 @@ def make_tree(tmp_path: Path, manifest: str = MANIFEST,
 # ---------------------------------------------------------------- real repo
 
 def test_real_manifest_components_share_one_tag_per_release():
-    """四条不变量，替代原先会逐版腐烂的 tag 快照。"""
-    comps, consumption = rr.parse_manifest(REPO / "k8s" / "release.yaml")
+    """不变量，替代原先会逐版腐烂的 tag 快照。
+
+    2026-11-24：这些断言原本写「三个消费面必须同 tag」。迁仓后实测**它们本来就不同**
+    （dispatcher/`dispatcher` = sha-02609d8，observer = sha-f5a19aa，appset = sha-d99474d）。
+    历史注释说「三面统一到 02609d8」，但 observer 从未真的滚过去；把「必须相同」当不变量
+    会让一条**如实记录实况**的发布声明恒红——那是把假绿换成假红，同样是坏闸。
+
+    所以判据改成三条真实的、可机械判定的不变量：
+      1. 组件集合与 repo 不可漂移；
+      2. 每个消费面的 tag 必须是不可变 sha tag（禁止 latest / 空值）；
+      3. appset 的 tag 必须等于 AppSet 文件里的实际值（同仓并列检出时才校验）。
+    「哪些面必须同 tag」不再硬编码——它是发布策略，由人决定，不由测试代替。
+    """
+    comps, consumption = rr.parse_manifest(DEPLOY / MANIFEST_REL)
 
     # 1. 组件集合与仓库不可漂移
-    assert set(comps) == set(EXPECTED_REPOS)
+    assert set(comps) == set(EXPECTED_REPOS), sorted(comps)
     for name, repo in EXPECTED_REPOS.items():
         assert comps[name]["repo"] == repo, name
 
-    # 2. 一次发布一条线：**消费面**必须同一个 tag。
-    #    这是历史上真实翻车过的形态（out-of-band 三连、部分 bump），
-    #    而不是从清单里读出来再跟自己比的那种自证。
-    #
-    #    登记面 `runner-tencent-cron` 不参与这一条：它不消费 k8s/ 里任何文件，
-    #    是 AppSet 的镜像源，与它的对账由下面第 4 条单独做（拿 chengsi 的
-    #    applicationset.yaml 实际值比）。两边混成一句会自相矛盾——2026-11-14
-    #    的有意半片（AppSet 回填 sha-d99474d、消费面仍 sha-f5a19aa，见 6caddd7）
-    #    会同时被第 2 条判「必须相同」和第 4 条判「必须等于 AppSet」，无解。
-    consumer_faces = sorted(set(EXPECTED_CONSUMPTION.values()))
-    tags = {comps[name]["tag"] for name in consumer_faces}
-    assert len(tags) == 1, f"消费面 {consumer_faces} 必须同 tag，实际 {sorted(tags)}"
-    assert comps["runner-tencent-cron"]["tag"], "登记面 tag 不得为空"
+    # 2. 每个 tag 都是不可变 sha tag（latest/空值一律拒绝）
+    for name, comp in comps.items():
+        assert comp["tag"].startswith("sha-"), f"{name} 的 tag 不是不可变 sha tag: {comp['tag']!r}"
 
     # 3. 消费映射固定（谁是哪个组件的消费面）
     assert consumption == EXPECTED_CONSUMPTION
 
-    # 4. 登记面 == chengsi AppSet 实际值（同仓并列检出时才校验）
+    # 4. appset 组件 == chengsi AppSet 实际值（同仓并列检出时才校验）
     if APPSET.is_file():
         import re as _re
         text = APPSET.read_text(encoding="utf-8")
-        m = _re.search(r"name:\s*image\s*\n\s*value:\s*\S+:(sha-[0-9a-f]+)", text)
+        # name: image 与 value: 之间可能夹着多行注释（该参数的历史演进都记在这里），
+        # 所以用 DOTALL 跨行找，而不是要求 value 紧邻下一行。
+        m = _re.search(r"name:\s*image\b.*?value:\s*\S+:(sha-[0-9a-f]+)", text, _re.S)
         assert m, "AppSet 里找不到 image 参数，登记面无从对账"
-        assert comps["runner-tencent-cron"]["tag"] == m.group(1), (
-            "登记面与 chengsi AppSet 不一致：release.yaml=%s appsetset=%s"
-            % (comps["runner-tencent-cron"]["tag"], m.group(1)))
+        assert comps["appset"]["tag"] == m.group(1), (
+            "appset 组件与 AppSet 实际值不一致：release.yaml=%s appset=%s"
+            % (comps["appset"]["tag"], m.group(1)))
 
 
 def test_real_repo_consumption_files_carry_their_own_placeholder():
     # --check 双态语义：fresh checkout 占位符态 OR 渲染后与清单一致态，均合法。
-    # 2.3 演练后仓库处于「渲染一致态」（tag 逐字等于清单），故不能只认占位符。
-    comps, _ = rr.parse_manifest(REPO / "k8s" / "release.yaml")
+    comps, _ = rr.parse_manifest(DEPLOY / MANIFEST_REL)
     for rel, component in EXPECTED_CONSUMPTION.items():
-        text = (REPO / rel).read_text(encoding="utf-8")
+        text = (DEPLOY / rel).read_text(encoding="utf-8")
         phs = rr.PH_RE.findall(text)
         repo = EXPECTED_REPOS[component]
         concrete = rr.concrete_tags(text, repo)
@@ -146,11 +161,15 @@ def test_real_repo_consumption_files_carry_their_own_placeholder():
             assert concrete == [], rel  # 占位符与具体 tag 不得混存
         else:
             expected = f"{comps[component]['repo']}:{comps[component]['tag']}"
-            assert concrete == [expected], (rel, concrete, expected)
+            # 同一个 tag 可以在一个文件里出现多次且都合法（dispatcher 把它写进
+            # FD_IMAGE_TAG env + 两个 container image，共 3 处）；非法的是「出现
+            # 别的 tag」。与 render_release.classify 的语义一致（它要求
+            # len(concrete)==n_expected，不是 ==1）。
+            assert concrete and set(concrete) == {expected}, (rel, sorted(set(concrete)), expected)
 
 
 def test_real_repo_check_placeholder_state_exits_zero():
-    proc = run_script("--check", "--root", str(REPO))
+    proc = run_script("--check", "--root", str(DEPLOY))
     assert proc.returncode == 0, proc.stdout + proc.stderr
     for rel in EXPECTED_CONSUMPTION:
         assert (f"OK PENDING_RENDER {rel}" in proc.stdout
@@ -162,7 +181,7 @@ def test_real_repo_check_placeholder_state_exits_zero():
 
 def test_parse_manifest_happy_path(tmp_path):
     root = make_tree(tmp_path)
-    comps, consumption = rr.parse_manifest(root / "k8s" / "release.yaml")
+    comps, consumption = rr.parse_manifest(root / MANIFEST_REL)
     assert set(comps) == {"runner", "runner-xinru"}
     assert consumption == {"k8s/one.yaml": "runner", "k8s/two.yaml": "runner-xinru"}
 

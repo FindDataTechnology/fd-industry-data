@@ -32,10 +32,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 渲染链路闸（change restore-industry-render-plane 3.3）：manifest → AppSet → chart
+      # 三段漏一段时，Argo 渲染不报错、CronJob 一个不少，只是那个字段恒取缺省值；
+      # 而 chart 整体消失时 165 个 Application 全部 ComparisonError，源清单却照样齐全。
+      # 2026-11-23 就是这么静默失效的。闸本体在 fd-infra-deploy/tools/，这里取它的
+      # gitee 匿名只读副本（部署仓的 GHA 跑不了——私有仓额度，实测 "job was not started"），
+      # 所以反过来由本仓（公开、无限额度）来跑它。
+      #
+      # **判不出必须让 CI 红**：闸退出码 2 表示「读不到东西」，不是「没问题」——
+      # 这次事故里它正是以 exit=2 静默了很久。
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: pip
+
+      - name: 渲染链路三段闸（manifest → AppSet → chart）
+        run: |
+          set -u
+          # 部署仓在 gitee 上有公开只读镜像（github 侧私有），直接 clone；
+          # 与 Argo 读的是同一份面，所以「Argo 看到什么」和「闸看到什么」不会分叉。
+          if ! git clone --depth 1 --quiet \
+              https://gitee.com/FindDataTechnology/fd-infra-deploy.git .deploy-gitee; then
+            echo "::error title=部署仓读不到::无法取 fd-infra-deploy 的 gitee 副本，渲染链路闸判不出"
+            exit 1
+          fi
+          python .deploy-gitee/tools/check_appset_param_passthrough.py \
+            --industry-dir "$PWD" \
+            --infra-dir "$PWD/.deploy-gitee" \
+            --industry-ref HEAD \
+            --infra-ref HEAD
+
+      - name: 镜像 tag 单一来源（跨仓 release 声明）
+        run: |
+          set -u
+          # restore-industry-render-plane 3.1：发布声明与全部消费面都在部署仓，
+          # 本仓的 render_release.py 跨仓读它们。判不出（缺部署仓）同样判红。
+          ls .deploy-gitee/all-services/xinru/fd-industry-release.yaml >/dev/null 2>&1 || {
+            echo "::error title=发布声明缺失::部署仓里没有 all-services/xinru/fd-industry-release.yaml"; exit 1; }
+          FD_INFRA_DEPLOY_ROOT="$PWD/.deploy-gitee" python scripts/render_release.py --check
 
       - name: 装依赖
         run: |
