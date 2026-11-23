@@ -238,6 +238,10 @@ jobs:
             python3 scripts/reconcile_render.py --skip-cluster --db || true
             exit 0
           fi
+          # psycopg2：--db 分支要读 crawl_sources。此前也走不到（KUBECONFIG 缺失时
+          # 走 --skip-cluster --db || true，那个 db 错误被 || true 吞掉），所以 CI
+          # 从没装过它。2026-11-24 修好前三个缺陷后这是第四个。
+          python3 -c 'import psycopg2' 2>/dev/null || pip install --quiet psycopg2-binary
           mkdir -p "$HOME/.kube"
           # 不要写 printf '%%s'：在 Actions 的 run: 里 % 不是转义符，%%s 会被原样
           # 写进文件 ⇒ kubectl 报 `yaml: found unknown directive name`（2026-11-24 实测）。
