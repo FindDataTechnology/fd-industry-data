@@ -170,8 +170,7 @@ def main(argv: list[str] | None = None) -> int:
                     "shard": name, "table": table, "ok": ok, "error": why,
                     "event": e,
                     "hint": ("分片不可达最常见的根因是宿主机盘满（PG 进入 recovery）。"
-                             "先登该机看 df：shard_xinru2=100.64.0.6、"
-                             "shard_xinru3=100.64.0.7；两块 39G 盘上备份与迁移前"
+                             "先登该分片宿主机看 df（shard_xinru2/xinru3，地址见部署 env）；两块 39G 盘上备份与迁移前"
                              "旧 PG 数据占了 24G，会复发。"),
                 }, ensure_ascii=False, indent=2),
             })

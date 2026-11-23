@@ -4,7 +4,7 @@
 （import collect 不合适——那会重跑全部七通道；本脚本只做聚合器增量，幂等 upsert）。
 
 用法：cd fd-industry-data && set -a; source ~/.config/finddata/dashboards.env; set +a
-      EDU_OER_PROXY=http://100.64.0.10:7890 python scripts/education_oer_first_load.py
+      EDU_OER_PROXY=<outbound-proxy> python scripts/education_oer_first_load.py
 （本地跑可不走代理——出海通道；DSN=FD_OPEN_DATA_DSN，源码零口令。）
 """
 from __future__ import annotations

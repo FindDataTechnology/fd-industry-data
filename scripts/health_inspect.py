@@ -184,7 +184,7 @@ def main() -> int:
         Path(args.summary_file).write_text(text + "\n", encoding="utf-8")
     if lane["status"] == "outage" and not args.dry_run:
         # 文案刻意给"先分诊"而不是猜一个方向：2026-11-14 的 502 实际出在边缘到上游
-        # （cheap-5 掉线 ⇒ wanxing-facade 零端点），而 11-13 的 -32032 出在平台出网。
+        # （工作节点掉线 ⇒ wanxing-facade 零端点），而 11-13 的 -32032 出在平台出网。
         # 两种都表现为"每次投递都失败"，混成一句话就会把人送去查错的那一层。
         print(f"::error::投递通道中断：本轮 {lane['attempted']} 次 SUBMIT 全部栽在服务侧错误"
               f"（{'; '.join(lane['reasons'])}），0 张被受理。这不是工单的问题。"

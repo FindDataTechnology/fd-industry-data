@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 """集群节点失联告警（2026-11-12 立）。
 
-**为什么要有这条**：2026-11-11 23:08 `liuliangjkiimypbdzxa`（cheap-3）在操作系统层
+**为什么要有这条**：2026-11-11 23:08 一台工作节点在操作系统层
 死掉——ICMP 全丢、SSH（v4/v6）全超时、`tailscale ping` 无回应、apiserver 到
-`100.64.0.12:10250` 报 502、四个 condition 全 `NodeStatusUnknown`。它绑着五个负载
-（facet 内部面 `100.64.0.12:3200`、search-relay、infra-telemetry、img-registry、
+kubelet 端口报 502、四个 condition 全 `NodeStatusUnknown`。它绑着五个负载
+（facet 内部面、search-relay、infra-telemetry、img-registry、
 fd-erp-vertical-api），一起变 0/1。**真正的问题不是挂，而是没人知道**：直到 00:22
 人工发现，中间 74 分钟零通知。此前全仓只有数据源的告警线，集群节点健康完全没有出口。
 
-**第二条规则（2026-11-13 立）：DiskPressure。** 那天的 `liuliangjkiimypbdzxa`
+**第二条规则（2026-11-13 立）：DiskPressure。** 那天的工作节点
 （与上文同一台机，29.9G 盘 77–80%）`Ready=True` 而 `DiskPressure=True`：
 `fd-prod/facet`（单副本 + hostname 硬绑、无 PVC）因 ephemeral-storage 被 `Evicted`、
 替代 pod 被 disk-pressure taint 钉成永久 `Pending`，对外停摆约 17 分钟。

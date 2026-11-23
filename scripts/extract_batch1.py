@@ -459,7 +459,7 @@ def main() -> int:
                         " GROUP BY 1")
                     before_by_src = dict(c2.fetchall())
                     # **必须批量**：逐条 execute() 是 8.7 万次跨集群往返
-                    # （fd-prod pod → 100.64.0.3:30432）。2026-11-15 实测：
+                    # （fd-prod pod → canonical PG）。2026-11-15 实测：
                     # batch1 在 write 阶段 17 分钟没提交、pod CPU 只 9m（全在等
                     # RTT），被 activeDeadlineSeconds 杀掉。与 _semextract.write_rows
                     # / extract_uk_hpi.py 同一写法（每批 1000 行 ≈ 87 次往返）。

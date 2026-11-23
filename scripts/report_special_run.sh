@@ -8,7 +8,7 @@
 # — a failed report logs to stderr and exits 0 so it never breaks the job.
 set -u
 SRC="${1:?source}"; STATUS="${2:?success|failed}"; ROWS="${3:-0}"; ERR="${4:-}"
-HOST="${FD_CRAWL_DB_HOST:-100.64.0.3}"; PORT="${FD_CRAWL_DB_PORT:-30432}"
+HOST="${FD_CRAWL_DB_HOST:?需设 FD_CRAWL_DB_HOST}"; PORT="${FD_CRAWL_DB_PORT:-30432}"
 NOW=$(date +%s); T0="${FD_RUN_STARTED:-$NOW}"
 if command -v psql >/dev/null 2>&1; then
   ESC=$(printf '%s' "$ERR" | sed "s/'/''/g")

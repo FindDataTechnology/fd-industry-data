@@ -9,7 +9,7 @@
 # Nothing in the fleet watched "is the tag I pin actually pullable".
 #
 # WHAT: for every CronJob/Deployment/StatefulSet/DaemonSet/Job on every cluster,
-# take its container images (ccr.ccs.tencentyun.com and 100.64.0.8:30880 only)
+# take its container images (ccr + optional internal registry via FD_INTERNAL_REGISTRY)
 # and `skopeo inspect` them with the TCR creds. Anything unresolvable is a
 # latent ImagePullBackOff the moment this node evicts its cached copy.
 # Suspended CronJobs are reported too (they become bombs the day someone
@@ -33,7 +33,7 @@ for ctx in $CTXS; do
   out=$(kubectl --context "$ctx" get cronjobs,deployments,statefulsets,daemonsets,jobs -A -o json 2>/dev/null) || continue
   [ -z "$out" ] && continue
   echo "$out" | python3 -c '
-import json,sys
+import json,sys,os
 d=json.load(sys.stdin)
 for it in d.get("items",[]):
     ns=it["metadata"]["namespace"]; name=it["metadata"]["name"]; kind=it["kind"]
@@ -45,7 +45,8 @@ for it in d.get("items",[]):
         sus=""; pod=it.get("spec",{}).get("template",{}).get("spec",{})
     for c in pod.get("containers",[]):
         im=c["image"]
-        if im.startswith("ccr.ccs.tencentyun.com/") or im.startswith("100.64.0.8:30880/"):
+        _intreg = os.environ.get("FD_INTERNAL_REGISTRY", "")
+        if im.startswith("ccr.ccs.tencentyun.com/") or (_intreg and im.startswith(_intreg)):
             print(f"{ns}|{kind}|{name}|{sus}|{im}")
 ' | sort -u | sed "s|^|$ctx|" >> "$TMP"
 done

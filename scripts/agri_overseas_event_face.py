@@ -22,6 +22,7 @@
 """
 from __future__ import annotations
 
+import os
 import argparse
 import json
 import re
@@ -42,7 +43,7 @@ SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SEC_SUB_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 UA = "finddata-research contact@finddatatech.cloud"
 #: SEC ticker 表在 www.sec.gov（本机直连超时），走 windows-laptop 的深圳家宽出口。
-SEC_PROXY = "http://100.64.0.10:7890"
+SEC_PROXY = os.environ.get("SEC_PROXY", "")  # 代理地址经 env 提供（不内置内部 mesh 地址）；空=直连
 
 #: 农业相关 SIC 区间（SEC 官方 SIC 体系），按本线 coarse-7 口径对应：
 #:   0100–0299 农业种植/畜牧 · 0900–0999 渔业/林业/狩猎 · 2000–2099 食品与同类产品加工（=农产品加工）

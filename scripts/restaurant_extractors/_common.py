@@ -152,7 +152,7 @@ def insert_rows(cur, source_used: str, ids: dict, rows) -> int:
     never the sibling's name.
 
     **批量写**（2026-11-15）：逐条 `execute()` 是每行一次跨集群往返
-    （fd-prod pod → 100.64.0.3:30432）。同一天实测 batch1 逐行写 8.7 万行
+    （fd-prod pod → canonical PG）。同一天实测 batch1 逐行写 8.7 万行
     17 分钟还没提交、被 `activeDeadlineSeconds` 杀掉，改成 `execute_values`
     后 3 分钟写完 —— 这是同一族写法的共用实现，hotel / restaurant /
     agriculture / flower 四个 wave 全走它。每批单独 `execute_values`，

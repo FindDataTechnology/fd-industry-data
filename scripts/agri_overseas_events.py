@@ -30,6 +30,7 @@
 """
 from __future__ import annotations
 
+import os
 import argparse
 import html
 import json
@@ -52,7 +53,7 @@ SEC_SUB = "https://data.sec.gov/submissions/CIK{cik}.json"
 HKEX_SEARCH = "https://www1.hkexnews.hk/search/titleSearchServlet.do"
 HKEX_PREFIX = "https://www1.hkexnews.hk/search/prefix.do"
 #: SEC ticker 表在 www.sec.gov（本机直连超时），走 windows-laptop 深圳家宽；data.sec.gov 可直连。
-SEC_PROXY = "http://100.64.0.10:7890"
+SEC_PROXY = os.environ.get("SEC_PROXY", "")  # 代理地址经 env 提供（不内置内部 mesh 地址）；空=直连
 
 #: 只保留「事件面」关心的表单：定期报告 + 重大事项。
 US_FORMS = {"10-K", "10-Q", "20-F", "6-K", "8-K"}

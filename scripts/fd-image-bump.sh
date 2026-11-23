@@ -1,7 +1,7 @@
 #!/bin/bash
 # fd-image-bump — runner 镜像 tag 的"采用"环节。
 #
-# WHY (2026-11-08)：`fd-industry-runner` 每次推 main 都会构建、cheap-3 的
+# WHY (2026-11-08)：`fd-industry-runner` 每次推 main 都会构建、relay 的
 # tcr-relay 也会同步到 ccr，但 Argo ApplicationSet `fd-industry-crawl` 的 helm
 # 参数 `image` 是**手写死 tag**。于是管线全绿、镜像齐全，集群却一直跑几个月前
 # 的那一片（实测 79 个 CronJob 停在 sha-750da3f）——集群里的 fd_industry_data
