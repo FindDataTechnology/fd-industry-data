@@ -6,19 +6,19 @@ version: "1"
 sites:
   - id: tencent
     kind: k8s
-    description: tencent 主力 k3s（chengsi 单节点）— ApplicationSet CronJob + dispatcher
+    description: 主力 k8s 站点（单节点）— ApplicationSet CronJob + dispatcher
   - id: nbs-workers
     kind: docker
-    description: NBS 四机 docker worker 舰队 — coordinator 认领 site=nbs-workers
+    description: 四机 docker worker 舰队 — coordinator 认领
   - id: zihan
     kind: docker
-    description: zihan docker worker — 与 fd-mcp 业务服务共存，限资源共享
+    description: 一台 docker worker — 与业务服务共存，限资源共享
   - id: xinru-server1
     kind: docker
-    description: xinru-server1 docker worker — 独立 k3s 空载，仅 docker 认领
+    description: 一台 docker worker — 独立 k3s 空载，仅 docker 认领
   - id: xinru-server2
     kind: docker
-    description: xinru-server2 docker worker — 与 mihomo/gost/遗留 PG 共存，直连出口
+    description: 一台 docker worker — 与代理/遗留 PG 共存，直连出口
   - id: xinru-master
     kind: k8s
-    description: 控制面与中央库所在机器 — 法律线保留建制宿主（legal-line-federation 豁免，以资源限额硬闸为前提），站点 dispatcher 与 federation-observer 驻此
+    description: k8s 协调站点 — dispatcher 与 federation-observer 驻此（法律线宿主，资源限额硬闸为前提）
