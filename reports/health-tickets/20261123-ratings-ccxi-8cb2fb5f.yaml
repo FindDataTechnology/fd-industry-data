@@ -1,0 +1,52 @@
+ticket_id: 20261123-ratings-ccxi-8cb2fb5f
+source: ratings-ccxi
+unit: spiders/ratings-ccxi/
+kind: repair
+created_at: '2026-11-23T21:05:04.865279+00:00'
+category: contract
+needs_human: false
+suspected_anti_bot: true
+suggested_action: 更换数据表面（官方 API/替代入口）或退役；禁止逆向
+evidence:
+  window:
+    from: '2026-11-16 01:57:05.944286+00'
+    to: '2026-11-23 01:58:33.99893+00'
+  failing_runs:
+  - started_at: '2026-11-23 01:57:04.612333+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: 中诚信签名被拒（HTTP 403）：请更新 CCXI_HMAC_KEY/CCXI_API_VERSION（密钥换版即失效）——{"code":403,"msg":"签名校验失败"}'
+    http_status: null
+  - started_at: '2026-11-23 01:57:20.504778+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: 中诚信签名被拒（HTTP 403）：请更新 CCXI_HMAC_KEY/CCXI_API_VERSION（密钥换版即失效）——{"code":403,"msg":"签名校验失败"}'
+    http_status: null
+  - started_at: '2026-11-23 01:57:46.616266+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: 中诚信签名被拒（HTTP 403）：请更新 CCXI_HMAC_KEY/CCXI_API_VERSION（密钥换版即失效）——{"code":403,"msg":"签名校验失败"}'
+    http_status: null
+  - started_at: '2026-11-23 01:58:33.99893+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: 中诚信签名被拒（HTTP 403）：请更新 CCXI_HMAC_KEY/CCXI_API_VERSION（密钥换版即失效）——{"code":403,"msg":"签名校验失败"}'
+    http_status: null
+  last_success:
+    started_at: '2026-11-16 01:57:05.944286+00'
+    rows: 100
+  watermark:
+    latest: null
+    basis: unknown（遥测未提供数据期；最近成功时间见 evidence.last_success）
+  notes: 'rule3:anti-bot run#1/4 http_status=None error=''RuntimeError: 中诚信签名被拒（HTTP
+    403）：请更新 CCXI_HMAC_KEY/CCXI_API_VERSION（密钥换版即失效）——{"code":403,"msg":"签名校验失败"}'''
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261123-ratings-ccxi-8cb2fb5f.yaml
+golden:
+- spiders/ratings-ccxi/golden/001-ratings-ccxi.json
+lifecycle:
+- at: '2026-11-23T21:05:04.865279+00:00'
+  event: created
+terminal: null
+evidence_signature: e4f46a88e8ee
