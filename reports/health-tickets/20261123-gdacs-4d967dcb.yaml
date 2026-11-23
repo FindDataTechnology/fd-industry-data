@@ -89,5 +89,20 @@ golden:
 lifecycle:
 - at: '2026-11-23T00:18:29.982338+00:00'
   event: created
+- at: '2026-11-23T00:29:08.325977+00:00'
+  event: submitted
+  http_status: 503
+  ok: false
+  verdict: error
+  response: '{"code": "WANXING_BILLING_UNAVAILABLE", "message": "the billing plane
+    is unreachable right now; retry shortly"}'
+- at: '2026-11-23T00:29:18.379314+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
+    plane is unreachable right now; retry shortly"}}'
 terminal: null
 evidence_signature: 98c4b7d37a4c

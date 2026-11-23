@@ -255,4 +255,12 @@ lifecycle:
   state: pr-open
   note: ''
   pr_url: https://data.ny.gov/resource/k7gz-mn77.json?\$limit=3"
+- at: '2026-11-23T00:29:29.619597+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
+    plane is unreachable right now; retry shortly"}}'
 terminal: null

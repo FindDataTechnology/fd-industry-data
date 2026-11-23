@@ -43,5 +43,12 @@ lifecycle:
   pr_url: ''
   response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
     source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
+- at: '2026-11-23T00:29:02.057207+00:00'
+  event: submitted
+  http_status: 503
+  ok: false
+  verdict: error
+  response: '{"code": "WANXING_BILLING_UNAVAILABLE", "message": "the billing plane
+    is unreachable right now; retry shortly"}'
 terminal: null
 evidence_signature: 98c4b7d37a4c

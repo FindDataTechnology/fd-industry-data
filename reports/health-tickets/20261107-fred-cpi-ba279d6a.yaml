@@ -387,6 +387,19 @@ lifecycle:
   turn_fails: 8
   limit: 6
   last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-23T00:28:48.573922+00:00'
+  event: submit-exhausted
+  turn_fails: 8
+  limit: 6
+  last_response: '{"code": -32032, "message": "fetch failed"}'
+- at: '2026-11-23T00:29:22.061651+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
+    plane is unreachable right now; retry shortly"}}'
 terminal: null
 brief:
   source_urls:

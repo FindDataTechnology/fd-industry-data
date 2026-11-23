@@ -298,5 +298,10 @@ lifecycle:
   pr_url: ''
   response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
     source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
+- at: '2026-11-23T00:28:54.479505+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32032, "message": "upstream.json(...).catch is not a function"}'
 terminal: null
 evidence_signature: d5ab5a94aea5
