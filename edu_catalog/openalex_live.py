@@ -3,7 +3,7 @@
 2026-11-04 晚 Owner 架构纠偏：OpenAlex 本身即完整公开搜索 API，论文层不自建
 全量影子索引——edu_search 论文通道改服务端实时直查，本地目录退为回落+种子对账。
 
-口径（2026-11-04 cheap-1 实证）：
+口径（2026-11-04 一台构建节点实证）：
 - 匿名 search 会 429（search 集群限流）→ key 必带：env ``OPENALEX_API_KEY``（不落码）；
 - 子域过滤 ``topics.subfield.id:3304``（**数字无 S 前缀**——"S3304" 会静默 0 命中）；
 - 直连可达（学术线先例）；超时/429/5xx → ChannelError，reason 对齐既有枚举
