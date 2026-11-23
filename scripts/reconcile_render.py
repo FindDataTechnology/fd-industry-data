@@ -96,13 +96,30 @@ def cluster_cronjobs(context: str, namespace: str) -> dict[str, dict]:
 
 
 def db_source_rows(dsn: str) -> dict[str, str]:
-    """{source: site} for platform rows; federated rows excluded."""
-    import psycopg2
+    """{source: site} for platform rows; federated rows excluded.
 
-    with psycopg2.connect(_dsn(dsn)) as conn, conn.cursor() as cur:
-        cur.execute(
-            "SELECT source, site FROM crawl_sources WHERE kind = 'platform'")
-        return {s: site for s, site in (cur.fetchall() or [])}
+    **走 `psql` 二进制而不是 Python 驱动**（2026-11-24，restore-industry-render-plane 7.5⑤）：
+    巡检 CI 的 runner 镜像只有 `python3 + python3-yaml`（无 pip，见 health-inspect.yml 的
+    说明），而这个仓的 inspector 一直就是这样读 PG 的（`health_inspect.py` 的
+    `load_runs_from_psql`，日志里 `"source": "psql"`）。本函数原先独自依赖 psycopg2，
+    在 CI 里必然 ImportError——它与同仓约定不一致，是这一处的缺陷，不是镜像的缺陷。
+    """
+    import subprocess
+
+    proc = subprocess.run(
+        ["psql", _dsn(dsn), "-qtA", "-F", "\t", "-c",
+         "SELECT source, COALESCE(site, '') FROM crawl_sources WHERE kind = 'platform'"],
+        capture_output=True, text=True, timeout=120,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"psql failed: {proc.stderr.strip()[:400]}")
+    out: dict[str, str] = {}
+    for line in proc.stdout.splitlines():
+        if not line.strip():
+            continue
+        source, _, site = line.partition("\t")
+        out[source] = site
+    return out
 
 
 def reconcile(manifests: dict[str, dict], cronjobs: dict[str, str] | None,
@@ -170,7 +187,7 @@ def reconcile(manifests: dict[str, dict], cronjobs: dict[str, str] | None,
 
 def _dsn(raw: str) -> str:
     """生产 Secret 的 DSN 带 SQLAlchemy 方言前缀（`postgresql+psycopg2://…`），
-    `psycopg2.connect()` 不认。本脚本有自己的 `__main__`，wave 运行器那层归一化
+    psql 与 psycopg2 都不认。本脚本有自己的 `__main__`，wave 运行器那层归一化
     盖不到它；2026-11-15 全仓审计后统一补上（纯 no-op，对普通 DSN 无损）。
     """
     raw = (raw or "").strip()
