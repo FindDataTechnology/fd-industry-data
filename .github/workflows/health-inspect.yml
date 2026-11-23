@@ -241,6 +241,15 @@ jobs:
           mkdir -p "$HOME/.kube"
           printf '%%s' "$KUBECONFIG_DATA" > "$HOME/.kube/config"
           chmod 600 "$HOME/.kube/config"
+          # runner 镜像里没有 kubectl（2026-11-24 首次真跑时实测
+          # FileNotFoundError: 'kubectl'）。这一步此前一直走「KUBECONFIG 未配置→跳过」
+          # 分支，所以缺二进制从来没暴露过——修 secret 的同一轮就会撞上。
+          # 装一个固定版本的 kubectl（官方静态二进制，免包管理器）。
+          if ! command -v kubectl >/dev/null 2>&1; then
+            curl -fsSLo /tmp/kubectl "https://dl.k8s.io/release/v1.31.4/bin/linux/amd64/kubectl"
+            chmod +x /tmp/kubectl && sudo mv /tmp/kubectl /usr/local/bin/kubectl
+          fi
+          kubectl version --client=true | head -1
           python3 scripts/reconcile_render.py --db
 
       # 落仓门（fix-health-ticket-landing-race）：工单必须先推到远端可见。
