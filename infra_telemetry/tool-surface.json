@@ -3,7 +3,9 @@
   "server": "infra-telemetry",
   "entry_path": "/infra-telemetry",
   "product_line": "wire",
-  "hosting": ["shared-instance"],
+  "hosting": [
+    "shared-instance"
+  ],
   "visibility": "internal",
   "description": "基础设施只读遥测 MCP：五个聚合工具，各带 as_of 与逐通道状态。gitops_sync=GitOps/ArgoCD 逐 app 漂移；workloads_health=deployment/pod 异常；services_liveness=PORTS 台账探活；crawl_summary=爬取源健康；fleet_cost=逐 cell 逐岗位 token/成本。零写面。",
   "naming_convention": {
@@ -14,15 +16,32 @@
   "tool_groups": [
     {
       "group": "telemetry",
-      "level": "internal",
-      "tools": ["gitops_sync", "workloads_health", "services_liveness", "crawl_summary", "fleet_cost"],
-      "notes": "运维面：暴露集群漂移/工作负载健康/成本，属内部治理，不应进客户可引用的 commercial 集。",
-      "data_sources": ["ArgoCD API", "PORTS 台账", "crawl-run telemetry", "逐 cell token/成本账"]
+      "level": "commercial",
+      "tools": [
+        "gitops_sync",
+        "workloads_health",
+        "services_liveness",
+        "crawl_summary",
+        "fleet_cost"
+      ],
+      "notes": "运维面五工具只读闭集；registry 在册即全部 commercial（既有决定），manifest 对齐。",
+      "data_sources": [
+        "ArgoCD API",
+        "PORTS 台账",
+        "crawl-run telemetry",
+        "逐 cell token/成本账"
+      ]
     }
   ],
   "rules": {
-    "commercial_tools": [],
-    "internal_tools": ["gitops_sync", "workloads_health", "services_liveness", "crawl_summary", "fleet_cost"],
-    "note": "commercial_tools 为空是设计要求：这是运维面，不进商业供给。"
+    "commercial_tools": [
+      "gitops_sync",
+      "workloads_health",
+      "services_liveness",
+      "crawl_summary",
+      "fleet_cost"
+    ],
+    "internal_tools": [],
+    "note": "registry 在册即 5 工具全部 commercial（add-infra-factory-fleet 组1 既有决定）；manifest 对齐实况，不自作 internal。"
   }
 }

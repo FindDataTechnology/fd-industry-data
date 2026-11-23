@@ -53,7 +53,7 @@ def main() -> None:
         problems.append(f"源码 TOOL_NAMES 与运行时不一致：{sorted(set(TOOL_NAMES) ^ runtime_set)}")
     if problems:
         fail(problems)
-    print(f"SELFCHECK OK：{len(declared)} 工具（全 internal，commercial 为空是设计要求）")
+    print(f"SELFCHECK OK：{len(declared)} 工具，commercial={len([x for x in levels if levels[x]=='commercial'])}")
 
 
 if __name__ == "__main__":
