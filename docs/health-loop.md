@@ -6,7 +6,7 @@
 ## 闭环全景
 
 ```
-GHA health-inspect（xinru-server1，每日 03:17 CST；只读中央库 crawl_runs）
+GHA health-inspect（一个 worker 站点，每日 03:17 CST；只读中央库 crawl_runs）
   → 分诊（fd_industry_data/health/triage.py，六类确定性规则）
   → 工单落仓 reports/health-tickets/<date>-<src>-<id>.yaml
   → SUBMIT（Bearer 调用键）→ 萬星 spider-heal Agent Service（30min 节奏，单回合 20min 预算）
