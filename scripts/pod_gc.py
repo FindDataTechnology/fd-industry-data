@@ -208,9 +208,26 @@ def _api_call(path: str, method: str = "GET", token: str = "", ctx=None):
         os.environ.get("KUBERNETES_SERVICE_PORT_HTTPS", "443"))
     req = urllib.request.Request(api + path, method=method,
                                  headers={"Authorization": "Bearer " + token})
-    with urllib.request.urlopen(req, context=ctx, timeout=30) as r:  # noqa: S310
-        body = r.read().decode() or "{}"
-        return json.loads(body)
+    # GET 重试（2026-11-23 实撞）：这个命名空间常态 120+ pod，`/api/v1/pods`
+    # 的响应约 1MB；apiserver 偶发在 chunked 传输中途断流，`r.read()` 抛
+    # `IncompleteRead` / `invalid literal for int() with base 16: b''`
+    # —— 而原来只发一次，于是整轮 GC 判红（`BackoffLimitExceeded`），
+    # 52 分钟前同一作业还是 Complete。清残骸这种活失败一轮不致命，
+    # 但会让「磁盘/配额在涨」这件事失去唯一的自动清道夫。
+    # 只重试 GET：DELETE 非幂等，重发可能删两次（虽然本脚本删的是终态 pod，
+    # 语义上幂等，但别在这里赌）。
+    attempts = 3 if method == "GET" else 1
+    last: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            with urllib.request.urlopen(req, context=ctx, timeout=30) as r:  # noqa: S310
+                body = r.read().decode() or "{}"
+                return json.loads(body)
+        except Exception as exc:  # noqa: BLE001 — 逐次重试，最后一次才算数
+            last = exc
+            if attempt < attempts - 1:
+                time.sleep(0.5 * (attempt + 1))
+    raise last  # type: ignore[misc]
 
 
 def run_namespace(namespace: str, args, now: datetime) -> dict:
