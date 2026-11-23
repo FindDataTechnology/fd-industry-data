@@ -180,7 +180,7 @@ worker 机 `FD_NBS_CRON=0`，本来就不写巡检 cron。已在 master 上完�
 | 面（release.yaml component） | 位置 | 原 tag | 备注 |
 |---|---|---|---|
 | runner | tencent `fd-industry/fd-industry-dispatcher` | `750da3f` | 每 5 分钟一跳 |
-| observer | xinru `scraw/federation-observer` | `750da3f` | xinru-master |
+| observer | master 站点 `scraw/federation-observer` | `750da3f` | 协调站点 |
 | runner-xinru | xinru-server1 `scraw/fd-industry-dispatcher` | **`d84cc82`** | 10-14，比 750da3f 还旧 |
 | observer | xinru-server1 `scraw/federation-observer` | **`ea21592`** | 10-13，更旧 |
 

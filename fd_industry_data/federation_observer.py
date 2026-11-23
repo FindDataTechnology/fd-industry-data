@@ -1,6 +1,6 @@
 """Federation observer: mirror finished Jobs of legacy lines into crawl_runs.
 
-Runs on the cluster that hosts the legacy CronJobs (xinru-master, scraw ns).
+Runs on the k8s coordination cluster that hosts the legacy CronJobs (scraw ns).
 Reads the k8s API with the pod's service account (stdlib urllib only), and
 for every finished Job belonging to a watched CronJob writes one crawl_runs
 row (kind='federation'). The watermark is max(finished_at) per source, so
