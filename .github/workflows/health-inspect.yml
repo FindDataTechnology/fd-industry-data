@@ -245,9 +245,15 @@ jobs:
           # FileNotFoundError: 'kubectl'）。这一步此前一直走「KUBECONFIG 未配置→跳过」
           # 分支，所以缺二进制从来没暴露过——修 secret 的同一轮就会撞上。
           # 装一个固定版本的 kubectl（官方静态二进制，免包管理器）。
+          # runner 上没有 sudo（2026-11-24 实测 exit 127），所以装到用户目录并加进 PATH。
           if ! command -v kubectl >/dev/null 2>&1; then
-            curl -fsSLo /tmp/kubectl "https://dl.k8s.io/release/v1.31.4/bin/linux/amd64/kubectl"
-            chmod +x /tmp/kubectl && sudo mv /tmp/kubectl /usr/local/bin/kubectl
+            mkdir -p "$HOME/.local/bin"
+            curl -fsSLo "$HOME/.local/bin/kubectl" \
+              "https://dl.k8s.io/release/v1.31.4/bin/linux/amd64/kubectl"
+            chmod +x "$HOME/.local/bin/kubectl"
+            export PATH="$HOME/.local/bin:$PATH"
+            # GitHub Actions 的后续同行命令共享这个 shell，但为稳妥显式再导出一次
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           fi
           kubectl version --client=true | head -1
           python3 scripts/reconcile_render.py --db
