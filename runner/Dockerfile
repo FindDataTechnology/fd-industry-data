@@ -1,7 +1,7 @@
 # 自愈闭环巡检器用的 GHA self-hosted runner（spider-self-heal-l2 task 1.4）
 #
 # 构建通道：.github/workflows/health-runner-image.yml → TCR（hkccr）。
-# 目标机（xinru-server1）只需 docker pull + docker run，无需任何手工装包。
+# 目标机（目标 docker worker 机）只需 docker pull + docker run，无需任何手工装包。
 # runner 发行包在构建期下载（GitHub 托管 runner 出网快）；目标机不访问 GitHub releases。
 FROM debian:bookworm-slim
 

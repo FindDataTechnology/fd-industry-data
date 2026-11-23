@@ -1,6 +1,6 @@
 # edu-catalog 镜像（add-education-content-catalog 7.3；五工具闭集：三只读+两订阅写面）
 #
-# 构建通道：.github/workflows/edu-catalog-image.yml → TCR（hkccr）→ cheap-3 tcr-relay
+# 构建通道：.github/workflows/edu-catalog-image.yml → TCR（hkccr）→ relay 节点 tcr-relay
 # 回灌 ccr（repos.conf 加 finddata/edu-catalog），部署侧 fd-infra-deploy/all-services/prod/
 # edu-catalog.yaml（tag=commit sha，同 infra-telemetry 先例）。
 # 只装查询面运行所需（fastmcp+uvicorn+psycopg），不装爬取依赖——镜像=最小权限形状。
