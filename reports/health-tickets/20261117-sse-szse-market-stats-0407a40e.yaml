@@ -132,5 +132,11 @@ lifecycle:
   pr_url: ''
   response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
     source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
+- at: '2026-11-24T04:35:26.107289+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 67c7fb3ee0d6

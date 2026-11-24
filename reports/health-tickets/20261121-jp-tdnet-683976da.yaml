@@ -65,5 +65,14 @@ lifecycle:
   pr_url: ''
   response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
     source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
+- at: '2026-11-24T04:32:59.437675+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32004, "message": "cold start failed after 4 attempts (deployment
+    secret ''gh_actor'' (ref ws_67acd…) could not be fetched — refusing to compose
+    packs-KkCie7NlrHluo4LiKPnn0w-spider-heal: facet service unreachable: GET /api/packs/internal/secret/ws_67acdc2ddbf1d564f0786339
+    → fetch failed)"}'
 terminal: null
 evidence_signature: 98c4b7d37a4c
