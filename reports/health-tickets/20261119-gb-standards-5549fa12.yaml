@@ -81,5 +81,25 @@ lifecycle:
   verdict: error
   response: '{"code": "WANXING_BILLING_UNAVAILABLE", "message": "the billing plane
     is unreachable right now; retry shortly"}'
+- at: '2026-11-24T01:53:13.176817+00:00'
+  event: submitted
+  http_status: 200
+  ok: true
+  verdict: duplicate
+  response: '**已见过 FindDataTechnology/fd-industry-data#20261119-gb-standards-5549fa12，状态：处理中（PR
+    #74 open、未合并）——未重复入队、未开第二 PR、未改任何代码/配置。**
+
+
+    依据：本单签名 `b278c0ce91ae` 与既有 handoff 一致；只读复核 GitHub API 确认 PR #74 `state=open /
+    merged=false / heal/20261119-gb-standards→main`。当前 `/tmp/spider-heal/inbox.json`
+    因 `/tmp` 被清空而为空'
+- at: '2026-11-24T01:56:19.058945+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
+    source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
 terminal: null
 evidence_signature: b278c0ce91ae
