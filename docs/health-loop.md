@@ -104,6 +104,13 @@ python3 scripts/health_verify.py --ticket <f> --skip-network --skip-gate
    重建免 token；换注册 = 删 PVC + 更新 `fd-health-runner-token` secret + rollout restart。
 2. **secrets（GHA）**：`FD_CENTRAL_PG_DSN`（中央库**只读**账号 fd_health_ro，经 tailscale mesh
    canonical PG）、`WANXING_SPIDER_HEAL_KEY`（finddata 调用键，已在萬星允许清单）。
+   **该账号的权限面**（2026-11-24 核实，`restore-industry-render-plane` 9.1）：
+   `crawl_runs`（inspector 用）+ `crawl_sources`（**本次新增**，`reconcile_render.py --db`
+   与 inspector 的 inventory-mismatch 都要读）+ `health_config`（限流 MCP 用）。全部只读。
+   `crawl_sources` 属主是 `fd`，而日常运维账号 `fd_platform` **没有** GRANT OPTION，
+   所以扩权只能由属主执行（本次经 `ssh <canonical PG host>` + `docker exec fd-postgres
+   psql -U fd` 完成）。此前缺这条权限，导致「停用源是否仍在集群里调度」的对账在 CI 里
+   一直 `permission denied` 而 inspector 把它降级成 `skipped` 打印——静默了整段时间。
 3. **集群内 secret（不进 git）**：`tcr-ccr`（ccr 拉取凭据）、`fd-health-proxy`（mihomo 出口
    `一个工作节点的探针口`，cheap 节点无 GitHub 直连；NO_PROXY 含 mesh 与 finddatatech 域）、
    `fd-health-runner-token`（一次性注册 token）。
