@@ -129,5 +129,10 @@ lifecycle:
   verdict: error
   response: '{"code": "WANXING_BILLING_UNAVAILABLE", "message": "the billing plane
     is unreachable right now; retry shortly"}'
-terminal: null
+- at: '2026-11-24T01:42:46.778286+00:00'
+  event: terminal
+  terminal: recovered
+  previous: null
+  note: 连续 3 次成功（阈值 3，自 2026-11-21T23:48:47.474497+00:00 起算）
+terminal: recovered
 evidence_signature: 5d624037edc4
