@@ -335,6 +335,7 @@ def evaluate(
     assume_stale: tuple[str, ...] = (),
     pods: list[dict] | None = None,
     expected_red: dict[str, str] | None = None,
+    chain_readers: frozenset[str] | set[str] | None = None,
 ) -> tuple[list[dict], list[dict], list[dict]]:
     """返回 (findings, facts, rows)。
 
@@ -359,6 +360,7 @@ def evaluate(
     pods = pods or []
     pods_by_job = _pods_by_job(pods)
     expected_red = expected_red or {}
+    chain_readers = set(chain_readers or ())
     findings: list[dict] = []
     facts: list[dict] = []
     rows: list[dict] = []
@@ -474,13 +476,14 @@ def evaluate(
             latest_name = str((latest["metadata"] or {}).get("name"))
             row["latest_scheduled_job"] = latest_name
             if _condition(latest, "Failed") is not None:
-                # 退出码把「判词红」与「执行失败」分开——**这一步独立于 expected_red**：
-                # exit 1 事实就是「判据跑完、结论红」，不该报成「BackoffLimitExceeded」
-                # （那是误导：pod 正常 terminated，不是起不来反复重试）。
-                # expected_red 只决定这条判词红**要不要发告警**，不改变它是哪一类。
+                # exit 1 本身**有歧义**：链探针的「判词红」（判据跑完、结论红）与普通
+                # 作业「脚本崩了」都是 1。只有**声明为链读者**的作业，exit 1 才按判词红解释；
+                # 其余一律保守报 job-failed（无法确知它是判词还是崩溃）。
+                # `expected_red` 进一步决定「这条判词红要不要发告警」。
                 code = _job_exit_code(latest, pods_by_job)
                 row["latest_exit_code"] = code
-                if code == EXIT_PROBE_VIOLATION:
+                is_chain_reader = name in chain_readers
+                if code == EXIT_PROBE_VIOLATION and is_chain_reader:
                     if name in expected_red:
                         # 已声明常态红 ⇒ 不计命中，只作事实。
                         facts.append({
@@ -490,15 +493,14 @@ def evaluate(
                         })
                         row["verdict"] = "expected-red"
                     else:
-                        # 未声明预期红 ⇒ 判词红仍计命中，但**如实标成「判词红」**，
-                        # 不套用 BackoffLimitExceeded 那句（那是作业起不来的话术）。
+                        # 链读者未声明预期红 ⇒ 判词红计命中，如实标成 probe-violation。
                         failed_hit = {
                             "kind": "probe-violation", "namespace": ns, "name": name,
                             "detail": (f"最近一轮排期作业 {latest_name} 判词红（exit 1）——"
                                        "判据完整跑完、结论是「被观察对象有问题」，不是作业起不来。"
                                        "要么修被观察的链，要么若这是该线常态红就登记 expected_red"),
                         }
-                elif code in (EXIT_PROBE_CANNOT_RUN, EXIT_PROBE_NOT_STARTED):
+                elif code in (EXIT_PROBE_CANNOT_RUN, EXIT_PROBE_NOT_STARTED) and is_chain_reader:
                     kind_hint = ("判不出（exit 2）" if code == EXIT_PROBE_CANNOT_RUN
                                  else "尚未通电（exit 3）")
                     failed_hit = {
@@ -506,6 +508,7 @@ def evaluate(
                         "detail": f"最近一轮排期作业 {latest_name} {kind_hint} —— 读者没正常产出判词，必查",
                     }
                 else:
+                    # 非链读者，或退出码读不到/其它 ⇒ 沿用 _job_reason（保守）。
                     failed_hit = {"kind": "job-failed", "namespace": ns, "name": name,
                                   "detail": f"最近一轮排期作业 {latest_name} 失败：{_job_reason(latest)}"}
             # ② Job 卡 Active
@@ -739,7 +742,7 @@ def deliver(messages: list[dict], config: dict) -> tuple[DeliveryReceipt, object
 # 时间基准统一取 `NOW`，夹具里的小时数都是相对它算的，避免「恰好跨过阈值」的漂移。
 
 #: 臂数**自核**：写完一个数字写在旁边迟早会漂（同族教训见巡检 ⑧/⑭）。
-SELF_TEST_ARMS = 14
+SELF_TEST_ARMS = 15
 
 def _self_test() -> int:
     now = datetime(2026, 11, 16, 12, 0, tzinfo=timezone.utc)
@@ -770,9 +773,9 @@ def _self_test() -> int:
         return job(cj_name, f"{cj_name}-{int(tick.timestamp() // 60)}",
                    when=tick + timedelta(minutes=1), condition=condition)
 
-    def run(cronjobs, jobs, *, pods=None, expected_red=None):
+    def run(cronjobs, jobs, *, pods=None, expected_red=None, chain_readers=None):
         return evaluate(cronjobs, jobs, now=now, thresholds=K,
-                        pods=pods, expected_red=expected_red)
+                        pods=pods, expected_red=expected_red, chain_readers=chain_readers)
 
     def kinds(items):
         return sorted({f["kind"] for f in items})
@@ -851,12 +854,12 @@ def _self_test() -> int:
         """排期轮次失败（带 Failed condition），__pod__ 侧再给退出码。"""
         return tick_job(cj_name, tick, condition="Failed")
 
-    # ⑨ 预期红 + exit 1（判词红）⇒ 不计命中，只作为 fact
+    # ⑨ 预期红 + exit 1（判词红）⇒ 不计命中，只作为 fact。reader 须是链读者。
     ej = failed_job_at("reader", tick)
     findings, facts, rows = run(
         [cj("reader", last_sched=tick, last_ok=None)], [ej],
         pods=[pod_for_job(ej["metadata"]["name"], EXIT_PROBE_VIOLATION)],
-        expected_red={"reader": "该线未修好时判词常态红"})
+        expected_red={"reader": "该线未修好时判词常态红"}, chain_readers={"reader"})
     arm("预期红 + exit 1 ⇒ 不计 finding（只 fact），verdict=expected-red",
         findings == [] and rows[0]["verdict"] == "expected-red"
         and "expected-red" in kinds(facts))
@@ -866,25 +869,34 @@ def _self_test() -> int:
     findings, _, _ = run(
         [cj("reader", last_sched=tick, last_ok=None)], [ej],
         pods=[pod_for_job(ej["metadata"]["name"], EXIT_PROBE_CANNOT_RUN)],
-        expected_red={"reader": "x"})
+        expected_red={"reader": "x"}, chain_readers={"reader"})
     arm("预期红 + exit 2 ⇒ 仍计 job-failed（执行失败不豁免）",
         kinds(findings) == ["job-failed"])
 
-    # ⑪ 未声明预期红 + exit 1 ⇒ 计命中，但**如实标成 probe-violation**（不是 job-failed）
+    # ⑪ 链读者未声明预期红 + exit 1 ⇒ 计命中，标 probe-violation（判词红≠作业坏）
     ej = failed_job_at("reader", tick)
     findings, _, _ = run(
         [cj("reader", last_sched=tick, last_ok=None)], [ej],
         pods=[pod_for_job(ej["metadata"]["name"], EXIT_PROBE_VIOLATION)],
-        expected_red={})
-    arm("未声明预期红 + exit 1 ⇒ probe-violation（判词红≠作业坏）",
+        expected_red={}, chain_readers={"reader"})
+    arm("链读者未声明预期红 + exit 1 ⇒ probe-violation",
         kinds(findings) == ["probe-violation"])
+
+    # ⑪b 非链读者 exit 1 ⇒ 仍按 job-failed（exit 1 与「脚本崩了」同值，不可信它是判词红）
+    ej = failed_job_at("reader", tick)
+    findings, _, _ = run(
+        [cj("reader", last_sched=tick, last_ok=None)], [ej],
+        pods=[pod_for_job(ej["metadata"]["name"], EXIT_PROBE_VIOLATION)],
+        expected_red={}, chain_readers=set())
+    arm("非链读者 exit 1 ⇒ 仍 job-failed（不臆断为判词红）",
+        kinds(findings) == ["job-failed"])
 
     # ⑫ 预期红 reader 的 exit-1 轮次算「跑过了」⇒ 不停滞（否则日频判词红天天被报 stall）
     ej = failed_job_at("reader", tick)
     findings, _, rows = run(
         [cj("reader", last_sched=tick, last_ok=None)], [ej],
         pods=[pod_for_job(ej["metadata"]["name"], EXIT_PROBE_VIOLATION)],
-        expected_red={"reader": "x"})
+        expected_red={"reader": "x"}, chain_readers={"reader"})
     arm("预期红 reader 判词红 ⇒ 不判 stall（那是「在跑」不是「停了」）",
         "stall" not in kinds(findings))
 
@@ -935,6 +947,10 @@ def main(argv: list[str] | None = None) -> int:
                          ensure_ascii=False), file=sys.stderr)
     thresholds = cfg.get("thresholds") or {}
     expected_red = {str(k): str(v) for k, v in (cfg.get("expected_red") or {}).items()}
+    # 链读者：exit 1 才按「判词红」解释（否则 exit 1 与「脚本崩了」同值，不可分）。
+    # 与 openspec chain-probes 登记表的 electrified 条目对齐（不一致时以本配置为准，
+    # 因为它直接喂给告警分类）。
+    chain_readers = {str(x) for x in (cfg.get("chain_readers") or [])}
 
     blind_reason = None
     try:
@@ -950,7 +966,8 @@ def main(argv: list[str] | None = None) -> int:
     findings, facts, rows = (evaluate(cronjobs, jobs, now=now, thresholds=thresholds,
                                       assume_failed=tuple(args.assume_failed),
                                       assume_stale=tuple(args.assume_stale),
-                                      pods=pods, expected_red=expected_red)
+                                      pods=pods, expected_red=expected_red,
+                                      chain_readers=chain_readers)
                              if blind_reason is None else ([], [], []))
     if blind_reason is not None:
         findings = [{"kind": "blind", "namespace": args.namespace, "name": "(判不出)",

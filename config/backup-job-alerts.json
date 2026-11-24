@@ -13,9 +13,15 @@
     "stall_slack_minutes": 60,
     "never_scheduled_grace_minutes": 60,
     "stuck_active_hours": 24,
-    "_why_stall_periods": "「2 个周期」而不是固定 36h：*/15 的告警线用 36h 会永远绿（一天 96 轮全失败也判不出来），月度作业用 36h 又天天红。2 倍周期意味着「连续漏掉一轮」才算停滞，一次晚点不叫事。",
+    "_why_stall_periods": "「2 个周期」而不是固定 36h：*/15 的告警线用 36h 会永远绿（一天 96 轮全失败也判不出来），月度作业用 36h 又天天红。2 倍周期意味着「连续漏掉一轮」才算红灯，一次晚点不叫事。",
     "_why_slack": "60min 是给 cron 排队、控制器抖动留的余量；低于它会把正常抖动变成告警，这条线一吵就没人看了。",
     "_why_never_scheduled": "刚建的 CronJob 还没来得及跑，别当故障；60min 也是 controller-manager 一轮 sync 的宽松上限。",
     "_why_stuck": "Job 既无 Complete 也无 Failed 且跑了 24h —— 多半漏了 activeDeadlineSeconds（本仓 11-14 的 federation-observer 就是这个形态，靠 DeadlineExceeded 反而暴露了）。"
-  }
+  },
+  "chain_readers": [
+    "fd-quant-chain-probe",
+    "fd-lex-matter-chain-probe",
+    "fd-wire-doc-chain-probe"
+  ],
+  "_why_chain_readers": "只有这些作业的 exit 1 按「判词红」解释（判据跑完、结论红）。exit 1 与「脚本崩了」同值，不可只凭退出码判——非此列表的作业 exit 1 一律保守报 job-failed。列表须与 openspec chain-probes 登记表的 electrified 条目的集群读者名对齐（acceptance-reader/bench-lane 是 0/1 二态脚本，不在此列）。"
 }
