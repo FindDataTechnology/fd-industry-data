@@ -519,15 +519,23 @@ def run_cba_wealth_index(limit: int = 60, months: int = 1, period: str = "") -> 
             f"{SOURCE}: {start} 不在已发布期列表中（最新 {max(catalog)}，"
             f"最早 {min(catalog)}）"
         )
-    periods = _walk(start, int(months), catalog)
+    # Fallback: walk a larger window so that if the latest periods have 404 attachments,
+    # we can fall back to older periods that still work.
+    # Target: collect at least `months` successful periods.
+    walk_months = max(int(months) * 3 + 12, 24)  # generous window
+    periods = _walk(start, walk_months, catalog)
     print(
-        f"[{SOURCE}] 期数 {len(periods)}：{periods[0] if periods else '-'} … "
-        f"{periods[-1] if periods else '-'}（目录 {len(catalog)} 期）",
+        f"[{SOURCE}] 期数 {len(periods)}（目标 {months} 期，回溯窗口 {walk_months} 期）："
+        f"{periods[0] if periods else '-'} … {periods[-1] if periods else '-'}"
+        f"（目录 {len(catalog)} 期）",
         flush=True,
     )
 
     rows: list[dict] = []
+    successful_periods = 0
     for item in periods:
+        if successful_periods >= int(months):
+            break
         attack = catalog[item]
         try:
             payload = _get(attack.url)
@@ -555,11 +563,13 @@ def run_cba_wealth_index(limit: int = 60, months: int = 1, period: str = "") -> 
                   flush=True)
             continue
         rows.extend(parsed)
+        successful_periods += 1
         print(
-            f"[{SOURCE}] {item} {file_format} {ctx['methodology']}：{len(parsed)} 行",
+            f"[{SOURCE}] {item} {file_format} {ctx['methodology']}：{len(parsed)} 行"
+            f"（已成功 {successful_periods}/{months} 期）",
             flush=True,
         )
 
     if not rows:
-        raise RuntimeError(f"{SOURCE}: 全部期均未解析出指数值")
+        raise RuntimeError(f"{SOURCE}: 全部期均未解析出指数值（回溯窗口 {walk_months} 期，目录 {len(catalog)} 期）")
     return rows[: int(limit)]
