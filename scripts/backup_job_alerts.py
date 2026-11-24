@@ -288,6 +288,43 @@ def _tick_object_absent(name: str, owned: list[dict], tick: datetime) -> bool:
     return not any(f"{name}-{minute + d}" in have for d in (-1, 0, 1))
 
 
+#: 链探针的四态退出码（openspec: chain-electrification）。读者作业用这套；
+#: 备份类作业不声明 expected_red，其退出码语义仍是「非 0 即坏」。
+EXIT_PROBE_OK = 0        # 通过
+EXIT_PROBE_VIOLATION = 1  # 判词红：链上有不符合判据的产出（读者常态）
+EXIT_PROBE_CANNOT_RUN = 2  # 判不出：依赖不可达 / 探针本体出错
+EXIT_PROBE_NOT_STARTED = 3  # 尚未通电：链上没有任何真实使用记录
+
+
+def _job_exit_code(job: dict, pods_by_job: dict[str, list[dict]]) -> int | None:
+    """取一个 Job 的退出码：优先读它的 Pod 容器 terminated.exitCode。
+
+    Job 的 condition 只有 Complete/Failed 二元，承载不了四态退出码（0/1/2/3）。
+    只有容器状态里有真退出码。读不到（Pod 已被 pod-gc 清走、仍 pending、没起来）返回 None——
+    「读不到退出码」本身是一种信息（可能是执行失败），由调用方决定怎么报。
+    """
+    jname = str((job.get("metadata") or {}).get("name") or "")
+    for pod in pods_by_job.get(jname, []):
+        for cs in (pod.get("status") or {}).get("containerStatuses") or []:
+            term = (cs.get("state") or {}).get("terminated") or {}
+            if isinstance(term.get("exitCode"), int):
+                return term["exitCode"]
+            # 还在 waiting（CrashLoopBackOff / 镜像拉不下来 / 准入拒绝）＝没起来，不是「判词」
+            if (cs.get("state") or {}).get("waiting"):
+                return None
+    return None
+
+
+def _pods_by_job(pods: list[dict]) -> dict[str, list[dict]]:
+    """按 ownerReferences（Job）把 Pod 归到 Job 名下。"""
+    out: dict[str, list[dict]] = {}
+    for p in pods:
+        for ref in (p.get("metadata") or {}).get("ownerReferences") or []:
+            if str(ref.get("kind")) == "Job" and ref.get("name"):
+                out.setdefault(str(ref["name"]), []).append(p)
+    return out
+
+
 def evaluate(
     cronjobs: list[dict],
     jobs: list[dict],
@@ -296,11 +333,22 @@ def evaluate(
     thresholds: dict,
     assume_failed: tuple[str, ...] = (),
     assume_stale: tuple[str, ...] = (),
+    pods: list[dict] | None = None,
+    expected_red: dict[str, str] | None = None,
 ) -> tuple[list[dict], list[dict], list[dict]]:
     """返回 (findings, facts, rows)。
 
     findings：要进邮件的（firing）；facts：只打印不计数（suspend / 手工作业 / 有 owner 的裸 Pod 等）；
     rows：每个 CronJob 一行的判定明细（便于事后复盘「它到底看没看」）。
+
+    `pods`（2026-11-24 加）：读者类作业的**判词**只在容器退出码里（Job condition 只有
+    Complete/Failed 二元）。给了 pods 才能区分「exit 1 判词红」与「exit 2 判不出」与
+    「根本没起来」——三者对运维是相反的指令。不给时退化为原语义（只有布尔失败）。
+
+    `expected_red`（2026-11-24 加）：`{作业名: 理由}`。声明了的作业，其**判词红**
+    （exit 1 且判据确实跑完了）不计命中，只作为 fact 报出；但**执行失败**
+    （exit 2 判不出 / 容器没起来 / 准入拒绝 / 超时）仍 MUST 计命中——「预期红」豁免的
+    是「被观察对象有问题」，不是「这条告警自己也坏了」。
     """
     stall_periods = float(thresholds.get("stall_periods", 2))
     stall_slack = float(thresholds.get("stall_slack_minutes", 60))
@@ -308,6 +356,9 @@ def evaluate(
     stuck_hours = float(thresholds.get("stuck_active_hours", 24))
 
     by_cj = _jobs_by_cronjob(jobs)
+    pods = pods or []
+    pods_by_job = _pods_by_job(pods)
+    expected_red = expected_red or {}
     findings: list[dict] = []
     facts: list[dict] = []
     rows: list[dict] = []
@@ -352,7 +403,13 @@ def evaluate(
         # **停滞**判据洗绿 —— 那正是这条线存在时要防的形态（判据只能人跑＝没有判据）。
         sched_ok = manual_ok = None
         for j in by_cj.get(name, []):
-            if _condition(j, "Complete") is None:
+            # 「跑了并跑完」= Complete，**或**（声明了预期红的读者）Failed 但退出码是
+            # 判词红（exit 1，判据完整跑完了、结论红）。若只认 Complete，一个 daily-red
+            # 的读者永远没有「成功」，停滞判据会把它当「从未成功」天天报——而它其实在跑。
+            ran_and_judged = _condition(j, "Complete") is not None
+            if not ran_and_judged and name in expected_red and pods_by_job:
+                ran_and_judged = _job_exit_code(j, pods_by_job) == EXIT_PROBE_VIOLATION
+            if not ran_and_judged:
                 continue
             when = (_ts((j.get("status") or {}).get("completionTime"))
                     or _ts((j.get("status") or {}).get("startTime")))
@@ -417,8 +474,33 @@ def evaluate(
             latest_name = str((latest["metadata"] or {}).get("name"))
             row["latest_scheduled_job"] = latest_name
             if _condition(latest, "Failed") is not None:
-                failed_hit = {"kind": "job-failed", "namespace": ns, "name": name,
-                              "detail": f"最近一轮排期作业 {latest_name} 失败：{_job_reason(latest)}"}
+                # 有 pods 且该作业声明了预期红 ⇒ 用退出码区分「判词红」与「执行失败」。
+                # 没有这两样时保持既有二元语义（任何失败都报）。
+                code = _job_exit_code(latest, pods_by_job)
+                row["latest_exit_code"] = code
+                if name in expected_red and code is not None:
+                    if code == EXIT_PROBE_VIOLATION:
+                        # 判词红：判据完整跑完、结论是「被观察对象有问题」。读者常态，不计命中。
+                        facts.append({
+                            "kind": "expected-red", "namespace": ns, "name": name,
+                            "detail": (f"最近一轮排期作业 {latest_name} 判词红（exit 1）；"
+                                       f"已声明预期红：{expected_red[name]}"),
+                        })
+                        row["verdict"] = "expected-red"
+                    else:
+                        # exit 2/3/其它 ≡ 执行失败（判不出 / 没通电 / 被 kill）⇒ 照常报。
+                        kind_hint = ("判不出（exit 2）" if code == EXIT_PROBE_CANNOT_RUN
+                                     else "尚未通电（exit 3）" if code == EXIT_PROBE_NOT_STARTED
+                                     else f"退出码 {code}")
+                        failed_hit = {
+                            "kind": "job-failed", "namespace": ns, "name": name,
+                            "detail": (f"最近一轮排期作业 {latest_name} {kind_hint} ——"
+                                       "已声明预期红，但预期红只豁免「判词红（exit 1）」，"
+                                       "执行失败仍计命中"),
+                        }
+                else:
+                    failed_hit = {"kind": "job-failed", "namespace": ns, "name": name,
+                                  "detail": f"最近一轮排期作业 {latest_name} 失败：{_job_reason(latest)}"}
             # ② Job 卡 Active
             for j in scheduled:
                 jname = str((j["metadata"] or {}).get("name"))
@@ -559,18 +641,27 @@ def fetch_api(namespace: str, *, timeout: float = 20.0) -> tuple[list[dict], lis
 
     cj = get(f"/apis/batch/v1/namespaces/{namespace}/cronjobs")
     jb = get(f"/apis/batch/v1/namespaces/{namespace}/jobs")
-    return list(cj.get("items") or []), list(jb.get("items") or [])
+    # Pod 只在需要区分「判词红(exit 1) vs 执行失败」时用得上（读者类作业的四态退出码）。
+    # 读不到 Pod（RBAC 缺 pods）不该让整轮 Blind——降级为「无退出码」，退化为既有二元语义。
+    try:
+        pd = get(f"/api/v1/namespaces/{namespace}/pods")
+        pods = list(pd.get("items") or [])
+    except Blind:
+        pods = []
+    return list(cj.get("items") or []), list(jb.get("items") or []), pods
 
 
-def load_snapshot(path: str) -> tuple[list[dict], list[dict]]:
-    """离线复核：`kubectl get cronjobs,jobs -n fd-prod -o json` 的产物（或 {"cronjobs":…,"jobs":…}）。"""
+def load_snapshot(path: str) -> tuple[list[dict], list[dict], list[dict]]:
+    """离线复核：`kubectl get cronjobs,jobs,pods -n fd-prod -o json` 的产物，
+    或 {"cronjobs":…,"jobs":…,"pods":…}。pods 可缺省（缺省＝无退出码，退化二元语义）。"""
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
     if isinstance(raw, dict) and "cronjobs" in raw:
-        return list(raw["cronjobs"]), list(raw.get("jobs") or [])
+        return (list(raw["cronjobs"]), list(raw.get("jobs") or []), list(raw.get("pods") or []))
     if isinstance(raw, dict) and raw.get("kind") == "List":
         items = list(raw.get("items") or [])
         return ([i for i in items if str(i.get("kind")) == "CronJob"],
-                [i for i in items if str(i.get("kind")) == "Job"])
+                [i for i in items if str(i.get("kind")) == "Job"],
+                [i for i in items if str(i.get("kind")) == "Pod"])
     raise Blind(f"{path} 看不出 cronjobs/jobs 两段结构")
 
 
@@ -641,7 +732,7 @@ def deliver(messages: list[dict], config: dict) -> tuple[DeliveryReceipt, object
 # 时间基准统一取 `NOW`，夹具里的小时数都是相对它算的，避免「恰好跨过阈值」的漂移。
 
 #: 臂数**自核**：写完一个数字写在旁边迟早会漂（同族教训见巡检 ⑧/⑭）。
-SELF_TEST_ARMS = 9
+SELF_TEST_ARMS = 14
 
 def _self_test() -> int:
     now = datetime(2026, 11, 16, 12, 0, tzinfo=timezone.utc)
@@ -672,8 +763,9 @@ def _self_test() -> int:
         return job(cj_name, f"{cj_name}-{int(tick.timestamp() // 60)}",
                    when=tick + timedelta(minutes=1), condition=condition)
 
-    def run(cronjobs, jobs):
-        return evaluate(cronjobs, jobs, now=now, thresholds=K)
+    def run(cronjobs, jobs, *, pods=None, expected_red=None):
+        return evaluate(cronjobs, jobs, now=now, thresholds=K,
+                        pods=pods, expected_red=expected_red)
 
     def kinds(items):
         return sorted({f["kind"] for f in items})
@@ -742,6 +834,60 @@ def _self_test() -> int:
     arm("正常作业 ⇒ 零 finding、verdict=ok",
         findings == [] and rows[0]["verdict"] == "ok")
 
+    # ── ⑨–⑬ 预期红 / 四态退出码（2026-11-24）──
+    def pod_for_job(jname, exit_code):
+        return {"metadata": {"name": f"{jname}-p", "namespace": "ns",
+                             "ownerReferences": [{"kind": "Job", "name": jname}]},
+                "status": {"containerStatuses": [{"state": {"terminated": {"exitCode": exit_code}}}]}}
+
+    def failed_job_at(cj_name, tick):
+        """排期轮次失败（带 Failed condition），__pod__ 侧再给退出码。"""
+        return tick_job(cj_name, tick, condition="Failed")
+
+    # ⑨ 预期红 + exit 1（判词红）⇒ 不计命中，只作为 fact
+    ej = failed_job_at("reader", tick)
+    findings, facts, rows = run(
+        [cj("reader", last_sched=tick, last_ok=None)], [ej],
+        pods=[pod_for_job(ej["metadata"]["name"], EXIT_PROBE_VIOLATION)],
+        expected_red={"reader": "该线未修好时判词常态红"})
+    arm("预期红 + exit 1 ⇒ 不计 finding（只 fact），verdict=expected-red",
+        findings == [] and rows[0]["verdict"] == "expected-red"
+        and "expected-red" in kinds(facts))
+
+    # ⑩ 预期红 + exit 2（判不出）⇒ 仍计命中（预期红不豁免执行失败）
+    ej = failed_job_at("reader", tick)
+    findings, _, _ = run(
+        [cj("reader", last_sched=tick, last_ok=None)], [ej],
+        pods=[pod_for_job(ej["metadata"]["name"], EXIT_PROBE_CANNOT_RUN)],
+        expected_red={"reader": "x"})
+    arm("预期红 + exit 2 ⇒ 仍计 job-failed（执行失败不豁免）",
+        kinds(findings) == ["job-failed"])
+
+    # ⑪ 未声明预期红 + exit 1 ⇒ 照旧计命中（保持既有二元语义）
+    ej = failed_job_at("reader", tick)
+    findings, _, _ = run(
+        [cj("reader", last_sched=tick, last_ok=None)], [ej],
+        pods=[pod_for_job(ej["metadata"]["name"], EXIT_PROBE_VIOLATION)],
+        expected_red={})
+    arm("未声明预期红 + exit 1 ⇒ 计 job-failed", kinds(findings) == ["job-failed"])
+
+    # ⑫ 预期红 reader 的 exit-1 轮次算「跑过了」⇒ 不停滞（否则日频判词红天天被报 stall）
+    ej = failed_job_at("reader", tick)
+    findings, _, rows = run(
+        [cj("reader", last_sched=tick, last_ok=None)], [ej],
+        pods=[pod_for_job(ej["metadata"]["name"], EXIT_PROBE_VIOLATION)],
+        expected_red={"reader": "x"})
+    arm("预期红 reader 判词红 ⇒ 不判 stall（那是「在跑」不是「停了」）",
+        "stall" not in kinds(findings))
+
+    # ⑬ 无 pods（读不到退出码）⇒ 声明了预期红也退回二元：Failed ⇒ 计命中（不敢洗白）
+    ej = failed_job_at("reader", tick)
+    findings, _, _ = run(
+        [cj("reader", last_sched=tick, last_ok=None)], [ej],
+        pods=[], expected_red={"reader": "x"})
+    arm("无 pods ⇒ 读不到退出码，预期红不生效、Failed 仍计命中",
+        kinds(findings) == ["job-failed"])
+
     if arms != SELF_TEST_ARMS:   # 加了臂没改常量（或反过来）时，先报这个
         print(f"  ✗ 臂数漂了：实跑 {arms} 臂、常量写 {SELF_TEST_ARMS}")
         fails += 1
@@ -780,13 +926,14 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"warn": f"读不到配置 {args.config}：{exc}（投递会记 not_configured）"},
                          ensure_ascii=False), file=sys.stderr)
     thresholds = cfg.get("thresholds") or {}
+    expected_red = {str(k): str(v) for k, v in (cfg.get("expected_red") or {}).items()}
 
     blind_reason = None
     try:
-        cronjobs, jobs = (load_snapshot(args.from_json) if args.from_json
-                          else fetch_api(args.namespace))
+        cronjobs, jobs, pods = (load_snapshot(args.from_json) if args.from_json
+                                else fetch_api(args.namespace))
     except Blind as exc:
-        cronjobs, jobs, blind_reason = [], [], str(exc)
+        cronjobs, jobs, pods, blind_reason = [], [], [], str(exc)
 
     if blind_reason is None and not cronjobs:
         blind_reason = (f"{args.namespace} 里读到 0 个 CronJob —— 这不是「都健康」，"
@@ -794,7 +941,8 @@ def main(argv: list[str] | None = None) -> int:
 
     findings, facts, rows = (evaluate(cronjobs, jobs, now=now, thresholds=thresholds,
                                       assume_failed=tuple(args.assume_failed),
-                                      assume_stale=tuple(args.assume_stale))
+                                      assume_stale=tuple(args.assume_stale),
+                                      pods=pods, expected_red=expected_red)
                              if blind_reason is None else ([], [], []))
     if blind_reason is not None:
         findings = [{"kind": "blind", "namespace": args.namespace, "name": "(判不出)",
