@@ -474,13 +474,15 @@ def evaluate(
             latest_name = str((latest["metadata"] or {}).get("name"))
             row["latest_scheduled_job"] = latest_name
             if _condition(latest, "Failed") is not None:
-                # 有 pods 且该作业声明了预期红 ⇒ 用退出码区分「判词红」与「执行失败」。
-                # 没有这两样时保持既有二元语义（任何失败都报）。
+                # 退出码把「判词红」与「执行失败」分开——**这一步独立于 expected_red**：
+                # exit 1 事实就是「判据跑完、结论红」，不该报成「BackoffLimitExceeded」
+                # （那是误导：pod 正常 terminated，不是起不来反复重试）。
+                # expected_red 只决定这条判词红**要不要发告警**，不改变它是哪一类。
                 code = _job_exit_code(latest, pods_by_job)
                 row["latest_exit_code"] = code
-                if name in expected_red and code is not None:
-                    if code == EXIT_PROBE_VIOLATION:
-                        # 判词红：判据完整跑完、结论是「被观察对象有问题」。读者常态，不计命中。
+                if code == EXIT_PROBE_VIOLATION:
+                    if name in expected_red:
+                        # 已声明常态红 ⇒ 不计命中，只作事实。
                         facts.append({
                             "kind": "expected-red", "namespace": ns, "name": name,
                             "detail": (f"最近一轮排期作业 {latest_name} 判词红（exit 1）；"
@@ -488,16 +490,21 @@ def evaluate(
                         })
                         row["verdict"] = "expected-red"
                     else:
-                        # exit 2/3/其它 ≡ 执行失败（判不出 / 没通电 / 被 kill）⇒ 照常报。
-                        kind_hint = ("判不出（exit 2）" if code == EXIT_PROBE_CANNOT_RUN
-                                     else "尚未通电（exit 3）" if code == EXIT_PROBE_NOT_STARTED
-                                     else f"退出码 {code}")
+                        # 未声明预期红 ⇒ 判词红仍计命中，但**如实标成「判词红」**，
+                        # 不套用 BackoffLimitExceeded 那句（那是作业起不来的话术）。
                         failed_hit = {
-                            "kind": "job-failed", "namespace": ns, "name": name,
-                            "detail": (f"最近一轮排期作业 {latest_name} {kind_hint} ——"
-                                       "已声明预期红，但预期红只豁免「判词红（exit 1）」，"
-                                       "执行失败仍计命中"),
+                            "kind": "probe-violation", "namespace": ns, "name": name,
+                            "detail": (f"最近一轮排期作业 {latest_name} 判词红（exit 1）——"
+                                       "判据完整跑完、结论是「被观察对象有问题」，不是作业起不来。"
+                                       "要么修被观察的链，要么若这是该线常态红就登记 expected_red"),
                         }
+                elif code in (EXIT_PROBE_CANNOT_RUN, EXIT_PROBE_NOT_STARTED):
+                    kind_hint = ("判不出（exit 2）" if code == EXIT_PROBE_CANNOT_RUN
+                                 else "尚未通电（exit 3）")
+                    failed_hit = {
+                        "kind": "job-failed", "namespace": ns, "name": name,
+                        "detail": f"最近一轮排期作业 {latest_name} {kind_hint} —— 读者没正常产出判词，必查",
+                    }
                 else:
                     failed_hit = {"kind": "job-failed", "namespace": ns, "name": name,
                                   "detail": f"最近一轮排期作业 {latest_name} 失败：{_job_reason(latest)}"}
@@ -863,13 +870,14 @@ def _self_test() -> int:
     arm("预期红 + exit 2 ⇒ 仍计 job-failed（执行失败不豁免）",
         kinds(findings) == ["job-failed"])
 
-    # ⑪ 未声明预期红 + exit 1 ⇒ 照旧计命中（保持既有二元语义）
+    # ⑪ 未声明预期红 + exit 1 ⇒ 计命中，但**如实标成 probe-violation**（不是 job-failed）
     ej = failed_job_at("reader", tick)
     findings, _, _ = run(
         [cj("reader", last_sched=tick, last_ok=None)], [ej],
         pods=[pod_for_job(ej["metadata"]["name"], EXIT_PROBE_VIOLATION)],
         expected_red={})
-    arm("未声明预期红 + exit 1 ⇒ 计 job-failed", kinds(findings) == ["job-failed"])
+    arm("未声明预期红 + exit 1 ⇒ probe-violation（判词红≠作业坏）",
+        kinds(findings) == ["probe-violation"])
 
     # ⑫ 预期红 reader 的 exit-1 轮次算「跑过了」⇒ 不停滞（否则日频判词红天天被报 stall）
     ej = failed_job_at("reader", tick)
