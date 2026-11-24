@@ -288,5 +288,15 @@ lifecycle:
   pr_url: ''
   response: '{"error":{"code":"WANXING_BILLING_UNAVAILABLE","message":"the billing
     plane is unreachable right now; retry shortly"}}'
+- at: '2026-11-24T01:52:11.879398+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32041, "message": "turn exceeded 600s"}'
+- at: '2026-11-24T04:32:15.378255+00:00'
+  event: submit-exhausted
+  turn_fails: 6
+  limit: 6
+  last_response: '{"code": -32041, "message": "turn exceeded 600s"}'
 terminal: null
 evidence_signature: 61b09bd56a7d

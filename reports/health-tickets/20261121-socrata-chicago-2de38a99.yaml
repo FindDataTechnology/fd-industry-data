@@ -68,5 +68,27 @@ lifecycle:
   verdict: error
   response: '{"code": "WANXING_BILLING_UNAVAILABLE", "message": "the billing plane
     is unreachable right now; retry shortly"}'
+- at: '2026-11-24T01:55:47.350511+00:00'
+  event: submitted
+  http_status: 503
+  ok: false
+  verdict: error
+  response: '{"code": "DEPLOYMENT_SOURCE_UNAVAILABLE", "message": "deployment source
+    unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}'
+- at: '2026-11-24T04:33:19.839732+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32004, "message": "cold start failed after 4 attempts (deployment
+    secret ''gh_actor'' (ref ws_67acd…) could not be fetched — refusing to compose
+    packs-KkCie7NlrHluo4LiKPnn0w-spider-heal: facet service unreachable: GET /api/packs/internal/secret/ws_67acdc2ddbf1d564f0786339
+    → fetch failed)"}'
+- at: '2026-11-24T04:35:08.151137+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 61b09bd56a7d

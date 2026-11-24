@@ -61,5 +61,13 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-24T01:56:16.761679+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
+    source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
 terminal: null
 evidence_signature: 98c4b7d37a4c

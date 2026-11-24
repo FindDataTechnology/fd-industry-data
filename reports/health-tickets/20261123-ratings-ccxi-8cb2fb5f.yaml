@@ -48,5 +48,29 @@ golden:
 lifecycle:
 - at: '2026-11-23T21:05:04.865279+00:00'
   event: created
+- at: '2026-11-24T01:55:52.472482+00:00'
+  event: submitted
+  http_status: 503
+  ok: false
+  verdict: error
+  response: '{"code": "DEPLOYMENT_SOURCE_UNAVAILABLE", "message": "deployment source
+    unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}'
+- at: '2026-11-24T01:56:07.401039+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
+    source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
+- at: '2026-11-24T04:33:59.175458+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32004, "message": "cold start failed after 4 attempts (deployment
+    secret ''gh_actor'' (ref ws_67acd…) could not be fetched — refusing to compose
+    packs-KkCie7NlrHluo4LiKPnn0w-spider-heal: facet service unreachable: GET /api/packs/internal/secret/ws_67acdc2ddbf1d564f0786339
+    → fetch failed)"}'
 terminal: null
 evidence_signature: e4f46a88e8ee

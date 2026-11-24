@@ -1,0 +1,57 @@
+ticket_id: 20261124-uk-hpi-15438f03
+source: uk-hpi
+unit: spiders/uk-hpi/
+kind: repair
+created_at: '2026-11-24T01:38:19.667844+00:00'
+category: null
+needs_human: true
+suspected_anti_bot: false
+suggested_action: 先分辨上游是否真的停发：取该源最新发布期与抓取窗口（若为滚动窗，核对窗口是否覆盖当期）；上游确有新期 ⇒ 修抓取窗口/增量判据，上游确实停发
+  ⇒ 按退役评估，不要改 parser 硬凑
+evidence:
+  window:
+    from: '2026-10-25 17:44:03.887916+00'
+    to: '2026-11-14 11:29:23.913288+00'
+  failing_runs: []
+  last_success:
+    started_at: '2026-11-14 11:29:23.913288+00'
+    rows: 9453
+  watermark:
+    latest: 2026-08
+    basis: run telemetry watermark
+  notes: rule1d:success-but-frozen-watermark watermark='2026-08' 2.79 个 month 周期未前进（判据
+    =2，窗口内推进率 =不可测） last_success_age=230.15h<=840.00h tail_failed=0
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261124-uk-hpi-15438f03.yaml
+golden:
+- spiders/uk-hpi/golden/001-uk-hpi.json
+lifecycle:
+- at: '2026-11-24T01:38:19.667844+00:00'
+  event: created
+- at: '2026-11-24T01:55:56.563981+00:00'
+  event: submitted
+  http_status: 503
+  ok: false
+  verdict: error
+  response: '{"code": "DEPLOYMENT_SOURCE_UNAVAILABLE", "message": "deployment source
+    unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}'
+- at: '2026-11-24T01:56:11.538601+00:00'
+  event: status
+  http_status: 503
+  state: null
+  note: ''
+  pr_url: ''
+  response: '{"error":{"code":"DEPLOYMENT_SOURCE_UNAVAILABLE","message":"deployment
+    source unreachable (packs internal API unreachable (/api/packs/internal/deployments))"}}'
+- at: '2026-11-24T04:34:37.651879+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32004, "message": "cold start failed after 4 attempts (deployment
+    secret ''gh_actor'' (ref ws_67acd…) could not be fetched — refusing to compose
+    packs-KkCie7NlrHluo4LiKPnn0w-spider-heal: facet service unreachable: GET /api/packs/internal/secret/ws_67acdc2ddbf1d564f0786339
+    → fetch failed)"}'
+terminal: null
+evidence_signature: 98c4b7d37a4c
