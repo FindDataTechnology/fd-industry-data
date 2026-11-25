@@ -90,5 +90,12 @@ lifecycle:
   state: null
   note: ''
   pr_url: ''
+- at: '2026-11-25T03:16:20.286457+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32012, "message": "agent parked: key-invalid (INVALID_API_KEY)
+    since 2026-11-25T00:07:29.431Z"}'
 terminal: null
 evidence_signature: 61b09bd56a7d
