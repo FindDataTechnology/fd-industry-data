@@ -220,3 +220,4 @@ CronJob 的 args 是 `nasa-firms --limit 100 --window-auto`，而 `run_nasa_firm
 | 2026-11-22 | 124 | 0 | — | — | month(840h) |
 | 2026-11-23 | 125 | 1 | `gdacs` | — | month(840h) |
 | 2026-11-24 | 124 | 0 | — | — | month(840h) |
+| 2026-11-25 | 124 | 0 | — | — | month(840h) |
