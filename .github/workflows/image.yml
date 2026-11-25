@@ -14,3 +14,25 @@ jobs:
     with:
       image: fd-industry-runner
       namespace: finddata
+      # 镜像内容闸：断言产出镜像里的 fd_industry_data 与本次 checkout 一致。
+      # 防 GHA COPY 层长期 cache 命中把旧源码留在镜像里（2026-11-25 实撞 17 天）。
+      smoke_script: |
+        #!/usr/bin/env bash
+        # 断言：构建产出的镜像里 /app/fd_industry_data 与本次 checkout 的源码一致。
+        # 为什么：GHA 的 COPY fd_industry_data 层可能长期 cache 命中，镜像里留旧源码
+        # （2026-11-25 实撞：17 天没更新，notify.py 停在 3956 字节缺 dispatch_any）。
+        # 判据跟同次 checkout 比，不硬编码——源码正常变化不误红。
+        set -euo pipefail
+        echo "IMG=$IMG"
+        img_n=$(docker run --rm --entrypoint sh "$IMG" -c 'find /app/fd_industry_data -name "*.py" | wc -l' | tr -d ' ')
+        img_b=$(docker run --rm --entrypoint sh "$IMG" -c 'wc -c < /app/fd_industry_data/alerts_core/notify.py' | tr -d ' ')
+        src_n=$(find fd_industry_data -name "*.py" | wc -l | tr -d ' ')
+        src_b=$(wc -c < fd_industry_data/alerts_core/notify.py | tr -d ' ')
+        echo "py files: image=$img_n source=$src_n"
+        echo "notify.py bytes: image=$img_b source=$src_b"
+        if [ "$img_n" != "$src_n" ] || [ "$img_b" != "$src_b" ]; then
+          echo "::error::image fd_industry_data 与源码不一致（stale COPY layer?）—— 拒绝推送"
+          exit 1
+        fi
+        echo "OK: image fd_industry_data matches source"
+
