@@ -14,3 +14,6 @@ jobs:
     with:
       image: fd-industry-runner
       namespace: finddata
+      # 2026-11-25 临时：强制重建一次，bust 掉从 11-08 起卡死的 COPY fd_industry_data 层
+      # （镜像内 notify.py 停在 3956 字节旧版、缺 dispatch_any）。修复后改回不传。
+      no_cache: true
