@@ -53,5 +53,18 @@ lifecycle:
     secret ''gh_actor'' (ref ws_67acd…) could not be fetched — refusing to compose
     packs-KkCie7NlrHluo4LiKPnn0w-spider-heal: facet service unreachable: GET /api/packs/internal/secret/ws_67acdc2ddbf1d564f0786339
     → fetch failed)"}'
+- at: '2026-11-25T03:16:30.601208+00:00'
+  event: submitted
+  http_status: 200
+  ok: false
+  verdict: error
+  response: '{"code": -32012, "message": "agent parked: key-invalid (INVALID_API_KEY)
+    since 2026-11-25T00:07:29.431Z"}'
+- at: '2026-11-25T03:16:54.249706+00:00'
+  event: status
+  http_status: 200
+  state: null
+  note: ''
+  pr_url: ''
 terminal: null
 evidence_signature: 98c4b7d37a4c
