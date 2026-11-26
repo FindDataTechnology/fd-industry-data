@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-11-26T03:26:15.761506+00:00",
+  "generated_at": "2026-11-26T22:56:37.168176+00:00",
   "today": "2026-11-26",
   "health": [
     {
       "source": "eastmoney-disclosure-plan",
       "healthy": true,
       "category": null,
-      "detail": "rule1:healthy last_success_age=25.19h<=60.00h tail_failed=0<3"
+      "detail": "rule1:healthy last_success_age=44.69h<=60.00h tail_failed=0<3"
     },
     {
       "source": "nfra-penalty",
       "healthy": true,
       "category": null,
-      "detail": "rule1:healthy last_success_age=22.19h<=60.00h tail_failed=0<3"
+      "detail": "rule1:healthy last_success_age=41.69h<=60.00h tail_failed=0<3"
     }
   ],
   "coverage": {
@@ -36024,234 +36024,7 @@
       "events": []
     }
   ],
-  "penalty": [
-    {
-      "rule_id": "bank-penalty-new",
-      "key": "1279920",
-      "office": "喀什金融监管分局",
-      "authority_level": "分局",
-      "penalty_no": "",
-      "doc_date": "2026-11-24",
-      "content": "对该行罚款30万元。对田晓东终身禁止从事银行业工作",
-      "parties": [
-        {
-          "party": "新疆喀什农村商业银行股份有限公司及相关责任人",
-          "attribution": {
-            "status": "unattributed",
-            "reason": "no-match",
-            "normalized": "新疆喀什农村商业银行",
-            "raw": "新疆喀什农村商业银行股份有限公司及相关责任人",
-            "institution_type": "bank"
-          }
-        },
-        {
-          "party": "原叶城县农村信用合作联社及相关责任人",
-          "attribution": {
-            "status": "unattributed",
-            "reason": "no-match",
-            "normalized": "叶城县农村信用合作联社",
-            "raw": "原叶城县农村信用合作联社及相关责任人",
-            "institution_type": "unknown"
-          }
-        }
-      ],
-      "verdict": "firing",
-      "events": [
-        {
-          "kind": "firing",
-          "rule_id": "bank-penalty-new",
-          "key": "1279920",
-          "at": "2026-11-26T03:26:15.761506+00:00",
-          "value": null,
-          "threshold": null,
-          "detail": "新增事件"
-        }
-      ]
-    },
-    {
-      "rule_id": "bank-penalty-new",
-      "key": "1280124",
-      "office": "宝鸡金融监管分局",
-      "authority_level": "分局",
-      "penalty_no": "",
-      "doc_date": "2026-11-24",
-      "content": "对中国人民人寿保险股份有限公司宝鸡市分公司罚款12万元。对焦文雄给予警告并处罚款2万元、对余祺给予警告并处罚款1万元、对吴海燕给予警告并处罚款1万元。",
-      "parties": [
-        {
-          "party": "中国人民人寿保险股份有限公司宝鸡市分公司及相关责任人员",
-          "attribution": {
-            "status": "unattributed",
-            "reason": "not-a-bank",
-            "raw": "中国人民人寿保险股份有限公司宝鸡市分公司及相关责任人员"
-          }
-        }
-      ],
-      "verdict": "firing",
-      "events": [
-        {
-          "kind": "firing",
-          "rule_id": "bank-penalty-new",
-          "key": "1280124",
-          "at": "2026-11-26T03:26:15.761506+00:00",
-          "value": null,
-          "threshold": null,
-          "detail": "新增事件"
-        }
-      ]
-    },
-    {
-      "rule_id": "bank-penalty-new",
-      "key": "1280116",
-      "office": "常德金融监管分局",
-      "authority_level": "分局",
-      "penalty_no": "",
-      "doc_date": "2026-11-24",
-      "content": "对湖南石门农村商业银行股份有限公司罚款40万元及相关责任人江涛、覃仕伟警告的行政处罚。",
-      "parties": [
-        {
-          "party": "湖南石门农村商业银行股份有限公司及相关责任人",
-          "attribution": {
-            "status": "unattributed",
-            "reason": "no-match",
-            "normalized": "湖南石门农村商业银行",
-            "raw": "湖南石门农村商业银行股份有限公司及相关责任人",
-            "institution_type": "bank"
-          }
-        }
-      ],
-      "verdict": "firing",
-      "events": [
-        {
-          "kind": "firing",
-          "rule_id": "bank-penalty-new",
-          "key": "1280116",
-          "at": "2026-11-26T03:26:15.761506+00:00",
-          "value": null,
-          "threshold": null,
-          "detail": "新增事件"
-        }
-      ]
-    },
-    {
-      "rule_id": "bank-penalty-new",
-      "key": "1280113",
-      "office": "常德金融监管分局",
-      "authority_level": "分局",
-      "penalty_no": "",
-      "doc_date": "2026-11-24",
-      "content": "对文蓉作出禁止从事银行业工作15年的行政处罚。",
-      "parties": [
-        {
-          "party": "文蓉",
-          "attribution": {
-            "status": "unattributed",
-            "reason": "no-match",
-            "normalized": "文蓉",
-            "raw": "文蓉",
-            "institution_type": "unknown"
-          }
-        }
-      ],
-      "verdict": "firing",
-      "events": [
-        {
-          "kind": "firing",
-          "rule_id": "bank-penalty-new",
-          "key": "1280113",
-          "at": "2026-11-26T03:26:15.761506+00:00",
-          "value": null,
-          "threshold": null,
-          "detail": "新增事件"
-        }
-      ]
-    },
-    {
-      "rule_id": "bank-penalty-new",
-      "key": "1280103",
-      "office": "怒江金融监管分局",
-      "authority_level": "分局",
-      "penalty_no": "",
-      "doc_date": "2026-11-24",
-      "content": "对中国农业发展银行怒江傈僳族自治州分行处以人民币70万元罚款；对责任人李鑫给予警告。",
-      "parties": [
-        {
-          "party": "中国农业发展银行怒江傈僳族自治州分行及相关责任人",
-          "attribution": {
-            "status": "unattributed",
-            "reason": "no-match",
-            "normalized": "农业发展银行怒江傈僳族自治州分行",
-            "raw": "中国农业发展银行怒江傈僳族自治州分行及相关责任人",
-            "institution_type": "bank"
-          }
-        }
-      ],
-      "verdict": "firing",
-      "events": [
-        {
-          "kind": "firing",
-          "rule_id": "bank-penalty-new",
-          "key": "1280103",
-          "at": "2026-11-26T03:26:15.761506+00:00",
-          "value": null,
-          "threshold": null,
-          "detail": "新增事件"
-        }
-      ]
-    },
-    {
-      "rule_id": "bank-penalty-new",
-      "key": "1280153",
-      "office": "钦州金融监管分局",
-      "authority_level": "分局",
-      "penalty_no": "钦金罚决字〔2026〕2号、3号、4号",
-      "doc_date": "2026-11-20",
-      "content": "对灵山县农村信用合作联社罚款40万元；对黄鑫警告",
-      "parties": [
-        {
-          "party": "灵山县农村信用合作联社及相关责任人",
-          "attribution": {
-            "status": "unattributed",
-            "reason": "no-match",
-            "normalized": "灵山县农村信用合作联社",
-            "raw": "灵山县农村信用合作联社及相关责任人",
-            "institution_type": "unknown"
-          }
-        },
-        {
-          "party": "灵山县农村信用合作联社及相关责任人",
-          "attribution": {
-            "status": "unattributed",
-            "reason": "no-match",
-            "normalized": "灵山县农村信用合作联社",
-            "raw": "灵山县农村信用合作联社及相关责任人",
-            "institution_type": "unknown"
-          }
-        },
-        {
-          "party": "广西浦北农村商业银行股份有限公司及相关责任人",
-          "attribution": {
-            "status": "unattributed",
-            "reason": "no-match",
-            "normalized": "广西浦北农村商业银行",
-            "raw": "广西浦北农村商业银行股份有限公司及相关责任人",
-            "institution_type": "bank"
-          }
-        }
-      ],
-      "verdict": "firing",
-      "events": [
-        {
-          "kind": "firing",
-          "rule_id": "bank-penalty-new",
-          "key": "1280153",
-          "at": "2026-11-26T03:26:15.761506+00:00",
-          "value": null,
-          "threshold": null,
-          "detail": "新增事件"
-        }
-      ]
-    }
-  ],
+  "penalty": [],
   "counts": {
     "disclosure": {
       "total": 3000,
@@ -36262,11 +36035,11 @@
     "penalty": {
       "total": 4500,
       "documents": 157,
-      "new": 6
+      "new": 0
     },
-    "events_written": 6,
+    "events_written": 0,
     "notify": {
-      "sent": 6,
+      "sent": 0,
       "failed": 0,
       "failures": [],
       "skipped": false
