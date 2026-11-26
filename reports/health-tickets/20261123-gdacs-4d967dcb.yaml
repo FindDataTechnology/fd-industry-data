@@ -133,5 +133,10 @@ lifecycle:
   verdict: error
   response: '{"code": -32012, "message": "agent parked: key-invalid (INVALID_API_KEY)
     since 2026-11-25T00:07:29.431Z"}'
-terminal: null
+- at: '2026-11-26T03:16:22.364230+00:00'
+  event: terminal
+  terminal: recovered
+  previous: null
+  note: 连续 3 次成功（阈值 3，自 2026-11-23T00:18:29.982338+00:00 起算）
+terminal: recovered
 evidence_signature: 98c4b7d37a4c
