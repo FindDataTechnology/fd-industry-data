@@ -3,7 +3,7 @@
   "description": "欧盟住宿业营业额指数低于基期（< 100，2021=100）——欧盟腿的景气转弱读数",
   "asof": "2026-11-26",
   "replay_from": "2023-11-01",
-  "generated_at": "2026-11-26T03:29:38.962183+00:00",
+  "generated_at": "2026-11-26T21:30:28.964572+00:00",
   "config": "config/restaurant-alerts.json",
   "evidence": [
     {
