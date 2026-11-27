@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-26T20:33:55.265658+00:00",
+  "at": "2026-11-27T20:20:31.132847+00:00",
   "rules": {
     "catering_yoy_negative|retail.cn.catering.yoy": {
       "key": "catering_yoy_negative|retail.cn.catering.yoy",
@@ -35,7 +35,7 @@
       "concept": "price.coffee.icip.daily",
       "state": "stale",
       "verdict": "fired",
-      "latest_period": "2026-11-23",
+      "latest_period": "2026-11-25",
       "current_fired": false,
       "trigger_date": "2026-08-25",
       "trigger_value": 2.743015,
