@@ -8,9 +8,9 @@
     },
     "soybean_meal_settle_percentile_spike": {
       "state": "quiet",
-      "last_value": 3110.0,
-      "period": "2026-11-25",
-      "period_ordinal": 739945
+      "last_value": 3159.0,
+      "period": "2026-11-27",
+      "period_ordinal": 739947
     }
   }
 }
