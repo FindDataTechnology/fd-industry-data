@@ -170,3 +170,23 @@ def test_relay_does_not_silently_fall_back_to_smtp():
 def test_unknown_channel_is_refused():
     with pytest.raises(DeliveryNotConfigured, match="unknown-channel"):
         dispatch_any(MSGS, _target("unknown-channel"), {})
+
+
+# ── webhook 截断（2026-11-28）────────────────────────────────────────────────
+#
+# relay 通道早已有截断，webhook 没有——而 Mattermost 对超长正文回 400，于是
+# **整条告警发不出去**（2026-11-23 在 relay 上实撞过这个形态）。这两条钉住：
+# 超长必截断且写明省略、正常长度逐字节不变。
+
+def test_webhook_truncates_oversize_body_and_says_how_much():
+    from fd_industry_data.alerts_core.notify import WEBHOOK_MAX_TEXT, _fit_webhook_text
+
+    out = _fit_webhook_text("x" * (WEBHOOK_MAX_TEXT + 5000))
+    assert len(out) == WEBHOOK_MAX_TEXT
+    assert "正文超出通道上限" in out
+
+
+def test_webhook_leaves_short_body_untouched():
+    from fd_industry_data.alerts_core.notify import _fit_webhook_text
+
+    assert _fit_webhook_text("短正文") == "短正文"

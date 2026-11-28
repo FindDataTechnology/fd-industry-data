@@ -237,8 +237,12 @@ def test_agriculture_recipients_come_from_config(monkeypatch):
 
     monkeypatch.delenv("FD_ALERT_SMTP_TO", raising=False)
     monkeypatch.setenv("FD_ALERT_SMTP_HOST", "smtp.example.com")
-    assert ag._smtp_config()["to"], "配置里应有收件人"
-    assert "1253774197@qq.com" in ag._smtp_config()["to"]
+    # 2026-11-28：农业线已切 webhook，`delivery.to` 变成通道标签（["alerts"]），
+    # 不再是邮箱列表。这条仍须成立的是「_smtp_config 的收件人口径可用」——即
+    # 回滚到 smtp 时 env FD_ALERT_SMTP_TO 能覆盖、且配置侧不会因缺 TO 而报错。
+    assert ag._smtp_config()["to"] is not None
+    monkeypatch.setenv("FD_ALERT_SMTP_TO", "rollback@example.com")
+    assert "rollback@example.com" in ag._smtp_config()["to"]
 
     monkeypatch.setenv("FD_ALERT_SMTP_TO", "override@example.com")
     assert ag._smtp_config()["to"] == ["override@example.com"]

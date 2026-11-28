@@ -128,6 +128,23 @@ def dispatch(messages: list[dict], cfg: SmtpConfig | None, *, smtp_factory=None)
 
 WEBHOOK_TIMEOUT_SEC = 10
 
+# Mattermost 的 incoming webhook 对正文有硬上限（默认 16383 字符，含 markdown）；
+# 超了它回 400，于是**整条消息发不出去**。2026-11-23 在 relay 通道上实撞过同款：
+# 27 项作业同时坏的时候正文远超上限，告警全部投递失败，而失败只落在 Job 日志里
+# ——备份连续失败三天没人知道，一半原因是告警自己发不出去。
+# 截断而不是「拆成多段」：这个通道没有排序保证，多段会被看成几条无关消息；而
+# compose() 已把最严重的排在前面。截断处明写省略了多少，别让人以为那就是全部。
+WEBHOOK_MAX_TEXT = 12000
+_WEBHOOK_TRUNC_NOTE = "\n\n…（正文超出通道上限，以下省略 {n} 字；完整清单看 job 日志）"
+
+
+def _fit_webhook_text(text: str, limit: int = WEBHOOK_MAX_TEXT) -> str:
+    if len(text) <= limit:
+        return text
+    note = _WEBHOOK_TRUNC_NOTE.format(n=len(text) - limit)
+    keep = max(0, limit - len(note))
+    return text[:keep].rstrip() + note
+
 
 def send_webhook(url: str, subject: str, body: str, *, opener=None) -> None:
     """发一条 webhook 消息；失败抛异常，由 ``dispatch_webhook`` 逐条兜住。
@@ -140,7 +157,8 @@ def send_webhook(url: str, subject: str, body: str, *, opener=None) -> None:
 
     if not url or not url.strip():
         raise ValueError("empty webhook url")
-    payload = json.dumps({"text": f"**{subject}**\n\n{body}"}).encode("utf-8")
+    text = _fit_webhook_text(f"**{subject}**\n\n{body}")
+    payload = json.dumps({"text": text}).encode("utf-8")
     req = urllib.request.Request(
         url.strip(),
         data=payload,

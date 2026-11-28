@@ -192,12 +192,11 @@
   },
   "cncotton_upstream_note": "2026-11-08 实测：中棉行协报告列表页 129 条中最新一期为 2025-08，此后无新报告。故 cncotton 观测面最新值停在 2025-08-31 属**上游停更**，非抓取故障；排期保留继续探测，健康巡检判「超期」时应按上游停更解读。",
   "delivery": {
-    "channel": "smtp",
+    "channel": "webhook",
     "to": [
-      "1253774197@qq.com",
-      "aloadtree@gmail.com"
+      "alerts"
     ],
     "min_severity": "warning",
-    "_note": "收件人属配置（可版本化、非机密）；凭据走 Secrets/env。环境变量 FD_ALERT_SMTP_TO 非空时以 env 为准（运维临时改投）。"
+    "_note": "webhook 通道（2026-11-28 由 smtp 切来）：落到 Mattermost 的 alerts 频道，URL 走 env FD_ALERT_WEBHOOK_URL（Secret mattermost-alert-webhook）。`to` 在此通道只作标签。回滚：channel 改 smtp、to 填回 ['1253774197@qq.com', 'aloadtree@gmail.com']，SMTP env 仍在。"
   }
 }
