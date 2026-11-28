@@ -1300,7 +1300,10 @@ def cmd_rules(cur, cfg: dict, outdir: Path, now: datetime, dry_run: bool,
     else:
         print("（无）")
 
-    print("\n== 通知（email）==")
+    # 标签按**实际声明的通道**打，不再写死 email：2026-11-28 切 webhook 后，
+    # 日志仍写「通知（email）」会让人以为邮件发出去了（实际走 Mattermost）。
+    _ch = _declared_channel()
+    print(f"\n== 通知（{_ch}）==")
     if notification_results:
         for item in notification_results:
             result = item["results"][0]
