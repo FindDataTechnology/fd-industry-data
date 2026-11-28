@@ -25,5 +25,5 @@
     "fd-paper-trading-chain-probe",
     "acceptance-reader"
   ],
-  "_why_chain_readers": "只有这些作业的 exit 1 按「判词红」解释（判据跑完、结论红）。exit 1 与「脚本崩了」同值，不可只凭退出码判——非此列表的作业 exit 1 一律保守报 job-failed。列表须与 openspec chain-probes 登记表的 electrified 条目的集群读者名对齐（acceptance-reader/bench-lane 是 0/1 二态脚本，不在此列）。"
+  "_why_chain_readers": "只有这些作业的 exit 1 按「判词红」解释（判据跑完、结论红）。exit 1 与「脚本崩了」同值，不可只凭退出码判——非此列表的作业 exit 1 一律保守报 job-failed。列表须与 openspec chain-probes 登记表的 electrified 条目的集群读者名对齐（bench-lane 是 0/1 二态脚本，不在此列；acceptance-reader 2026-11-28 起已加入——它 exit 1 表示体检判出真问题，此前被误读成 job-failed）。"
 }
