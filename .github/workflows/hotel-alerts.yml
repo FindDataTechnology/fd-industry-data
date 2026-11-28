@@ -75,7 +75,7 @@ jobs:
                  echo "全部规则判 n/a，因此这条线**不可能**产生告警。看运行产物 \`notify.coverage\` 的 \`unknown\` 清单。"
                } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
                exit 0 ;;
-            4) echo "::error title=酒店预警投递失败::有越阈但邮件未送出（看运行产物 notify 段）"
+            4) echo "::error title=酒店预警投递失败::有越阈但通知未送出（通道见配置 delivery.channel，看运行产物 notify 段）"
                exit 4 ;;
             3) echo "::warning title=酒店预警未执行::只读账号缺 semantic_observations 读权限"
                exit 0 ;;
