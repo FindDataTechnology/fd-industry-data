@@ -9,6 +9,7 @@ on:
     paths:
       - "fd_industry_data/marketing_signal.py"
       - "fd_industry_data/marketing_signal_server.py"
+      - "fd_industry_data/egress_proxy.py"   # 出口代理接线：改它必须出片
       - "fd_industry_data/tabular/**"
       - "fd_industry_data/http.py"
       - "fd_industry_data/__init__.py"
