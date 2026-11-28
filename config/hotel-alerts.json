@@ -130,12 +130,11 @@
   },
   "label": "酒店线",
   "delivery": {
-    "channel": "smtp",
+    "channel": "webhook",
     "to": [
-      "1253774197@qq.com",
-      "aloadtree@gmail.com"
+      "alerts-data"
     ],
     "min_severity": "warning",
-    "_note": "收件人属配置（可版本化、非机密）；凭据走 Secrets/env。env FD_ALERT_SMTP_TO 非空时以 env 为准。投递只在越阈集合变化时发生（新增=告警，消失=恢复）。"
+    "_note": "webhook 通道（2026-11-28 由 smtp 切来）→ Mattermost #alerts-data。URL 走 env FD_ALERT_WEBHOOK_URL（GHA secret）。`to` 在此通道只作标签。回滚：channel 改 smtp、to 填回 ['1253774197@qq.com', 'aloadtree@gmail.com']。"
   }
 }
