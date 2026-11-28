@@ -42,6 +42,17 @@ def _load_spider(name: str, rel: str) -> Any:
     return mod
 
 
+def _proxy_sources() -> set[str]:
+    """哪些源要走出口代理。默认只有两个境外源。
+
+    环境变量 `MARKETING_SIGNALS_PROXY_SOURCES`（逗号分隔）可覆盖——加源之前先想清楚：
+    绕出去会引入新的失败面（2026-11-19 实测国内源经代理后反而 SSL 失败）。
+    """
+    raw = os.environ.get("MARKETING_SIGNALS_PROXY_SOURCES",
+                         "ted-notices,worldbank-procnotices")
+    return {x.strip() for x in raw.split(",") if x.strip()}
+
+
 def _default_fetchers() -> dict[str, Callable[[int], list[dict]]]:
     """生产取数通道：三个已验证源各调自己的既有 spider。
 
@@ -65,7 +76,16 @@ def _default_fetchers() -> dict[str, Callable[[int], list[dict]]]:
     # 未配 FD_PROXY_FORWARDER 时 via_proxy 退化为直连，本地/测试行为不变。
     egress_proxy.install()
 
+    proxiy = _proxy_sources()
+
     def _through_proxy(source: str, fn):
+        # **只代理需要代理的源**。2026-11-19 的教训就写在部署清单里：当时给三个源
+        # 统一注入了 HTTP(S)_PROXY，结果连国内可直连的 NFRA 也变成
+        # SSL UNEXPECTED_EOF，count 从 2 掉到 0。绕远路本身会引入新的失败面，
+        # 所以默认名单只有两个境外源。
+        if source not in proxiy:
+            return fn
+
         def wrapped(limit: int) -> list[dict]:
             with egress_proxy.via_proxy(source):
                 return fn(limit)

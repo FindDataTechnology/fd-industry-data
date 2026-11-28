@@ -55,6 +55,20 @@ def test_with_forwarder_spiders_run_inside_proxy_context(spy, monkeypatch):
     f = marketing_signal_server._default_fetchers()
     for name in ("ted-notices", "worldbank-procnotices", "nfra-penalty"):
         f[name](3)
-    assert spy == ["http://u:p@1.2.3.4:30080"] * 3
+    # 默认只代理两个境外源；NFRA 是国内可直连的，绕出去反而会挂
+    # （2026-11-19 实测：统一注入 HTTPS_PROXY 后连 NFRA 都 SSL UNEXPECTED_EOF）
+    assert spy == ["http://u:p@1.2.3.4:30080", "http://u:p@1.2.3.4:30080", None]
     # 出了装配的调用，上下文必须还原
     assert egress_proxy.current_proxy_url() is None
+
+
+def test_proxy_source_list_is_configurable(spy, monkeypatch):
+    monkeypatch.setenv("FD_PROXY_FORWARDER", "http://forwarder:8080")
+    monkeypatch.setenv("MARKETING_SIGNALS_PROXY_SOURCES", "nfra-penalty")
+    monkeypatch.setattr(egress_proxy, "_post", lambda p, payload, timeout=5.0: (
+        {"upstream_url": "http://u:p@1.2.3.4:30080", "addr_id": 3, "provider": "gost-mesh"}
+        if p == "/acquire" else {"status": "ok"}))
+    f = marketing_signal_server._default_fetchers()
+    f["ted-notices"](1)
+    f["nfra-penalty"](1)
+    assert spy == [None, "http://u:p@1.2.3.4:30080"]
