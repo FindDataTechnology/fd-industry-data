@@ -301,3 +301,59 @@ def test_main_defaults_to_single_namespace(tmp_path, monkeypatch, capsys):
     lines = [l for l in capsys.readouterr().out.strip().splitlines() if l]
     assert len(lines) == 1
     assert json.loads(lines[0])["namespace"] == pg.DEFAULT_NS
+
+
+def test_all_namespaces_enumerates_from_api(tmp_path, monkeypatch, capsys):
+    """`--all-namespaces` 必须真去列命名空间，且覆盖 kube-system / argocd。
+
+    2026-11-26 与 2026-11-28 两次节点被死 Pod 顶盘，尸体全在 kube-system
+    （coredns-recovery 循环）与 argocd（repo-server 被驱逐），而清单里硬编码的
+    七个命名空间**两个都没有** ⇒ 这条作业再健康也扫不到事故现场。
+    判据是「这两个命名空间的 pods 真被访问」，不是退出码 0。
+    """
+    import scripts.pod_gc as pg
+
+    (tmp_path / "token").write_text("dummy-token\n", encoding="utf-8")
+    (tmp_path / "ca.crt").write_text("", encoding="utf-8")
+    monkeypatch.setattr(pg, "SA_DIR", str(tmp_path))
+    monkeypatch.setattr(pg.ssl, "create_default_context", lambda **_kw: None)
+
+    hits: list[str] = []
+
+    def fake_api(path, *_a, **_k):
+        hits.append(path)
+        if path == "/api/v1/namespaces":
+            return {"items": [{"metadata": {"name": n}}
+                              for n in ("fd-prod", "kube-system", "argocd")]}
+        return {"items": [pod("old", "Succeeded")]}
+
+    monkeypatch.setattr(pg, "_api_call", fake_api)
+    assert main(["--all-namespaces", "--dry-run"]) == 0
+
+    seen = [json.loads(l)["namespace"]
+            for l in capsys.readouterr().out.strip().splitlines() if l]
+    assert seen == ["argocd", "fd-prod", "kube-system"], seen
+    assert any("/namespaces/kube-system/pods" in h for h in hits)
+    assert any("/namespaces/argocd/pods" in h for h in hits)
+
+
+def test_all_namespaces_refuses_from_json(tmp_path, capsys):
+    """离线快照本身已限定命名空间，混用必须判不出（2），不能静默只清一个。"""
+    snap = tmp_path / "snap.json"
+    snap.write_text(json.dumps({"items": []}), encoding="utf-8")
+    assert main(["--all-namespaces", "--from-json", str(snap), "--dry-run"]) == 2
+    assert "不能同时用" in capsys.readouterr().err
+
+
+def test_all_namespaces_empty_list_is_undecidable(tmp_path, monkeypatch, capsys):
+    """列不出命名空间 = 判不出（2），不能当成「没有要清的」退 0。"""
+    import scripts.pod_gc as pg
+
+    (tmp_path / "token").write_text("dummy-token\n", encoding="utf-8")
+    (tmp_path / "ca.crt").write_text("", encoding="utf-8")
+    monkeypatch.setattr(pg, "SA_DIR", str(tmp_path))
+    monkeypatch.setattr(pg.ssl, "create_default_context", lambda **_kw: None)
+    monkeypatch.setattr(pg, "_api_call", lambda *_a, **_k: {"items": []})
+
+    assert main(["--all-namespaces", "--dry-run"]) == 2
+    assert "判不出" in capsys.readouterr().err

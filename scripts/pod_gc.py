@@ -291,6 +291,10 @@ def main(argv: list[str] | None = None) -> int:
     # 可重复：`--namespace a --namespace b`。2026-11-22 之前只能清一个，
     # 于是 sub2api 攒了 1894 个 Evicted Pod 无人清（pod-gc 只扫 fd-prod），
     # 而那批残骸正是节点 DiskPressure 的放大器。
+    ap.add_argument("--all-namespaces", action="store_true",
+                    help="枚举全部命名空间。**优先用它**：硬编码清单会漂——2026-11-26 与 "
+                         "2026-11-28 两次节点被死 Pod 顶盘，尸体全在 kube-system（coredns-recovery）"
+                         "与 argocd（repo-server），而清单里这两个都没有。")
     ap.add_argument("--namespace", action="append", dest="namespaces",
                     metavar="NS",
                     default=None,
@@ -310,7 +314,20 @@ def main(argv: list[str] | None = None) -> int:
 
     now = datetime.now(timezone.utc)
 
-    if args.namespaces:
+    if args.all_namespaces:
+        if args.from_json:
+            print("--all-namespaces 与 --from-json 不能同时用（离线快照本身已限定命名空间）",
+                  file=sys.stderr)
+            return 2
+        token = open(f"{SA_DIR}/token", encoding="utf-8").read().strip()
+        ctx = ssl.create_default_context(cafile=f"{SA_DIR}/ca.crt")
+        items = _api_call("/api/v1/namespaces", token=token, ctx=ctx).get("items") or []
+        namespaces = sorted({(i.get("metadata") or {}).get("name") for i in items} - {None})
+        if not namespaces:
+            # 列不出命名空间 = 判不出，绝不当成「没有要清的」
+            print("判不出：列不出命名空间", file=sys.stderr)
+            return 2
+    elif args.namespaces:
         namespaces = [n for n in args.namespaces if n and n.strip()]
     else:
         env_ns = (os.environ.get("POD_GC_NAMESPACE") or "").strip()
