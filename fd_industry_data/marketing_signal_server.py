@@ -22,6 +22,7 @@ from typing import Any, Callable
 
 from fastmcp import FastMCP
 
+from . import egress_proxy
 from .marketing_signal import USABLE_SOURCES, Signal, by_entity, collect
 
 #: 工具面闭集（registry 在册面与 pack allowTools 必须与之逐名一致）
@@ -59,9 +60,20 @@ def _default_fetchers() -> dict[str, Callable[[int], list[dict]]]:
     def _nfra(limit: int) -> list[dict]:
         return _load_spider("nfra", "spiders/nfra-penalty/spider.py").run_nfra_penalty(limit=limit)
 
-    fetchers["ted-notices"] = _ted
-    fetchers["worldbank-procnotices"] = _wb
-    fetchers["nfra-penalty"] = _nfra
+    # 出口接到 proxy-service 的 forwarder：这三个源在集群内直连是 ENETUNREACH
+    # （TED 走 CloudFront），不接就每个源跑满 45s 预算后返回 source_failures。
+    # 未配 FD_PROXY_FORWARDER 时 via_proxy 退化为直连，本地/测试行为不变。
+    egress_proxy.install()
+
+    def _through_proxy(source: str, fn):
+        def wrapped(limit: int) -> list[dict]:
+            with egress_proxy.via_proxy(source):
+                return fn(limit)
+        return wrapped
+
+    fetchers["ted-notices"] = _through_proxy("ted-notices", _ted)
+    fetchers["worldbank-procnotices"] = _through_proxy("worldbank-procnotices", _wb)
+    fetchers["nfra-penalty"] = _through_proxy("nfra-penalty", _nfra)
     return fetchers
 
 
