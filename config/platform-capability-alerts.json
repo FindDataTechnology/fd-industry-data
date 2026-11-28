@@ -3,7 +3,7 @@
   "delivery": {
     "channel": "webhook",
     "to": [
-      "alerts"
+      "alerts-data"
     ],
     "_note": "webhook 通道（2026-11-28 由 webhook 切来）：落到 Mattermost 的 alerts 频道，URL 走 env FD_ALERT_WEBHOOK_URL（Secret mattermost-alert-webhook）。`to` 在此通道只作标签。回滚：channel 改 smtp、to 填回 ['alerts']，SMTP env 仍在。"
   },

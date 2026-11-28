@@ -3,7 +3,7 @@
   "delivery": {
     "channel": "webhook",
     "to": [
-      "alerts"
+      "alerts-infra"
     ],
     "min_severity": "warning",
     "_note": "webhook 通道（add-mattermost-infrastructure 组 4）——落到 Mattermost 的 alerts 频道，接收端在 Secret mattermost-alert-webhook。`to` 在这个通道里只作标签（真实目标是 env 里的 URL）。切回邮件：channel 改 smtp、to 填回邮箱，SMTP 那套 env 仍在。"
