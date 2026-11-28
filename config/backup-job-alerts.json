@@ -1,12 +1,12 @@
 {
   "_note": "定时作业失败告警的投递声明（alert-delivery 要求：每条告警线须声明出口与接收人）。规则在 scripts/backup_job_alerts.py 里，本文件只承载投递与阈值。通道未配置时评估器记 not_configured（exit 3），绝不假装发过。",
   "delivery": {
-    "channel": "relay",
+    "channel": "webhook",
     "to": [
-      "alerts-slack"
+      "alerts-jobs"
     ],
     "min_severity": "warning",
-    "_note": "relay-alert-channel 试点（2026-11-21）：目标名不透明，由部署的 FD_ALERT_RELAY_URL 决定投到哪个后端。当前指向 cell 的 /api/bots/relay/send，alerts-slack 绑到 Slack #全体。回滚=把 channel 改回 smtp 并把 to 改回两个邮箱。"
+    "_note": "webhook 通道（2026-11-28 由 relay 切来）→ Mattermost #alerts-jobs（定时作业告警）。URL 走 env FD_ALERT_WEBHOOK_URL（Secret mattermost-alert-webhook-jobs）。`to` 在此通道只作标签。回滚：channel 改回 relay、to 填回 ['alerts-slack']。"
   },
   "thresholds": {
     "stall_periods": 2,
