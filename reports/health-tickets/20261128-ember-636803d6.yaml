@@ -1,0 +1,35 @@
+ticket_id: 20261128-ember-636803d6
+source: ember
+unit: spiders/ember/
+kind: repair
+created_at: '2026-11-28T01:58:11.673452+00:00'
+category: null
+needs_human: true
+suspected_anti_bot: false
+suggested_action: 补充遥测样本后复检（证据不足）
+evidence:
+  window:
+    from: '2026-11-06 09:59:08.090753+00'
+    to: '2026-11-06 09:59:08.090753+00'
+  failing_runs:
+  - started_at: '2026-11-06 09:59:08.090753+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: ember: 缺少 API key —— 未注入环境变量 EMBER_API_KEY（运行时由
+      fd-industry-source-keys envFrom 注入；本地需 source secrets/env 后再跑）'
+    http_status: null
+  last_success: null
+  watermark:
+    latest: null
+    basis: unknown（遥测未提供数据期；无成功运行记录）
+  notes: rule2:insufficient-evidence tail_failed=1<min_runs_for_verdict=3 last_success_age=noneh
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261128-ember-636803d6.yaml
+golden:
+- spiders/ember/golden/001-ember.json
+lifecycle:
+- at: '2026-11-28T01:58:11.673452+00:00'
+  event: created
+terminal: null
+evidence_signature: 211b3020418b

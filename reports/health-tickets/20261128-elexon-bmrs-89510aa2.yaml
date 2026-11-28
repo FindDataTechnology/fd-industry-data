@@ -1,0 +1,97 @@
+ticket_id: 20261128-elexon-bmrs-89510aa2
+source: elexon-bmrs
+unit: spiders/elexon-bmrs/
+kind: repair
+created_at: '2026-11-28T01:58:11.673452+00:00'
+category: contract
+needs_human: false
+suspected_anti_bot: true
+suggested_action: 更换数据表面（官方 API/替代入口）或退役；禁止逆向
+evidence:
+  window:
+    from: '2026-10-29 22:33:05.086294+00'
+    to: '2026-11-27 22:33:29.26528+00'
+  failing_runs:
+  - started_at: '2026-11-06 09:59:05.683987+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: elexon-bmrs: 请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json:
+      HTTPError: HTTP Error 403: Forbidden'
+    http_status: null
+  - started_at: '2026-11-19 22:33:06.62549+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: elexon-bmrs: 请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json:
+      URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in
+      violation of protocol (_ssl.c:1011)>'
+    http_status: null
+  - started_at: '2026-11-19 22:33:27.696345+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: elexon-bmrs: 请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json:
+      URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in
+      violation of protocol (_ssl.c:1011)>'
+    http_status: null
+  - started_at: '2026-11-20 22:33:06.913474+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: elexon-bmrs: 请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json:
+      URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in
+      violation of protocol (_ssl.c:1011)>'
+    http_status: null
+  - started_at: '2026-11-20 22:33:29.69999+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: elexon-bmrs: 请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json:
+      URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in
+      violation of protocol (_ssl.c:1011)>'
+    http_status: null
+  - started_at: '2026-11-26 01:25:53.914218+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: elexon-bmrs: 请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json:
+      URLError: <urlopen error timed out>'
+    http_status: null
+  - started_at: '2026-11-26 22:33:09.907895+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: elexon-bmrs: 请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json:
+      HTTPError: HTTP Error 403: Forbidden'
+    http_status: null
+  - started_at: '2026-11-26 22:33:29.959279+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: elexon-bmrs: 请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json:
+      HTTPError: HTTP Error 403: Forbidden'
+    http_status: null
+  - started_at: '2026-11-27 22:33:10.245051+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: elexon-bmrs: 请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json:
+      HTTPError: HTTP Error 403: Forbidden'
+    http_status: null
+  - started_at: '2026-11-27 22:33:29.26528+00'
+    status: failed
+    rows: 0
+    error_summary: 'RuntimeError: elexon-bmrs: 请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json:
+      HTTPError: HTTP Error 403: Forbidden'
+    http_status: null
+  last_success:
+    started_at: '2026-11-24 22:33:08.16328+00'
+    rows: 31
+  watermark:
+    latest: '2026-11-23'
+    basis: run telemetry watermark
+  notes: 'rule3:anti-bot run#2/5 http_status=None error=''RuntimeError: elexon-bmrs:
+    请求失败 https://data.elexon.co.uk/bmrs/api/v1/datasets/TEMP?format=json: HTTPError:
+    HTTP Error …'''
+verify:
+  commands:
+  - python3 scripts/health_verify.py --ticket reports/health-tickets/20261128-elexon-bmrs-89510aa2.yaml
+golden:
+- spiders/elexon-bmrs/golden/001-elexon-bmrs.json
+lifecycle:
+- at: '2026-11-28T01:58:11.673452+00:00'
+  event: created
+terminal: null
+evidence_signature: 8737ffdf27b2
