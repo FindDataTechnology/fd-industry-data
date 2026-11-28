@@ -27,6 +27,8 @@ COPY fd_industry_data/marketing_signal.py /app/fd_industry_data/marketing_signal
 COPY fd_industry_data/marketing_signal_server.py /app/fd_industry_data/marketing_signal_server.py
 COPY fd_industry_data/tabular/ /app/fd_industry_data/tabular/
 COPY fd_industry_data/http.py /app/fd_industry_data/http.py
+# 出口代理接线（2026-11-28）：marketing_signal_server 直接 import 它
+COPY fd_industry_data/egress_proxy.py /app/fd_industry_data/egress_proxy.py
 COPY spiders/__init__.py /app/spiders/__init__.py
 COPY spiders/ted-notices/ /app/spiders/ted-notices/
 COPY spiders/worldbank-procnotices/ /app/spiders/worldbank-procnotices/
