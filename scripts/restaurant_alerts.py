@@ -264,6 +264,16 @@ def deliver_transitions(states: dict[str, dict], cfg: dict, *, dry_run: bool, no
 
     # 收件人来自配置（版本化），因此不能用"要求 env 带 TO"的那个构造函数。
     recipients = _notify_targets(cfg)
+    # 声明的通道必须真被使用（2026-11-28）：此前固定走 SMTP，`channel: webhook`
+    # 会被静默忽略、照样发邮件并判绿。
+    if str(((cfg.get("delivery") or {}).get("channel")) or "smtp").strip().lower() == "webhook":
+        url = os.environ.get("FD_ALERT_WEBHOOK_URL", "").strip()
+        messages = [{"rule_id": item["rule"],
+                     "subject": f"[{_rule_label(cfg)}] {'越阈' if kind == 'alert' else '恢复'}：{item['rule']} / {item.get('concept')}",
+                     "body": str(item.get("detail") or item) }
+                    for kind, item in pending]
+        receipt.update(alert_notify.dispatch_webhook(messages, url))
+        return receipt
     smtp = smtp_from_env(recipients=recipients)
     if smtp is None:
         receipt["skipped"] = len(pending)

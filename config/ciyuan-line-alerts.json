@@ -1,10 +1,12 @@
 {
   "_note": "词元按线花费告警的投递声明（alert-delivery 要求：每条告警线须声明出口与接收人）。规则在 scripts/ciyuan_line_alerts.py 里，本文件只承载投递与阈值。通道未配置时评估器记 not_configured（exit 3），绝不假装发过。",
   "delivery": {
-    "channel": "smtp",
-    "to": ["1253774197@qq.com", "aloadtree@gmail.com"],
+    "channel": "webhook",
+    "to": [
+      "alerts"
+    ],
     "min_severity": "warning",
-    "_note": "与其它五条告警线同一收件人；env FD_ALERT_SMTP_TO 非空时以 env 为准。"
+    "_note": "webhook 通道（2026-11-28 由 webhook 切来）：落到 Mattermost 的 alerts 频道，URL 走 env FD_ALERT_WEBHOOK_URL（Secret mattermost-alert-webhook）。`to` 在此通道只作标签。回滚：channel 改 smtp、to 填回 ['alerts']，SMTP env 仍在。"
   },
   "thresholds": {
     "default_daily_usd": 50,

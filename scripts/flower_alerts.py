@@ -800,6 +800,18 @@ def deliver_notifications(items: list[dict], cfg: dict, *, dry_run: bool,
     # 收件人来自配置（版本化），所以不能用"要求 env 带 TO"的构造函数：
     # 那会让"配置里写了收件人、env 没设 TO"被判成无通道（2026-11-08 踩到）。
     recipients = _notify_targets(cfg)
+    # 声明的通道必须真被使用（2026-11-28）：此前固定走 SMTP，配置里写
+    # `channel: webhook` 会被静默忽略、照样发邮件并判绿。
+    if str(((cfg.get("delivery") or {}).get("channel")) or "smtp").strip().lower() == "webhook":
+        from fd_industry_data.alerts_core.notify import dispatch_webhook  # noqa: PLC0415
+
+        url = os.environ.get("FD_ALERT_WEBHOOK_URL", "").strip()
+        messages = [{"rule_id": item["name"],
+                     "subject": f"[花卉线] {'越阈' if item['action'] == 'alert' else '恢复'}：{item['name']}",
+                     "body": "\n".join(item.get("lines") or []) or str(item.get("result", ""))}
+                    for item in items]
+        receipt.update(dispatch_webhook(messages, url))
+        return receipt
     from fd_industry_data.alerts_core.delivery import smtp_from_env  # noqa: PLC0415
 
     cfg_smtp = smtp_from_env(recipients=recipients)

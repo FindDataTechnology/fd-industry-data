@@ -643,6 +643,41 @@ def _smtp_config(timeout_default: float = 15.0) -> dict:
     }
 
 
+def _declared_channel() -> str:
+    """线路配置声明的投递通道（`delivery.channel`），缺省 smtp。
+
+    2026-11-28：本脚本此前固定调 send_email，配置里写 `channel: webhook` 会被
+    静默忽略、照样发邮件并判绿——正是 notify.py 注释里记的那个坑。现在按配置分派。
+    """
+    try:
+        doc = json.loads(DEFAULT_CONFIG.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — 读不到配置就按历史行为走 smtp
+        return "smtp"
+    return str(((doc.get("delivery") or {}).get("channel")) or "smtp").strip().lower()
+
+
+def send_notice(subject: str, body: str, timeout_default: float = 15.0) -> dict:
+    """按配置声明的通道投递一条通知。
+
+    webhook 走 Mattermost incoming webhook；其余（含未知值）退回既有的 SMTP 路径。
+    未知通道**不静默改写**：SMTP 分支会因缺少 SMTP env 报错并留痕，运维看得到。
+    """
+    if _declared_channel() == "webhook":
+        from fd_industry_data.alerts_core.notify import send_webhook  # noqa: PLC0415
+
+        url = os.environ.get("FD_ALERT_WEBHOOK_URL", "").strip()
+        if not url:
+            return {"channel": "webhook", "status": "error",
+                    "error": "webhook 已声明但 FD_ALERT_WEBHOOK_URL 未配置（已留记录）"}
+        try:
+            send_webhook(url, subject, body)
+            return {"channel": "webhook", "status": "sent"}
+        except Exception as exc:  # noqa: BLE001 — 投递失败必留痕，不炸整批
+            return {"channel": "webhook", "status": "error",
+                    "error": f"{type(exc).__name__}: {exc}"[:400]}
+    return send_email(subject, body, timeout_default)
+
+
 def send_email(subject: str, body: str, timeout_default: float = 15.0) -> dict:
     """发一封邮件；**任何失败都返回记录，不抛异常**（不阻塞同批其它通知）。"""
     try:
@@ -736,7 +771,7 @@ def dispatch_notifications(items: list[dict], dry_run: bool,
                       "note": "dry-run 不发邮件"}
         else:
             try:
-                result = send_email(item["subject"], item["body"], timeout_default)
+                result = send_notice(item["subject"], item["body"], timeout_default)
             except Exception as exc:  # noqa: BLE001 — 单条失败绝不阻塞同批
                 result = {"channel": "email", "status": "error",
                           "error": f"{type(exc).__name__}: {exc}"[:400]}
